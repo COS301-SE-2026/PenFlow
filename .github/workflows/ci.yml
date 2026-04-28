@@ -42,7 +42,7 @@ jobs:
 
       # Testing (Coverage included)
       - name: Run all tests with coverage
-        run: pnpm test -- --json --outputFile=test-results.json --coverage --coverageReporters=lcov --coverageDirectory=coverage --forceExit --maxWorkers=50%
+        run: pnpm -r exec jest --json --outputFile=test-results.json --coverage --coverageReporters=lcov --coverageDirectory=coverage --forceExit --maxWorkers=50%
 
       - name: Test Results Output
         if: github.event_name == 'push'
