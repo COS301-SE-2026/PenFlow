@@ -1,0 +1,51 @@
+FROM node:20-alpine AS base
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
+
+WORKDIR /app
+
+# Copies Workspace Files
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY backend/package.json ./backend/
+
+# Install All Dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy Backend Source
+COPY backend ./backend
+
+# Build Backend
+WORKDIR /app/backend
+RUN pnpm build
+
+# Production Phase
+FROM node:20-alpine
+
+RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
+
+WORKDIR /app
+
+# Copies Workspace Files
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY backend/package.json ./backend/
+
+# Installs Only Production Dependencies
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy the Built Backend
+COPY --from=base /app/backend/dist ./backend/dist
+COPY backend/package.json ./backend/
+
+# Non-Root User Setup
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+
+RUN chown -R nodejs:nodejs /app
+
+USER nodejs
+
+WORKDIR /app/backend
+
+EXPOSE 3001
+
+CMD ["node", "dist/server.js"]

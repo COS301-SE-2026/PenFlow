@@ -1,0 +1,93 @@
+name: PenFlow CI
+# Decide on what runs the workflow
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+# Remember to configure the codecov and gist badge tokens
+
+env:
+  GIST_ID: af8001a22548859ade98fec8bd7e9712
+
+jobs:
+  ci-pipeline:
+    name: Lint, Test, and Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      # Setup 
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Linting
+      - name: Lint Codebase
+        run: pnpm run lint
+
+      # Testing (Coverage included)
+      - name: Run all tests with coverage
+        run: pnpm test -- --json --outputFile=test-results.json --coverage --coverageReporters=lcov --coverageDirectory=coverage --forceExit --maxWorkers=50%
+
+      - name: Test Results Output
+        if: github.event_name == 'push'
+        id: parse-results
+        run: |
+          if [ -f test-results.json ]; then
+            PASSED=$(node -e "const r=require('./test-results.json');console.log(r.numPassedTests)")
+            TOTAL=$(node -e "const r=require('./test-results.json');console.log(r.numTotalTests)")
+            FAILED=$(node -e "const r=require('./test-results.json');console.log(r.numFailedTests)")
+            COLOR=$([ "$FAILED" -eq 0 ] && echo "brightgreen" || echo "red")
+            echo "passed=$PASSED" >> $GITHUB_OUTPUT
+            echo "total=$TOTAL" >> $GITHUB_OUTPUT
+            echo "color=$COLOR" >> $GITHUB_OUTPUT
+          else
+            echo "passed=0" >> $GITHUB_OUTPUT
+            echo "total=0" >> $GITHUB_OUTPUT
+            echo "color=lightgrey" >> $GITHUB_OUTPUT
+          fi
+
+      # Badge
+      - name: Update all-tests badge
+        if: github.event_name == 'push' && steps.parse-results.outputs.total != '0'
+        uses: schneegans/dynamic-badges-action@v1.7.0
+        with:
+          auth: ${{ secrets.GIST_TOKEN }}
+          gistID: ${{ env.GIST_ID }}
+          filename: penflow-tests.json
+          label: tests
+          message: "${{ steps.parse-results.outputs.passed }}/${{ steps.parse-results.outputs.total }} passed"
+          color: ${{ steps.parse-results.outputs.color }}
+
+      # Code Coverage
+      - name: Upload project coverage
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: coverage
+          fail_ci_if_error: false
+
+      # Build 
+      - name: Build Backend
+        run: pnpm --filter backend run build
+
+      - name: Build Frontend
+        run: pnpm --filter frontend run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001

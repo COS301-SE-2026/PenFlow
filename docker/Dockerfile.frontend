@@ -1,0 +1,52 @@
+FROM node:20-alpine AS base
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
+
+WORKDIR /app
+
+# Copies Workspace Files
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY frontend/package.json ./frontend/
+
+# Install All Dependencies
+RUN pnpm install --frozen-lockfile
+
+# Copy Frontend Source
+COPY frontend ./frontend
+
+# Build Frontend
+WORKDIR /app/frontend
+RUN pnpm build
+
+# Production Phase
+FROM node:20-alpine
+
+RUN corepack enable && corepack prepare pnpm@10.33.2 --activate
+
+WORKDIR /app
+
+# Copies Workspace Files
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
+COPY frontend/package.json ./frontend/
+
+# Installs Only Production Dependencies
+RUN pnpm install --frozen-lockfile --prod
+
+# Copy the Built Frontend
+COPY --from=base /app/frontend/.next ./frontend/.next
+COPY --from=base /app/frontend/public ./frontend/public
+COPY frontend/next.config.mjs ./frontend/
+
+# Non-Root User Setup
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+
+RUN chown -R nodejs:nodejs /app
+
+USER nodejs
+
+WORKDIR /app/frontend
+
+EXPOSE 3000
+
+CMD ["pnpm", "start"]
