@@ -2,6 +2,7 @@ import { Router } from "express";
 import * as scanController from "../controllers/scanController";
 
 const router: Router = Router();
+// Will need to delete the disable eslint lines and actually fix the linting issues.
 
 // eslint-disable-next-line @typescript-eslint/no-misused-promises
 router.get("/scans", scanController.listScans);

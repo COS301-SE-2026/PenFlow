@@ -2,9 +2,9 @@ name: PenFlow CI
 # Decide on what runs the workflow
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "dev"]
   pull_request:
-    branches: ["main"]
+    branches: ["main", "dev"]
 
 # Remember to configure the codecov and gist badge tokens
 
@@ -42,46 +42,46 @@ jobs:
 
       # Testing (Coverage included)
       - name: Run all tests with coverage
-        run: pnpm -r exec jest --json --outputFile=test-results.json --coverage --coverageReporters=lcov --coverageDirectory=coverage --forceExit --maxWorkers=50%
+        run: pnpm test --json --outputFile=test-results.json --coverage --coverageReporters=lcov --coverageDirectory=coverage --forceExit --maxWorkers=50%
 
-      - name: Test Results Output
-        if: github.event_name == 'push'
-        id: parse-results
-        run: |
-          if [ -f test-results.json ]; then
-            PASSED=$(node -e "const r=require('./test-results.json');console.log(r.numPassedTests)")
-            TOTAL=$(node -e "const r=require('./test-results.json');console.log(r.numTotalTests)")
-            FAILED=$(node -e "const r=require('./test-results.json');console.log(r.numFailedTests)")
-            COLOR=$([ "$FAILED" -eq 0 ] && echo "brightgreen" || echo "red")
-            echo "passed=$PASSED" >> $GITHUB_OUTPUT
-            echo "total=$TOTAL" >> $GITHUB_OUTPUT
-            echo "color=$COLOR" >> $GITHUB_OUTPUT
-          else
-            echo "passed=0" >> $GITHUB_OUTPUT
-            echo "total=0" >> $GITHUB_OUTPUT
-            echo "color=lightgrey" >> $GITHUB_OUTPUT
-          fi
+      # - name: Test Results Output
+      #   if: github.event_name == 'push'
+      #   id: parse-results
+      #   run: |
+      #     if [ -f test-results.json ]; then
+      #       PASSED=$(node -e "const r=require('./test-results.json');console.log(r.numPassedTests)")
+      #       TOTAL=$(node -e "const r=require('./test-results.json');console.log(r.numTotalTests)")
+      #       FAILED=$(node -e "const r=require('./test-results.json');console.log(r.numFailedTests)")
+      #       COLOR=$([ "$FAILED" -eq 0 ] && echo "brightgreen" || echo "red")
+      #       echo "passed=$PASSED" >> $GITHUB_OUTPUT
+      #       echo "total=$TOTAL" >> $GITHUB_OUTPUT
+      #       echo "color=$COLOR" >> $GITHUB_OUTPUT
+      #     else
+      #       echo "passed=0" >> $GITHUB_OUTPUT
+      #       echo "total=0" >> $GITHUB_OUTPUT
+      #      echo "color=lightgrey" >> $GITHUB_OUTPUT
+      #     fi
 
       # Badge
-      - name: Update all-tests badge
-        if: github.event_name == 'push' && steps.parse-results.outputs.total != '0'
-        uses: schneegans/dynamic-badges-action@v1.7.0
-        with:
-          auth: ${{ secrets.GIST_TOKEN }}
-          gistID: ${{ env.GIST_ID }}
-          filename: penflow-tests.json
-          label: tests
-          message: "${{ steps.parse-results.outputs.passed }}/${{ steps.parse-results.outputs.total }} passed"
-          color: ${{ steps.parse-results.outputs.color }}
+      # - name: Update all-tests badge
+      #   if: github.event_name == 'push' && steps.parse-results.outputs.total != '0'
+      #   uses: schneegans/dynamic-badges-action@v1.7.0
+      #   with:
+      #     auth: ${{ secrets.GIST_TOKEN }}
+      #     gistID: ${{ env.GIST_ID }}
+      #     filename: penflow-tests.json
+      #     label: tests
+      #     message: "${{ steps.parse-results.outputs.passed }}/${{ steps.parse-results.outputs.total }} passed"
+      #     color: ${{ steps.parse-results.outputs.color }}
 
       # Code Coverage
-      - name: Upload project coverage
-        if: always()
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          directory: coverage
-          fail_ci_if_error: false
+      # - name: Upload project coverage
+      #   if: always()
+      #   uses: codecov/codecov-action@v4
+      #   with:
+      #     token: ${{ secrets.CODECOV_TOKEN }}
+      #     directory: coverage
+      #     fail_ci_if_error: false
 
       # Build 
       - name: Build Backend

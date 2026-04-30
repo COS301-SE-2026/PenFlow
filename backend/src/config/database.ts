@@ -6,9 +6,7 @@ export let supabase: SupabaseClient;
 
 export function initializeDatabase(): void {
   if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
-    console.warn(
-      "Supabase credentials not present. Database connection cannot be established."
-    );
+    console.warn("Supabase credentials not present. Database connection cannot be established.");
     return;
   }
 

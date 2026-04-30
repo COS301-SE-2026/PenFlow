@@ -7,8 +7,6 @@ initializeDatabase();
 const PORT = env.PORT;
 
 app.listen(PORT, () => {
-  // eslint-disable-next-line no-console
   console.log(`    - Local:       http://localhost:${PORT}`);
-  // eslint-disable-next-line no-console
   console.log(`    - Docs:        http://localhost:${PORT}/api/docs`);
 });

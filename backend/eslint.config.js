@@ -29,8 +29,8 @@ module.exports = [
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/no-floating-promises": "error",
       "@typescript-eslint/no-misused-promises": "error",
-      
-      "no-console": ["warn", { allow: ["warn", "error"] }],
+      // Fix once development vs production rules are implemented
+      "no-console": "off",
       "prefer-const": "error",
       "no-var": "error",
       "eqeqeq": ["error", "always"],
