@@ -39,8 +39,9 @@ RUN pnpm install --frozen-lockfile --prod
 COPY --from=builder /app/frontend/.next ./frontend/.next
 COPY --from=builder /app/frontend/public ./frontend/public
 
-RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001 -G nodejs
-RUN chown -R nextjs:nodejs /app
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001 -G nodejs && \
+    chown -R nextjs:nodejs /app
 
 USER nextjs
 

@@ -45,7 +45,7 @@ services:
     environment:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
       REDIS_URL: redis://redis:6379/0
-      DATABASE_URL: postgresql://penflow:penflow_dev_password@postgres:5432/penflow
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -88,9 +88,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: penflow
-      POSTGRES_PASSWORD: penflow_dev_password
-      POSTGRES_DB: penflow
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - penflow-postgres-data:/var/lib/postgresql/data
     restart: unless-stopped

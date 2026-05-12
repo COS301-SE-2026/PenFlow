@@ -20,8 +20,8 @@ ENV PYTHONUNBUFFERED=1
 COPY --from=deps /usr/local /usr/local
 COPY backend/app ./app
 
-RUN adduser --disabled-password --gecos "" appuser
-RUN chown -R appuser:appuser /app
+RUN adduser --disabled-password --gecos "" appuser && \
+    chown -R appuser:appuser /app
 
 USER appuser
 

@@ -1,3 +1,6 @@
+# Remember to add health checks plus ensure run time compatibility for things such as e2e/integration tests
+# Also codecov
+
 name: PenFlow CI
 
 on:
