@@ -88,4 +88,22 @@ This is an example of how the worker extracts and cleans the data into our predi
 }
 ```
 
+## Database Integration (Backend Mapping)
 
+The OSINT worker output is designed to integrate directly with the PostgreSQL schema.
+
+### 1. Source Results
+The entire normalized JSON object is stored in the `scan_sources` table:
+* **Target Table**: `scan_sources`
+* **Target Column**: `raw_result` (Type: `JSONB`)
+* **Logic**: Each worker updates its own row in this table once the normalization is complete.
+
+### 2. Assets Extraction
+Subdomains discovered by the `crt.sh` worker are mapped to the `assets` table:
+* **Target Table**: `assets`
+* **Field**: `discovered_names[]` -> `identifier`
+* **Type**: `asset_type = 'subdomain'`
+
+### 3. Automated Findings
+Critical data points from the workers (eg: high-confidence emails or known breaches) are promoted to the `findings` table:
+* **Logic**: If the `Number of pawned accounts > 0`, a row is created in `findings` with `severity = 'medium'`.
