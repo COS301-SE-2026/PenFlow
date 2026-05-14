@@ -4,6 +4,7 @@ from fastapi import APIRouter,Depends,HTTPException,status
 from sqlalchemy.orm import Session
 from app.schemas.scan import InitiateScanRequest, InitiateScanResponse
 import uuid
+from fastapi import Response
 
 router= APIRouter(prefix="/scans",tags=["Scans"])
 
@@ -38,4 +39,37 @@ except Exception as e:
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         detail="Failed to initiate scan"
         
+    )
+
+@router.get(
+    "/{scan_id}/pdf",
+    response_class=Response,
+    status_code=status.HTTP_200_OK
+
+)
+
+async def download_scan_pdf(
+    scan_id: str,
+    #db: Session = Depends(get db)
+
+):
+
+    """
+    Generate and download a branded PDF report for a completed scan.
+    Triggers WeasyPrint in the background/service layer.
+    """
+
+    #pdf_bytes = await ReportService.generate_pdf(db=db, scan_id=scan_id)
+    #if not pdf_bytes:
+    #   raise HTTPException(status_code=404, detail="Report not found or not completed.")
+
+    #MOCK, I AM MOCKING THIS!!!!
+    mock_pdf_content = b"%PDF-1.4\n%Mock PDF Document for PenFlow Phase 1\n"
+
+    return Response(
+        content=mock_pdf_content,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="PenFlow_Report_{scan_id}.pdf"'
+        }
     )
