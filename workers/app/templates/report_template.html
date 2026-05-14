@@ -12,25 +12,85 @@ identified during the Phase 1 CTEM scan.
 <h2>Findings</h2>
 
 <div class="finding-card">
-    <h3>Exposed Service Detected</h3>
+    <h3>Domain & Mail Security</h3>
+    <span class="severity severity-medium">MEDIUM</span>
+
+    <p>
+        SPF records were identified, but no DMARC policy
+        was detected for the target domain.
+    </p>
+
+    <p><strong>Source:</strong> DNS / WHOIS</p>
+</div>
+
+<div class="finding-card">
+    <h3>Infrastructure Exposure</h3>
     <span class="severity severity-high">HIGH</span>
 
     <p>
-        Shodan identified an exposed HTTP service
-        running outdated software.
+        Shodan identified publicly exposed services
+        associated with the target infrastructure.
     </p>
 
     <p><strong>Source:</strong> Shodan</p>
 </div>
 
 <div class="finding-card">
-    <h3>Subdomain Identified</h3>
+    <h3>Technology Stack Identified</h3>
     <span class="severity severity-info">INFO</span>
 
     <p>
-        crt.sh identified additional subdomains
-        associated with the target.
+        Publicly accessible technologies and frameworks
+        were identified for the target application.
+    </p>
+
+    <p><strong>Source:</strong> Wappalyzer</p>
+</div>
+
+<div class="finding-card">
+    <h3>Subdomains Identified</h3>
+    <span class="severity severity-info">INFO</span>
+
+    <p>
+        Additional subdomains associated with the target
+        were identified through certificate transparency logs.
     </p>
 
     <p><strong>Source:</strong> crt.sh</p>
+</div>
+
+<div class="finding-card">
+    <h3>Reputation Indicators Detected</h3>
+    <span class="severity severity-low">LOW</span>
+
+    <p>
+        URL reputation analysis identified minor external
+        reputation indicators related to the target domain.
+    </p>
+
+    <p><strong>Source:</strong> URLScan</p>
+</div>
+
+<div class="finding-card">
+    <h3>Email Exposure Detected</h3>
+    <span class="severity severity-medium">MEDIUM</span>
+
+    <p>
+        Publicly accessible email addresses associated with
+        the target domain were identified.
+    </p>
+
+    <p><strong>Source:</strong> Hunter.io</p>
+</div>
+
+<div class="finding-card">
+    <h3>Breach Exposure Identified</h3>
+    <span class="severity severity-high">HIGH</span>
+
+    <p>
+        Accounts associated with the target domain were
+        identified in known public breach datasets.
+    </p>
+
+    <p><strong>Source:</strong> HaveIBeenPwned</p>
 </div>
