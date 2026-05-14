@@ -2,7 +2,8 @@
 
 from fastapi import APIRouter,Depends,HTTPException,status
 from sqlalchemy.orm import Session
-from app.schemas.scan import InitiateScanRequest,InitiateScanResponse
+from app.schemas.scan import InitiateScanRequest, InitiateScanResponse
+import uuid
 
 router= APIRouter(prefix="/scans",tags=["Scans"])
 
@@ -26,12 +27,12 @@ try:
     #db stuff
     #placeholder return
 
-    from uuid import uuid4
     return InitiateScanResponse(
         scan_id=uuid4(),
         status="pending"
 
     )
+except Exception as e:
     #Once proper logic is setup I'll rather log this and return a 500/specific 400 code 
     raise HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
