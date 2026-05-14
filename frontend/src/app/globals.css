@@ -175,4 +175,127 @@ h1, h2, h3 {
 }
 
 
+/* hero */
+.hero {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  justify-content: space-between;
+  min-height: calc(100vh - 72px);
+  background: #ffffff;
+  position: relative;
+}
+
+.heroTextWrap {
+  position: relative;
+  z-index: 2;
+  align-self: flex-end;
+  margin: 64px 100px 0 32px;
+  max-width: 780px;
+}
+
+.heroTextWrap h1 {
+  margin: 0;
+  font-size: clamp(4.5rem, 9vw, 9.5rem);
+  line-height: 0.92;
+  color: #0a1628;
+  text-shadow: none;
+}
+
+.heroTextWrap p {
+  margin: 28px 0 0;
+  max-width: 620px;
+  font-size: clamp(1rem, 1.75vw, 1.55rem);
+  line-height: 1.65;
+  font-weight: 500;
+  color: #1e3a52;
+}
+
+/* water graphic */
+.waterline {
+  position: relative;
+  height: 200px;
+  width: 100%;
+  overflow: hidden;
+  z-index: 2;
+}
+
+.submarine {
+  position: absolute;
+  left: 0px;
+  bottom: 18px;
+  z-index: 5;
+  width: clamp(182px, 22vw, 280px);
+  height: auto;
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.45));
+}
+
+@media (max-width: 900px) {
+  .landing {
+    padding-left: 0;
+    padding-top: 60px;
+  }
+
+  .topbar {
+    width: 100%;
+    height: 60px;
+    flex-direction: row;
+    align-items: center;
+    border-right: none;
+    border-bottom: 1px solid var(--col-edge);
+  }
+
+  .logoPanel {
+    height: 100%;
+    width: auto;
+    padding: 0 12px;
+    border-radius: 0;
+    flex-shrink: 0;
+  }
+
+  .topnav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 0 12px;
+    gap: 16px;
+    align-items: center;
+  }
+
+  .nav-link {
+    padding: 4px 0;
+    border-left: none;
+    border-bottom: 2px solid transparent;
+    font-size: 0.78rem;
+  }
+
+  .nav-link:hover {
+    background: none;
+    border-left-color: transparent;
+    border-bottom-color: var(--col-cyan);
+  }
+
+  .hero {
+    min-height: calc(100vh - 130px);
+  }
+
+  .heroTextWrap {
+    margin: 32px 20px 0;
+  }
+
+  .heroTextWrap p {
+    font-size: clamp(0.95rem, 3vw, 1.2rem);
+  }
+
+  .waterline {
+    height: 170px;
+  }
+
+  .submarine {
+    left: 20px;
+    bottom: 32px;
+    width: clamp(120px, 34vw, 170px);
+  }
+}
+
+
 
