@@ -1,0 +1,42 @@
+{
+  "data": {
+    "domain": "hackerone.com",
+    "webmail": false,
+    "pattern": "{first}.{last}",
+    "organization": "HackerOne",
+    "emails": [
+      {
+        "value": "jobert@hackerone.com",
+        "type": "personal",
+        "confidence": 99,
+        "sources": [{"domain": "github.com", "extracted_on": "2023-01-10"}],
+        "first_name": "Jobert",
+        "last_name": "Abma",
+        "position": "Co-founder",
+        "department": "executive",
+        "twitter": "jobertabma"
+      },
+      {
+        "value": "michiel@hackerone.com",
+        "type": "personal",
+        "confidence": 92,
+        "sources": [{"domain": "hackerone.com", "extracted_on": "2023-03-15"}],
+        "first_name": "Michiel",
+        "last_name": "Prins",
+        "position": "Co-founder",
+        "department": "executive"
+      },
+      {
+        "value": "security@hackerone.com",
+        "type": "generic",
+        "confidence": 95,
+        "sources": [{"domain": "hackerone.com", "extracted_on": "2023-05-12"}]
+      }
+    ]
+  },
+  "meta": {
+    "results": 3,
+    "limit": 10,
+    "offset": 0
+  }
+}
