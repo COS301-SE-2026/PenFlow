@@ -23,17 +23,17 @@ async def initiate_ctem_scan(
 
 #Phase 1 this is the no auth scan also just a rough implementation for now until we have the other logic figured out
 
-try:
+    try:
     #I'm going to pass the validated request to the service layer
     #db stuff
     #placeholder return
 
     return InitiateScanResponse(
-        scan_id=uuid4(),
+        scan_id=uuid.uuid4(),
         status="pending"
 
     )
-except Exception as e:
+    except Exception as e:
     #Once proper logic is setup I'll rather log this and return a 500/specific 400 code 
     raise HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

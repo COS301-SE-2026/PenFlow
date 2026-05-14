@@ -1,0 +1,37 @@
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+import asyncio
+import json
+
+router = APIRouter(prefix="/ws", tags=["Realtime"])
+
+@router.websocket("/scans/{scan_id}/stream")
+async def scan_progress_stream(websocket: WebSocket, scan_id: str):
+    """
+    WebSocket endpoint for real-time Phase 1 scan progress.
+    The React frontend connects to this to update the UI loading bar.
+    """
+
+    await websocket.accept()
+
+    try:
+        #Redis Logic would be added here, but I'm going to mock all this for now
+
+    mock_events = [
+        {"progress": 10, "status": "running", "message": "Gathering DNS records..."},
+            {"progress": 35, "status": "running", "message": "Querying Certificate Transparency logs (crt.sh)..."},
+            {"progress": 60, "status": "running", "message": "Analyzing infrastructure via Shodan..."},
+            {"progress": 85, "status": "running", "message": "Checking credential exposures (HaveIBeenPwned)..."},
+            {"progress": 100, "status": "completed", "message": "Scan complete. Generating report..."}
+    ]
+
+    for events in mock_events:
+        await websocket.send_text(json.dumps({
+            "scan_id": scan_id,
+            **event
+        }))
+        await asyncio.sleep(2)
+
+    await websocket.close()
+
+except WebSocketDisconnect:
+    print(f"Client dissconnected from scan stream: {scan_id}")
