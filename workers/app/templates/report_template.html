@@ -1,96 +1,213 @@
-<h1>PenFlow CTEM Report</h1>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>PenFlow CTEM Report</title>
+</head>
+<body>
 
-<p>Target Domain: mockexample.com</p>
+    <header class="cover">
+        <h1>PenFlow CTEM Report</h1>
+        <p class="subtitle">Passive External Exposure Assessment</p>
 
-<h2>Executive Summary</h2>
+        <div class="meta-box">
+            <p><strong>Target:</strong> example.com</p>
+            <p><strong>Scan ID:</strong> mock-scan-id</p>
+            <p><strong>Generated:</strong> 14 May 2026</p>
+            <p><strong>Status:</strong> Completed</p>
+        </div>
+    </header>
 
-<p>
-This report summarizes passive reconnaissance findings
-identified during the Phase 1 CTEM scan.
-</p>
+    <section>
+        <h2>Executive Summary</h2>
+        <p>
+            This Phase 1 CTEM report summarizes passive open-source intelligence
+            collected for the target domain. The scan identified public-facing
+            infrastructure, technologies, subdomains, reputation indicators,
+            email exposure, and breach-related risks.
+        </p>
+    </section>
 
-<h2>Findings</h2>
+    <section>
+        <h2>Severity Overview</h2>
 
-<div class="finding-card">
-    <h3>Domain & Mail Security</h3>
-    <span class="severity severity-medium">MEDIUM</span>
+        <div class="severity-grid">
+            <div class="severity-card critical">Critical: 0</div>
+            <div class="severity-card high">High: 1</div>
+            <div class="severity-card medium">Medium: 2</div>
+            <div class="severity-card low">Low: 3</div>
+            <div class="severity-card info">Info: 5</div>
+        </div>
+    </section>
 
-    <p>
-        SPF records were identified, but no DMARC policy
-        was detected for the target domain.
-    </p>
+    <section>
+        <h2>Infrastructure</h2>
+        <p><strong>Source:</strong> Shodan</p>
 
-    <p><strong>Source:</strong> DNS / WHOIS</p>
-</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Hosting Provider</th>
+                    <th>IP Address</th>
+                    <th>Port</th>
+                    <th>State</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Cloudflare, Inc.</td>
+                    <td>104.16.99.52</td>
+                    <td>443</td>
+                    <td>Open</td>
+                </tr>
+                <tr>
+                    <td>Cloudflare, Inc.</td>
+                    <td>104.16.99.52</td>
+                    <td>80</td>
+                    <td>Open</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
 
-<div class="finding-card">
-    <h3>Infrastructure Exposure</h3>
-    <span class="severity severity-high">HIGH</span>
+    <section>
+        <h2>Technology Stack</h2>
+        <p><strong>Source:</strong> Wappalyzer</p>
 
-    <p>
-        Shodan identified publicly exposed services
-        associated with the target infrastructure.
-    </p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Technology</th>
+                    <th>Version</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Next.js</td>
+                    <td>Unknown</td>
+                </tr>
+                <tr>
+                    <td>Nginx</td>
+                    <td>1.24.0</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
 
-    <p><strong>Source:</strong> Shodan</p>
-</div>
+    <section>
+        <h2>Discovered Subdomains</h2>
+        <p><strong>Source:</strong> crt.sh</p>
+        <p><strong>Total Found:</strong> 3</p>
 
-<div class="finding-card">
-    <h3>Technology Stack Identified</h3>
-    <span class="severity severity-info">INFO</span>
+        <ul>
+            <li>www.example.com</li>
+            <li>api.example.com</li>
+            <li>mail.example.com</li>
+        </ul>
+    </section>
 
-    <p>
-        Publicly accessible technologies and frameworks
-        were identified for the target application.
-    </p>
+    <section>
+        <h2>Reputation Analysis</h2>
+        <p><strong>Source:</strong> URLScan</p>
 
-    <p><strong>Source:</strong> Wappalyzer</p>
-</div>
+        <div class="finding-card">
+            <h3>URLScan Reputation Result</h3>
+            <p><strong>Malicious Flags:</strong> 1</p>
+            <p><strong>URLScan UUID:</strong> mock-urlscan-uuid</p>
+            <div class="screenshot-section">
+                <h4>Captured Screenshot</h4>
 
-<div class="finding-card">
-    <h3>Subdomains Identified</h3>
-    <span class="severity severity-info">INFO</span>
+                <img
+                    src="mock_screenshot.png"
+                    alt="URLScan Screenshot"
+                    class="urlscan-screenshot"
+                >
+            </div>
+            <p>
+                A small number of reputation indicators were identified.
+                Further review is recommended before escalation.
+            </p>
+        </div>
+    </section>
 
-    <p>
-        Additional subdomains associated with the target
-        were identified through certificate transparency logs.
-    </p>
+    <section>
+        <h2>Email Exposure / Phishing Surface</h2>
+        <p><strong>Source:</strong> Hunter.io</p>
 
-    <p><strong>Source:</strong> crt.sh</p>
-</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Type</th>
+                    <th>Confidence</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>admin@example.com</td>
+                    <td>generic</td>
+                    <td>87%</td>
+                </tr>
+                <tr>
+                    <td>john@example.com</td>
+                    <td>personal</td>
+                    <td>72%</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
 
-<div class="finding-card">
-    <h3>Reputation Indicators Detected</h3>
-    <span class="severity severity-low">LOW</span>
+    <section>
+        <h2>Breach Exposure</h2>
+        <p><strong>Source:</strong> HaveIBeenPwned</p>
 
-    <p>
-        URL reputation analysis identified minor external
-        reputation indicators related to the target domain.
-    </p>
+        <div class="finding-card">
+            <h3>Known Breach Exposure</h3>
+            <span class="badge badge-medium">Medium</span>
+            <p><strong>Pwned Accounts:</strong> 2</p>
+            <p><strong>Known Breaches:</strong> LinkedIn, Adobe</p>
+            <p>
+                Public breach exposure was detected for accounts associated
+                with this domain.
+            </p>
+        </div>
+    </section>
 
-    <p><strong>Source:</strong> URLScan</p>
-</div>
+    <section>
+        <h2>Domain & Mail Security</h2>
+        <p><strong>Source:</strong> DNS / WHOIS</p>
 
-<div class="finding-card">
-    <h3>Email Exposure Detected</h3>
-    <span class="severity severity-medium">MEDIUM</span>
-
-    <p>
-        Publicly accessible email addresses associated with
-        the target domain were identified.
-    </p>
-
-    <p><strong>Source:</strong> Hunter.io</p>
-</div>
-
-<div class="finding-card">
-    <h3>Breach Exposure Identified</h3>
-    <span class="severity severity-high">HIGH</span>
-
-    <p>
-        Accounts associated with the target domain were
-        identified in known public breach datasets.
-    </p>
-
-    <p><strong>Source:</strong> HaveIBeenPwned</p>
-</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Record Type</th>
+                    <th>Status</th>
+                    <th>Finding</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>MX</td>
+                    <td>Found</td>
+                    <td>Mail servers are configured for this domain.</td>
+                </tr>
+                <tr>
+                    <td>SPF</td>
+                    <td>Found</td>
+                    <td>SPF record detected.</td>
+                </tr>
+                <tr>
+                    <td>DMARC</td>
+                    <td>Missing</td>
+                    <td>No DMARC policy was identified.</td>
+                </tr>
+                <tr>
+                    <td>WHOIS</td>
+                    <td>Found</td>
+                    <td>Registrar and ownership metadata available.</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+</body>
+</html>
