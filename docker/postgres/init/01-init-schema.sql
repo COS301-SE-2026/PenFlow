@@ -83,6 +83,7 @@ CREATE TABLE reports (
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
     pdf_path TEXT,
     generated_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     error_message TEXT,
 
     CHECK (status IN ('pending', 'generating', 'completed', 'failed'))
