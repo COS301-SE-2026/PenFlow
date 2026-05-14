@@ -64,6 +64,27 @@
         "name": "Pantheon",
         "version": "Unknown"
       }
+    ],
+    "programming_languages":
+    [
+      {
+        "name": "PHP",
+        "version": "Unknown"
+      }
+    ],
+    "databases":
+    [
+      {
+        "name": "MariaDB",
+        "version": "Unknown"
+      }
+    ],
+    "cdn":
+    [
+      {
+        "name": "Cloudflare",
+        "version": "Unknown"
+      }
     ]
   },
   
