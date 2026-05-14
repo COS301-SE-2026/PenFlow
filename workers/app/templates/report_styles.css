@@ -1,0 +1,232 @@
+@page {
+    size: A4;
+    margin: 22mm 18mm;
+}
+
+:root {
+    --bluevision-red: #E81E25;
+    --bluevision-blue: #457FC1;
+    --bluevision-navy: #2D2D72;
+    --bluevision-dark: #333333;
+    --bluevision-grey: #808080;
+    --light-bg: #F7F9FC;
+    --border: #D8DEE9;
+}
+
+body {
+    font-family: Verdana, Arial, sans-serif;
+    color: var(--bluevision-dark);
+    font-size: 11px;
+    line-height: 1.55;
+    margin: 0;
+}
+
+.cover-top {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+}
+
+.bluevision-logo {
+    height: 70px;
+}
+
+.cover {
+    background: linear-gradient(135deg, var(--bluevision-navy), var(--bluevision-blue));
+    color: white;
+    padding: 50px;
+    border-radius: 10px;
+    margin-bottom: 28px;
+}
+
+.cover h1 {
+    font-size: 30px;
+    margin: 0 0 8px 0;
+}
+
+.subtitle {
+    font-size: 14px;
+    color: #EAF1FA;
+    margin-bottom: 24px;
+}
+
+.meta-box {
+    background: rgba(255, 255, 255, 0.12);
+    border-left: 5px solid var(--bluevision-red);
+    padding: 12px 16px;
+    border-radius: 6px;
+}
+
+.meta-box p {
+    margin: 4px 0;
+}
+
+section {
+    margin-bottom: 28px;
+    padding-bottom: 10px;
+    page-break-inside: avoid;
+}
+
+h2 {
+    color: var(--bluevision-navy);
+    font-size: 18px;
+    border-bottom: 2px solid var(--bluevision-blue);
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+}
+
+h3 {
+    color: var(--bluevision-navy);
+    font-size: 14px;
+    margin-top: 0;
+}
+
+h4 {
+    color: var(--bluevision-dark);
+    margin-bottom: 8px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 10px;
+}
+
+th {
+    background: var(--bluevision-navy);
+    color: white;
+    text-align: left;
+    padding: 8px;
+}
+
+td {
+    border: 1px solid var(--border);
+    padding: 8px;
+}
+
+tbody tr:nth-child(even) {
+    background: var(--light-bg);
+}
+
+.severity-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+
+.severity-card {
+    padding: 10px;
+    color: white;
+    border-radius: 6px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 10px;
+}
+
+.critical,
+.high {
+    background: var(--bluevision-red);
+}
+
+.medium {
+    background: #F59E0B;
+}
+
+.low {
+    background: var(--bluevision-blue);
+}
+
+.info {
+    background: var(--bluevision-grey);
+}
+
+.finding-card {
+    border: 1px solid var(--border);
+    border-left: 5px solid var(--bluevision-blue);
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 12px;
+    background: #FFFFFF;
+}
+
+.badge {
+    display: inline-block;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.badge-critical {
+    background: var(--bluevision-red);
+}
+
+.badge-high {
+    background: var(--bluevision-red);
+}
+
+.badge-medium {
+    background: #F59E0B;
+}
+
+.badge-low {
+    background: var(--bluevision-blue);
+}
+
+.badge-info {
+    background: var(--bluevision-grey);
+}
+
+.screenshot-section {
+    margin-top: 12px;
+    padding: 10px;
+    background: var(--light-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+.urlscan-screenshot {
+    width: 100%;
+    max-height: 320px;
+    object-fit: contain;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: white;
+}
+
+ul {
+    padding-left: 18px;
+}
+
+li {
+    margin-bottom: 6px;
+}
+
+.cta {
+    background: #F7F9FC;
+    border: 1px solid var(--border);
+    border-left: 6px solid var(--bluevision-red);
+    padding: 16px;
+    border-radius: 8px;
+}
+
+.cta h2 {
+    border-bottom: none;
+    color: var(--bluevision-red);
+    margin-top: 0;
+}
+
+footer {
+    margin-top: 60px;
+    text-align: center;
+    color: var(--bluevision-grey);
+    font-size: 10px;
+}
+
+.brocode-logo {
+    height: 70px;
+    opacity: 0.85;
+}
