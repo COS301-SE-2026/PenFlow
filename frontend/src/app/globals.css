@@ -1,0 +1,178 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+
+:root {
+  /* Branding */
+  --col-navy:    #060e1c;
+  --col-deep:    #091628;
+  --col-abyss:   #0d1e3a;
+
+  /* Accents*/
+  --col-cyan:    #2bd8f5;
+  --col-blue:    #4f9fff;
+  --col-alert:   #ff5f4e;
+
+  /* Text */
+  --col-text:    #e5f3ff;
+  --col-muted:   #7aaac8;
+
+  /* Borders*/
+  --col-edge:       rgba(43, 180, 220, 0.18);
+  --col-edge-hot:   rgba(43, 216, 245, 0.38);
+
+  --sh-sm:        0 4px 14px rgba(0, 8, 24, 0.5);
+  --sh-glow-cyan: 0 0 28px rgba(43, 216, 245, 0.2);
+
+  /* shadcn */
+  --background:           oklch(0.085 0.022 228);
+  --foreground:           oklch(0.92 0.018 215);
+  --card:                 oklch(0.11 0.026 226);
+  --card-foreground:      oklch(0.92 0.018 215);
+  --popover:              oklch(0.11 0.026 226);
+  --popover-foreground:   oklch(0.92 0.018 215);
+  --primary:              oklch(0.72 0.155 205);
+  --primary-foreground:   oklch(0.085 0.022 228);
+  --secondary:            oklch(0.17 0.03 226);
+  --secondary-foreground: oklch(0.87 0.018 215);
+  --muted:                oklch(0.15 0.024 226);
+  --muted-foreground:     oklch(0.53 0.055 220);
+  --accent:               oklch(0.17 0.03 226);
+  --accent-foreground:    oklch(0.87 0.018 215);
+  --destructive:          oklch(0.64 0.22 25);
+  --border:               oklch(0.25 0.04 222 / 40%);
+  --input:                oklch(0.2 0.032 226);
+  --ring:                 oklch(0.72 0.155 205);
+  --chart-1: oklch(0.72 0.155 205);
+  --chart-2: oklch(0.65 0.18 168);
+  --chart-3: oklch(0.58 0.14 230);
+  --chart-4: oklch(0.83 0.12 88);
+  --chart-5: oklch(0.65 0.22 25);
+  --radius: 0.625rem;
+  --sidebar:                    oklch(0.11 0.026 226);
+  --sidebar-foreground:         oklch(0.92 0.018 215);
+  --sidebar-primary:            oklch(0.72 0.155 205);
+  --sidebar-primary-foreground: oklch(0.085 0.022 228);
+  --sidebar-accent:             oklch(0.17 0.03 226);
+  --sidebar-accent-foreground:  oklch(0.87 0.018 215);
+  --sidebar-border:             oklch(0.25 0.04 222 / 40%);
+  --sidebar-ring:               oklch(0.72 0.155 205);
+}
+
+/* base */
+html, body {
+  min-height: 100%;
+  font-family: var(--font-body), "Trebuchet MS", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display), Impact, "Arial Narrow", sans-serif;
+  letter-spacing: 0.06em;
+}
+
+/* landing */
+.landing {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-left: 130px;
+}
+
+/* header */
+.topbar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 50;
+  width: 130px;
+  height: 100vh;
+  background: rgba(6, 14, 28, 0.97);
+  border-right: 1px solid var(--col-edge);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 0;
+}
+
+.logoPanel {
+  width: 100%;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 0 0 14px 0;
+  box-shadow: var(--sh-sm);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.logoDivider {
+  width: 60%;
+  height: 1px;
+  background: #d0d8e4;
+  flex-shrink: 0;
+}
+
+.topnav {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 20px 0;
+  gap: 2px;
+}
+
+.nav-link {
+  font-family: var(--font-display), Impact, sans-serif;
+  color: var(--col-muted);
+  font-size: 1.37rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  transition: color 180ms ease, background 180ms ease, border-color 180ms ease;
+  padding: 12px 20px 12px 20px;
+  border-left: 3px solid transparent;
+  display: block;
+}
+
+.nav-link:hover {
+  color: var(--col-cyan);
+  background: rgba(43, 216, 245, 0.06);
+  border-left-color: var(--col-cyan);
+}
+
+.loginButton {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 22px;
+  border-radius: 999px;
+  border: 1px solid var(--col-edge-hot);
+  background: rgba(43, 216, 245, 0.08);
+  color: var(--col-cyan);
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.loginButton:hover {
+  background: rgba(43, 216, 245, 0.16);
+  box-shadow: var(--sh-glow-cyan);
+  transform: translateY(-1px);
+}
+
+
+
