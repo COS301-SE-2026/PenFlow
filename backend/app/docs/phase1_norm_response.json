@@ -140,7 +140,7 @@
 
   "domain_security": 
   {
-    "provider": "DNS",
+    "provider": "DNS/RDAP",
     "records": 
     [
       {
@@ -159,19 +159,56 @@
         "finding": "DMARC record is present and uses a reject policy."
       },
       {
-        "record_type": "WHOIS",
-        "status": "Unknown",
-        "finding": "WHOIS lookup was not included in this DNS collection."
+        "record_type": "WHOIS/RDAP",
+        "status": "Pass",
+        "finding": "WHOIS/RDAP registration data was available for this domain."
       }
     ],
+
+    "whois": 
+    {
+      "provider": "RDAP",
+      "registrar": "Cloudflare, Inc.",
+      "registration_date": "2007-11-26T19:45:36Z",
+      "expiration_date": "2026-11-26T19:45:36Z",
+      "dnssec_enabled": true,
+      "nameservers": 
+      [
+        "A.NS.HACKERONE.COM",
+        "B.NS.HACKERONE.COM"
+      ],
+      "status": 
+      [
+        "client transfer prohibited",
+        "server transfer prohibited"
+      ]
+    },
     
-    "detected_services": [
-      "Google Workspace",
-      "Slack",
-      "Atlassian",
-      "Zendesk",
-      "OpenAI",
-      "Anthropic"
+    "detected_services": 
+    [ 
+      "Adobe", 
+      "Anthropic", 
+      "Apple", 
+      "Atlassian", 
+      "Box", 
+      "Canva", 
+      "Citrix", 
+      "Clayton", 
+      "Cloudpiercer", 
+      "Drift", 
+      "Ethiack", 
+      "Facebook", 
+      "Google", 
+      "H1", 
+      "Jetbrains", 
+      "Monday", 
+      "Onetrust", 
+      "Openai", 
+      "Protonmail", 
+      "Slack", 
+      "Stripe", 
+      "Wework", 
+      "Zapier" 
     ]
   }
 }
