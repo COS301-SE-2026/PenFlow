@@ -140,8 +140,11 @@ def build_domain_security_context(scan_sources):
     raw = get_raw_result(scan_sources, "dns")
     domain_security = raw.get("domain_security", raw)
 
-    return domain_security.get("records", [])
-
+    return {
+        "records": domain_security.get("records", []),
+        "detected_services": domain_security.get("detected_services", []),
+    }
+    
 
 def build_recommendations(findings):
     recommendations = []

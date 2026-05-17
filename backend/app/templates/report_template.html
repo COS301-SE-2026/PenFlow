@@ -181,7 +181,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for dns in domain_security %}
+                {% for dns in domain_security.records %}
                 <tr>
                     <td>{{ dns.record_type }}</td>
                     <td>{{ dns.status }}</td>
@@ -190,6 +190,16 @@
                 {% endfor %}
             </tbody>
         </table>
+        {% if domain_security.detected_services %}
+        <div class="service-list-section"></div>
+            <h3>Third-Party Services Detected from DNS TXT Records</h3>
+            <div class="service-list">
+                {% for service in domain_security.detected_services %}
+                    <span class="service-badge">{{ service }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}  
     </section>
 
     <section>
