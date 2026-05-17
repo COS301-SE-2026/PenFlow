@@ -136,5 +136,33 @@
     "provider": "HaveIBeenPwned",
     "pwned_accounts_count": 0,
     "known_breaches": []
+  },
+
+  "domain_security": 
+  {
+    "provider": "DNS",
+    "records": 
+    [
+      {
+        "record_type": "MX",
+        "status": "Pass",
+        "finding": "MX records are configured for this domain."
+      },
+      {
+        "record_type": "SPF",
+        "status": "Pass",
+        "finding": "SPF record is present and uses a hard fail policy."
+      },
+      {
+        "record_type": "DMARC",
+        "status": "Pass",
+        "finding": "DMARC record is present and uses a reject policy."
+      },
+      {
+        "record_type": "WHOIS",
+        "status": "Unknown",
+        "finding": "WHOIS lookup was not included in this DNS collection."
+      }
+    ]
   }
 }
