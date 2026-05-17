@@ -167,3 +167,114 @@
   color: var(--col-success);
 }
 
+.viewReportButton {
+  color: var(--col-muted);
+  cursor: not-allowed;
+  opacity: 0.45;
+  transition: background 400ms ease, color 400ms ease, opacity 400ms ease, box-shadow 400ms ease;
+}
+
+.viewReportButton[data-ready="true"] {
+  background: linear-gradient(135deg, #c03428, #9a2820);
+  border-color: rgba(220, 64, 64, 0.5);
+  color: var(--col-text);
+  cursor: pointer;
+  opacity: 1;
+}
+
+.viewReportButton[data-ready="true"]:hover {
+  background: rgba(255, 95, 78, 0.14);
+  box-shadow: 0 0 18px rgba(255, 95, 78, 0.2);
+  transform: translateY(-1px);
+}
+
+.consoleBottom {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr 150px;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.domainForm {
+  border: 1px solid var(--col-edge);
+  border-radius: 14px;
+  background: rgba(8, 16, 34, 0.9);
+  min-height: 88px;
+  display: grid;
+  grid-template-columns: 1fr 48px;
+  align-items: center;
+  padding: 10px 14px;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.domainForm:focus-within {
+  border-color: var(--col-edge-hot);
+  box-shadow: 0 0 0 3px rgba(43, 216, 245, 0.08);
+}
+
+.domainForm input {
+  background: transparent;
+  border: 0;
+  color: var(--col-text);
+  font-family: var(--font-body), monospace, sans-serif;
+  font-size: clamp(1.2rem, 2.4vw, 2.2rem);
+  font-weight: 600;
+  outline: none;
+  width: 100%;
+}
+
+.domainForm input::placeholder {
+  color: var(--col-muted);
+  font-weight: 400;
+}
+
+.searchButton {
+  border: 0;
+  background: transparent;
+  color: var(--col-text);
+  cursor: pointer;
+  transition: color 150ms ease, transform 150ms ease;
+}
+
+.searchButton:hover {
+  color: var(--col-cyan);
+  transform: scale(1.12);
+}
+
+.scanNowButton {
+  border: 1px solid rgba(255, 95, 78, 0.5);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #c03428, #9a2820);
+  width: 100%;
+  height: 100%;
+  color: var(--col-text);
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: clamp(1.4rem, 1.8vw, 2rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  box-shadow: 0 4px 16px rgba(192, 52, 40, 0.3);
+}
+
+.scanNowButton:hover:not(:disabled) {
+  background: linear-gradient(180deg, #d94030, #b53028);
+  box-shadow: 0 0 22px rgba(220, 60, 48, 0.38), var(--sh-sm);
+  transform: translateY(-2px);
+}
+
+.scanNowButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.scanStatus {
+  margin: 14px 4px 0;
+  color: var(--col-muted);
+  font-weight: 600;
+  font-size: clamp(0.9rem, 1.2vw, 1.05rem);
+  font-family: var(--font-display), monospace, sans-serif;
+  letter-spacing: 0.06em;
+}
