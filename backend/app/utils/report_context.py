@@ -143,6 +143,7 @@ def build_domain_security_context(scan_sources):
     return {
         "records": domain_security.get("records", []),
         "detected_services": domain_security.get("detected_services", []),
+        "whois": domain_security.get("whois", {}),
     }
     
 

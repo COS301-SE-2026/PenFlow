@@ -268,7 +268,18 @@ p strong {
     font-weight: bold;
 }
 
+.whois-table th {
+    width: 35%;
+    background: var(--light-bg);
+    color: var(--bluevision-navy);
+    border: 1px solid var(--border);
+}
+
+.whois-table td {
+    width: 65%;
+}
+
 .service-list-section {
-    margin-top: 5px;
-    padding-top: 12px;
+    margin-top: 16px;
+    padding-top: 10px;
 }

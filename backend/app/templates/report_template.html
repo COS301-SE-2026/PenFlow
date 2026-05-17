@@ -190,8 +190,42 @@
                 {% endfor %}
             </tbody>
         </table>
+        {% if domain_security.whois %}
+        <div class="service-list-section">
+            <h3>Domain Registration Intelligence</h3>
+            <table class="whois-table">
+                <tbody>
+                    <tr>
+                        <th>Registrar</th>
+                        <td>{{ domain_security.whois.registrar }}</td>
+                    </tr>
+                    <tr>
+                        <th>Registered</th>
+                        <td>{{ domain_security.whois.registration_date }}</td>
+                    </tr>
+                    <tr>
+                        <th>Expires</th>
+                        <td>{{ domain_security.whois.expiration_date }}</td>
+                    </tr>
+                    <tr>
+                        <th>DNSSEC Enabled</th>
+                        <td>{{ domain_security.whois.dnssec_enabled }}</td>
+                    </tr>
+                    <tr>
+                        <th>Nameservers</th>
+                        <td>
+                            {% for nameserver in domain_security.whois.nameservers %}
+                                {{ nameserver }}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
         {% if domain_security.detected_services %}
-        <div class="service-list-section"></div>
+        <div class="service-list-section">
             <h3>Third-Party Services Detected from DNS TXT Records</h3>
             <div class="service-list">
                 {% for service in domain_security.detected_services %}
@@ -199,7 +233,7 @@
                 {% endfor %}
             </div>
         </div>
-        {% endif %}  
+        {% endif %}
     </section>
 
     <section>
