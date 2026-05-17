@@ -1,6 +1,7 @@
 import NavBar from "@/components/NavBar";
 import Image from "next/image";
 import submarineImage from "@/app/images/images/submarine.png";
+import ScanConsoleSection from "@/app/scan/components/ScanConsoleSection";
 
 export default function Home() {
   return (
@@ -37,6 +38,9 @@ export default function Home() {
           />
         </div>
       </section>
+      <div id="scan">
+        <ScanConsoleSection />
+      </div>
     </main>
   );
 }
