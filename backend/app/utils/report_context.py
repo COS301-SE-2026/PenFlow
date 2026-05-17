@@ -140,29 +140,45 @@ def build_domain_security_context(scan_sources):
     raw = get_raw_result(scan_sources, "dns")
     domain_security = raw.get("domain_security", raw)
 
-    if domain_security:
-        return domain_security
+    return domain_security.get("records", [])
 
-    # Full mock for now, since there is currently no normalized reponse for it
+
+def build_recommendations(findings):
+    recommendations = []
+
+    for finding in findings or []:
+        recommendation = get_value(finding, "recommendation")
+
+        if recommendation and recommendation not in recommendations:
+            recommendations.append(recommendation)
+
+    if recommendations:
+        return recommendations
+
+    # Mocked fallback for now until we get actual logic for determining recommedations
     return [
-        {
-            "record_type": "MX",
-            "status": "Unknown",
-            "finding": "MX record data was not available for this scan.",
-        },
-        {
-            "record_type": "SPF",
-            "status": "Unknown",
-            "finding": "SPF record data was not available for this scan.",
-        },
-        {
-            "record_type": "DMARC",
-            "status": "Unknown",
-            "finding": "DMARC record data was not available for this scan.",
-        },
-        {
-            "record_type": "WHOIS",
-            "status": "Unknown",
-            "finding": "WHOIS data was not available for this scan.",
-        },
+        "Review exposed services and confirm that all public ports are intentional.",
+        "Investigate any exposed or breached email accounts associated with the domain.",
+        "Review discovered subdomains for stale, forgotten, or unmanaged assets.",
+        "Proceed to Phase 2 for active external vulnerability validation.",
     ]
+
+
+def build_report_context(scan, findings, scan_sources):
+    scan_id = str(get_value(scan, "id", "mock-scan-id"))
+
+    return {
+        "target_domain": get_value(scan, "domain", "Unknown domain"),
+        "report_id": f"PF-{scan_id[:8]}",
+        "generated_at": format_generated_at(),
+        "status": get_value(scan, "status", "completed").title(),
+        "severity_counts": calculate_severity_counts(findings),
+        "infrastructure": build_infrastructure_context(scan_sources),
+        "tech_stack": build_tech_stack_context(scan_sources),
+        "subdomains": build_subdomains_context(scan_sources),
+        "reputation": build_reputation_context(scan_sources),
+        "phishing_surface": build_phishing_surface_context(scan_sources),
+        "breach_data": build_breach_data_context(scan_sources),
+        "domain_security": build_domain_security_context(scan_sources),
+        "recommendations": build_recommendations(findings),
+    }
