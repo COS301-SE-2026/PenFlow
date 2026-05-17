@@ -163,6 +163,15 @@
         "status": "Unknown",
         "finding": "WHOIS lookup was not included in this DNS collection."
       }
+    ],
+    
+    "detected_services": [
+      "Google Workspace",
+      "Slack",
+      "Atlassian",
+      "Zendesk",
+      "OpenAI",
+      "Anthropic"
     ]
   }
 }
