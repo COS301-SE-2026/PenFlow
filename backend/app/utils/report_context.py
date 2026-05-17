@@ -52,7 +52,7 @@ def format_generated_at(value=None):
     return value.strftime("%d %B %Y")
 
 
-def build_infrastructure_context(scan_sources, assets):
+def build_infrastructure_context(scan_sources):
     raw = get_raw_result(scan_sources, "shodan")
     infrastructure = raw.get("infrastructure", raw)
 
@@ -87,20 +87,82 @@ def build_tech_stack_context(scan_sources):
     return technologies_used
 
 
-def build_subdomains_context(scan_sources, assets):
+def build_subdomains_context(scan_sources):
     raw = get_raw_result(scan_sources, "crt.sh")
     subdomains = raw.get("subdomains", raw)
 
     discovered_names = subdomains.get("discovered_names", [])
-
-    if not discovered_names:
-        discovered_names = [
-            get_value(asset, "identifier")
-            for asset in assets or [] 
-                if get_value(asset, "asset_type") == "subdomain"
-        ]
     
     return {
         "total_found": len(discovered_names),
         "discovered_names": discovered_names,
     }
+
+
+def build_reputation_context(scan_sources):
+    raw = get_raw_result(scan_sources, "urlscan")
+    reputation = raw.get("reputation", raw)
+
+    return {
+        "malicious_flags": reputation.get("malicious_flags", 0),
+        "urlscan_uuid": reputation.get("urlscan_uuid", "Unavailable"),
+        "screenshot_url": reputation.get("screenshot_url", "default_screenshot.png")
+    }
+
+
+def build_phishing_surface_context(scan_sources):
+    raw = get_raw_result(scan_sources, "hunter.io")
+    phishing_surface = raw.get("phishing_surface", raw)
+
+    return {
+        "public_emails_found": phishing_surface.get("public_emails_found", []),
+    }
+
+
+def build_breach_data_context(scan_sources):
+    raw = get_raw_result(scan_sources, "hibp")
+    breach_data = raw.get("breach_data", raw)
+
+    pwned_accounts_count = breach_data.get("pwned_accounts_count", 0)
+
+    severity = "info"
+    if pwned_accounts_count > 0:
+        severity = "medium"
+
+    return {
+        "severity": severity,
+        "pwned_accounts_count": pwned_accounts_count,
+        "known_breaches": breach_data.get("known_breaches", []),
+    }
+
+
+def build_domain_security_context(scan_sources):
+    raw = get_raw_result(scan_sources, "dns")
+    domain_security = raw.get("domain_security", raw)
+
+    if domain_security:
+        return domain_security
+
+    # Full mock for now, since there is currently no normalized reponse for it
+    return [
+        {
+            "record_type": "MX",
+            "status": "Unknown",
+            "finding": "MX record data was not available for this scan.",
+        },
+        {
+            "record_type": "SPF",
+            "status": "Unknown",
+            "finding": "SPF record data was not available for this scan.",
+        },
+        {
+            "record_type": "DMARC",
+            "status": "Unknown",
+            "finding": "DMARC record data was not available for this scan.",
+        },
+        {
+            "record_type": "WHOIS",
+            "status": "Unknown",
+            "finding": "WHOIS data was not available for this scan.",
+        },
+    ]
