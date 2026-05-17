@@ -95,7 +95,7 @@
     <section>
         <h2>Discovered Subdomains</h2>
         <p><strong>Source:</strong> crt.sh</p>
-        <p><strong>Total Found:</strong>{{ subdomains.total_found }}</p>
+        <p><strong>Total Found:</strong> {{ subdomains.total_found }}</p>
 
         <ul>
             {% for subdomain in subdomains.discovered_names %}
@@ -110,8 +110,8 @@
 
         <div class="finding-card">
             <h3>URLScan Reputation Result</h3>
-            <p><strong>Malicious Flags:</strong>{{ reputation.malicious_flags }}</p>
-            <p><strong>URLScan UUID:</strong>{{ reputation.urlscan_uuid }}</p>
+            <p><strong>Malicious Flags:</strong> {{ reputation.malicious_flags }}</p>
+            <p><strong>URLScan UUID:</strong> {{ reputation.urlscan_uuid }}</p>
             <div class="screenshot-section">
                 <h4>Captured Screenshot</h4>
 
@@ -159,8 +159,8 @@
         <div class="finding-card">
             <h3>Known Breach Exposure</h3>
             <span class="badge badge-medium">{{ breach_data.severity }}</span>
-            <p><strong>Pwned Accounts:</strong>{{ breach_data.pwned_accounts_count }}</p>
-            <p><strong>Known Breaches:</strong>{{ breach_data.known_breaches | join(", ") }}</p>
+            <p><strong>Pwned Accounts:</strong> {{ breach_data.pwned_accounts_count }}</p>
+            <p><strong>Known Breaches:</strong> {{ breach_data.known_breaches | join(", ") }}</p>
             <p>
                 Public breach exposure was detected for accounts associated
                 with this domain.
