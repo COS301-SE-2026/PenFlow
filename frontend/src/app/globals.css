@@ -13,10 +13,13 @@
   --col-cyan:    #2bd8f5;
   --col-blue:    #4f9fff;
   --col-alert:   #ff5f4e;
+  --col-success: #4ade80;
+  --col-yellow:  #f5c842;
+  --col-orange:  #f08030;
 
   /* Text */
   --col-text:    #e5f3ff;
-  --col-muted:   #7aaac8;
+  --col-muted:   #4a7a9b;
 
   /* Borders*/
   --col-edge:       rgba(43, 180, 220, 0.18);
@@ -140,7 +143,7 @@ h1, h2, h3 {
   font-weight: 600;
   letter-spacing: 0.1em;
   transition: color 180ms ease, background 180ms ease, border-color 180ms ease;
-  padding: 12px 20px 12px 20px;
+  padding: 12px 20px;
   border-left: 3px solid transparent;
   display: block;
 }
@@ -149,29 +152,6 @@ h1, h2, h3 {
   color: var(--col-cyan);
   background: rgba(43, 216, 245, 0.06);
   border-left-color: var(--col-cyan);
-}
-
-.loginButton {
-  display: inline-flex;
-  align-items: center;
-  height: 36px;
-  padding: 0 22px;
-  border-radius: 999px;
-  border: 1px solid var(--col-edge-hot);
-  background: rgba(43, 216, 245, 0.08);
-  color: var(--col-cyan);
-  font-family: var(--font-display), Impact, sans-serif;
-  font-size: 1rem;
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-  transition: background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
-}
-
-.loginButton:hover {
-  background: rgba(43, 216, 245, 0.16);
-  box-shadow: var(--sh-glow-cyan);
-  transform: translateY(-1px);
 }
 
 
@@ -222,7 +202,7 @@ h1, h2, h3 {
 
 .submarine {
   position: absolute;
-  left: 0px;
+  left: 0;
   bottom: 18px;
   z-index: 5;
   width: clamp(182px, 22vw, 280px);
@@ -402,4 +382,3 @@ h1, h2, h3 {
     @apply bg-background text-foreground;
   }
 }
-
