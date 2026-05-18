@@ -1,15 +1,16 @@
 import logging
 import os
 import logging
-import httpx
+import warnings
 import json
 from pathlib import Path  
+from Wappalyzer import Wappalyzer, WebPage
 
+warnings.filterwarnings("ignore")
 #Logger to tell us this file was in error
 logger = logging.getLogger(__name__)
 
 SCAN_MODE = os.getenv("SCAN_MODE", "MOCK").upper()
-WAPPALYZER_API_KEY = os.getenv("WAPPALYZER_API_KEY", "fake_key_1234")
 WORKERS_ROOT = Path(__file__).resolve().parent.parent.parent
 
 #collect the raw data from wappalyzer api or from mock file depending on mode
@@ -33,72 +34,73 @@ def collect_raw_data(domain: str) -> dict:
             return {}
 
     #Live Mode
-    logger.info(f"[Wappalyzer] Running in FULL LIVE mode for {domain}")
+    logger.info(f"[Wappalyzer] Running in FULL LIVE mode for {domain} (local engine)")
     
-    if not WAPPALYZER_API_KEY or WAPPALYZER_API_KEY == "fake_key_1234":
-        logger.error("X LIVE mode requires a valid WAPPALYZER_API_KEY in the .env file!")
-        return {"error": "Missing Wappalyzer API Key"}
-
-    #Query Wappalyzer
-    url = f"https://api.wappalyzer.com/lookup/v2/?urls=https://{domain}"
-    headers = \
-    {
-        "x-api-key": WAPPALYZER_API_KEY
-    }
-    
-    with httpx.Client() as client:
-        try:
-            res = client.get(url, headers=headers, timeout=15.0)
-            res.raise_for_status()
-            
-            #wappalyzer returns a list of results (one per URL scanned). we just want the first one.
-            data = res.json()
-            if data and isinstance(data, list):
-                return data[0]
-            return {}
-            
-        except httpx.HTTPError as e:
-            logger.error(f"X Wappalyzer API Error: {e}")
-            return {"error": "API Request Failed"}
+    try:
+        wappalyzer = Wappalyzer.latest()
+        page = WebPage.new_from_url(f"https://{domain}")
+        rawData = wappalyzer.analyze_with_versions_and_categories(page)
+        return rawData
+    except Exception as e:
+        logger.error(f"X Local Wappalyzer Engine Error: {e}")
+        return {"error": "Local Analysis Failed"}
 
 def normalize_data(rawData: dict) -> dict:
     """
     Flatten and normalize Wappalyzer's output into our unified schema format.
     """
-    logger.info("Normalizing Wappalyzer data (Expanded):")
+    logger.info("Normalizing Wappalyzer data:")
 
     if "error" in rawData:
         return {"error": rawData["error"]}
     
-    techStack = []
-    rawTechs = rawData.get("technologies", [])
-    
+    cms = []
+    frameworks = []
+    webServers = []
+    paas = []
+    programmingLanguages = []
+    databases = []
+    cdns = []
 
+    for techName, details in rawData.items():
+        #extract first version if it exists
+        versions = details.get("versions", [])
+        version = versions[0] if versions else "Unknown"
 
-    # In this format:
-    # the key is the tech name, and the value holds the details
-    for tech in rawTechs:
-        categoryName = "Unknown"
-        categories = tech.get("categories", [])
+        techObj = \
+        {
+            "name": techName,
+            "version": version
+        }
+
+        # Categories come directly as a list of strings
+        categories = details.get("categories", [])
         
+        # Sort the technology into our unified schema categories
+        for category in categories:
+            if "CMS" in category:
+                if techObj not in cms:
+                    cms.append(techObj)
+            elif "Web frameworks" in category or "JavaScript frameworks" in category or "JavaScript libraries" in category:
+                if techObj not in frameworks:
+                    frameworks.append(techObj)
+            elif "Web servers" in category or "Reverse proxies" in category:
+                if techObj not in webServers:
+                    webServers.append(techObj)
+            elif "PaaS" in category:
+                if techObj not in paas:
+                    paas.append(techObj)
+            elif "Programming languages" in category:
+                if techObj not in programmingLanguages:
+                    programmingLanguages.append(techObj)
+            elif "Databases" in category:
+                if techObj not in databases:
+                    databases.append(techObj)
+            elif "CDN" in category:
+                if techObj not in cdns:
+                    cdns.append(techObj)
 
-        if categories:
-            categoryName = categories[0].get("name", "Unknown")
-       
-        techStack.append = \
-        {
-            "technology": tech.get("name", "Unknown"),
-            "category": categoryName,
-            "version": tech.get("version", "Unknown")
-        }
-
-        return \
-        {
-            "tech_stack": techStack
-        }
-
-    # Our strict data contract schema format
-    final_result = \
+    return \
     {
         "provider": "Wappalyzer",
         "cms": cms,
@@ -107,7 +109,59 @@ def normalize_data(rawData: dict) -> dict:
         "paas": paas,
         "programmingLanguages": programmingLanguages,
         "databases": databases,
-        "cdns": cdns
+        "cdn": cdns
     }
 
-    return final_result
+#analyze tech stack for known risky software targets
+def generate_findings_and_assets(normalizedData: dict) -> tuple:
+    findings = []
+    assets = []
+    
+    if "error" in normalizedData:
+        return findings, assets
+        
+    #dictionary of tech that needs strict managment to avoid common exploits here
+    RISKY_TECH = \
+    {
+        "PHP": "Ensure PHP versions are 8.0+. Older versions are highly vulnerable.",
+        "WordPress": "WordPress is prone to plugin vulnerabilities. Ensure strict update policies.",
+        "jQuery": "Older jQuery versions have known XSS vulnerabilities."
+    }
+    
+    categoriesToCheck = \
+    [
+        "cms", "frameworks", "webServers", "paas", 
+        "programmingLanguages", "databases", "cdn"
+    ]
+
+    for categoryKey in categoriesToCheck:
+        for tech in normalizedData.get(categoryKey, []):
+            techName = tech.get("name")
+            
+            if techName in RISKY_TECH:
+                findings.append(
+                {
+                    "source": "wappalyzer",
+                    "severity": "info",
+                    "title": f"Commonly Targeted Technology Detected: {techName}",
+                    "description": f"The target is using {techName}, which requires strict patch management.",
+                    "recommendation": RISKY_TECH[techName],
+                    "evidence": {"technology": techName, "version": tech.get("version")}
+                })
+            
+    return findings, assets
+
+#execution
+def run_wappalyzer(domain: str) -> dict:
+    rawData = collect_raw_data(domain)
+    normalized = normalize_data(rawData)
+    findings, assets = generate_findings_and_assets(normalized)
+    
+    return \
+    {
+        "source_name": "wappalyzer",
+        "status": "completed" if "error" not in normalized else "failed",
+        "raw_result": {"tech_stack": normalized},
+        "findings": findings,
+        "assets": assets
+    }
