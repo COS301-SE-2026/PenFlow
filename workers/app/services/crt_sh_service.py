@@ -62,45 +62,43 @@ def collect_raw_data(domain: str) -> dict:
             logger.error(f"X CRT.sh API Error: {e}")
             return {"error": "API Request Failed"}
 
-def normalize_crtsh_data(raw_data: list) -> dict:
+def normalize_data(rawData: list) -> dict:
     """
     Extracts and normalizes subdomains from raw crt.sh JSON.
     Removes all duplicates.
     """
+
+    if "error" in rawData:
+        return {"error": rawData["error"]}
+    
     logger.info("Normalizing crt.sh data:")
     
     uniqueSubdomains = set()
+    certificates = rawData.get("certificates", [])
 
-    for entry in raw_data:
+    for cert in certificates:
         # Safe extraction of the domain string
-        nameValue = entry.get("name_value", "")
-        
-        if not nameValue:
-            continue
-
-        # new line for every domain
+        nameValue = cert.get("name_value", "")
         splitNames = nameValue.split("\n")
         
         for name in splitNames:
-            cleanName = name.strip()
-            
-            # wild certs *.domain.com show that something comes before and crt stores it like that but we only care about the actual subdomain
-            if cleanName.startswith("*."):
-                cleanName = cleanName[2:]
+            name = name.strip().lower()
+            if name and not name.startswith("*."):
+                uniqueSubdomains.add(name)
                 
-            # Add the cleaned domain to our set
-            if cleanName:
-                uniqueSubdomains.add(cleanName)
 
     # Convert the set back to a sorted list so the JSON output is consistent and readable
     discoveredNames = sorted(list(uniqueSubdomains))
     
-    # Our strict data contract schema format for the subdomains section
-    final_result = \
+    #format it into our strict schema
+    normalizedSubdomains = []
+    for sub in discoveredNames:
+        normalizedSubdomains.append(
+        {
+            "subdomain": sub
+        })
+        
+    return \
     {
-        "provider": "crt.sh",
-        "total_found": len(discoveredNames),
-        "discovered_names": discoveredNames
+        "subdomains": normalizedSubdomains
     }
-
-    return final_result
