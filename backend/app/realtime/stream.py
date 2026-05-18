@@ -16,22 +16,22 @@ async def scan_progress_stream(websocket: WebSocket, scan_id: str):
     try:
         #Redis Logic would be added here, but I'm going to mock all this for now
 
-    mock_events = [
-        {"progress": 10, "status": "running", "message": "Gathering DNS records..."},
-            {"progress": 35, "status": "running", "message": "Querying Certificate Transparency logs (crt.sh)..."},
-            {"progress": 60, "status": "running", "message": "Analyzing infrastructure via Shodan..."},
-            {"progress": 85, "status": "running", "message": "Checking credential exposures (HaveIBeenPwned)..."},
-            {"progress": 100, "status": "completed", "message": "Scan complete. Generating report..."}
-    ]
+        mock_events = [
+            {"progress": 10, "status": "running", "message": "Gathering DNS records..."},
+                {"progress": 35, "status": "running", "message": "Querying Certificate Transparency logs (crt.sh)..."},
+                {"progress": 60, "status": "running", "message": "Analyzing infrastructure via Shodan..."},
+                {"progress": 85, "status": "running", "message": "Checking credential exposures (HaveIBeenPwned)..."},
+                {"progress": 100, "status": "completed", "message": "Scan complete. Generating report..."}
+        ]
 
-    for events in mock_events:
-        await websocket.send_text(json.dumps({
-            "scan_id": scan_id,
-            **event
-        }))
-        await asyncio.sleep(2)
+        for events in mock_events:
+            await websocket.send_text(json.dumps({
+                "scan_id": scan_id,
+                **event
+            }))
+            await asyncio.sleep(2)
 
-    await websocket.close()
+        await websocket.close()
 
-except WebSocketDisconnect:
-    print(f"Client dissconnected from scan stream: {scan_id}")
+    except WebSocketDisconnect:
+        print(f"Client dissconnected from scan stream: {scan_id}")

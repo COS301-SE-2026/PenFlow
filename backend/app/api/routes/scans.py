@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.schemas.scan import InitiateScanRequest, InitiateScanResponse
 import uuid
 from fastapi import Response
+from datetime import dateime, UTC
 
 router= APIRouter(prefix="/scans",tags=["Scans"])
 
@@ -28,18 +29,52 @@ async def initiate_ctem_scan(
     #db stuff
     #placeholder return
 
-    return InitiateScanResponse(
-        scan_id=uuid.uuid4(),
-        status="pending"
+        return InitiateScanResponse(
+            scan_id=uuid.uuid4(),
+            status="pending"
 
-    )
+        )
     except Exception as e:
     #Once proper logic is setup I'll rather log this and return a 500/specific 400 code 
-    raise HTTPException(
-        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail="Failed to initiate scan"
-        
-    )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to initiate scan"
+        )
+
+
+@router.get(
+    "/{scan_id}/report",
+    status_code=status.HTTP_200_OK
+)
+async def get_scan_report(scan_id: str):
+    """
+    Retrieve full OSINT report for a specific scan.
+    Mock from frontend
+    """
+    return{
+        "scan_id": scan_id,
+        "domain": "jeandre.co",
+        "status": "completed",
+        "completed_at": datetime.now(UTC).isoformat(),
+        "assets": [
+            {
+                "id": str(uuid.uuid4()),
+                "identifier": "jeandre.co",
+                "asset_type": "Domain",
+                "findings": [
+                    {
+                        "id": str(uuid.uuid4()),
+                        "title": "Missing DMARC",
+                        "severity": "Medium"
+                    }
+                ]
+            }
+        ],
+        "total_findings": 1,
+        "critical_count": 0,
+        "high_count": 0
+    }
+
 
 @router.get(
     "/{scan_id}/pdf",

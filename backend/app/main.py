@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import health, scans
-from realtime import stream
+from app.realtime import stream
 
 app = FastAPI(
     title="PenFlow API",
