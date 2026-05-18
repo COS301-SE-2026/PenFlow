@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 #scan mode between live and mock
 SCAN_MODE = os.getenv("SCAN_MODE", "MOCK").upper()
-URLSCAN_API_KEY = os.getenv("URLSCAN_API_KEY", "")
+URLSCAN_API_KEY = os.getenv("URLSCAN_API_KEY", "fake_key_1234")
 
 WORKERS_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -50,13 +50,13 @@ def collect_raw_data(domain: str) -> dict:
             with open(mockFile, "r") as f:
                 return json.load(f)
         except FileNotFoundError:
-            logger.error("Mock file not found. Returning empty dict.")
+            logger.error("X Mock file not found. Returning empty dict.")
             return {}
 
     #live mode
     logger.info(f"[URLScan] Running in LIVE mode for {domain}")
     
-    if not URLSCAN_API_KEY or URLSCAN_API_KEY == "your_real_key_goes_here_later":
+    if not URLSCAN_API_KEY or URLSCAN_API_KEY == "fake_key_1234":
         logger.error("X LIVE mode requires valid URLSCAN_API_KEY in the .env file.")
         return {"error": "Missing URLScan API Key"}
 
