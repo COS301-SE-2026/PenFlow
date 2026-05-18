@@ -24,4 +24,16 @@ def test_initiate_scan_invalid_domain(test_client):
     response = test_client.post("/api/v1/scans/",json=payload)
     #Where pydantic comes in
     assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
-    
+
+def test_get_scan_report(test_client):
+    """Test that returning a report returns the correct (mock) data structure"""
+    mock_scan_id = "550e8400-e29b-41d4-a716-446655440000"
+    response = test_client.get(f"/api/v1/scans/{mock_scan_id}/report")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+
+    #verify structure
+    assert data["scan_id"] == mock_scan_id
+    assert "assets" in data
+    assert len(data["assets"]) > 0
+    assert "findings" in data["assets"][0]
