@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, DateTime, Text, ForeignKey, Enum
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 import uuid
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from app.models.base import Base, Severity
 
 class Finding(Base):
@@ -17,7 +17,7 @@ class Finding(Base):
     description = Column(Text)
     recommedendation = Column(Text)
     evidence = Column(JSONB)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
     scan = relationship("Scan", back_populates="findings")
     asset = relationship("Asset", back_populates="findings")

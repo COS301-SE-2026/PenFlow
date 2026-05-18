@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 import uuid
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from app.models.base import Base
 
 class Asset(Base):
@@ -15,6 +15,6 @@ class Asset(Base):
     scan_id = Column(UUID(as_uuid=True), ForeignKey("scans.id",ondelete="CASCADE"), nullable=False, index=True)
     identifier = Column(String(255), nullable=False)
     asset_type = Column(String(50), nullable=False)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
+    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     scan = relationship("Scan", back_populates="assets")
     findings = relationship("Finding", back_populates="assets")

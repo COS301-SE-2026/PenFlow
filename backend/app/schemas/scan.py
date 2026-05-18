@@ -3,6 +3,7 @@
 from pydantic import BaseModel,Field,EmailStr #The email logic here is for the download we discussed, not any sort of auth
 from uuid import UUID
 from enum import Enum
+from app.models.base import ScanStatus
 
 class ScanStatus(str,Enum):
     PENDING = "pending"
@@ -17,3 +18,7 @@ class InitiateScanRequest(BaseModel):
 class InitiateScanResponse(BaseModel):
     scan_id: UUID
     status: ScanStatus
+
+class ScanCallbackRequest(BaseModel):
+    status: ScanStatus
+    error_message: str | None = None

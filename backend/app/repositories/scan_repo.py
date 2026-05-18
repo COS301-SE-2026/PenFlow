@@ -94,3 +94,19 @@ class ScanRepository:
             db.rollback()
             logger.error(f"Failed to save results for scan {scan_id}: {e}")
             raise
+
+    @staticmethod
+    def mark_scan_failed(db: Session, scan_id: UUID, error_message: str, is_partial: bool = False) ->Scan:
+        """
+        Update scan's status to failed or partial and logs the exact error, for frontend display
+        """
+        scan = ScanRepository.get_scan_by_id(db, scan_id)
+        if not scan:
+            raise ValueError(f"Scan {scan_id} not found.")
+
+        scan.status = ScanStatus.PARTIAL if is_partial else ScanStatus.FAILED
+        scan.error_message = error_message
+
+        db.commit()
+        db.refresh(scan)
+        return scan

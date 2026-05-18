@@ -9,7 +9,7 @@ def test_health_check(test_client):
     response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json()
+    data = response.json()
     assert data["status"] == "ok"
     assert "api_version" in data
     assert "database" in data

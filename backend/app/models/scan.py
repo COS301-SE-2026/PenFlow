@@ -3,7 +3,7 @@
 from sqlalchemy import Column, String, Integer, DateTime, Text, Enum, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 from app.models.base import Base 
 from app.models.base import Base, ScanStatus
 
@@ -16,7 +16,7 @@ class Scan(Base):
    email = Column(String(255))
    status = Column(Enum(ScanStatus), nullable=False, default=ScanStatus.QUEUED, index=True)
    progress = Column(Integer, nullable=False, default=0)
-   created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
+   created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
    started_at = Column(DateTime(timezone=True))
    completed_at = Column(DateTime(timezone=True))
    error_message = Column(Text)

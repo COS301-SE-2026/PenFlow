@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.schemas.scan import InitiateScanRequest, InitiateScanResponse
 import uuid
 from fastapi import Response
-from datetime import dateime, UTC
+from datetime import datetime, timezone
 
 router= APIRouter(prefix="/scans",tags=["Scans"])
 
@@ -55,7 +55,7 @@ async def get_scan_report(scan_id: str):
         "scan_id": scan_id,
         "domain": "jeandre.co",
         "status": "completed",
-        "completed_at": datetime.now(UTC).isoformat(),
+        "completed_at": datetime.now(timezone.utc).isoformat(),
         "assets": [
             {
                 "id": str(uuid.uuid4()),
