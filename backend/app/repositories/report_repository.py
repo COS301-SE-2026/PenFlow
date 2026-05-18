@@ -59,3 +59,38 @@ def load_scan_sources_by_scan_id(db: Session, scan_id: str):
     )
 
 
+def get_report_by_scan_id(db: Session, scan_id: str):
+    return fetch_one_as_dict(
+        db,
+        """
+        SELECT *
+        FROM reports
+        WHERE scan_id = :scan_id
+        LIMIT 1
+        """,
+        {"scan_id": scan_id},
+    )
+
+
+def create_report_by_scan_id(db: Session, scan_id: str):
+    report = fetch_one_as_dict(
+        db,
+        """
+        INSERT INTO reports (scan_id, status)
+        VALUES (:scan_id, 'pending')
+        RETURNING *
+        """,
+        {"scan_id": scan_id},
+    )
+    db.commit()
+    return report
+
+
+def get_or_create_report(db: Session, scan_id: str):
+    report = get_report_by_scan_id(db, scan_id)
+
+    if report:
+        return report
+
+    return create_report_by_scan_id(db, scan_id)
+
