@@ -37,3 +37,12 @@ def test_get_scan_report(test_client):
     assert "assets" in data
     assert len(data["assets"]) > 0
     assert "findings" in data["assets"][0]
+
+def test_download_scan_pdf(test_client):
+    """Test that the pdf endpoint returns a file with correct headers"""
+    mock_scan_id = "12345"
+    response = test_client.get(f"/api/v1/scans/{mock_scan_id}/pdf")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.headers["content-type"] == "application/pdf"
+    assert f"filename=\"PenFlow_Report_{mock_scan_id}.pdf\"" in response.headers["content-disposition"]
