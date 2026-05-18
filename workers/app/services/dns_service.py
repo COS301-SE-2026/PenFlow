@@ -240,3 +240,19 @@ def generate_dns_findings(normalized_dns: dict) -> list[dict]:
         })
 
     return findings
+
+
+def run_dns_scan(domain: str) -> dict:
+    raw_dns = collect_dns_raw_data(domain)
+    raw_whois = collect_whois_raw_data(domain)
+    normalized_dns = normalize_dns_data(raw_dns, raw_whois)
+    findings = generate_dns_findings(normalized_dns)
+
+    return {
+        "source_name": "dns",
+        "status": "completed",
+        "raw_result": normalized_dns,
+        "findings": findings,
+        "assets": [],
+    }
+
