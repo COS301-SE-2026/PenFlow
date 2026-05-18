@@ -193,3 +193,50 @@ def normalize_dns_data(raw_data: dict, whois_data: dict | None = None) -> dict:
             "detected_services": sorted(list(detected_services)),
         }
     }
+
+
+def generate_dns_findings(normalized_dns: dict) -> list[dict]:
+    domain_security = normalized_dns.get("domain_security", {})
+    records = domain_security.get("records", [])
+    findings = []
+
+    record_map = {
+        record.get("record_type"): record
+        for record in records
+    }
+
+    spf_record = record_map.get("SPF")
+    dmarc_record = record_map.get("DMARC")
+    mx_record = record_map.get("MX")
+
+    if spf_record and spf_record.get("status") in ["Warning", "Fail"]:
+        findings.append({
+            "source": "dns",
+            "severity": "medium" if spf_record.get("status") == "Fail" else "low",
+            "title": "Weak SPF configuration",
+            "description": spf_record.get("finding"),
+            "recommendation": "Configure SPF to list only authorized mail senders and avoid permissive policies such as +all.",
+            "evidence": spf_record,
+        })
+
+    if dmarc_record and dmarc_record.get("status") in ["Warning", "Fail"]:
+        findings.append({
+            "source": "dns",
+            "severity": "medium",
+            "title": "Weak or missing DMARC policy",
+            "description": dmarc_record.get("finding"),
+            "recommendation": "Configure DMARC with quarantine or reject policy to reduce email spoofing risk.",
+            "evidence": dmarc_record,
+        })
+
+    if mx_record and mx_record.get("status") == "Warning":
+        findings.append({
+            "source": "dns",
+            "severity": "info",
+            "title": "No MX records found",
+            "description": mx_record.get("finding"),
+            "recommendation": "If the domain should receive email, configure valid MX records. If not, this may be expected.",
+            "evidence": mx_record,
+        })
+
+    return findings
