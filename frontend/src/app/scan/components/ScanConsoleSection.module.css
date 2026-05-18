@@ -1,0 +1,280 @@
+.scanSection {
+  background: linear-gradient(180deg, #0d1c34 0%, #091628 100%);
+  padding: clamp(32px, 6vw, 72px) clamp(16px, 4vw, 40px) clamp(48px, 8vw, 100px);
+}
+
+.consoleShell {
+  max-width: 1200px;
+  margin: 0 auto;
+  border: 1px solid var(--col-edge);
+  border-radius: 22px;
+  background: rgba(10, 20, 42, 0.92);
+  backdrop-filter: blur(14px);
+  padding: clamp(20px, 2.5vw, 30px);
+  box-shadow: 0 8px 32px rgba(0, 8, 24, 0.6), 0 0 60px rgba(0, 8, 24, 0.4);
+}
+
+.consoleShell::before {
+  content: "SCAN YOUR DOMAIN NOW:";
+  display: block;
+  color: var(--col-text);
+  letter-spacing: 0.08em;
+  font-size: 1.4rem;
+  margin-bottom: 18px;
+  padding-left: 2px;
+}
+
+.consoleTop {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) 220px;
+  gap: 16px;
+}
+
+/* — Radar — */
+
+.radarPanel {
+  background: linear-gradient(135deg, #0d1e36, #091829);
+  border: 1px solid var(--col-edge);
+  border-radius: 16px;
+  min-height: 320px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 20px rgba(0, 8, 24, 0.5);
+}
+
+.radarScope {
+  width: 260px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid rgba(43, 180, 220, 0.35);
+  background: radial-gradient(circle, #0d2e26 0%, #071a14 100%);
+  position: relative;
+  overflow: hidden;
+  box-shadow:
+    0 0 32px rgba(43, 216, 245, 0.07),
+    inset 0 0 32px rgba(0, 0, 0, 0.5);
+}
+
+.radarRing {
+  position: absolute;
+  border: 1px solid rgba(43, 216, 245, 0.22);
+  border-radius: 50%;
+}
+
+.r1 { inset: 58px; }
+.r2 { inset: 26px; }
+.r3 { inset: -6px; }
+
+.radarSweep {
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(from 285deg, rgba(43, 216, 245, 0.5), rgba(43, 216, 245, 0) 90deg);
+  animation: radarTurn 4s linear infinite;
+}
+
+@keyframes radarTurn {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes radarPing {
+  0%   { opacity: 0; transform: scale(0.5); }
+  4%   { opacity: 1; transform: scale(1.6); }
+  20%  { opacity: 0.9; transform: scale(1); }
+  60%  { opacity: 0; }
+  100% { opacity: 0; }
+}
+
+.radarDot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.dotRed {
+  right: 52px;
+  top: 38px;
+  background: var(--col-alert);
+  box-shadow: 0 0 10px var(--col-alert);
+  animation: radarPing 4s linear 1.277s infinite;
+}
+
+.dotYellow {
+  left: 58px;
+  bottom: 48px;
+  background: var(--col-yellow);
+  box-shadow: 0 0 10px var(--col-yellow);
+  animation: radarPing 4s linear 3.289s infinite;
+}
+
+.dotCyan {
+  left: 65px;
+  top: 65px;
+  background: var(--col-cyan);
+  box-shadow: 0 0 10px var(--col-cyan);
+  animation: radarPing 4s linear 0.333s infinite;
+}
+
+.dotOrange {
+  right: 33px;
+  top: 100px;
+  background: var(--col-orange);
+  box-shadow: 0 0 10px var(--col-orange);
+  animation: radarPing 4s linear 1.667s infinite;
+}
+
+.dotBlue {
+  right: 61px;
+  bottom: 61px;
+  background: var(--col-blue);
+  box-shadow: 0 0 10px var(--col-blue);
+  animation: radarPing 4s linear 2.333s infinite;
+}
+
+
+.processPanel {
+  border: 1px solid var(--col-edge);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #0e1e38, #0a1828);
+  padding: 14px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.processLabel,
+.viewReportButton {
+  border: 1px solid var(--col-edge);
+  border-radius: 8px;
+  background: rgba(16, 36, 72, 0.8);
+  min-height: 44px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display), "Courier New", monospace;
+  font-size: clamp(0.85rem, 1.25vw, 1.05rem);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.processLabel {
+  color: rgba(122, 170, 200, 0.4);
+  transition: color 300ms ease;
+}
+
+.processLabel[data-done="true"] {
+  color: var(--col-success);
+}
+
+.viewReportButton {
+  color: var(--col-muted);
+  cursor: not-allowed;
+  opacity: 0.45;
+  transition: background 400ms ease, color 400ms ease, opacity 400ms ease, box-shadow 400ms ease;
+}
+
+.viewReportButton[data-ready="true"] {
+  background: linear-gradient(135deg, #c03428, #9a2820);
+  border-color: rgba(220, 64, 64, 0.5);
+  color: var(--col-text);
+  cursor: pointer;
+  opacity: 1;
+}
+
+.viewReportButton[data-ready="true"]:hover {
+  background: rgba(255, 95, 78, 0.14);
+  box-shadow: 0 0 18px rgba(255, 95, 78, 0.2);
+  transform: translateY(-1px);
+}
+
+.consoleBottom {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr 150px;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.domainForm {
+  border: 1px solid var(--col-edge);
+  border-radius: 14px;
+  background: rgba(8, 16, 34, 0.9);
+  min-height: 88px;
+  display: grid;
+  grid-template-columns: 1fr 48px;
+  align-items: center;
+  padding: 10px 14px;
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.domainForm:focus-within {
+  border-color: var(--col-edge-hot);
+  box-shadow: 0 0 0 3px rgba(43, 216, 245, 0.08);
+}
+
+.domainForm input {
+  background: transparent;
+  border: 0;
+  color: var(--col-text);
+  font-family: var(--font-body), monospace, sans-serif;
+  font-size: clamp(1.2rem, 2.4vw, 2.2rem);
+  font-weight: 600;
+  outline: none;
+  width: 100%;
+}
+
+.domainForm input::placeholder {
+  color: var(--col-muted);
+  font-weight: 400;
+}
+
+.searchButton {
+  border: 0;
+  background: transparent;
+  color: var(--col-text);
+  cursor: pointer;
+  transition: color 150ms ease, transform 150ms ease;
+}
+
+.searchButton:hover {
+  color: var(--col-cyan);
+  transform: scale(1.12);
+}
+
+.scanNowButton {
+  border: 1px solid rgba(255, 95, 78, 0.5);
+  border-radius: 12px;
+  background: linear-gradient(180deg, #c03428, #9a2820);
+  width: 100%;
+  height: 100%;
+  color: var(--col-text);
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: clamp(1.4rem, 1.8vw, 2rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  box-shadow: 0 4px 16px rgba(192, 52, 40, 0.3);
+}
+
+.scanNowButton:hover:not(:disabled) {
+  background: linear-gradient(180deg, #d94030, #b53028);
+  box-shadow: 0 0 22px rgba(220, 60, 48, 0.38), var(--sh-sm);
+  transform: translateY(-2px);
+}
+
+.scanNowButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.scanStatus {
+  margin: 14px 4px 0;
+  color: var(--col-muted);
+  font-weight: 600;
+  font-size: clamp(0.9rem, 1.2vw, 1.05rem);
+  font-family: var(--font-display), monospace, sans-serif;
+  letter-spacing: 0.06em;
+}

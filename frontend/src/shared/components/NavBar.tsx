@@ -15,7 +15,7 @@ export default function NavBar() {
       <div className="topnav">
         <Link href="/login" className="nav-link">LOGIN</Link>
         <Link href="/" className="nav-link">HOME</Link>
-
+        <Link href="/#scan" className="nav-link">SCAN</Link>
       </div>
 
     </nav>
