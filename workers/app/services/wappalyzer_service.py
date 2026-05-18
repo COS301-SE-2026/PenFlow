@@ -61,58 +61,41 @@ def collect_raw_data(domain: str) -> dict:
             logger.error(f"X Wappalyzer API Error: {e}")
             return {"error": "API Request Failed"}
 
-def normalize_wappalyzer_data(raw_data: dict) -> dict:
+def normalize_data(rawData: dict) -> dict:
     """
-    Extracts tech stack information from raw Wappalyzer JSON.
-    Returns a dictionary matching the PenFlow Data Contract Schema.
+    Flatten and normalize Wappalyzer's output into our unified schema format.
     """
     logger.info("Normalizing Wappalyzer data (Expanded):")
+
+    if "error" in rawData:
+        return {"error": rawData["error"]}
     
-    # Initialize empty lists for our expanded schema categories
-    cms = []
-    frameworks = []
-    webServers = []
-    paas = []
-    programmingLanguages = []
-    databases = []
-    cdns = []
+    techStack = []
+    rawTechs = rawData.get("technologies", [])
+    
+
 
     # In this format:
     # the key is the tech name, and the value holds the details
-    for techName, techDetails in raw_data.items():
+    for tech in rawTechs:
+        categoryName = "Unknown"
+        categories = tech.get("categories", [])
         
-        # Extract version safely
-        versionsList = techDetails.get("versions", [])
-        if len(versionsList) > 0:
-            version = versionsList[0]
-        else:
-            version = "Unknown"
 
-        techObj = \
+        if categories:
+            categoryName = categories[0].get("name", "Unknown")
+       
+        techStack.append = \
         {
-            "name": techName,
-            "version": version
+            "technology": tech.get("name", "Unknown"),
+            "category": categoryName,
+            "version": tech.get("version", "Unknown")
         }
 
-        # Categories come directly as a list of strings
-        categories = techDetails.get("categories", [])
-        
-        # Sort the technology into our unified schema categories
-        for category in categories:
-            if "CMS" in category:
-                cms.append(techObj)
-            elif "Web frameworks" in category or "JavaScript frameworks" in category:
-                frameworks.append(techObj)
-            elif "Web servers" in category:
-                webServers.append(techObj)
-            elif "PaaS" in category:
-                paas.append(techObj)
-            elif "Programming languages" in category:
-                programmingLanguages.append(techObj)
-            elif "Databases" in category:
-                databases.append(techObj)
-            elif "CDN" in category:
-                cdns.append(techObj)
+        return \
+        {
+            "tech_stack": techStack
+        }
 
     # Our strict data contract schema format
     final_result = \
