@@ -1,20 +1,25 @@
-from sqlalchemy.orm import Session
+#type: ignore
 import logging
-from app.schemas.scan import InitiateScanRequest,ScanStatus
+from typing import Any
+
+from sqlalchemy.orm import Session
+
 from app.repositories.scan_repo import ScanRepository
+
 #from app.queue.producer import trigger_osint_scan_task
+from app.schemas.scan import InitiateScanRequest
 
 logger = logging.getLogger(__name__)
 
 class ScanService:
     @staticmethod
-    async def start_scan(db: Session, scan_date: InitaiteScanRequest):
+    async def start_scan(db: Session, scan_data: InitiateScanRequest) -> Any:
         logger.info(f"Initiating CTEM scan for domain: {scan_data.domain}")
 
         #repo creates a new record in the db
         scan_record = ScanRepository.create_scan(
             db=db,
-            domain=scan_data.domain
+            domain=scan_data.domain,
             email=scan_data.email
         )
 

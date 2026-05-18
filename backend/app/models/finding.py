@@ -1,9 +1,13 @@
-from sqlalchemy import Column, String, DateTime, Text, ForeignKey, Enum
-from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.orm import relationship
+#type: ignore
 import uuid
 from datetime import datetime, timezone
+
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import relationship
+
 from app.models.base import Base, Severity
+
 
 class Finding(Base):
     __tablename__ = "findings"

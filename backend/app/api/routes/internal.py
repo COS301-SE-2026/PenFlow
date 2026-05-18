@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from app.schemas.scan import ScanCallbackRequest
+#type: ignore
 #from app.repositories.scan_repo import ScanRepository
 import logging
-import uuid
+
+from fastapi import APIRouter, HTTPException, status
+
+from app.schemas.scan import ScanCallbackRequest
 
 logger = logging.getLogger(__name__)
 
@@ -35,5 +36,5 @@ async def update_scan_status_callback(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to process callback"
-            
+
         )

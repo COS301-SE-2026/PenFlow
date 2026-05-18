@@ -1,6 +1,8 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+#type: ignore
 import asyncio
 import json
+
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 router = APIRouter(prefix="/ws", tags=["Realtime"])
 
@@ -24,7 +26,7 @@ async def scan_progress_stream(websocket: WebSocket, scan_id: str):
                 {"progress": 100, "status": "completed", "message": "Scan complete. Generating report..."}
         ]
 
-        for events in mock_events:
+        for event in mock_events:
             await websocket.send_text(json.dumps({
                 "scan_id": scan_id,
                 **event

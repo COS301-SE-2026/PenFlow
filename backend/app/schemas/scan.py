@@ -1,15 +1,15 @@
 #I am just going to implement a rought draft so long until we get the worker logic figured out
 
-from pydantic import BaseModel,Field,EmailStr #The email logic here is for the download we discussed, not any sort of auth
 from uuid import UUID
-from enum import Enum
+
+from pydantic import (  #The email logic here is for the download we discussed, not any sort of auth
+    BaseModel,
+    EmailStr,
+    Field,
+)
+
 from app.models.base import ScanStatus
 
-class ScanStatus(str,Enum):
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
 
 class InitiateScanRequest(BaseModel):
     domain: str = Field(...,description="The target domain to scan", json_schema_extra={"example": "exmpl.com"})

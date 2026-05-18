@@ -1,12 +1,14 @@
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
-from uuid import UUID
+#type: ignore
 import logging
+from uuid import UUID
 
-from app.models.scan import Scan
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
 from app.models.asset import Asset
-from app.moddels.finding import Finding
 from app.models.base import ScanStatus, Severity
+from app.models.finding import Finding
+from app.models.scan import Scan
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +64,7 @@ class ScanRepository:
                 db.add(asset)
 
             #parse breaches into findings
-            identify = findings_data.get("identity_exposure", {})
+            identity = findings_data.get("identity_exposure", {})
             for breach in identity.get("know_breaches", []):
                 finding = Finding(
                     scan_id=scan.id,

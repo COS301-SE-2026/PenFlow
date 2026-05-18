@@ -1,8 +1,9 @@
+#type: ignore
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routes import health, scans
+
+from app.api.routes import health, internal, scans
 from app.realtime import stream
-from app.api.routes import health, scans, internal
 
 app = FastAPI(
     title="PenFlow API",

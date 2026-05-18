@@ -1,6 +1,7 @@
-from sqlalchemy.orm import DeclarativeBase
-from datetime import datetime, UTC
 import enum
+
+from sqlalchemy.orm import DeclarativeBase
+
 
 class Base(DeclarativeBase):
     pass

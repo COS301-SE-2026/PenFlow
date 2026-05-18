@@ -1,11 +1,12 @@
-#I'm not going to include database logic or the workers yet, for now it'll only receive the validated scan request
+#type: ignore
 
-from fastapi import APIRouter,Depends,HTTPException,status
-from sqlalchemy.orm import Session
-from app.schemas.scan import InitiateScanRequest, InitiateScanResponse
 import uuid
-from fastapi import Response
 from datetime import datetime, timezone
+
+from fastapi import APIRouter, HTTPException, Response, status
+
+from app.models.base import ScanStatus
+from app.schemas.scan import InitiateScanRequest, InitiateScanResponse
 
 router= APIRouter(prefix="/scans",tags=["Scans"])
 
@@ -31,10 +32,10 @@ async def initiate_ctem_scan(
 
         return InitiateScanResponse(
             scan_id=uuid.uuid4(),
-            status="pending"
+            status=ScanStatus.QUEUED
 
         )
-    except Exception as e:
+    except Exception:
     #Once proper logic is setup I'll rather log this and return a 500/specific 400 code 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

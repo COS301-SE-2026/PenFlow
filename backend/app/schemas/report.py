@@ -1,7 +1,9 @@
-from pydantic import BaseModel
+from datetime import datetime
+from enum import Enum
 from typing import List
 from uuid import UUID
-from datetime import datetime
+
+from pydantic import BaseModel
 
 #we can change this this is just for my rough draft
 

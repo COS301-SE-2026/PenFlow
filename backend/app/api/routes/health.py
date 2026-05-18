@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, status
-from sqlalchemy.orm import Session
-from sqlalchemy import text
+#type: ignore
 import logging
+
+from fastapi import APIRouter, status
 
 #import get db
 
