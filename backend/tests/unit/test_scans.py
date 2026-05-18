@@ -14,3 +14,14 @@ def test_initiate_scan_success(test_client):
     data = response.json()
     assert "scan_id" in data
     assert data["status"] == "pending"
+
+def test_initiate_scan_invalid_domain(test_client):
+    """Test missing required fields give a 422 Validation error"""
+    payload = {
+        #In this case I'll remove domain
+        "email": "Jeandre@gmail.com"
+    }
+    response = test_client.post("/api/v1/scans/",json=payload)
+    #Where pydantic comes in
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    
