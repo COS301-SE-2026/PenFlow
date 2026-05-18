@@ -46,3 +46,15 @@ def test_download_scan_pdf(test_client):
     assert response.status_code == status.HTTP_200_OK
     assert response.headers["content-type"] == "application/pdf"
     assert f"filename=\"PenFlow_Report_{mock_scan_id}.pdf\"" in response.headers["content-disposition"]
+
+def test_worker_failure_callback(test_client):
+    """Tests that a worker can report a failure successfully"""
+    mock_scan_id = "550e8400-e29b-41d4-a716-446655440000"
+    payload = {
+        "status": "failed",
+        "error_message": "Shodan API rate limit exceeded"
+    }
+
+    response = test_client.patch(f"/api/v1/internal/scans/{mock_scan_id}/status", json=payload)
+    assert response.status_code == 200
+    assert response.json()["message"] == f"Scan {mock_scan_id} updated to failed"

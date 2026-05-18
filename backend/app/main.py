@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import health, scans
 from app.realtime import stream
+from app.api.routes import health, scans, internal
 
 app = FastAPI(
     title="PenFlow API",
@@ -13,6 +14,7 @@ app = FastAPI(
 app.include_router(health.router)
 app.include_router(scans.router, prefix="/api/v1")
 app.include_router(stream.router, prefix="/api/v1")
+app.include_router(internal.router, prefix="/api/v1")
 
 app.add_middleware(
     CORSMiddleware,
