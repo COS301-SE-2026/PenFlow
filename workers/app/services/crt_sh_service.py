@@ -102,3 +102,51 @@ def normalize_data(rawData: list) -> dict:
     {
         "subdomains": normalizedSubdomains
     }
+
+#analyze subdomains for potential risks and extract assets
+def generate_findings_and_assets(normalizedData: dict) -> tuple:
+    findings = []
+    assets = []
+    
+    if "error" in normalizedData:
+        return findings, assets
+        
+    for subObj in normalizedData.get("subdomains", []):
+        subdomain = subObj.get("subdomain")
+        
+        # Add every discovered subdomain to the PenFlow Asset inventory
+        if subdomain:
+            assets.append(
+            {
+                "asset_type": "subdomain",
+                "value": subdomain,
+                "source": "crt_sh"
+            })
+            
+    return findings, assets
+
+
+#execution
+def run_crt_sh(domain: str) -> dict:
+    rawData = collect_raw_data(domain)
+    normalized = normalize_data(rawData)
+    findings, assets = generate_findings_and_assets(normalized)
+    
+    # Extract just the string names for the PDF builder's expected format
+    discoveredNames = []
+    for sub in normalized.get("subdomains", []):
+        discoveredNames.append(sub.get("subdomain"))
+    
+    return \
+    {
+        "source_name": "crt_sh",
+        "status": "completed" if "error" not in normalized else "failed",
+        "raw_result": 
+        {
+            "provider": "crt.sh",
+            "total_found": len(discoveredNames),
+            "discovered_names": discoveredNames
+        },
+        "findings": findings,
+        "assets": assets
+    }
