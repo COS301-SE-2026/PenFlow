@@ -21,8 +21,12 @@
     "visibility": "public",
     "method": "api",
     "source": "api",
-    "screenshotURL": "https://urlscan.io/screenshots/019e26a5-49bc-713a-a099-cab0586bcf91.png"
+    "provider": "URLScan",
+    "malicious_flags": 0,
+    "urlscan_uuid": "019e26a5-49bc-713a-a099-cab0586bcf91",
+    "screenshot_url": "urlscan_mock.png"
   },
+  
   "page": {
     "url": "https://hackerone.com/",
     "domain": "hackerone.com",
