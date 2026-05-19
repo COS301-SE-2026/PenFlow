@@ -22,6 +22,7 @@ def _download_screenshot(image_url: str, targetFilename: str) -> str:
     """Downloads an image from the web and saves it to the shared templates folder."""
     try:
         logger.info(f"Downloading live screenshot from: {image_url}")
+        TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
         response = httpx.get(image_url, timeout=15.0)
         response.raise_for_status()
 
@@ -73,7 +74,7 @@ def collect_raw_data(domain: str) -> dict:
             submitRes = client.post(submitUrl, headers=headers, json=payload, timeout=15.0)
             submitRes.raise_for_status()
         except httpx.HTTPStatusError as e:
-            logger.error(f"URLScan API Error: {e.response.text}")
+            logger.error(f"URLScan API Error: {e}")#catch timeouts
             return {"error": "API Request Failed"}
             
         uuid = submitRes.json().get("uuid")
@@ -86,24 +87,26 @@ def collect_raw_data(domain: str) -> dict:
         for attempt in range(6):
             time.sleep(10)
             logger.info(f"[URLScan] Polling for results (Attempt {attempt + 1}/6)...")
-            res = client.get(resultUrl, timeout=15.0)
+            res = client.get(resultUrl,headers=headers, timeout=15.0)
             
-            if res.statusCode == 200:
+            if res.status_code == 200:
                 raw_result = res.json()
                 logger.info("[URLScan] Scan complete and data retrieved!")
                 break
-            elif res.statusCode == 404:
+            elif res.status_code == 404:
                 continue # Scan is still running, keep waiting
             else:
-                res.raise_for_status()
+                logger.error(f"[URLScan] Unexpected API response: {res.status_code}")
+                return {"error": f"API Error {res.status_code}"}
 
         if not raw_result:
             logger.error("[URLScan] X Scan timed out after 60 seconds.")
             return {"error": "Scan Timeout"}
 
         #download screen shot to our local templates folder for PDF report generation (and potential future DB storage)
+        screenshotUrl = f"https://urlscan.io/screenshots/{uuid}.png"
         filename = f"{domain.replace('.', '_')}_{uuid}.png"
-        savedFilename = _download_screenshot(uuid, filename)
+        savedFilename = _download_screenshot(screenshotUrl, filename)
 
         # Inject our local filename into their massive JSON payload
         raw_result["_local_screenshot_path"] = savedFilename
