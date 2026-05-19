@@ -65,25 +65,26 @@ def collect_raw_data(domain: str) -> dict:
             return {"error": "API Request Failed"}
         
 
-def normalize_hibp_data(raw_data: list) -> dict:
+def normalize_data(rawData: list) -> dict:
     """
     Normalizes breach data from a raw HaveIBeenPwned response payload.
     """
+    
     logger.info("Normalizing HIBP breach data:")
+    if "error" in rawData:
+        return {"error": rawData["error"]}
+    breaches = rawData.get("breaches", [])
+    knownBreaches = []
     
-    unique_breaches = set()
+    for breach in breaches:
+        breachName = breach.get("Name")
+        if breachName:
+            knownBreaches.append(breachName)
+    knownBreaches.sort()
     
-    for breach in raw_data:
-        breach_name = breach.get("Name", "Unknown")
-        unique_breaches.add(breach_name)
-
-    final_breach_list = sorted(list(unique_breaches))
-
-    # Strict data contract format required by the database layer
-    final_result = {
+    return \
+    {
         "provider": "HaveIBeenPwned",
-        "pwned_accounts_count": len(final_breach_list),
-        "known_breaches": final_breach_list
+        "pwned_accounts_count": len(knownBreaches),
+        "known_breaches": knownBreaches
     }
-
-    return final_result
