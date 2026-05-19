@@ -61,7 +61,8 @@ def normalize_data(rawData: dict) -> dict:
     Extracts email formats and employee addresses from raw Hunter.io JSON.
     Strips superfluous info so we only get a list of targets to process.
     """
-
+    if "error" in rawData:
+        return {"error": rawData["error"]}
     logger.info("Normalizing Hunter.io data:")
     
     # Hunter.io wraps their actual payload inside a "data" key in accordance to their documentation
