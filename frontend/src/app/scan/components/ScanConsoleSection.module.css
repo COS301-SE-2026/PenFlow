@@ -1,5 +1,5 @@
 .scanSection {
-  background: linear-gradient(180deg, #0d1c34 0%, #091628 100%);
+  background: var(--col-deep);
   padding: clamp(32px, 6vw, 72px) clamp(16px, 4vw, 40px) clamp(48px, 8vw, 100px);
 }
 
@@ -14,14 +14,12 @@
   box-shadow: 0 8px 32px rgba(0, 8, 24, 0.6), 0 0 60px rgba(0, 8, 24, 0.4);
 }
 
-.consoleShell::before {
-  content: "SCAN YOUR DOMAIN NOW:";
-  display: block;
+.consoleLabel {
   color: var(--col-text);
   letter-spacing: 0.08em;
-  font-size: 1.4rem;
-  margin-bottom: 18px;
-  padding-left: 2px;
+  font-size: clamp(1.1rem, 1.8vw, 1.4rem);
+  margin: 0 0 18px 2px;
+  font-family: var(--font-display), Impact, sans-serif;
 }
 
 .consoleTop {
@@ -132,7 +130,6 @@
   box-shadow: 0 0 10px var(--col-blue);
   animation: radarPing 4s linear 2.333s infinite;
 }
-
 
 .processPanel {
   border: 1px solid var(--col-edge);
@@ -277,4 +274,18 @@
   font-size: clamp(0.9rem, 1.2vw, 1.05rem);
   font-family: var(--font-display), monospace, sans-serif;
   letter-spacing: 0.06em;
+}
+
+@media (max-width: 900px) {
+  .consoleTop {
+    grid-template-columns: 1fr;
+  }
+
+  .consoleBottom {
+    grid-template-columns: 1fr;
+  }
+
+  .scanNowButton {
+    height: 72px;
+  }
 }

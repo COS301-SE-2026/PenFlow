@@ -2,6 +2,9 @@ import NavBar from "@/components/NavBar";
 import Image from "next/image";
 import submarineImage from "@/app/images/images/submarine.png";
 import ScanConsoleSection from "@/app/scan/components/ScanConsoleSection";
+import SonarSection from "@/shared/components/SonarSection";
+import SafetySection from "@/shared/components/SafetySection";
+import DangerSection from "@/shared/components/DangerSection";
 
 export default function Home() {
   return (
@@ -17,7 +20,7 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="waterline">
+        <div className="waterline" aria-hidden="true">
           <svg
             viewBox="0 0 1440 200"
             xmlns="http://www.w3.org/2000/svg"
@@ -38,9 +41,10 @@ export default function Home() {
           />
         </div>
       </section>
-      <div id="scan">
-        <ScanConsoleSection />
-      </div>
+      <DangerSection />
+      <SonarSection />
+      <SafetySection />
+      <ScanConsoleSection />
     </main>
   );
 }
