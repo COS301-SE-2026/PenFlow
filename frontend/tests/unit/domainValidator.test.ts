@@ -31,6 +31,12 @@ describe("validateDomain", () => {
       const r = validateDomain("");
       expect(r.valid).toBe(false);
     });
+        //accept subdomain
+       it("accepts subdomain", () => {
+      const r = validateDomain("sub.example.co.za");
+      expect(r.valid).toBe(true);
+      if (r.valid) expect(r.domain).toBe("sub.example.co.za");
+    });
 
 
 
