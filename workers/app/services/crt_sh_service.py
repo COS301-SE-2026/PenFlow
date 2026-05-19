@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import json
 import httpx
+import time
 from celery import shared_task
 
 # Logger to track this specific worker
@@ -40,28 +41,54 @@ def collect_raw_data(domain: str) -> dict:
     
     #crt.sh is a free public database, we need no api key
     #we use %.domain to get all subdomains
-    url = f"https://crt.sh/?q=%.{domain}&output=json"
+    url = f"https://crt.sh/?q=%.{domain}&output=json&exclude=expired"
     
-    #crt.sh often blocks default python user-agents, so we spoof a real one
-    headers = \
-    {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
+
+    #crt.sh is very bad with reliable requests, we have to do a lot of retry logic to try get a good response.
+    max_attempts = 6
+    timeout_seconds = 15.0
+
     
     with httpx.Client() as client:
-        try:
-            #crt.sh can be slow to respond, so we set a long timeout
-            res = client.get(url, headers=headers, timeout=45.0)
-            res.raise_for_status()
+        for attempt in range(1, max_attempts + 1):
+            logger.info(f"[CRT.sh] Polling database (Attempt {attempt}/{max_attempts}) with {timeout_seconds}s timeout...")
+            try:
+                #crt.sh can be slow to respond, so we set a long timeout
+                res = client.get(url, timeout=timeout_seconds)
+
+                # Catch 502 Bad Gateway / 503 Service Unavailable natively
+                if res.status_code in [502, 503, 504]:
+                    logger.warning(f"[CRT.sh] Server returned {res.status_code}. Retrying...")
+                    time.sleep(3)
+                    continue
+                    
+                res.raise_for_status()
+                
+                # crt.sh sometimes returns a completely blank page when it struggles
+                if not res.text.strip():
+                    logger.warning("[CRT.sh] Returned a blank response. Retrying...")
+                    time.sleep(3)
+                    continue
+
+                # Try to parse the JSON. If it's half-broken, catch it and retry.
+                try:
+                    return {"certificates": res.json()}
+                except json.JSONDecodeError:
+                    logger.warning("[CRT.sh] Returned invalid JSON. Retrying...")
+                    time.sleep(3)
+                    continue
+                
+            except httpx.ReadTimeout:
+                logger.warning(f"[CRT.sh] Timeout reached ({timeout_seconds}s). Retrying...")
+                time.sleep(3)
+            except httpx.HTTPError as e:
+                logger.warning(f"[CRT.sh] HTTP Error: {e}. Retrying...")
+                time.sleep(3)
+             
             
-            return \
-            {
-                "certificates": res.json()
-            }
-            
-        except httpx.HTTPError as e:
-            logger.error(f"X CRT.sh API Error: {e}")
-            return {"error": "API Request Failed"}
+        # If we exhaust all 5 attempts, fail gracefully
+        logger.error(f"[CRT.sh] X Completely failed after {max_attempts} attempts.")
+        return {"error": "API Request Failed / Timed Out"}
 
 def normalize_data(rawData: list) -> dict:
     """
