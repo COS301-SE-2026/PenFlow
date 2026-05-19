@@ -56,3 +56,45 @@ def collect_raw_data(domain: str) -> dict:
         logger.error(f"X WHOIS Error: {e}")
         
     return rawData
+
+#normalize data to fit our strict PDF contract
+def normalize_data(rawData: dict) -> dict:
+    if "error" in rawData:
+        return {"error": rawData["error"]}
+
+    dnsData = rawData.get("dns", {})
+    whoisData = rawData.get("whois", {})
+    
+    records = []
+    detectedServices = set()
+
+    # Process MX
+    if dnsData.get("mx"):
+        records.append({"record_type": "MX", "status": "Pass", "finding": "MX records are configured."})
+        if "google" in str(dnsData.get("mx")).lower(): detectedServices.add("Google Workspace")
+    else:
+        records.append({"record_type": "MX", "status": "Fail", "finding": "No MX records found."})
+
+    # Process SPF / DMARC from TXT
+    txt_records = " ".join(dnsData.get("txt", [])).lower()
+    
+    if "v=spf1" in txt_records:
+        records.append({"record_type": "SPF", "status": "Pass", "finding": "SPF record is present."})
+    else:
+        records.append({"record_type": "SPF", "status": "Fail", "finding": "No SPF record found. Vulnerable to spoofing."})
+        
+    if "v=dmarc1" in txt_records:
+        records.append({"record_type": "DMARC", "status": "Pass", "finding": "DMARC record is present."})
+    else:
+        records.append({"record_type": "DMARC", "status": "Fail", "finding": "No DMARC record found. Email spoofing possible."})
+
+    return \
+    {
+        "domain_security": 
+        {
+            "provider": "Native Python",
+            "records": records,
+            "whois": whoisData,
+            "detected_services": sorted(list(detectedServices))
+        }
+    }
