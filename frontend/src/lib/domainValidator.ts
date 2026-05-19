@@ -8,7 +8,7 @@ export type DomainValidationResult =
     v = v.replace(/^https?:\/\//i, "");   // strip protocol
     v = v.split("/")[0];                   // strip path
     v = v.split(":")[0];                   // strip port
-    v = v.replace(/^\.+|\.+$/g, "");      // strip leading/trailing dots
+    v = v.replace(/^\.+/, "").replace(/\.+$/, "");     // strip leading/trailing dots .Alternation |  with + can cause backtracking 
     return v;
   }
   //regex 
