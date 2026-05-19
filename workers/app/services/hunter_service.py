@@ -89,3 +89,55 @@ def normalize_data(rawData: dict) -> dict:
         "email_format_pattern": pattern,
         "public_emails_found": formattedEmails
     }
+
+#analyze emails for potential risks and extract assets
+def generate_findings_and_assets(normalizedData: dict) -> tuple:
+    findings = []
+    assets = []
+    
+    if "error" in normalizedData:
+        return findings, assets
+        
+    emailsFound = normalizedData.get("public_emails_found", [])
+    
+    for emailObj in emailsFound:
+        emailAddress = emailObj.get("email")
+        
+        # Add every discovered email to the PenFlow Asset inventory
+        if emailAddress and emailAddress != "Unknown":
+            assets.append(
+            {
+                "asset_type": "email",
+                "value": emailAddress,
+                "source": "hunter"
+            })
+            
+    # If we found emails, flag it for the phishing simulation team
+    if assets:
+        findings.append(
+        {
+            "source": "hunter",
+            "severity": "info",
+            "title": f"Discovered {len(assets)} Public Email Addresses",
+            "description": "Publicly accessible email addresses were discovered for this domain. These are prime targets for social engineering or spear-phishing campaigns.",
+            "recommendation": "Ensure all staff undergo regular phishing awareness training and implement strict email filtering.",
+            "evidence": {"email_count": len(assets), "pattern": normalizedData.get("email_format_pattern")}
+        })
+            
+    return findings, assets
+
+
+#execution
+def run_hunter(domain: str) -> dict:
+    rawData = collect_raw_data(domain)
+    normalized = normalize_data(rawData)
+    findings, assets = generate_findings_and_assets(normalized)
+    
+    return \
+    {
+        "source_name": "hunter",
+        "status": "completed" if "error" not in normalized else "failed",
+        "raw_result": normalized,
+        "findings": findings,
+        "assets": assets
+    }
