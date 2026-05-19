@@ -60,7 +60,7 @@ def load_scan_sources_by_scan_id(db: Session, scan_id: str):
 
 
 def get_report_by_scan_id(db: Session, scan_id: str):
-    return fetch_one_as_dict(
+    return fetch_singular_row_as_dict(
         db,
         """
         SELECT *
@@ -73,7 +73,7 @@ def get_report_by_scan_id(db: Session, scan_id: str):
 
 
 def create_report_by_scan_id(db: Session, scan_id: str):
-    report = fetch_one_as_dict(
+    report = fetch_singular_row_as_dict(
         db,
         """
         INSERT INTO reports (scan_id, status)
@@ -94,3 +94,76 @@ def get_or_create_report(db: Session, scan_id: str):
 
     return create_report_by_scan_id(db, scan_id)
 
+
+def mark_report_generating(db: Session, scan_id: str):
+    get_or_create_report(db, scan_id)
+
+    report = fetch_singular_row_as_dict(
+        db,
+        """
+        UPDATE reports
+        SET status = 'generating',
+            error_message = NULL
+        WHERE scan_id = :scan_id
+        RETURNING *
+        """,
+        {"scan_id": scan_id},
+    )
+    db.commit()
+    return report
+
+
+def mark_report_completed(db: Session, scan_id: str, pdf_path: str):
+    report = fetch_singular_row_as_dict(
+        db,
+        """
+        UPDATE reports
+        SET status = 'completed',
+            pdf_path = :pdf_path,
+            generated_at = NOW(),
+            error_message = NULL
+        WHERE scan_id = :scan_id
+        RETURNING *
+        """,
+        {
+            "scan_id": scan_id,
+            "pdf_path": pdf_path,
+        },
+    )
+    db.commit()
+    return report
+
+
+def mark_report_failed(db: Session, scan_id: str, error_message: str):
+    get_or_create_report(db, scan_id)
+
+    report = fetch_singular_row_as_dict(
+        db,
+        """
+        UPDATE reports
+        SET status = 'failed',
+            error_message = :error_message
+        WHERE scan_id = :scan_id
+        RETURNING *
+        """,
+        {
+            "scan_id": scan_id,
+            "error_message": error_message,
+        },
+    )
+    db.commit()
+    return report
+
+
+def load_report_data(db: Session, scan_id: str):
+    scan = load_scan_by_id(db, scan_id)
+
+    if scan is None:
+        raise ValueError(f"Scan not found: {scan_id}")
+
+    return {
+        "scan": scan,
+        "findings": load_findings_by_scan_id(db, scan_id),
+        "scan_sources": load_scan_sources_by_scan_id(db, scan_id),
+        "report": get_or_create_report(db, scan_id),
+    }
