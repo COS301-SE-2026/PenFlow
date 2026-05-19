@@ -1,6 +1,7 @@
 import logging
 import json
 import os
+from celery import shared_task
 import httpx
 from pathlib import Path
 import time
@@ -154,6 +155,7 @@ def generate_findings(normalizedData: dict) -> list:
     return findings    
 
 #execution
+@shared_task(name="scan.urlscan")
 def run_urlscan(domain: str) -> dict:
     raw_data = collect_raw_data(domain)
     normalized = normalize_data(raw_data)

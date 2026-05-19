@@ -1,6 +1,7 @@
 import logging
 import os
 import json
+from celery import shared_task
 import httpx
 from pathlib import Path
 
@@ -128,6 +129,7 @@ def generate_findings_and_assets(normalizedData: dict) -> tuple:
 
 
 #execution
+@shared_task(name="scan.hunter")
 def run_hunter(domain: str) -> dict:
     rawData = collect_raw_data(domain)
     normalized = normalize_data(rawData)

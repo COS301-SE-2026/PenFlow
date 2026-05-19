@@ -5,6 +5,7 @@ import warnings
 import json
 from pathlib import Path  
 from Wappalyzer import Wappalyzer, WebPage
+from celery import shared_task
 
 warnings.filterwarnings("ignore")
 #Logger to tell us this file was in error
@@ -152,6 +153,7 @@ def generate_findings_and_assets(normalizedData: dict) -> tuple:
     return findings, assets
 
 #execution
+@shared_task(name="scan.wappalyzer")
 def run_wappalyzer(domain: str) -> dict:
     rawData = collect_raw_data(domain)
     normalized = normalize_data(rawData)

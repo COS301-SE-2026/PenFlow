@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import json
 import httpx
+from celery import shared_task
 
 # Logger to track this specific worker
 logger = logging.getLogger(__name__)
@@ -127,6 +128,7 @@ def generate_findings_and_assets(normalizedData: dict) -> tuple:
 
 
 #execution
+@shared_task(name="scan.crt_sh")
 def run_crt_sh(domain: str) -> dict:
     rawData = collect_raw_data(domain)
     normalized = normalize_data(rawData)
