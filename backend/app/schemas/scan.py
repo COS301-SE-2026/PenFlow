@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field, EmailStr, field_validator
-from uuid import UUID
-from enum import Enum
+# from uuid import UUID
 import re
+from enum import Enum
+
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
 
 class ScanStatus(str, Enum):
     PENDING = "pending"
@@ -28,7 +30,7 @@ _DOMAIN_REGEX = re.compile(
 
 # initiate scan report
 class InitiateScanRequest(BaseModel):
-    domain: str = Field(..., description="The target domain to scan", example="example.com")
+    domain: str = Field(..., description="The target domain to scan", examples=["example.com"])
     email: EmailStr | None = Field(None, description="Email to send the report to")
 
     @field_validator("domain", mode="before")
