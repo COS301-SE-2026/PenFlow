@@ -95,7 +95,7 @@ export default function SonarSection() {
               const col = index % DOT_GRID_COLS;
               const dx = col - DOT_CENTER_X;
               const dy = row - DOT_CENTER_Y;
-              const dist = Math.sqrt(dx * dx + dy * dy);
+              const dist = Math.hypot(dx, dy);
               const inCircle = dist <= DOT_MAX_RADIUS;
               const isHot = HOT_DOTS.has(index);
 
