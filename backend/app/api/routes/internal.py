@@ -17,13 +17,16 @@ async def update_scan_status_callback(
     """
     Webhook for celery workers, report failures/ partial completions.
     """
-    try:
+    safe_scan_id = scan_id.replace('\n', '').replace('\r', '')
 
-        logger.info("Worker reported status %s for scan %s", payload.status, scan_id)
-        return {"message": f"Scan {scan_id} updated to {payload.status.value}"}
+    try:
+        safe_status = str(payload.status.value).replace('\n', '').replace('\r', '')
+
+        logger.info("Worker reported status %s for scan %s", safe_status, safe_scan_id)
+        return {"message": f"Scan {safe_scan_id} updated to {safe_status}"}
 
     except Exception:
-        logger.exception("Failed to process worker callback for %s", scan_id)
+        logger.exception("Failed to process worker callback for %s", safe_scan_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to process callback"
