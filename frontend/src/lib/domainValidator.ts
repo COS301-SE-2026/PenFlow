@@ -16,7 +16,7 @@ export type DomainValidationResult =
   //allow optional subdomains
   //If there is more than one character, the middle section can contain letters, numbers, and hyphens. It can be between 0 and 61 characters long
   //domain max is  63 characters maximum  +1 start and end char
-  //TLD must be 2 characters long
+  //TLD must be at least 2 characters long
   const DOMAIN_REGEX = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,63}$/;  
 
   export function validateDomain(raw: string): DomainValidationResult {
