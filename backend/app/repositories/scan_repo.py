@@ -28,9 +28,9 @@ class ScanRepository:
             db.commit()
             db.refresh(new_scan)
             return new_scan
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             db.rollback()
-            logger.error(f"Failed to create scan for domain {domain}: {e}")
+            logger.exception("Failed to create scan for domain %s",domain)
             raise
 
     @staticmethod
@@ -92,9 +92,9 @@ class ScanRepository:
             db.refresh(scan)
             return scan
 
-        except SQLAlchemyError as e:
+        except SQLAlchemyError:
             db.rollback()
-            logger.error(f"Failed to save results for scan {scan_id}: {e}")
+            logger.exception("Failed to save scan for domain %s", scan_id)
             raise
 
     @staticmethod

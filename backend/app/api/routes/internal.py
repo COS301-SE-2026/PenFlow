@@ -1,5 +1,4 @@
 #type: ignore
-#from app.repositories.scan_repo import ScanRepository
 import logging
 
 from fastapi import APIRouter, HTTPException, status
@@ -14,25 +13,17 @@ router = APIRouter(prefix="/internal", tags=["Internal Webhooks"])
 async def update_scan_status_callback(
     scan_id: str,
     payload: ScanCallbackRequest,
-    #db: Session = Depends(get_db)
 ):
     """
     Webhook for celery workers, report failures/ partial completions.
     """
     try:
-        #is_partial = payload.status == ScanStatus.PARTIAL
-        #ScanRepository.mark_scan_failed(
-        #   db=db,
-        #   scan_id=uuid.UUID(scan_id),
-        #   error_message=payload.error_message,
-        #   is_partial=is_partial
-        #)
 
-        logger.info(f"Worker reported status {payload.status} for scan {scan_id}")
+        logger.info("Worker reported status %s for scan %s", payload.status, scan_id)
         return {"message": f"Scan {scan_id} updated to {payload.status.value}"}
 
-    except Exception as e:
-        logger.error(f"Failed to process worker callback for {scan_id}: {e}")
+    except Exception:
+        logger.exception("Failed to process worker callback for %s", scan_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to process callback"

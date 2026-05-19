@@ -5,8 +5,6 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.repositories.scan_repo import ScanRepository
-
-#from app.queue.producer import trigger_osint_scan_task
 from app.schemas.scan import InitiateScanRequest
 
 logger = logging.getLogger(__name__)
@@ -27,9 +25,7 @@ class ScanService:
         try:
             #trigger_osint_scan_task.delay(str(scan_record.id), scan_data.domain)
             logger.info(f"Successfully queued OSINT worker for scan {scan_record.id}")
-        except Exception as e:
-            logger.error(f"Failed to push task to queue for scan {scan_record.id}: {e}")
+        except Exception:
+            logger.exception("Failed to push task to queue for scan %s", scan_record.id)
 
         return scan_record
-
-        pass

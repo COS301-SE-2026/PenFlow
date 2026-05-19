@@ -45,7 +45,7 @@ def test_download_scan_pdf(test_client):
 
     assert response.status_code == status.HTTP_200_OK
     assert response.headers["content-type"] == "application/pdf"
-    assert f"filename=\"PenFlow_Report_{mock_scan_id}.pdf\"" in response.headers["content-disposition"]
+    assert f"filename=\"PenFlow_Report_{mock_scan_id}.pdf\"" in response.headers["content-disposition"] #noqa: E501
 
 def test_worker_failure_callback(test_client):
     """Tests that a worker can report a failure successfully"""
