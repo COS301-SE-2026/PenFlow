@@ -27,6 +27,10 @@ describe("validateDomain", () => {
       expect(r.valid).toBe(false);
     });
 
+    it("rejects empty input", () => {
+      const r = validateDomain("");
+      expect(r.valid).toBe(false);
+    });
 
 
 
