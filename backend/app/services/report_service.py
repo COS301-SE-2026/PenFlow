@@ -42,3 +42,40 @@ def render_report_html(context: dict) -> str:
 def build_report_output_path(scan_id: str) -> Path:
     REPORT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     return REPORT_OUTPUT_DIR / f"ctem_report_{scan_id}.pdf"
+
+
+def generate_report_pdf(db: Session, scan_id: str) -> str:
+    try:
+        mark_report_generating(db, scan_id)
+
+        report_data = load_report_data(db, scan_id)
+
+        context = build_report_context(
+            scan=report_data["scan"],
+            findings=report_data["findings"],
+            scan_sources=report_data["scan_sources"],
+        )
+
+        html_content = render_report_html(context)
+        output_path = build_report_output_path(scan_id)
+
+        pdf_path = generate_pdf_from_html(
+            html_content=html_content,
+            output_path=output_path,
+        )
+
+        mark_report_completed(
+            db=db,
+            scan_id=scan_id,
+            pdf_path=str(pdf_path),
+        )
+
+        return str(pdf_path)
+
+    except Exception as error:
+        mark_report_failed(
+            db=db,
+            scan_id=scan_id,
+            error_message=str(error),
+        )
+        raise
