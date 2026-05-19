@@ -20,7 +20,7 @@ const HOT_DOTS: ReadonlySet<number> = new Set(
     .filter(([col, row]) => {
       const dx = col - DOT_CENTER_X;
       const dy = row - DOT_CENTER_Y;
-      return Math.sqrt(dx * dx + dy * dy) <= DOT_MAX_RADIUS;
+      return Math.hypot(dx, dy) <= DOT_MAX_RADIUS;
     })
     .map(([col, row]) => row * DOT_GRID_COLS + col),
 );
@@ -63,8 +63,8 @@ export default function SonarSection() {
 
       // Neon glow fires when the wave front reaches each hot dot
       const readDelay = (el: Element) =>
-        parseInt((el as HTMLElement).dataset.waveDelay ?? "0", 10);
-
+        Number.parseInt((el as HTMLElement).dataset.waveDelay ?? "0", 10);
+      
       animate(".sonarHotDot", {
         boxShadow: [
           "0 0 4px 1px rgba(255, 30, 30, 0.35)",
@@ -101,8 +101,10 @@ export default function SonarSection() {
 
               return (
                 <span
-                  key={index}
-                  className={`sonarDot ${styles.sonarDot}${isHot ? ` ${styles.sonarHotDot}` : ""}`}
+                  key={`dot-${col}-${row}`}
+                  className={["sonarDot", styles.sonarDot, isHot ? styles.sonarHotDot : ""]
+                    .filter(Boolean)
+                    .join(" ")}
                   data-wave-delay={isHot ? String(Math.round(dist) * 95) : undefined}
                   style={
                     {
