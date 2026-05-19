@@ -1,18 +1,22 @@
+from typing import Any
+
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+JSONDict = dict[str, Any]
+JSONList = list[JSONDict]
 
-def fetch_singular_row_as_dict(db: Session, query: str, params: dict):
+def fetch_singular_row_as_dict(db: Session, query: str, params: JSONDict) -> JSONDict | None:
     row = db.execute(text(query), params).mappings().first()
     return dict(row) if row else None
 
 
-def fetch_all_rows_as_dicts(db: Session, query: str, params: dict):
+def fetch_all_rows_as_dicts(db: Session, query: str, params: JSONDict) -> JSONList:
     rows = db.execute(text(query), params).mappings().all()
     return [dict(row) for row in rows]
 
 
-def load_scan_by_id(db: Session, scan_id: str):
+def load_scan_by_id(db: Session, scan_id: str) -> JSONDict | None:
     return fetch_singular_row_as_dict(
         db,
         """
@@ -24,7 +28,7 @@ def load_scan_by_id(db: Session, scan_id: str):
     )
 
 
-def load_findings_by_scan_id(db: Session, scan_id: str):
+def load_findings_by_scan_id(db: Session, scan_id: str) -> JSONList:
     return fetch_all_rows_as_dicts(
         db,
         """
@@ -46,7 +50,7 @@ def load_findings_by_scan_id(db: Session, scan_id: str):
     )
 
 
-def load_scan_sources_by_scan_id(db: Session, scan_id: str):
+def load_scan_sources_by_scan_id(db: Session, scan_id: str) -> JSONList:
     return fetch_all_rows_as_dicts(
         db,
         """
@@ -59,7 +63,7 @@ def load_scan_sources_by_scan_id(db: Session, scan_id: str):
     )
 
 
-def get_report_by_scan_id(db: Session, scan_id: str):
+def get_report_by_scan_id(db: Session, scan_id: str) -> JSONDict | None:
     return fetch_singular_row_as_dict(
         db,
         """
@@ -72,7 +76,7 @@ def get_report_by_scan_id(db: Session, scan_id: str):
     )
 
 
-def create_report_by_scan_id(db: Session, scan_id: str):
+def create_report_by_scan_id(db: Session, scan_id: str) -> JSONDict | None:
     report = fetch_singular_row_as_dict(
         db,
         """
@@ -86,7 +90,7 @@ def create_report_by_scan_id(db: Session, scan_id: str):
     return report
 
 
-def get_or_create_report(db: Session, scan_id: str):
+def get_or_create_report(db: Session, scan_id: str) -> JSONDict | None:
     report = get_report_by_scan_id(db, scan_id)
 
     if report:
@@ -95,7 +99,7 @@ def get_or_create_report(db: Session, scan_id: str):
     return create_report_by_scan_id(db, scan_id)
 
 
-def mark_report_generating(db: Session, scan_id: str):
+def mark_report_generating(db: Session, scan_id: str) -> JSONDict | None:
     get_or_create_report(db, scan_id)
 
     report = fetch_singular_row_as_dict(
@@ -113,7 +117,7 @@ def mark_report_generating(db: Session, scan_id: str):
     return report
 
 
-def mark_report_completed(db: Session, scan_id: str, pdf_path: str):
+def mark_report_completed(db: Session, scan_id: str, pdf_path: str) -> JSONDict | None:
     report = fetch_singular_row_as_dict(
         db,
         """
@@ -134,7 +138,7 @@ def mark_report_completed(db: Session, scan_id: str, pdf_path: str):
     return report
 
 
-def mark_report_failed(db: Session, scan_id: str, error_message: str):
+def mark_report_failed(db: Session, scan_id: str, error_message: str) -> JSONDict | None:
     get_or_create_report(db, scan_id)
 
     report = fetch_singular_row_as_dict(
@@ -155,7 +159,7 @@ def mark_report_failed(db: Session, scan_id: str, error_message: str):
     return report
 
 
-def load_report_data(db: Session, scan_id: str):
+def load_report_data(db: Session, scan_id: str) -> JSONDict:
     scan = load_scan_by_id(db, scan_id)
 
     if scan is None:
@@ -169,7 +173,7 @@ def load_report_data(db: Session, scan_id: str):
     }
 
 
-def mark_report_task_queued(db: Session, scan_id: str, task_id: str):
+def mark_report_task_queued(db: Session, scan_id: str, task_id: str) -> JSONDict | None:
     report = fetch_singular_row_as_dict(
         db,
         """

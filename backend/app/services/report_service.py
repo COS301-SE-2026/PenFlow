@@ -1,9 +1,12 @@
 import os
-
 from pathlib import Path
+from typing import Any
+
+from celery.result import AsyncResult
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy.orm import Session
 
+from app.queue.celery_app import celery_app
 from app.repositories.report_repository import (
     load_report_data,
     mark_report_completed,
@@ -11,12 +14,8 @@ from app.repositories.report_repository import (
     mark_report_generating,
     mark_report_task_queued,
 )
-
 from app.services.pdf_renderer import generate_pdf_from_html
 from app.utils.report_context import build_report_context
-from celery.result import AsyncResult
-from app.queue.celery_app import celery_app
-
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 TEMPLATE_DIR = BASE_DIR / "templates"
@@ -35,7 +34,7 @@ def get_template_environment() -> Environment:
     )
 
 
-def render_report_html(context: dict) -> str:
+def render_report_html(context: dict[str, Any]) -> str:
     template_env = get_template_environment()
     template = template_env.get_template(REPORT_TEMPLATE_NAME)
 
@@ -85,7 +84,7 @@ def generate_report_pdf(db: Session, scan_id: str) -> str:
         raise
 
 
-def queue_report_generation(db: Session, scan_id: str) -> dict:
+def queue_report_generation(db: Session, scan_id: str) -> dict[str, Any]:
     try:
         mark_report_generating(db, scan_id)
 
@@ -119,7 +118,7 @@ def queue_report_generation(db: Session, scan_id: str) -> dict:
         raise
 
 
-def check_report_task_result(db: Session, scan_id: str, task_id: str) -> dict:
+def check_report_task_result(db: Session, scan_id: str, task_id: str) -> dict[str, Any]:
     task = AsyncResult(task_id, app=celery_app)
 
     if not task.ready():

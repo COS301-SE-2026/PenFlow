@@ -1,12 +1,16 @@
 import logging
+from typing import Any
+
 import httpx
+
+JSONDict = dict[str, Any]
 
 logger = logging.getLogger(__name__)
 
 RDAP_BOOTSTRAP_URL = "https://rdap.org/domain/{domain}"
 
 
-def collect_whois_raw_data(domain: str) -> dict:
+def collect_whois_raw_data(domain: str) -> JSONDict:
     """
     Collects raw WHOIS/RDAP registration data for a domain, used before normalization.
     """

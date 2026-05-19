@@ -1,9 +1,13 @@
 from datetime import datetime, timezone
+from typing import Any
+
+JSONDict = dict[str, Any]
+JSONObject = dict[str, Any] | object
 
 SEVERITIES = ["critical", "high", "medium", "low", "info"]
 
 
-def get_value(obj, key, default=None):
+def get_value(obj: JSONObject | None, key: str, default: Any = None) -> Any:
     if obj is None:
         return default
 
@@ -13,7 +17,7 @@ def get_value(obj, key, default=None):
     return getattr(obj, key, default)
 
 
-def get_source(scan_sources, source_name):
+def get_source(scan_sources: list[JSONObject] | None, source_name: str) -> JSONObject | None:
     for source in scan_sources or []:
         name = get_value(source, "source_name", "")
 
@@ -23,12 +27,12 @@ def get_source(scan_sources, source_name):
     return None
 
 
-def get_raw_result(scan_sources, source_name):
+def get_raw_result(scan_sources: list[JSONObject] | None, source_name: str) -> JSONDict:
     source = get_source(scan_sources, source_name)
     return get_value(source, "raw_result", {}) or {}
 
 
-def calculate_severity_counts(findings):
+def calculate_severity_counts(findings: list[JSONObject] | None) -> dict[str, int]:
     counts = {severity: 0 for severity in SEVERITIES}
 
     for finding in findings or []:
@@ -42,7 +46,7 @@ def calculate_severity_counts(findings):
     return counts
 
 
-def format_generated_at(value=None):
+def format_generated_at(value: datetime | str | None = None) -> str:
     if value is None:
         value = datetime.now(timezone.utc)
 
@@ -52,7 +56,7 @@ def format_generated_at(value=None):
     return value.strftime("%d %B %Y")
 
 
-def build_infrastructure_context(scan_sources):
+def build_infrastructure_context(scan_sources: list[JSONObject] | None) -> JSONDict:
     raw = get_raw_result(scan_sources, "shodan")
     infrastructure = raw.get("infrastructure", raw)
 
@@ -70,7 +74,7 @@ def build_infrastructure_context(scan_sources):
     }
 
 
-def build_tech_stack_context(scan_sources):
+def build_tech_stack_context(scan_sources: list[JSONObject] | None) -> list[JSONDict]:
     raw = get_raw_result(scan_sources, "wappalyzer")
     tech_stack = raw.get("tech_stack", raw)
 
@@ -87,7 +91,7 @@ def build_tech_stack_context(scan_sources):
     return technologies_used
 
 
-def build_subdomains_context(scan_sources):
+def build_subdomains_context(scan_sources: list[JSONObject] | None) -> JSONDict:
     raw = get_raw_result(scan_sources, "crt.sh")
     subdomains = raw.get("subdomains", raw)
 
@@ -99,7 +103,7 @@ def build_subdomains_context(scan_sources):
     }
 
 
-def build_reputation_context(scan_sources):
+def build_reputation_context(scan_sources: list[JSONObject] | None) -> JSONDict:
     raw = get_raw_result(scan_sources, "urlscan")
     reputation = raw.get("reputation", raw)
 
@@ -110,7 +114,7 @@ def build_reputation_context(scan_sources):
     }
 
 
-def build_phishing_surface_context(scan_sources):
+def build_phishing_surface_context(scan_sources: list[JSONObject] | None) -> JSONDict:
     raw = get_raw_result(scan_sources, "hunter.io")
     phishing_surface = raw.get("phishing_surface", raw)
 
@@ -119,7 +123,7 @@ def build_phishing_surface_context(scan_sources):
     }
 
 
-def build_breach_data_context(scan_sources):
+def build_breach_data_context(scan_sources: list[JSONObject] | None) -> JSONDict:
     raw = get_raw_result(scan_sources, "hibp")
     breach_data = raw.get("breach_data", raw)
 
@@ -136,7 +140,7 @@ def build_breach_data_context(scan_sources):
     }
 
 
-def build_domain_security_context(scan_sources):
+def build_domain_security_context(scan_sources: list[JSONObject] | None) -> JSONDict:
     raw = get_raw_result(scan_sources, "dns")
     domain_security = raw.get("domain_security", raw)
 
@@ -147,7 +151,7 @@ def build_domain_security_context(scan_sources):
     }
     
 
-def build_recommendations(findings):
+def build_recommendations(findings: list[JSONObject] | None) -> list[str]:
     recommendations = []
 
     for finding in findings or []:
@@ -168,7 +172,12 @@ def build_recommendations(findings):
     ]
 
 
-def build_report_context(scan, findings, scan_sources):
+def build_report_context(
+    scan: JSONObject, 
+    findings: list[JSONObject] | None, 
+    scan_sources: list[JSONObject] | None,
+    ) -> JSONDict:
+
     scan_id = str(get_value(scan, "id", "mock-scan-id"))
 
     return {

@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from weasyprint import CSS, HTML
 
 BASE_DIR = Path(__file__).resolve().parents[1]

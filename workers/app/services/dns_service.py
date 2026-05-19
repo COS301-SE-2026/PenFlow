@@ -1,17 +1,23 @@
 import logging
+from typing import Any
+
 import dns.resolver
+
 from app.services.whois_service import collect_whois_raw_data
+
+JSONDict = dict[str, Any]
+JSONList = list[JSONDict]
 
 logger = logging.getLogger(__name__)
 
 
-def collect_dns_raw_data(domain: str) -> dict:
+def collect_dns_raw_data(domain: str) -> JSONDict:
     """
     Collects raw DNS records for a domain, used before normalization.
     """
     logger.info("Collecting DNS data for domain: %s", domain)
 
-    raw_result = {
+    raw_result: JSONDict = {
         "domain": domain,
         "mx_records": [],
         "txt_records": [],
@@ -61,11 +67,11 @@ def collect_dns_raw_data(domain: str) -> dict:
     return raw_result
 
 
-def normalize_dns_data(raw_data: dict, whois_data: dict | None = None) -> dict:
+def normalize_dns_data(raw_data: JSONDict, whois_data: JSONDict | None = None,) -> JSONDict:
     mx_records = raw_data.get("mx_records", [])
     spf_records = raw_data.get("spf_records", [])
     dmarc_records = raw_data.get("dmarc_records", [])
-    detected_services = set()
+    detected_services: set[str] = set()
 
     for record in raw_data.get("txt_records", []):
         if "verification" in record.lower() and "-" in record:
@@ -73,7 +79,7 @@ def normalize_dns_data(raw_data: dict, whois_data: dict | None = None) -> dict:
             service_name = service_name.replace("_", " ").title()
             detected_services.add(service_name)
 
-    records = []
+    records: JSONList = []
 
     records.append({
         "record_type": "MX",
@@ -137,7 +143,7 @@ def normalize_dns_data(raw_data: dict, whois_data: dict | None = None) -> dict:
 
     whois_status = "Unknown"
     whois_finding = "WHOIS/RDAP lookup was not included in this DNS collection."
-    normalized_whois = {}
+    normalized_whois: JSONDict = {}
     if whois_data:
         raw_response = whois_data.get("raw_response", {})
         if raw_response:
@@ -195,10 +201,10 @@ def normalize_dns_data(raw_data: dict, whois_data: dict | None = None) -> dict:
     }
 
 
-def generate_dns_findings(normalized_dns: dict) -> list[dict]:
+def generate_dns_findings(normalized_dns: JSONDict) -> JSONList:
     domain_security = normalized_dns.get("domain_security", {})
     records = domain_security.get("records", [])
-    findings = []
+    findings: JSONList = []
 
     record_map = {
         record.get("record_type"): record
@@ -215,7 +221,8 @@ def generate_dns_findings(normalized_dns: dict) -> list[dict]:
             "severity": "medium" if spf_record.get("status") == "Fail" else "low",
             "title": "Weak SPF configuration",
             "description": spf_record.get("finding"),
-            "recommendation": "Configure SPF to list only authorized mail senders and avoid permissive policies such as +all.",
+            "recommendation": "Configure SPF to list only authorized mail senders "
+            "and avoid permissive policies such as +all.",
             "evidence": spf_record,
         })
 
@@ -225,7 +232,8 @@ def generate_dns_findings(normalized_dns: dict) -> list[dict]:
             "severity": "medium",
             "title": "Weak or missing DMARC policy",
             "description": dmarc_record.get("finding"),
-            "recommendation": "Configure DMARC with quarantine or reject policy to reduce email spoofing risk.",
+            "recommendation": "Configure DMARC with quarantine or reject policy "
+            "to reduce email spoofing risk.",
             "evidence": dmarc_record,
         })
 
@@ -235,14 +243,15 @@ def generate_dns_findings(normalized_dns: dict) -> list[dict]:
             "severity": "info",
             "title": "No MX records found",
             "description": mx_record.get("finding"),
-            "recommendation": "If the domain should receive email, configure valid MX records. If not, this may be expected.",
+            "recommendation": "If the domain should receive email, configure valid MX records. "
+            "If not, this may be expected.",
             "evidence": mx_record,
         })
 
     return findings
 
 
-def run_dns_scan(domain: str) -> dict:
+def run_dns_scan(domain: str) -> JSONDict:
     raw_dns = collect_dns_raw_data(domain)
     raw_whois = collect_whois_raw_data(domain)
     normalized_dns = normalize_dns_data(raw_dns, raw_whois)

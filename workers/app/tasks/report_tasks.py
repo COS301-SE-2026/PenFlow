@@ -1,13 +1,17 @@
 import logging
 from pathlib import Path
+from typing import Any
+
 from app.queue.celery_app import celery_app
 from app.services.pdf_render_service import generate_pdf_from_html
+
+JSONDict = dict[str, Any]
 
 logger = logging.getLogger(__name__)
 
 
 @celery_app.task(name="render_report")
-def render_report_pdf_task(scan_id: str, html_content: str, output_path: str):
+def render_report_pdf_task(scan_id: str, html_content: str, output_path: str) -> JSONDict:
     try:
         pdf_path = generate_pdf_from_html(
             html_content=html_content,

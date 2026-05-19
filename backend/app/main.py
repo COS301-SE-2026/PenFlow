@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.api.routes.health import router as health_router
 
 app = FastAPI(title="PenFlow API")
