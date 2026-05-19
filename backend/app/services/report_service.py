@@ -117,3 +117,60 @@ def queue_report_generation(db: Session, scan_id: str) -> dict:
     except Exception as error:
         mark_report_failed(db, scan_id, str(error))
         raise
+
+
+def check_report_task_result(db: Session, scan_id: str, task_id: str) -> dict:
+    task = AsyncResult(task_id, app=celery_app)
+
+    if not task.ready():
+        return {
+            "status": "generating", 
+            "scan_id": scan_id, 
+            "task_id": task_id
+        }
+
+    result = task.result
+
+    if task.failed():
+        report = mark_report_failed(
+            db=db,
+            scan_id=scan_id,
+            error_message=str(result),
+        )
+        return {
+            "status": "failed", 
+            "report": report
+        }
+
+    if not isinstance(result, dict):
+        report = mark_report_failed(
+            db=db,
+            scan_id=scan_id,
+            error_message=f"Unexpected task result: {result}",
+        )
+        return {
+            "status": "failed", 
+            "report": report
+        }
+
+    if result.get("status") == "failed":
+        report = mark_report_failed(
+            db=db,
+            scan_id=scan_id,
+            error_message=result.get("error", "Report rendering failed"),
+        )
+        return {
+            "status": "failed", 
+            "report": report
+        }
+
+    report = mark_report_completed(
+        db=db,
+        scan_id=scan_id,
+        pdf_path=result["pdf_path"],
+    )
+
+    return {
+        "status": "completed", 
+        "report": report
+    }
