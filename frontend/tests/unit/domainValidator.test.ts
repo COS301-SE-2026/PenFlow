@@ -17,6 +17,11 @@ describe("validateDomain", () => {
       expect(r.valid).toBe(true);
       if (r.valid) expect(r.domain).toBe("example.com");
     });
+    //xxs injection prevention
+     it("rejects script tag injection", () => {
+      const r = validateDomain("<script>evil()</script>");
+      expect(r.valid).toBe(false);
+    });
 
 
 
