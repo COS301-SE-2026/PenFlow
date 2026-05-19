@@ -76,7 +76,8 @@ def normalize_data(rawData: dict) -> dict:
         records.append({"record_type": "MX", "status": "Fail", "finding": "No MX records found."})
 
     # Process SPF / DMARC from TXT
-    txt_records = " ".join(dnsData.get("txt", [])).lower()
+    txtList = dnsData.get("txt", [])
+    txt_records = " ".join(txtList).lower()
     
     if "v=spf1" in txt_records:
         records.append({"record_type": "SPF", "status": "Pass", "finding": "SPF record is present."})
@@ -88,6 +89,27 @@ def normalize_data(rawData: dict) -> dict:
     else:
         records.append({"record_type": "DMARC", "status": "Fail", "finding": "No DMARC record found. Email spoofing possible."})
 
+    # Detect third-party services from TXT recordsprimary ones we care for)
+    for txt in txtList:
+        txt_lower = txt.lower()
+        if "adobe" in txt_lower: detectedServices.add("Adobe")
+        if "anthropic" in txt_lower: detectedServices.add("Anthropic")
+        if "apple" in txt_lower: detectedServices.add("Apple")
+        if "atlassian" in txt_lower: detectedServices.add("Atlassian")
+        if "box" in txt_lower: detectedServices.add("Box")
+        if "canva" in txt_lower: detectedServices.add("Canva")
+        if "citrix" in txt_lower: detectedServices.add("Citrix")
+        if "docusign" in txt_lower: detectedServices.add("DocuSign")
+        if "drift" in txt_lower: detectedServices.add("Drift")
+        if "facebook" in txt_lower: detectedServices.add("Facebook")
+        if "google-site-verification" in txt_lower: detectedServices.add("Google")
+        if "jetbrains" in txt_lower: detectedServices.add("JetBrains")
+        if "monday" in txt_lower: detectedServices.add("Monday.com")
+        if "openai" in txt_lower: detectedServices.add("OpenAI")
+        if "slack" in txt_lower: detectedServices.add("Slack")
+        if "stripe" in txt_lower: detectedServices.add("Stripe")
+        if "zoom" in txt_lower: detectedServices.add("Zoom")
+
     return \
     {
         "domain_security": 
@@ -98,3 +120,45 @@ def normalize_data(rawData: dict) -> dict:
             "detected_services": sorted(list(detectedServices))
         }
     }
+
+#analyze DNS records for spoofing risks
+def generate_findings_and_assets(normalizedData: dict) -> tuple:
+    findings = []
+    assets = []
+    
+    if "error" in normalizedData:
+        return findings, assets
+        
+    domainSecurity = normalizedData.get("domain_security", {})
+    records = domainSecurity.get("records", [])
+    
+    # Check for missing email security records
+    for record in records:
+        if record.get("status") == "Fail" and record.get("record_type") in ["SPF", "DMARC"]:
+            findings.append(
+            {
+                "source": "dns_whois",
+                "severity": "medium",
+                "title": f"Missing {record.get('record_type')} Record",
+                "description": record.get("finding"),
+                "recommendation": f"Configure a valid {record.get('record_type')} TXT record to prevent unauthorized email spoofing from this domain.",
+                "evidence": {"record_type": record.get("record_type")}
+            })
+            
+    return findings, assets
+
+
+#execution
+def run_dns_whois(domain: str) -> dict:
+    rawData = collect_raw_data(domain)
+    normalized = normalize_data(rawData)
+    findings, assets = generate_findings_and_assets(normalized)
+    
+    return \
+    {
+        "source_name": "dns",
+        "status": "completed" if "error" not in normalized else "failed",
+        "raw_result": normalized,
+        "findings": findings,
+        "assets": assets
+    }    
