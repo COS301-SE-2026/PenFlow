@@ -12,6 +12,12 @@ describe("validateDomain", () => {
       expect(r.valid).toBe(true);
       if (r.valid) expect(r.domain).toBe("example.com");
     });
+     it("strips port number", () => {
+      const r = validateDomain("example.com:8080");
+      expect(r.valid).toBe(true);
+      if (r.valid) expect(r.domain).toBe("example.com");
+    });
+
 
 
  });
