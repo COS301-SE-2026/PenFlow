@@ -1,6 +1,5 @@
 import logging
 from pathlib import Path
-
 from app.queue.celery_app import celery_app
 from app.services.pdf_render_service import generate_pdf_from_html
 
@@ -16,7 +15,7 @@ def render_report_pdf_task(scan_id: str, html_content: str, output_path: str):
         )
 
         logger.info(
-            "Report rendered successfully for scan %s: %s",
+            "Report PDF rendered successfully for scan %s: %s",
             scan_id,
             pdf_path,
         )
@@ -29,7 +28,7 @@ def render_report_pdf_task(scan_id: str, html_content: str, output_path: str):
 
     except Exception as error:
         logger.exception(
-            "Report rendering failed for scan %s",
+            "Report PDF rendering failed for scan %s",
             scan_id,
         )
 

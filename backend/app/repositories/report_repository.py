@@ -167,3 +167,20 @@ def load_report_data(db: Session, scan_id: str):
         "scan_sources": load_scan_sources_by_scan_id(db, scan_id),
         "report": get_or_create_report(db, scan_id),
     }
+
+
+def mark_report_task_queued(db: Session, scan_id: str, task_id: str):
+    report = fetch_singular_row_as_dict(
+        db,
+        """
+        UPDATE reports
+        SET task_id = :task_id,
+            status = 'generating',
+            error_message = NULL
+        WHERE scan_id = :scan_id
+        RETURNING *
+        """,
+        {"scan_id": scan_id, "task_id": task_id},
+    )
+    db.commit()
+    return report
