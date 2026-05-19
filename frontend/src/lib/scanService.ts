@@ -1,11 +1,11 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
-  export interface ScanStartResponse {
+export interface ScanStartResponse {
     scan_id: string;
     status: string;
   }
 
-  export async function postScanRequest(domain: string): Promise<ScanStartResponse> {
+export async function postScanRequest(domain: string): Promise<ScanStartResponse> {
     const response = await fetch(`${API_BASE}/scans/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
