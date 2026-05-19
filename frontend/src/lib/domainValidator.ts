@@ -8,7 +8,7 @@ export type DomainValidationResult =
     v = v.replace(/^https?:\/\//i, "");   // strip protocol
     v = v.split("/")[0];                   // strip path
     v = v.split(":")[0];                   // strip port
-    v = v.replace(/^\.+/, "").replace(/\.+$/, "");     // strip leading/trailing dots .Alternation |  with + can cause backtracking 
+    v = v.replace(/^\.{1,253}/, "").replace(/\.{1,253}$/, "");     // strip leading/trailing dots .Alternation |  with + can cause backtracking  + add range check for domain of 253
     return v;
   }
   //regex 
