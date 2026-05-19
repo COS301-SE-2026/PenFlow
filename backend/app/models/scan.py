@@ -19,7 +19,8 @@ class Scan(Base):
     email = Column(String(255))
     status = Column(Enum(ScanStatus), nullable=False, default=ScanStatus.QUEUED, index=True)
     progress = Column(Integer, nullable=False, default=0)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime(timezone=True), nullable=False,
+    default=lambda: datetime.now(timezone.utc))
     started_at = Column(DateTime(timezone=True))
     completed_at = Column(DateTime(timezone=True))
     error_message = Column(Text)

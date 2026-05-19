@@ -19,11 +19,11 @@ async def scan_progress_stream(websocket: WebSocket, scan_id: str):
         #Redis Logic would be added here, but I'm going to mock all this for now
 
         mock_events = [
-            {"progress": 10, "status": "running", "message": "Gathering DNS records..."},
-                {"progress": 35, "status": "running", "message": "Querying Certificate Transparency logs (crt.sh)..."},
-                {"progress": 60, "status": "running", "message": "Analyzing infrastructure via Shodan..."},
-                {"progress": 85, "status": "running", "message": "Checking credential exposures (HaveIBeenPwned)..."},
-                {"progress": 100, "status": "completed", "message": "Scan complete. Generating report..."}
+                {"progress": 10, "status": "running", "message": "Gathering DNS records..."}, #noqa: E501
+                {"progress": 35, "status": "running", "message": "Querying Certificate Transparency logs (crt.sh)..."}, # noqa: E501
+                {"progress": 60, "status": "running", "message": "Analyzing infrastructure via Shodan..."}, # noqa: E501
+                {"progress": 85, "status": "running", "message": "Checking credential exposures (HaveIBeenPwned)..."}, #noqa: E501
+                {"progress": 100, "status": "completed", "message": "Scan complete. Generating report..."} # noqa: E501
         ]
 
         for event in mock_events:

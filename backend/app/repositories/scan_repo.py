@@ -98,7 +98,7 @@ class ScanRepository:
             raise
 
     @staticmethod
-    def mark_scan_failed(db: Session, scan_id: UUID, error_message: str, is_partial: bool = False) ->Scan:
+    def mark_scan_failed(db: Session, scan_id: UUID, error_message: str, is_partial: bool = False) ->Scan: # noqa: E501
         """
         Update scan's status to failed or partial and logs the exact error, for frontend display
         """

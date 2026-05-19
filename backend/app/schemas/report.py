@@ -16,9 +16,8 @@ class SeverityEnum(str, Enum):
 
 class FindingSchema(BaseModel):
     id: UUID
-    identifier: str 
-    asset_type: str 
-    findings: List[FindingSchema] = []
+    title: str
+    severity: SeverityEnum
 
 class AssetSchema(BaseModel):
     id: UUID

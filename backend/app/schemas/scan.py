@@ -12,7 +12,7 @@ from app.models.base import ScanStatus
 
 
 class InitiateScanRequest(BaseModel):
-    domain: str = Field(...,description="The target domain to scan", json_schema_extra={"example": "exmpl.com"})
+    domain: str = Field(...,description="The target domain to scan", json_schema_extra={"example": "exmpl.com"}) # noqa: E501
     email: EmailStr | None = Field(None,description="email to send the report to")
 
 class InitiateScanResponse(BaseModel):

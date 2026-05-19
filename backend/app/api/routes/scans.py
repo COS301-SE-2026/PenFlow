@@ -23,7 +23,8 @@ async def initiate_ctem_scan(
 
 ):
 
-#Phase 1 this is the no auth scan also just a rough implementation for now until we have the other logic figured out
+#Phase 1 this is the no auth scan also just a rough implementation for now until we have the other
+#logic figured out
 
     try:
     #I'm going to pass the validated request to the service layer

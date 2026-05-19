@@ -13,7 +13,7 @@ def test_initiate_scan_success(test_client):
     assert response.status_code == status.HTTP_202_ACCEPTED
     data = response.json()
     assert "scan_id" in data
-    assert data["status"] == "pending"
+    assert data["status"] == "queued"
 
 def test_initiate_scan_invalid_domain(test_client):
     """Test missing required fields give a 422 Validation error"""
@@ -23,7 +23,7 @@ def test_initiate_scan_invalid_domain(test_client):
     }
     response = test_client.post("/api/v1/scans/",json=payload)
     #Where pydantic comes in
-    assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert response.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
 
 def test_get_scan_report(test_client):
     """Test that returning a report returns the correct (mock) data structure"""
