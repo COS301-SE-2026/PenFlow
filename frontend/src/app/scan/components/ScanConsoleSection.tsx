@@ -57,8 +57,8 @@ export default function ScanConsoleSection() {
   const onSubmit = (e: { preventDefault(): void }) => {
     e.preventDefault();
     const value = domain.trim();
-    if (!value) {
-      setStatus("Please enter a domain");
+    if (value.length <= 2) {
+      setStatus("Please enter a valid domain");
       return;
     }
     setSubmittedDomain(value);
@@ -78,8 +78,9 @@ export default function ScanConsoleSection() {
   useEffect(() => () => clearAllTimers(), []);
 
   return (
-    <section className={styles.scanSection}>
+    <section id="scan" className={styles.scanSection}>
       <div className={styles.consoleShell}>
+        <h2 className={styles.consoleLabel}>SCAN YOUR DOMAIN NOW:</h2>
         <div className={styles.consoleTop}>
           <div className={styles.radarPanel} aria-hidden="true">
             <div className={styles.radarScope}>
