@@ -22,6 +22,11 @@ describe("validateDomain", () => {
       const r = validateDomain("<script>evil()</script>");
       expect(r.valid).toBe(false);
     });
+       it("rejects bare word with no TLD", () => {
+      const r = validateDomain("notadomain");
+      expect(r.valid).toBe(false);
+    });
+
 
 
 
