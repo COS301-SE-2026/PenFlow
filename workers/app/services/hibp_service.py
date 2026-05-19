@@ -88,3 +88,44 @@ def normalize_data(rawData: list) -> dict:
         "pwned_accounts_count": len(knownBreaches),
         "known_breaches": knownBreaches
     }
+
+#analyze breaches for potential risks
+def generate_findings_and_assets(normalizedData: dict) -> tuple:
+    findings = []
+    assets = []
+    
+    if "error" in normalizedData:
+        return findings, assets
+        
+    pwnedCount = normalizedData.get("pwned_accounts_count", 0)
+    knownBreaches = normalizedData.get("known_breaches", [])
+    
+    # If the domain has been in any breaches, generate a High severity finding(might be replaced by ai recomendations at a later date)
+    if pwnedCount > 0:
+        findings.append(
+        {
+            "source": "hibp",
+            "severity": "high",
+            "title": f"Domain Identified in {pwnedCount} Historical Data Breaches",
+            "description": "The target domain was found in known third-party data breaches. Associated email addresses and potentially passwords may be compromised.",
+            "recommendation": "Enforce strict password resets and multi-factor authentication (MFA) across the organization.",
+            "evidence": {"breaches": knownBreaches}
+        })
+            
+    return findings, assets
+
+
+#execution
+def run_hibp(domain: str) -> dict:
+    rawData = collect_raw_data(domain)
+    normalized = normalize_data(rawData)
+    findings, assets = generate_findings_and_assets(normalized)
+    
+    return \
+    {
+        "source_name": "hibp",
+        "status": "completed" if "error" not in normalized else "failed",
+        "raw_result": normalized,
+        "findings": findings,
+        "assets": assets
+    }
