@@ -15,6 +15,27 @@ services:
     networks:
       - penflow-network
 
+  backend-test:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend.test
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_TEST_USER}:${POSTGRES_TEST_PASSWORD}@postgres-test:5432/${POSTGRES_TEST_DB}
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
+      REDIS_URL: redis://redis:6379/1
+      REPORT_OUTPUT_DIR: /app/generated_reports
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - report-files-test:/app/generated_reports
+    networks:
+      - penflow-network
+
   backend:
     container_name: penflow-backend
     build:
@@ -26,16 +47,41 @@ services:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
       REDIS_URL: redis://redis:6379/0
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REPORT_OUTPUT_DIR: /app/generated_reports
     depends_on:
       rabbitmq:
         condition: service_healthy
       redis:
         condition: service_started
       postgres:
-        condition: service_started
+        condition: service_healthy
+    volumes:
+      - report-files:/app/generated_reports
     restart: unless-stopped
     networks:
       - penflow-network
+
+  workers-test:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.workers.test
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
+      REDIS_URL: redis://redis:6379/1
+      DATABASE_URL: postgresql://${POSTGRES_TEST_USER}:${POSTGRES_TEST_PASSWORD}@postgres-test:5432/${POSTGRES_TEST_DB}
+      REPORT_OUTPUT_DIR: /app/generated_reports
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - report-files-test:/app/generated_reports
+    networks:
+      - penflow-network
+    command: ["celery", "-A", "app.queue.celery_app:celery_app", "worker", "--loglevel=info"]
 
   workers:
     container_name: penflow-workers
@@ -46,14 +92,16 @@ services:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
       REDIS_URL: redis://redis:6379/0
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REPORT_OUTPUT_DIR: /app/generated_reports
     depends_on:
       rabbitmq:
         condition: service_healthy
       redis:
         condition: service_started
       postgres:
-        condition: service_started
-      
+        condition: service_healthy
+    volumes:
+      - report-files:/app/generated_reports
     restart: unless-stopped
     networks:
       - penflow-network
@@ -87,6 +135,11 @@ services:
     image: postgres:16-alpine
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -98,9 +151,29 @@ services:
     networks:
       - penflow-network
 
+  postgres-test:
+    container_name: penflow-postgres-test
+    image: postgres:16-alpine
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_TEST_USER} -d ${POSTGRES_TEST_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_USER: ${POSTGRES_TEST_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_TEST_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_TEST_DB}
+    volumes:
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    restart: "no"
+    networks:
+      - penflow-network
+
 networks:
   penflow-network:
     driver: bridge
 
 volumes:
   penflow-postgres-data:
+  report-files:
+  report-files-test:
