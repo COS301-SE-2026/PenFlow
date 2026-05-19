@@ -6,7 +6,7 @@ from app.services.pdf_render_service import generate_pdf_from_html
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(name="render_report_pdf")
+@celery_app.task(name="render_report")
 def render_report_pdf_task(scan_id: str, html_content: str, output_path: str):
     try:
         pdf_path = generate_pdf_from_html(

@@ -14,6 +14,9 @@ from app.repositories.report_repository import (
 
 from app.services.pdf_renderer import generate_pdf_from_html
 from app.utils.report_context import build_report_context
+from celery.result import AsyncResult
+from app.queue.celery_app import celery_app
+
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 TEMPLATE_DIR = BASE_DIR / "templates"
@@ -44,6 +47,7 @@ def build_report_output_path(scan_id: str) -> Path:
     return REPORT_OUTPUT_DIR / f"ctem_report_{scan_id}.pdf"
 
 
+# Serialized version of pdf gen that can be used for testing
 def generate_report_pdf(db: Session, scan_id: str) -> str:
     try:
         mark_report_generating(db, scan_id)
@@ -78,4 +82,38 @@ def generate_report_pdf(db: Session, scan_id: str) -> str:
             scan_id=scan_id,
             error_message=str(error),
         )
+        raise
+
+
+def queue_report_generation(db: Session, scan_id: str) -> dict:
+    try:
+        mark_report_generating(db, scan_id)
+
+        report_data = load_report_data(db, scan_id)
+
+        context = build_report_context(
+            scan=report_data["scan"],
+            findings=report_data["findings"],
+            scan_sources=report_data["scan_sources"],
+        )
+
+        html_content = render_report_html(context)
+        output_path = build_report_output_path(scan_id)
+
+        task = celery_app.send_task(
+            "render_report",
+            args=[scan_id, html_content, str(output_path)],
+        )
+
+        mark_report_task_queued(db, scan_id, task.id)
+
+        return {
+            "scan_id": scan_id,
+            "task_id": task.id,
+            "pdf_path": str(output_path),
+            "status": "generating",
+        }
+
+    except Exception as error:
+        mark_report_failed(db, scan_id, str(error))
         raise
