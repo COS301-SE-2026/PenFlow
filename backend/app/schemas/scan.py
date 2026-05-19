@@ -35,15 +35,15 @@ class InitiateScanRequest(BaseModel):
     @classmethod
     def sanitize_and_validate_domain(cls, v: str) -> str:
         cleaned = _sanitize_domain(v)
-          if not cleaned:
+        if not cleaned:
             raise ValueError("Domain cannot be empty")
-          if re.search(r'[<>"\';&]', cleaned):
+        if re.search(r'[<>"\';&]', cleaned):
             raise ValueError("Domain contains invalid characters")
-          if len(cleaned) > 253:
+        if len(cleaned) > 253:
             raise ValueError("Domain name is too long")
-          if not _DOMAIN_REGEX.match(cleaned):
+        if not _DOMAIN_REGEX.match(cleaned):
             raise ValueError("Invalid domain format — use example.com")
-          return cleaned
+        return cleaned
 
 class ScanCallbackRequest(BaseModel):
     status: ScanStatus
