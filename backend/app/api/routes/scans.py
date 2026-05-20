@@ -1,14 +1,21 @@
 #type: ignore
 
+import logging
 import uuid
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.base import ScanStatus
 from app.schemas.scan import InitiateScanRequest, InitiateScanResponse
+from app.repositories.scan_repo import ScanRepository
+from app.utils.db import get_db
+
+logger = logging.getLogger(__name__)
 
 router= APIRouter(prefix="/scans",tags=["Scans"])
+
 
 @router.post(
     "/",
@@ -19,64 +26,21 @@ router= APIRouter(prefix="/scans",tags=["Scans"])
 
 async def initiate_ctem_scan(
     request: InitiateScanRequest,
-    #db stuff 
-
+    db: AsyncSession = Depends(get_db)
 ):
-
-#Phase 1 this is the no auth scan also just a rough implementation for now until we have the other
-#logic figured out
-
     try:
-    #I'm going to pass the validated request to the service layer
-    #db stuff
-    #placeholder return
+        new_scan = await ScanRepository.create_scan(db, domain=request.domain)
 
         return InitiateScanResponse(
-            scan_id=uuid.uuid4(),
-            status=ScanStatus.QUEUED
-
+            scan_id=new_scan.id,
+            status=new_scan.status
         )
     except Exception:
-    #Once proper logic is setup I'll rather log this and return a 500/specific 400 code 
+        logger.exception("Failed to initiate scan for domain %s", request.domain)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to initiate scan"
         )
-
-
-@router.get(
-    "/{scan_id}/report",
-    status_code=status.HTTP_200_OK
-)
-async def get_scan_report(scan_id: str):
-    """
-    Retrieve full OSINT report for a specific scan.
-    Mock from frontend
-    """
-    return{
-        "scan_id": scan_id,
-        "domain": "jeandre.co",
-        "status": "completed",
-        "completed_at": datetime.now(timezone.utc).isoformat(),
-        "assets": [
-            {
-                "id": str(uuid.uuid4()),
-                "identifier": "jeandre.co",
-                "asset_type": "Domain",
-                "findings": [
-                    {
-                        "id": str(uuid.uuid4()),
-                        "title": "Missing DMARC",
-                        "severity": "Medium"
-                    }
-                ]
-            }
-        ],
-        "total_findings": 1,
-        "critical_count": 0,
-        "high_count": 0
-    }
-
 
 @router.get(
     "/{scan_id}/pdf",

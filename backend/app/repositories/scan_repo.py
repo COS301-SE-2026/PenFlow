@@ -2,8 +2,9 @@
 import logging
 from uuid import UUID
 
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
 from app.models.base import ScanStatus, Severity
@@ -15,36 +16,36 @@ logger = logging.getLogger(__name__)
 class ScanRepository:
 
     @staticmethod
-    def create_scan(db: Session, domain: str, email: str | None = None) -> Scan:
+    async def create_scan(db: AsyncSession, domain: str, email: str | None = None) -> Scan:
         """Creates a new pending scan record in the database."""
         try:
             new_scan = Scan(
                 domain=domain,
                 email=email,
-                status=ScanStatus.QUEUED,
-                progress=0
             )
             db.add(new_scan)
-            db.commit()
-            db.refresh(new_scan)
+            await db.commit()
+            await db.refresh(new_scan)
             return new_scan
         except SQLAlchemyError:
-            db.rollback()
+            await db.rollback()
             logger.exception("Failed to create scan for domain %s",domain)
             raise
 
     @staticmethod
-    def get_scan_by_id(db: Session, scan_id: UUID) -> Scan | None:
+    async def get_scan_by_id(db: AsyncSession, scan_id: UUID, results: dict) -> Scan | None:
         """Retrieves a scan and its associated assets/findings."""
-        return db.query(Scan).filter(Scan.id == scan_id).first()
+        query = select(Scan).where(Scan.id == scan_id)
+        result = await db.execute(query)
+        return result.scalar_one_or_none()
 
     @staticmethod
-    def save_normalized_results(db: Session, scan_id: UUID, results: dict) -> Scan:
+    async def save_normalized_results(db: AsyncSession, scan_id: UUID, results: dict) -> Scan:
         """
         Takes the normalized JSON contract from the Celery worker and 
         translates it into Asset and Finding database records.
         """
-        scan = ScanRepository.get_scan_by_id(db, scan_id)
+        scan = await ScanRepository.get_scan_by_id(db, scan_id)
         if not scan:
             raise ValueError(f"Scan {scan_id} not found.")
 
@@ -88,7 +89,7 @@ class ScanRepository:
 
             scan.status = ScanStatus.COMPLETED
             scan.progress = 100
-            db.commit()
+            await db.commit()
             db.refresh(scan)
             return scan
 
@@ -98,17 +99,17 @@ class ScanRepository:
             raise
 
     @staticmethod
-    def mark_scan_failed(db: Session, scan_id: UUID, error_message: str, is_partial: bool = False) ->Scan: # noqa: E501
+    async def mark_scan_failed(db: AsyncSession, scan_id: UUID, error_message: str, is_partial: bool = False) ->Scan: # noqa: E501
         """
         Update scan's status to failed or partial and logs the exact error, for frontend display
         """
-        scan = ScanRepository.get_scan_by_id(db, scan_id)
+        scan = await ScanRepository.get_scan_by_id(db, scan_id)
         if not scan:
             raise ValueError(f"Scan {scan_id} not found.")
 
         scan.status = ScanStatus.PARTIAL if is_partial else ScanStatus.FAILED
         scan.error_message = error_message
 
-        db.commit()
-        db.refresh(scan)
+        await db.commit()
+        await db.refresh(scan)
         return scan

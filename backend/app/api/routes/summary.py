@@ -24,4 +24,4 @@ async def get_scan_summary(
             detail=f"Scan with ID {scan_id} not found."
 
         )
-        return scan_data
+    return scan_data
