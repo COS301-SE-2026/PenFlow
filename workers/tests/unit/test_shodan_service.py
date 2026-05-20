@@ -10,7 +10,7 @@ def test_shodan_live_happy_path(mock_get, mock_socket):
     """Test that a real key triggers IP resolution and a live Shodan API request."""
     
     #fake the ip resolution
-    mock_socket.return_value = "151.101.130.49"
+    mock_socket.return_value = "151.101.130.49" #NOSONAR
 
     #fake the live api response
     mock_response = MagicMock()
@@ -45,7 +45,7 @@ def test_shodan_live_api_failure(mock_get, mock_socket):
     """Test that a network crash gracefully degrades to a failed status."""
     
     import httpx
-    mock_socket.return_value = "151.101.130.49"
+    mock_socket.return_value = "151.101.130.49" #NOSONAR
     
     #force a network crash
     mock_get.side_effect = httpx.HTTPError("Shodan API Down")
