@@ -1,10 +1,14 @@
 #type: ignore
 import asyncio
 import json
+import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/ws", tags=["Realtime"])
+
 
 @router.websocket("/scans/{scan_id}/stream")
 async def scan_progress_stream(websocket: WebSocket, scan_id: str):
@@ -36,4 +40,4 @@ async def scan_progress_stream(websocket: WebSocket, scan_id: str):
         await websocket.close()
 
     except WebSocketDisconnect:
-        print(f"Client dissconnected from scan stream: {scan_id}")
+        logger.info(f"Client disconnected from scan stream: {scan_id}")

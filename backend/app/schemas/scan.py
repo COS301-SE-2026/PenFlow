@@ -1,12 +1,6 @@
-#I am just going to implement a rought draft so long until we get the worker logic figured out
-
+from datetime import datetime
 from uuid import UUID
-
-from pydantic import (  #The email logic here is for the download we discussed, not any sort of auth
-    BaseModel,
-    EmailStr,
-    Field,
-)
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.base import ScanStatus
 
@@ -22,3 +16,15 @@ class InitiateScanResponse(BaseModel):
 class ScanCallbackRequest(BaseModel):
     status: ScanStatus
     error_message: str | None = None
+
+class ScanResponse(BaseModel):
+    id: UUID
+    domain: str
+    status: ScanStatus
+    progress: int
+    created_at: datetime
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    error_message: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)

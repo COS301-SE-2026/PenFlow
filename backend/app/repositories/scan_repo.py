@@ -90,7 +90,7 @@ class ScanRepository:
             scan.status = ScanStatus.COMPLETED
             scan.progress = 100
             await db.commit()
-            db.refresh(scan)
+            await db.refresh(scan)
             return scan
 
         except SQLAlchemyError:

@@ -20,7 +20,7 @@ class Finding(Base):
     severity = Column(Enum(Severity), nullable=False, index=True)
     title = Column(String(255), nullable=False)
     description = Column(Text)
-    recommedendation = Column(Text)
+    recommendation = Column(Text)
     evidence = Column(JSONB)
     created_at = Column(DateTime(timezone=True), nullable=False,
     default=lambda: datetime.now(timezone.utc))

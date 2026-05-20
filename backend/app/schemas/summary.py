@@ -3,7 +3,7 @@ from typing import List, Optional
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 
-class Summary(BaseModel):
+class ScanSummary(BaseModel):
     id: UUID
     domain: str
     status: str

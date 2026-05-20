@@ -3,9 +3,7 @@ from enum import Enum
 from typing import List
 from uuid import UUID
 
-from pydantic import BaseModel
-
-#we can change this this is just for my rough draft
+from pydantic import BaseModel, ConfigDict
 
 class SeverityEnum(str, Enum):
     CRITICAL = "Critical"
@@ -18,12 +16,14 @@ class FindingSchema(BaseModel):
     id: UUID
     title: str
     severity: SeverityEnum
+    model_config = ConfigDict(from_attributes=True)
 
 class AssetSchema(BaseModel):
     id: UUID
     identifier: str
     asset_type: str
     findings: List[FindingSchema] = []
+    model_config = ConfigDict(from_attributes=True)
 
 class ScanReportResponse(BaseModel):
     scan_id: UUID
@@ -35,3 +35,4 @@ class ScanReportResponse(BaseModel):
     total_findings: int
     critical_count: int
     high_count: int
+    model_config = ConfigDict(from_attributes=True)

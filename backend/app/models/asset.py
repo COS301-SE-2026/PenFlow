@@ -22,4 +22,4 @@ class Asset(Base):
     created_at = Column(DateTime(timezone=True), nullable=False,
     default=lambda: datetime.now(timezone.utc))
     scan = relationship("Scan", back_populates="assets")
-    findings = relationship("Finding", back_populates="assets")
+    findings = relationship("Finding", back_populates="assett")
