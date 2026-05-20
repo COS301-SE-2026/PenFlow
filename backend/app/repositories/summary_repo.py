@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.scan import Scan  #type: ignore
 from app.models.finding import Finding  #type: ignore
+from app.models.asset import Asset  #type: ignore
 
 
 async def get_scan_summary(db: AsyncSession, scan_id: UUID) -> Scan | None:
@@ -49,3 +50,45 @@ async def get_risk_snapshot(db: AsyncSession, scan_id: UUID) -> dict:
             snapshot["total_findings"] += count
 
     return snapshot
+
+async def get_top_findings_preview(db: AsyncSession, scan_id: UUID, limit: int = 5) -> list[dict]:
+
+    """
+    Fetches highest severity findings, join resolved assets
+    as well as truncates long test fields for a UI preview.
+    """
+    query = (
+        select(Finding, Asset)
+        .outerjoin(Asset, Finding.asset_id == Asset.id)
+        .where(Finding.scan_id == scan_id)
+        .order_by(Finding.severity.desc())
+        .limit(limit)
+    )
+    result = await db.execute(query)
+    rows = result.all()
+
+    previews = []
+    for finding, asset in rows:
+        desc_snippet = finding.description
+        if desc_snippet and len(desc_snippet) >  120:
+            desc_snippet = desc_snippet[:120] + "..."
+
+        recc_snippet = finding.recommendaton
+        if recc_snippet and len(recc_snippet) >  120:
+            recc_snippet = recc_snippet[:120] + "..."
+
+        
+
+        previews.append({
+            "id": finding.id,
+            "severity": finding.severity,
+            "title": finding.title,
+            "description": desc_snippet,
+            "recommendation": recc_snippet,
+            "source": finding.source,
+            "asset_identifier": asset.identifier if asset else None,
+            "asset_type": asset.asset_type if asset else None,
+            "created_at": finding.created_at
+        })
+
+    return preview_list

@@ -25,6 +25,20 @@ class RiskSnapshot(BaseModel):
     low_count: int = 0
     info_count: int = 0
 
+class TopFindingPreview(BaseModel):
+    id: UUID
+    severity: Sevrity
+    title: str
+    description: Optional[str] = None
+    recommendation: Optional[str] = None
+    source: str
+    asset_identifier: Optional[str] = None
+    asset_type: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
 class ExecutiveSummary(BaseModel):
     scan_summary: ScanSummary
     risk_snapshot: RiskSnapshot
+    top_findings: list[TopFindingPreview]
