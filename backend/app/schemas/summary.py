@@ -16,3 +16,15 @@ class ScanSummary(BaseModel):
     error_message: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+class RiskSnapshot(BaseModel):
+    total_findings: int = 0
+    critical_count: int = 0
+    high_count: int = 0
+    medium_count: int = 0
+    low_count: int = 0
+    info_count: int = 0
+
+class ExecutiveSummary(BaseModel):
+    scan_summary: ScanSummary
+    risk_snapshot: RiskSnapshot
