@@ -1,13 +1,13 @@
 #lets us convert string IP addr to a int for faster db indexing.
 import ipaddress
-import logging
-import socket
-import os
 import json
-from celery import shared_task
-import httpx
+import logging
+import os
+import socket
 from pathlib import Path
 
+import httpx
+from celery import shared_task
 
 #Logger to tell us this file was in error
 logger = logging.getLogger(__name__)
@@ -138,8 +138,10 @@ def generate_findings_and_assets(normalized_data: dict) -> tuple:
                 "source": "shodan",
                 "severity": risk["severity"],
                 "title": f"Exposed {risk['service']} Service (Port {port_num})",
-                "description": f"The target is exposing port {port_num} ({risk['service']}) to the public internet.",
-                "recommendation": f"Restrict access to port {port_num} using a firewall or VPN. It should not be publicly accessible.",
+                "description": (f"The target is exposing port {port_num}"
+                f" ({risk['service']}) to the public internet."),
+                "recommendation": (f"Restrict access to port {port_num} "
+                f"using a firewall or VPN. It should not be publicly accessible."),
                 "evidence": {"port": port_num, "state": port_data.get("state")}
             })
 

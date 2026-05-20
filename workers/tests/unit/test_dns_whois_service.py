@@ -1,5 +1,7 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from app.services.dns_whois_service import run_dns_whois
+
 
 #live happy path
 @patch("app.services.dns_whois_service.whois.whois")

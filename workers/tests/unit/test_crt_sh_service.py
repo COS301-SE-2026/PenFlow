@@ -1,5 +1,7 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from app.services.crt_sh_service import run_crt_sh
+
 
 # Test for "happy paths"
 @patch("app.services.crt_sh_service.SCAN_MODE", "LIVE")
@@ -24,7 +26,8 @@ def test_crt_sh_live_happy_path(mock_get):
     assert result["status"] == "completed"
     assert result["source_name"] == "crt_sh"
     assert result["raw_result"]["total_found"] == 3
-    assert result["raw_result"]["discovered_names"] == ["acorns.com", "api.acorns.com", "app.acorns.com"]
+    assert result["raw_result"]["discovered_names"] == \
+    ["acorns.com", "api.acorns.com", "app.acorns.com"]
 
 
 # Test sad paths for api issues
@@ -41,7 +44,8 @@ def test_crt_sh_sad_path_502_loop(mock_get, mock_sleep):
 
     result = run_crt_sh("acorns.com")
 
-    #we cant return errors beacuse the pdf builder expects specific data, test to see how we handle errors and if we fail gracefully with the expected output.
+    #we cant return errors beacuse the pdf builder expects specific data, 
+    # test to see how we handle errors and if we fail gracefully with the expected output.
     assert result["status"] == "failed"
     assert result["raw_result"]["total_found"] == 0
     assert result["raw_result"]["discovered_names"] == []

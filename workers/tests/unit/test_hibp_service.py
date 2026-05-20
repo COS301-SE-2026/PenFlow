@@ -1,5 +1,7 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from app.services.hibp_service import run_hibp
+
 
 #live happy path
 @patch("app.services.hibp_service.httpx.Client.get")

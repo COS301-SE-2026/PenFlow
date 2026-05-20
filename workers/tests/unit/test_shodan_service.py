@@ -1,5 +1,7 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from app.services.shodan_service import run_shodan
+
 
 #live happy path
 @patch("app.services.shodan_service.socket.gethostbyname")

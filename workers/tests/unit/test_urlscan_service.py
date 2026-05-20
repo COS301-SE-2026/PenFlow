@@ -1,5 +1,7 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from app.services.urlscan_service import run_urlscan
+
 
 #Test happy path for our url loop
 @patch("app.services.urlscan_service._download_screenshot")

@@ -1,11 +1,11 @@
+import json
 import logging
 import os
-import logging
 import warnings
-import json
-from pathlib import Path  
-from Wappalyzer import Wappalyzer, WebPage
+from pathlib import Path
+
 from celery import shared_task
+from Wappalyzer import Wappalyzer, WebPage
 
 warnings.filterwarnings("ignore")
 #Logger to tell us this file was in error
@@ -134,7 +134,8 @@ def generate_findings_and_assets(normalized_data: dict) -> tuple:
                     "source": "wappalyzer",
                     "severity": "info",
                     "title": f"Commonly Targeted Technology Detected: {tech_name}",
-                    "description": f"The target is using {tech_name}, which requires strict patch management.",
+                    "description": (f"The target is using {tech_name}, "
+                    f"which requires strict patch management."),
                     "recommendation": RISKY_TECH[tech_name],
                     "evidence": {"technology": tech_name, "version": tech.get("version")}
                 })

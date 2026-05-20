@@ -1,5 +1,7 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from app.services.wappalyzer_service import run_wappalyzer
+
 
 #live happy path
 @patch("app.services.wappalyzer_service.WebPage.new_from_url")

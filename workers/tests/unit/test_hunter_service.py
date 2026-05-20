@@ -1,5 +1,7 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from app.services.hunter_service import run_hunter
+
 
 #live happy path
 @patch("app.services.hunter_service.httpx.Client.get")

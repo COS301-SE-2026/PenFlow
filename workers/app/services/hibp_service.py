@@ -1,10 +1,10 @@
+import json
 import logging
 import os
-import json
-from celery import shared_task
-import httpx
 from pathlib import Path
 
+import httpx
+from celery import shared_task
 
 #logger to tell is this file was in error
 logger = logging.getLogger(__name__)
@@ -20,14 +20,14 @@ def collect_raw_data(domain: str) -> dict:
     #Mock mode
     if SCAN_MODE == "MOCK" or not HIBP_API_KEY or "fake" in HIBP_API_KEY.lower():
         logger.info(f"[HIBP] Running in MOCK/Demo mode for {domain}")
-        safeDomain = domain.replace(".", "_")
-        mockFile = WORKERS_DIR / "docs" / "raw_samples" / f"Hibp_{safeDomain}.json"
+        safe_domain = domain.replace(".", "_")
+        mock_file = WORKERS_DIR / "docs" / "raw_samples" / f"Hibp_{safe_domain}.json"
         
-        if not mockFile.exists():
-            mockFile = WORKERS_DIR / "docs" / "raw_samples" / "Hibp_Response.json"
+        if not mock_file.exists():
+            mock_file = WORKERS_DIR / "docs" / "raw_samples" / "Hibp_Response.json"
             
         try:
-            with open(mockFile, "r") as f:
+            with open(mock_file, "r") as f:
                 data = json.load(f)
                 return {"breaches": data}
         except FileNotFoundError:
@@ -58,55 +58,58 @@ def collect_raw_data(domain: str) -> dict:
             return {"breaches": res.json()}
             
         except httpx.HTTPError as e:
-            logger.error(f"X HIBP API Error: {e}")
+            logger.exception(f"X HIBP API Error: {e}")
             return {"error": "API Request Failed"}
         
 
-def normalize_data(rawData: list) -> dict:
+def normalize_data(raw_data: list) -> dict:
     """
     Normalizes breach data from a raw HaveIBeenPwned response payload.
     """
     
     logger.info("Normalizing HIBP breach data:")
-    if "error" in rawData:
-        return {"error": rawData["error"]}
-    breaches = rawData.get("breaches", [])
-    knownBreaches = []
+    if "error" in raw_data:
+        return {"error": raw_data["error"]}
+    breaches = raw_data.get("breaches", [])
+    known_breaches = []
     
     for breach in breaches:
-        breachName = breach.get("Name")
-        if breachName:
-            knownBreaches.append(breachName)
-    knownBreaches.sort()
+        breach_name = breach.get("Name")
+        if breach_name:
+            known_breaches.append(breach_name)
+    known_breaches.sort()
     
     return \
     {
         "provider": "HaveIBeenPwned",
-        "pwned_accounts_count": len(knownBreaches),
-        "known_breaches": knownBreaches
+        "pwned_accounts_count": len(known_breaches),
+        "known_breaches": known_breaches
     }
 
 #analyze breaches for potential risks
-def generate_findings_and_assets(normalizedData: dict) -> tuple:
+def generate_findings_and_assets(normalized_data: dict) -> tuple:
     findings = []
     assets = []
     
-    if "error" in normalizedData:
+    if "error" in normalized_data:
         return findings, assets
         
-    pwnedCount = normalizedData.get("pwned_accounts_count", 0)
-    knownBreaches = normalizedData.get("known_breaches", [])
+    pwned_count = normalized_data.get("pwned_accounts_count", 0)
+    known_breaches = normalized_data.get("known_breaches", [])
     
-    # If the domain has been in any breaches, generate a High severity finding(might be replaced by ai recomendations at a later date)
-    if pwnedCount > 0:
+    # If the domain has been in any breaches, generate a High severity
+    #  finding(might be replaced by ai recomendations at a later date)
+    if pwned_count > 0:
         findings.append(
         {
             "source": "hibp",
             "severity": "high",
-            "title": f"Domain Identified in {pwnedCount} Historical Data Breaches",
-            "description": "The target domain was found in known third-party data breaches. Associated email addresses and potentially passwords may be compromised.",
-            "recommendation": "Enforce strict password resets and multi-factor authentication (MFA) across the organization.",
-            "evidence": {"breaches": knownBreaches}
+            "title": f"Domain Identified in {pwned_count} Historical Data Breaches",
+            "description": ("The target domain was found in known third-party data breaches. "
+            "Associated email addresses and potentially passwords may be compromised."),
+            "recommendation": ("Enforce strict password resets and multi-factor authentication "
+            "(MFA) across the organization."),
+            "evidence": {"breaches": known_breaches}
         })
             
     return findings, assets
@@ -115,8 +118,8 @@ def generate_findings_and_assets(normalizedData: dict) -> tuple:
 #execution
 @shared_task(name="scan.hibp")
 def run_hibp(domain: str) -> dict:
-    rawData = collect_raw_data(domain)
-    normalized = normalize_data(rawData)
+    raw_data = collect_raw_data(domain)
+    normalized = normalize_data(raw_data)
     findings, assets = generate_findings_and_assets(normalized)
     
     return \

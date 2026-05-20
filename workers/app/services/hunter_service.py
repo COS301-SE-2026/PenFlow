@@ -1,9 +1,10 @@
+import json
 import logging
 import os
-import json
-from celery import shared_task
-import httpx
 from pathlib import Path
+
+import httpx
+from celery import shared_task
 
 # Logger to track this specific worker
 logger = logging.getLogger(__name__)
@@ -18,14 +19,14 @@ def collect_raw_data(domain: str) -> dict:
     #Mock mode
     if SCAN_MODE == "MOCK" or not HUNTER_API_KEY or "fake" in HUNTER_API_KEY.lower():
         logger.info(f"[Hunter] Running in MOCK/Demo mode for {domain}")
-        safeDomain = domain.replace(".", "_")
-        mockFile = WORKERS_ROOT / "docs" / "raw_samples" / f"Hunter_{safeDomain}.json"
+        safe_domain = domain.replace(".", "_")
+        mock_file = WORKERS_ROOT / "docs" / "raw_samples" / f"Hunter_{safe_domain}.json"
         
-        if not mockFile.exists():
-            mockFile = WORKERS_ROOT / "docs" / "raw_samples" / "Hunter_Response.json"
+        if not mock_file.exists():
+            mock_file = WORKERS_ROOT / "docs" / "raw_samples" / "Hunter_Response.json"
             
         try:
-            with open(mockFile, "r") as f:
+            with open(mock_file, "r") as f:
                 return json.load(f)
         except FileNotFoundError:
             logger.error("X Mock file not found. Returning empty dict.")
@@ -49,31 +50,31 @@ def collect_raw_data(domain: str) -> dict:
             return res.json()
             
         except httpx.HTTPError as e:
-            logger.error(f"X Hunter API Error: {e}")
+            logger.exception(f"X Hunter API Error: {e}")
             return {"error": "API Request Failed"}
 
-def normalize_data(rawData: dict) -> dict:
+def normalize_data(raw_data: dict) -> dict:
     """
     Extracts email formats and employee addresses from raw Hunter.io JSON.
     Strips superfluous info so we only get a list of targets to process.
     """
-    if "error" in rawData:
-        return {"error": rawData["error"]}
+    if "error" in raw_data:
+        return {"error": raw_data["error"]}
     logger.info("Normalizing Hunter.io data:")
     
     # Hunter.io wraps their actual payload inside a "data" key in accordance to their documentation
-    dataBlock = rawData.get("data", {})
+    data_block = raw_data.get("data", {})
     
     # Extract the email pattern so pentesting tools can guess other emails
-    pattern = dataBlock.get("pattern", "Unknown")
+    pattern = data_block.get("pattern", "Unknown")
     
     # Safely get the list of emails
-    rawEmails = dataBlock.get("emails", [])
-    formattedEmails = []
+    raw_emails = data_block.get("emails", [])
+    formatted_emails = []
 
     # Iterate through each employee entry
-    for emp in rawEmails:
-        formattedEmails.append(
+    for emp in raw_emails:
+        formatted_emails.append(
         {
             "email": emp.get("value", "Unknown"),
             "type": emp.get("type", "Unknown"),
@@ -85,28 +86,28 @@ def normalize_data(rawData: dict) -> dict:
     {
             "provider": "Hunter.io",
         "email_format_pattern": pattern,
-        "public_emails_found": formattedEmails
+        "public_emails_found": formatted_emails
     }
 
 #analyze emails for potential risks and extract assets
-def generate_findings_and_assets(normalizedData: dict) -> tuple:
+def generate_findings_and_assets(normalized_data: dict) -> tuple:
     findings = []
     assets = []
     
-    if "error" in normalizedData:
+    if "error" in normalized_data:
         return findings, assets
         
-    emailsFound = normalizedData.get("public_emails_found", [])
+    emails_found = normalized_data.get("public_emails_found", [])
     
-    for emailObj in emailsFound:
-        emailAddress = emailObj.get("email")
+    for email_obj in emails_found:
+        email_address = email_obj.get("email")
         
         # Add every discovered email to the PenFlow Asset inventory
-        if emailAddress and emailAddress != "Unknown":
+        if email_address and email_address != "Unknown":
             assets.append(
             {
                 "asset_type": "email",
-                "value": emailAddress,
+                "value": email_address,
                 "source": "hunter"
             })
             
@@ -117,9 +118,12 @@ def generate_findings_and_assets(normalizedData: dict) -> tuple:
             "source": "hunter",
             "severity": "info",
             "title": f"Discovered {len(assets)} Public Email Addresses",
-            "description": "Publicly accessible email addresses were discovered for this domain. These are prime targets for social engineering or spear-phishing campaigns.",
-            "recommendation": "Ensure all staff undergo regular phishing awareness training and implement strict email filtering.",
-            "evidence": {"email_count": len(assets), "pattern": normalizedData.get("email_format_pattern")}
+            "description": ("Publicly accessible email addresses were discovered for this domain."
+            " These are prime targets for social engineering or spear-phishing campaigns."),
+            "recommendation": ("Ensure all staff undergo regular phishing awareness training "
+            "and implement strict email filtering."),
+            "evidence": {"email_count": len(assets), 
+            "pattern": normalized_data.get("email_format_pattern")}
         })
             
     return findings, assets
@@ -128,8 +132,8 @@ def generate_findings_and_assets(normalizedData: dict) -> tuple:
 #execution
 @shared_task(name="scan.hunter")
 def run_hunter(domain: str) -> dict:
-    rawData = collect_raw_data(domain)
-    normalized = normalize_data(rawData)
+    raw_data = collect_raw_data(domain)
+    normalized = normalize_data(raw_data)
     findings, assets = generate_findings_and_assets(normalized)
     
     return \

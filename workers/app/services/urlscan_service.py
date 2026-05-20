@@ -1,10 +1,11 @@
-import logging
 import json
+import logging
 import os
-from celery import shared_task
-import httpx
-from pathlib import Path
 import time
+from pathlib import Path
+
+import httpx
+from celery import shared_task
 
 # Logger to track this specific worker
 logger = logging.getLogger(__name__)
@@ -18,7 +19,7 @@ WORKERS_ROOT = Path(__file__).resolve().parent.parent.parent
 TEMPLATES_DIR = WORKERS_ROOT.parent / "backend" / "app" / "templates"
 
 #so we can display screen shot
-def _download_screenshot(image_url: str, targetFilename: str) -> str:
+def _download_screenshot(image_url: str, target_filename: str) -> str:
     """Downloads an image from the web and saves it to the shared templates folder."""
     try:
         logger.info(f"Downloading live screenshot from: {image_url}")
@@ -27,14 +28,14 @@ def _download_screenshot(image_url: str, targetFilename: str) -> str:
         response.raise_for_status()
 
         # Save it directly where the PDF engine expects to find it
-        savePath = TEMPLATES_DIR / targetFilename
-        with open(savePath, "wb") as f:
+        save_path = TEMPLATES_DIR / target_filename
+        with open(save_path, "wb") as f:
             f.write(response.content)
 
-        logger.info(f"Screenshot saved successfully as: {targetFilename}")
-        return targetFilename
+        logger.info(f"Screenshot saved successfully as: {target_filename}")
+        return target_filename
     except Exception as e:
-        logger.error(f"X Failed to download screenshot: {e}")
+        logger.exception(f"X Failed to download screenshot: {e}")
 
         #default for failure for now
         return "brocode_logo.png"
@@ -46,10 +47,10 @@ def collect_raw_data(domain: str) -> dict:
     #mock mode
     if SCAN_MODE == "MOCK":
         logger.info(f"[URLScan] Running in MOCK mode for {domain}")
-        mockFile = WORKERS_ROOT / "docs" / "raw_samples" / "UrlScan_Response.json"
+        mock_file = WORKERS_ROOT / "docs" / "raw_samples" / "UrlScan_Response.json"
         
         try:
-            with open(mockFile, "r") as f:
+            with open(mock_file, "r") as f:
                 return json.load(f)
         except FileNotFoundError:
             logger.error("X Mock file not found. Returning empty dict.")
@@ -67,32 +68,32 @@ def collect_raw_data(domain: str) -> dict:
     
     with httpx.Client() as client:
         #Submit the Scan
-        submitUrl = "https://urlscan.io/api/v1/scan/"
+        submit_url = "https://urlscan.io/api/v1/scan/"
         logger.info(f"[URLScan] Submitting {domain} to URLScan infrastructure...")
         
         try:
-            submitRes = client.post(submitUrl, headers=headers, json=payload, timeout=15.0)
-            submitRes.raise_for_status()
+            submit_res = client.post(submit_url, headers=headers, json=payload, timeout=15.0)
+            submit_res.raise_for_status()
             
         #expand the types of errors not just STATUS errors
         except httpx.HTTPError as e:
-            logger.error(f"URLScan API Error: {e}")#catch timeouts
+            logger.exception(f"URLScan API Error: {e}")#catch timeouts
             return {"error": "API Request Failed"}
         try:    
-            uuid = submitRes.json().get("uuid")
+            uuid = submit_res.json().get("uuid")
         except ValueError as e:
-            logger.error(f"URLScan API Error: {e}")
+            logger.exception(f"URLScan API Error: {e}")
             return {"error": "Invalid API Response"}
         logger.info(f"[URLScan] Scan queued. UUID: {uuid}. Entering polling loop...")
 
         #poll for results every 10 seconds, up to 6 attempts. 1 min total
-        resultUrl = f"https://urlscan.io/api/v1/result/{uuid}/"
+        result_url = f"https://urlscan.io/api/v1/result/{uuid}/"
         raw_result = {}
         
         for attempt in range(6):
             time.sleep(10)
             logger.info(f"[URLScan] Polling for results (Attempt {attempt + 1}/6)...")
-            res = client.get(resultUrl,headers=headers, timeout=15.0)
+            res = client.get(result_url,headers=headers, timeout=15.0)
             
             if res.status_code == 200:
                 raw_result = res.json()
@@ -108,57 +109,60 @@ def collect_raw_data(domain: str) -> dict:
             logger.error("[URLScan] X Scan timed out after 60 seconds.")
             return {"error": "Scan Timeout"}
 
-        #download screen shot to our local templates folder for PDF report generation (and potential future DB storage)
-        screenshotUrl = f"https://urlscan.io/screenshots/{uuid}.png"
+        #download screen shot to our local templates folder
+        #for PDF report generation (and potential future DB storage)
+        screenshot_url = f"https://urlscan.io/screenshots/{uuid}.png"
         filename = f"{domain.replace('.', '_')}_{uuid}.png"
-        savedFilename = _download_screenshot(screenshotUrl, filename)
+        saved_filename = _download_screenshot(screenshot_url, filename)
 
         # Inject our local filename into their massive JSON payload
-        raw_result["_local_screenshot_path"] = savedFilename
+        raw_result["_local_screenshot_path"] = saved_filename
         return raw_result
        
 
-def normalize_data(rawData: dict) -> dict:
+def normalize_data(raw_data: dict) -> dict:
     """
     Flattens either the Mock JSON or the massive Live JSON into our contract.
     """
 
-    if "error" in rawData:
-        return {"provider": "URLScan", "error": rawData["error"]}
+    if "error" in raw_data:
+        return {"provider": "URLScan", "error": raw_data["error"]}
     logger.info("Normalizing URLScan data (Production Mode):")
 
-    isLiveData = "verdicts" in rawData
+    is_live_data = "verdicts" in raw_data
     
 
-    if isLiveData:
+    if is_live_data:
         # Extract from URLScan's actual JSON structure
-        is_malicious = rawData.get("verdicts", {}).get("overall", {}).get("malicious", False)
+        is_malicious = raw_data.get("verdicts", {}).get("overall", {}).get("malicious", False)
         return {
             "provider": "URLScan",
             "malicious_flags": 1 if is_malicious else 0,
-            "urlscan_uuid": rawData.get("task", {}).get("uuid", "Unknown"),
-            "screenshot_url": rawData.get("_local_screenshot_path", "default.png")
+            "urlscan_uuid": raw_data.get("task", {}).get("uuid", "Unknown"),
+            "screenshot_url": raw_data.get("_local_screenshot_path", "default.png")
         }
     else:
         # Extract from our flat Mock JSON structure
         return {
-            "provider": rawData.get("provider", "URLScan"),
-            "malicious_flags": rawData.get("malicious_flags", 0),
-            "urlscan_uuid": rawData.get("urlscan_uuid", "Unknown"),
-            "screenshot_url": rawData.get("screenshot_url", "default.png")
+            "provider": raw_data.get("provider", "URLScan"),
+            "malicious_flags": raw_data.get("malicious_flags", 0),
+            "urlscan_uuid": raw_data.get("urlscan_uuid", "Unknown"),
+            "screenshot_url": raw_data.get("screenshot_url", "default.png")
         }
 
 #findings
-def generate_findings(normalizedData: dict) -> list:
+def generate_findings(normalized_data: dict) -> list:
     findings = []
-    if normalizedData.get("malicious_flags", 0) > 0:
+    if normalized_data.get("malicious_flags", 0) > 0:
         findings.append({
             "source": "urlscan",
             "severity": "high",
             "title": "Malicious Activity Detected by URLScan",
-            "description": "URLScan flagged this domain for malicious behavior or phishing.",
-            "recommendation": "Immediately investigate the domain for compromised hosting or DNS hijacking.",
-            "evidence": normalizedData
+            "description": ("URLScan flagged this domain for "
+            "malicious behavior or phishing."),
+            "recommendation": ("Immediately investigate the domain for "
+            "compromised hosting or DNS hijacking."),
+            "evidence": normalized_data
         })
     return findings    
 
