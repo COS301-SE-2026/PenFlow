@@ -29,7 +29,7 @@ class RiskSnapshot(BaseModel):
 
 class TopFindingPreview(BaseModel):
     id: UUID
-    severity: Sevrity
+    severity: Severity
     title: str
     description: Optional[str] = None
     recommendation: Optional[str] = None
@@ -42,7 +42,7 @@ class TopFindingPreview(BaseModel):
 
 class AssetTypeBreakdown(BaseModel):
     asset_type: str
-    total_assests: int
+    total_assets: int
     affected_assets: int
 
 class TopAffectedAsset(BaseModel):
@@ -53,7 +53,7 @@ class TopAffectedAsset(BaseModel):
 
 class AssetImpactSummary(BaseModel):
     total_assets_scanned: int
-    afffected_assets_count: int
+    affected_assets_count: int
     asset_type_breakdown: list[AssetTypeBreakdown]
     top_affected_assets: list[TopAffectedAsset]
 
@@ -91,6 +91,6 @@ class ExecutiveSummary(BaseModel):
     top_findings: list[TopFindingPreview]
     asset_impact: AssetImpactSummary
     source_coverage: SourceCoverageSummary
-    report_status: Optional[ReportStatusBlock] = None
+    report_status: Optional[Report] = None
 
  
