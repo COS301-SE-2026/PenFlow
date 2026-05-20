@@ -16,8 +16,8 @@ def collect_raw_data(domain: str) -> dict:
     """Collects exposed email data from Hunter.io (Mock or Live)."""
     
     #Mock mode
-    if SCAN_MODE == "MOCK":
-        logger.info(f"[Hunter] Running in MOCK mode for {domain}")
+    if SCAN_MODE == "MOCK" or not HUNTER_API_KEY or "fake" in HUNTER_API_KEY.lower():
+        logger.info(f"[Hunter] Running in MOCK/Demo mode for {domain}")
         safeDomain = domain.replace(".", "_")
         mockFile = WORKERS_ROOT / "docs" / "raw_samples" / f"Hunter_{safeDomain}.json"
         
@@ -33,10 +33,6 @@ def collect_raw_data(domain: str) -> dict:
 
     #Live Mode
     logger.info(f"[Hunter] Running in FULL LIVE mode for {domain}")
-    
-    if not HUNTER_API_KEY or HUNTER_API_KEY == "fake_key_123456789":
-        logger.error("X LIVE mode requires a valid HUNTER_API_KEY in the .env file!")
-        return {"error": "Missing Hunter API Key"}
 
     #Query Hunter.io Domain Search API
     url = f"https://api.hunter.io/v2/domain-search?domain={domain}&api_key={HUNTER_API_KEY}"

@@ -18,8 +18,8 @@ def collect_raw_data(domain: str) -> dict:
     """Collects historical breach data from HaveIBeenPwned (Mock or Live)."""
     
     #Mock mode
-    if SCAN_MODE == "MOCK":
-        logger.info(f"[HIBP] Running in MOCK mode for {domain}")
+    if SCAN_MODE == "MOCK" or not HIBP_API_KEY or "fake" in HIBP_API_KEY.lower():
+        logger.info(f"[HIBP] Running in MOCK/Demo mode for {domain}")
         safeDomain = domain.replace(".", "_")
         mockFile = WORKERS_DIR / "docs" / "raw_samples" / f"Hibp_{safeDomain}.json"
         
@@ -36,10 +36,6 @@ def collect_raw_data(domain: str) -> dict:
 
     #Live Mode
     logger.info(f"[HIBP] Running in FULL LIVE mode for {domain}")
-    
-    if not HIBP_API_KEY or HIBP_API_KEY == "fake_key_1234":
-        logger.error("X LIVE mode requires a valid HIBP_API_KEY in the .env file!")
-        return {"error": "Missing HIBP API Key"}
 
     url = f"https://haveibeenpwned.com/api/v3/breaches?domain={domain}"
     
