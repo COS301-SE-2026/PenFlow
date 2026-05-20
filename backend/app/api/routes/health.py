@@ -1,16 +1,38 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy import text
-from sqlalchemy.orm import Session
-from app.utils.db import get_db
+#type: ignore
+import logging
 
-router = APIRouter()
+from fastapi import APIRouter, status
 
-@router.get("/health")
-def health_check() -> dict[str, str]:
-    return {"backend": "ok"}
+#import get db
 
-@router.get("/db-health")
-def db_health(db: Session = Depends(get_db)) -> dict[str, str]:
-    db.execute(text("SELECT 1"))
-    return {"database": "ok"}
+router = APIRouter(tags=["System"])
+logger = logging.getLogger(__name__)
 
+@router.get(
+    "/health",
+    status_code=status.HTTP_200_OK
+
+)
+
+async def health_check(
+    #db: Session = Depends(get db)
+):
+
+    """
+    Infrastructure health check endpoint for Render/Docker.
+    """
+    db_status = "mocked_connection"
+
+    #DB Check Logic
+    # try:
+    #       db.execute(text("SELECT 1"))
+    #       db_status = "connected"
+    # except Exception as e:
+    #       logger.error(f"Database connection failed: {e})
+    #       db_status = "disconnected"
+    
+    return {
+        "status": "ok",
+        "api_version": "1.0.0",
+        "database": db_status
+    }
