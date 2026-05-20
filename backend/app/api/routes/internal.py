@@ -1,5 +1,5 @@
-#type: ignore
 import logging
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/internal", tags=["Internal Webhooks"])
 async def update_scan_status_callback(
     scan_id: str,
     payload: ScanCallbackRequest,
-):
+)-> Any:
     """
     Webhook for celery workers, report failures/ partial completions.
     """

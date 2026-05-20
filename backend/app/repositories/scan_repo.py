@@ -1,4 +1,4 @@
-#type: ignore
+# type: ignore
 import logging
 from uuid import UUID
 
@@ -33,7 +33,7 @@ class ScanRepository:
             raise
 
     @staticmethod
-    async def get_scan_by_id(db: AsyncSession, scan_id: UUID, results: dict) -> Scan | None:
+    async def get_scan_by_id(db: AsyncSession, scan_id: UUID) -> Scan | None:
         """Retrieves a scan and its associated assets/findings."""
         query = select(Scan).where(Scan.id == scan_id)
         result = await db.execute(query)

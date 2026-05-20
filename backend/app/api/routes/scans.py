@@ -1,15 +1,11 @@
-#type: ignore
-
+# type: ignore
 import logging
-import uuid
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.base import ScanStatus
-from app.schemas.scan import InitiateScanRequest, InitiateScanResponse
 from app.repositories.scan_repo import ScanRepository
+from app.schemas.scan import InitiateScanRequest, InitiateScanResponse
 from app.utils.db import get_db
 
 logger = logging.getLogger(__name__)

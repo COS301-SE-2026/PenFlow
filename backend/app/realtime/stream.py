@@ -1,7 +1,7 @@
-#type: ignore
 import asyncio
 import json
 import logging
+from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -11,7 +11,7 @@ router = APIRouter(prefix="/ws", tags=["Realtime"])
 
 
 @router.websocket("/scans/{scan_id}/stream")
-async def scan_progress_stream(websocket: WebSocket, scan_id: str):
+async def scan_progress_stream(websocket: WebSocket, scan_id: str)-> Any:
     """
     WebSocket endpoint for real-time Phase 1 scan progress.
     The React frontend connects to this to update the UI loading bar.

@@ -1,10 +1,9 @@
-#type: ignore
 import logging
 from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.scan_repo import ScanRepository
+from app.repositories.scan_repo import ScanRepository  #type: ignore
 from app.schemas.scan import InitiateScanRequest
 
 logger = logging.getLogger(__name__)

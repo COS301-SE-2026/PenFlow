@@ -1,4 +1,4 @@
-#type: ignore
+# type: ignore
 import uuid
 from datetime import datetime, timezone
 

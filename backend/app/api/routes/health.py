@@ -1,7 +1,7 @@
-#type: ignore
 import logging
+from typing import Any
 
-from fastapi import APIRouter,Sepends, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 async def health_check(
     db: AsyncSession = Depends(get_db)
-):
+)-> Any:
 
     """
     Infrastructure health check endpoint for Render/Docker.

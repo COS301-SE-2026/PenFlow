@@ -1,7 +1,10 @@
 from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models.scan import Scan
+
+from app.models.scan import Scan  #type: ignore
+
 
 async def get_scan_summary(db: AsyncSession, scan_id: UUID) -> Scan | None:
     """

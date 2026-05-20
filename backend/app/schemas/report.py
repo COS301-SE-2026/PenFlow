@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
+
 class SeverityEnum(str, Enum):
     CRITICAL = "Critical"
     HIGH = "High"
