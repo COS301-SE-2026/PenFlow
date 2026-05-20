@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import styles from "./ScanConsoleSection.module.css";
+import { validateDomain } from "@/lib/domainValidator";   
+import { postScanRequest } from "@/lib/scanService";  
 
 const SOURCES = ["crt.sh", "Shodan", "HaveIBeenPwned", "Wappalyser", "Normalising"];
 
@@ -54,15 +56,24 @@ export default function ScanConsoleSection() {
     });
   };
 
-  const onSubmit = (e: { preventDefault(): void }) => {
+    //the validation moves to  lib/domainvalidator and add scan service
+  const onSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
-    const value = domain.trim();
-    if (value.length <= 2) {
-      setStatus("Please enter a valid domain");
+
+    const result = validateDomain(domain);
+    if (!result.valid) {
+      setStatus(result.error);
       return;
     }
-    setSubmittedDomain(value);
-    startScanSequence(value);
+
+    try {
+      await postScanRequest(result.domain); //calls the backend api when validator is true
+      setSubmittedDomain(result.domain);
+      startScanSequence(result.domain);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Scan request failed";
+      setStatus(message);
+    }
   };
 
   const handleViewReport = () => {
