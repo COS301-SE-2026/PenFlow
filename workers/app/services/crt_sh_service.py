@@ -13,7 +13,7 @@ SCAN_MODE = os.getenv("SCAN_MODE", "MOCK").upper()
 WORKERS_ROOT = Path(__file__).resolve().parent.parent.parent
 
 #collect raw data from mocks or from crt.sh depending on mode
-def collect_raw_data(domain: str) -> dict:
+def fetch_mock_data(domain: str) -> dict:
     """Collects subdomain and certificate data from crt.sh (Mock or Live)."""
     
     #Mock mode
@@ -36,7 +36,7 @@ def collect_raw_data(domain: str) -> dict:
         except FileNotFoundError:
             logger.error("X Mock file not found. Returning empty dict.")
             return {"certificates": []}
-
+def fetch_live_data(domain: str) -> dict:
     #Live Mode
     logger.info(f"[CRT.sh] Running in FULL LIVE mode for {domain}")
     
@@ -93,6 +93,13 @@ def collect_raw_data(domain: str) -> dict:
         # If we exhaust all 5 attempts, fail gracefully
         logger.error(f"[CRT.sh] X Completely failed after {max_attempts} attempts.")
         return {"error": "API Request Failed / Timed Out"}
+    
+def collect_raw_data(domain: str) -> dict:
+    """Collects subdomain and certificate data from crt.sh (Mock or Live)."""
+    if SCAN_MODE == "MOCK":
+        return fetch_mock_data(domain)
+    
+    return fetch_live_data(domain)    
 
 def normalize_data(raw_data: list) -> dict:
     """
@@ -101,7 +108,7 @@ def normalize_data(raw_data: list) -> dict:
     """
 
     if "error" in raw_data:
-        return {"error": raw_data["error"]}
+        return {"error": raw_data.get("error")}
     
     logger.info("Normalizing crt.sh data:")
     

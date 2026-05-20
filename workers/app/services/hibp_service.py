@@ -69,7 +69,7 @@ def normalize_data(raw_data: list) -> dict:
     
     logger.info("Normalizing HIBP breach data:")
     if "error" in raw_data:
-        return {"error": raw_data["error"]}
+        return {"error": raw_data.get("error")}
     breaches = raw_data.get("breaches", [])
     known_breaches = []
     
