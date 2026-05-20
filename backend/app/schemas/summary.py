@@ -77,11 +77,20 @@ class SourceCoverageSummary(BaseModel):
     aggregate: SourceCoverageAggregate
     sources: list[SourceCoverageItem]
 
+class Report(BaseModel):
+    status: str
+    generated_at: Optional[datetime] = None
+    pdf_path: Optional[str] = None
+    error_message: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
 class ExecutiveSummary(BaseModel):
     scan_summary: ScanSummary
     risk_snapshot: RiskSnapshot
     top_findings: list[TopFindingPreview]
     asset_impact: AssetImpactSummary
     source_coverage: SourceCoverageSummary
+    report_status: Optional[ReportStatusBlock] = None
 
  

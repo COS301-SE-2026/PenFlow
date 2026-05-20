@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 from app.models.scan import ScanSource  #type: ignore
 from app.models.finding import Finding  #type: ignore
 from app.models.asset import Asset  #type: ignore
+from app.models.scan import Report #type: ignore
 
 
 async def get_scan_summary(db: AsyncSession, scan_id: UUID) -> Scan | None:
@@ -199,3 +200,11 @@ async def get_source_coverage(db: AsyncSession, scan_id: UUID) -> dict:
         "sources": sources
     }            
     
+async def get_report_status(db: AsyncSession, scan_id: UUID) -> Report | None:
+    """
+    Fetches the current async pdf generation status for a scan
+    None if a report is not created or queued
+    """
+    query = select(Report).where(Report.scan_id == scan_id)
+    result = await db.execute(query)
+    return result.scalar_one_or_none()

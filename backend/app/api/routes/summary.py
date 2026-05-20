@@ -38,6 +38,9 @@ async def get_scan_summary(
     asset_impact_data = await summary_repo.get_asset_impact_summary(db, scan_id)
 
     source_coverage_data = await summary_repo.get_source_coverage_summary(db, scan_id)
+
+    report_data = await summary_repo.get_report_status(db, scan_id)
+
     
 
     return {
@@ -45,4 +48,6 @@ async def get_scan_summary(
         "risk": risk_data,
         "top_findings": top_findings_data,
         "asset_impact": asset_impact_data
+        "source_coverage": source_coverage_data,
+        "report_status": report_data
     }
