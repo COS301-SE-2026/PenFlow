@@ -24,6 +24,7 @@ CREATE TABLE scans (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organisation_id UUID REFERENCES organisations(id) ON DELETE SET NULL,
     user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    task_id VARCHAR(255),
     domain VARCHAR(255) NOT NULL,
     email VARCHAR(255),
     status VARCHAR(50) NOT NULL DEFAULT 'queued',
@@ -79,10 +80,12 @@ CREATE TABLE findings (
 
 CREATE TABLE reports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    scan_id UUID NOT NULL REFERENCES scans(id) ON DELETE CASCADE,
+    scan_id UUID NOT NULL UNIQUE REFERENCES scans(id) ON DELETE CASCADE,
+    task_id VARCHAR(255),
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
     pdf_path TEXT,
     generated_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     error_message TEXT,
 
     CHECK (status IN ('pending', 'generating', 'completed', 'failed'))
