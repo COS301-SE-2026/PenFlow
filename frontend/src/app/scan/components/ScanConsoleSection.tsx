@@ -89,8 +89,9 @@ export default function ScanConsoleSection() {
   useEffect(() => () => clearAllTimers(), []);
 
   return (
-    <section className={styles.scanSection}>
+    <section id="scan" className={styles.scanSection}>
       <div className={styles.consoleShell}>
+        <h2 className={styles.consoleLabel}>SCAN YOUR DOMAIN NOW:</h2>
         <div className={styles.consoleTop}>
           <div className={styles.radarPanel} aria-hidden="true">
             <div className={styles.radarScope}>

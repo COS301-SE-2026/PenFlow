@@ -10,19 +10,36 @@ PenFlow is a distributed, pipeline-driven platform for managing the full penetra
 ## Tech Stack
 
 ### Frontend
+- Next.js
 - React (TypeScript)
 - Tailwind CSS
 - WebSockets (real-time scan progress updates)
+-Jest
+-ESLint
+-Pretier
 
 ### Backend (Core API)
-- Node.js (Express)
+- FastAPI
+- Python 3.12
+- SQLAlchemy 
+- Pydantic
+- Alembic
+- psycopg2
+- Redis
+- httpx
+- WeasyPrint
 
 ### Workers & Scanning Engine
 - Python (Celery)
 - Redis (task queue & caching)
+- SQLAlchemy
+- httpx
+- WeasyPrint
+- Docker SDK
+- Tenacity
 
 ### Database
-- PostgreSQL (Supabase)
+- PostgreSQL 16
 
 ### Storage
 - Supabase Storage (reports & evidence files)
