@@ -4,7 +4,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.scan import Scan  #type: ignore
+from app.models.scan import ScanSource  #type: ignore
 from app.models.finding import Finding  #type: ignore
 from app.models.asset import Asset  #type: ignore
 
@@ -163,5 +163,39 @@ async def get_asset_impact_summary(db: AsyncSession, scan_id: UUID) -> dict:
                 "asset_type_breakdown": list(breakdown_dict.values()),
                 "top_affected_assets": top_assets_list[:5]
             }
-            
+
+async def get_source_coverage(db: AsyncSession, scan_id: UUID) -> dict:
+    """
+    Fetches all execution sources for a scan and computes the aggregate
+    completion statuses
+    """
+    query = select(ScanSource).where(ScanSource.scan_id == scan_id)
+    result =await db.execute(query)
+    sources = result.scalars().all()
+
+    aggregate = {
+        "sources_total": len(sources),
+        "sources_completed": 0,
+        "sources_failed": 0,
+        "sources_partial": 0,
+        "sources_skipped": 0    
+    }
+
+    for source in sources:
+        status_str = source.status.value if hasattr(source.status, "value") else str(source.status)
+        status_str = status_str.lower()
+
+        if status_str == "completed":
+            aggregate["sources_completed"] += 1
+        elif status_str == "failed":
+            aggregate["sources_failed"] += 1
+        elif status_str == "partial":
+            aggregate["sources_partial"] += 1
+        elif status_str == "skipped":
+            aggregate["sources_skipped"] += 1
+
+    return {
+        "aggregate": aggregate,
+        "sources": sources
+    }            
     

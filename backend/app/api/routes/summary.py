@@ -36,6 +36,8 @@ async def get_scan_summary(
     top_findings_data = await summary_repo.get_top_findings_preview(db, scan_id, limit=5)
 
     asset_impact_data = await summary_repo.get_asset_impact_summary(db, scan_id)
+
+    source_coverage_data = await summary_repo.get_source_coverage_summary(db, scan_id)
     
 
     return {
