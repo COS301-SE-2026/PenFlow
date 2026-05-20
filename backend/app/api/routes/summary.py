@@ -20,6 +20,7 @@ async def get_scan_summary(
     Currently compiled blocks:
     - Block 1: Scan Summary
     - Block 2: Risk Snapshot
+    - Block 3: Top Findings Preview
     """
     scan_data = await summary_repo.get_scan_summary(db, scan_id)
 
@@ -31,6 +32,7 @@ async def get_scan_summary(
         )
     
     risk_data = await summary_repo.get_risk_snapshot(db,scan_id)
+    
 
     return {
         "scan": scan_data,
