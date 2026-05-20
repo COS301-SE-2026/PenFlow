@@ -73,11 +73,16 @@ def collect_raw_data(domain: str) -> dict:
         try:
             submitRes = client.post(submitUrl, headers=headers, json=payload, timeout=15.0)
             submitRes.raise_for_status()
-        except httpx.HTTPStatusError as e:
+            
+        #expand the types of errors not just STATUS errors
+        except httpx.HTTPError as e:
             logger.error(f"URLScan API Error: {e}")#catch timeouts
             return {"error": "API Request Failed"}
-            
-        uuid = submitRes.json().get("uuid")
+        try:    
+            uuid = submitRes.json().get("uuid")
+        except ValueError as e:
+            logger.error(f"URLScan API Error: {e}")
+            return {"error": "Invalid API Response"}
         logger.info(f"[URLScan] Scan queued. UUID: {uuid}. Entering polling loop...")
 
         #poll for results every 10 seconds, up to 6 attempts. 1 min total
