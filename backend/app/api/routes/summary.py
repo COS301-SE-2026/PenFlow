@@ -31,10 +31,13 @@ async def get_scan_summary(
 
         )
     
-    risk_data = await summary_repo.get_risk_snapshot(db,scan_id)
+    risk_data = await summary_repo.get_risk_snapshot(db, scan_id)
+
+    top_findings_data = await summary_repo.get_top_findings_preview(db, scan_id, limit=5)
     
 
     return {
         "scan": scan_data,
-        "risk": risk_data
+        "risk": risk_data,
+        "top_findings": top_findings_data
     }

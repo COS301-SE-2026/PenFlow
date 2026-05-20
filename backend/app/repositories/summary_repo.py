@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.scan import Scan  #type: ignore
 from app.models.finding import Finding  #type: ignore

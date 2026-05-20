@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
 
+from app.models.base import Severity
+
 
 class ScanSummary(BaseModel):
     id: UUID
@@ -38,7 +40,25 @@ class TopFindingPreview(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class AssetTypeBreakdown(BaseModel):
+    asset_type: str
+    total_assests: int
+    affected_assets: int
+
+class TopAffectedAsset(BaseModel):
+    identifier: str
+    asset_type: str
+    finding_count: int
+    highest_severity: Severity
+
+class AssetImpactSummary(BaseModel):
+    total_assets_scanned: int
+    afffected_assets_count: int
+    asset_type_breakdown: list[AssetTypeBreakdown]
+    top_affected_assets: list[TopAffectedAsset]
+
 class ExecutiveSummary(BaseModel):
     scan_summary: ScanSummary
     risk_snapshot: RiskSnapshot
     top_findings: list[TopFindingPreview]
+    asset_impact: AssetImpactSummary
