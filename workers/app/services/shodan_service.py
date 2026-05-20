@@ -22,7 +22,7 @@ def collect_raw_data(domain: str) -> dict:
     """Collects infrastructure data from Shodan (Mock or Live)."""
     
     #Mock mode
-    if SCAN_MODE == "MOCK":
+    if SCAN_MODE == "MOCK" or not SHODAN_API_KEY or "fake" in SHODAN_API_KEY.lower():
         logger.info(f"[Shodan] Running in MOCK mode for {domain}")
         safeDomain = domain.replace(".", "_")
         mockFile = WORKERS_ROOT / "docs" / "raw_samples" / f"Shodan_{safeDomain}.json"
@@ -39,7 +39,6 @@ def collect_raw_data(domain: str) -> dict:
 
     #Live Mode
     logger.info(f"[Shodan] Running in FULL LIVE mode for {domain}")
-    
     if not SHODAN_API_KEY or SHODAN_API_KEY == "fake_key_1234":
         logger.error("X LIVE mode requires a valid SHODAN_API_KEY in the .env file!")
         return {"error": "Missing Shodan API Key"}
