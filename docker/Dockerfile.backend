@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
     libharfbuzz0b \
-    libffi8 \
+    libffi-dev \
     libjpeg62-turbo \
     libopenjp2-7 \
     libgdk-pixbuf-2.0-0 \
