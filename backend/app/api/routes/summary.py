@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +13,7 @@ router = APIRouter(prefix="/scans", tags=["Executive Summary"])
 async def get_scan_summary(
     scan_id: UUID,
     db: AsyncSession = Depends(get_db)
-):
+)->
     """
     Generates  complete Executive summary for a specific scan.
     """
