@@ -1,5 +1,37 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+CREATE TYPE scan_status AS ENUM (
+    'queued',
+    'running',
+    'completed',
+    'failed',
+    'partial'
+);
+
+CREATE TYPE scan_source_status AS ENUM (
+    'pending',
+    'running',
+    'completed',
+    'failed',
+    'partial',
+    'skipped'
+);
+
+CREATE TYPE finding_severity AS ENUM (
+    'info',
+    'low',
+    'medium',
+    'high',
+    'critical'
+);
+
+CREATE TYPE report_status AS ENUM (
+    'pending',
+    'generating',
+    'completed',
+    'failed'
+);
+
 CREATE TABLE organisations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
@@ -27,15 +59,14 @@ CREATE TABLE scans (
     task_id VARCHAR(255),
     domain VARCHAR(255) NOT NULL,
     email VARCHAR(255),
-    status VARCHAR(50) NOT NULL DEFAULT 'queued',
+    status scan_status NOT NULL DEFAULT 'queued',
     progress INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
     error_message TEXT,
 
-    CHECK (progress >= 0 AND progress <= 100),
-    CHECK (status IN ('queued', 'running', 'completed', 'failed', 'partial'))
+    CHECK (progress >= 0 AND progress <= 100)
 );
 
 CREATE TABLE assets (
@@ -53,14 +84,13 @@ CREATE TABLE scan_sources (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     scan_id UUID NOT NULL REFERENCES scans(id) ON DELETE CASCADE,
     source_name VARCHAR(100) NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    status scan_source_status NOT NULL DEFAULT 'pending',
     raw_result JSONB,
     error_message TEXT,
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
 
-    UNIQUE (scan_id, source_name),
-    CHECK (status IN ('pending', 'running', 'completed', 'failed', 'partial', 'skipped'))
+    UNIQUE (scan_id, source_name)
 );
 
 CREATE TABLE findings (
@@ -68,27 +98,23 @@ CREATE TABLE findings (
     scan_id UUID NOT NULL REFERENCES scans(id) ON DELETE CASCADE,
     asset_id UUID REFERENCES assets(id) ON DELETE SET NULL,
     source VARCHAR(100) NOT NULL,
-    severity VARCHAR(50) NOT NULL,
+    severity finding_severity NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     recommendation TEXT,
     evidence JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    CHECK (severity IN ('info', 'low', 'medium', 'high', 'critical'))
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE reports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     scan_id UUID NOT NULL UNIQUE REFERENCES scans(id) ON DELETE CASCADE,
     task_id VARCHAR(255),
-    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    status report_status NOT NULL DEFAULT 'pending',
     pdf_path TEXT,
     generated_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    error_message TEXT,
-
-    CHECK (status IN ('pending', 'generating', 'completed', 'failed'))
+    error_message TEXT
 );
 
 CREATE INDEX idx_users_org_id ON users(organisation_id);
