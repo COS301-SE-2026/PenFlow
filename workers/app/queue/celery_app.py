@@ -9,6 +9,13 @@ celery_app = Celery(
     include=[
         "app.tasks.report_tasks",
         "app.tasks.dns_tasks",
+        "app.tasks.urlscan_tasks",
+        "app.tasks.wappalyzer_tasks",
+        "app.tasks.crtsh_tasks",
+        "app.tasks.shodan_tasks",
+        "app.tasks.hunter_tasks",
+        "app.tasks.hibp_tasks",
+        "app.tasks.full_scan_tasks",
     ],
 )
 

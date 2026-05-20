@@ -16,22 +16,52 @@ def collect_whois_raw_data(domain: str) -> JSONDict:
     """
     logger.info("Collecting WHOIS/RDAP data for domain: %s", domain)
 
-    try:
-        response = httpx.get(
-            RDAP_BOOTSTRAP_URL.format(domain=domain),
-            timeout=10,
-            follow_redirects=True,
-        )
+    timeout = httpx.Timeout(
+        10.0,
+        connect=5.0,
+    )
 
-        response.raise_for_status()
+    try:
+        with httpx.Client(
+            timeout=timeout,
+            follow_redirects=True,
+        ) as client:
+
+            response = client.get(
+                RDAP_BOOTSTRAP_URL.format(domain=domain),
+            )
+
+            response.raise_for_status()
+
+            return {
+                "domain": domain,
+                "provider": "RDAP",
+                "status_code": response.status_code,
+                "lookup_url": str(response.url),
+                "raw_response": response.json(),
+            }
+
+    except httpx.HTTPStatusError as error:
+        logger.warning(
+            "RDAP HTTP failure for %s: %s",
+            domain,
+            error.response.status_code,
+        )
 
         return {
             "domain": domain,
             "provider": "RDAP",
-            "raw_response": response.json(),
+            "error": f"HTTP {error.response.status_code}",
+            "raw_response": {},
         }
 
-    except Exception as error:
+    except httpx.RequestError as error:
+        logger.warning(
+            "RDAP request error for %s: %s",
+            domain,
+            error,
+        )
+
         return {
             "domain": domain,
             "provider": "RDAP",

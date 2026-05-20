@@ -5,7 +5,6 @@ import time
 from pathlib import Path
 
 import httpx
-from celery import shared_task
 
 # Logger to track this specific worker
 logger = logging.getLogger(__name__)
@@ -110,7 +109,14 @@ def normalize_data(raw_data: dict) -> dict:
     """
 
     if "error" in raw_data:
-        return {"error": raw_data.get("error")}
+        return {
+            "subdomains": {
+                "provider": "crt.sh",
+                "total_found": 0,
+                "discovered_names": [],
+                "error": raw_data.get("error"),
+            }
+        }
     
     logger.info("Normalizing crt.sh data:")
     
@@ -140,8 +146,12 @@ def normalize_data(raw_data: dict) -> dict:
         })
         
     return {
-        "subdomains": normalized_subdomains
+        "subdomains": {
+            "provider": "crt.sh",
+            "total_found": len(discovered_names),
+            "discovered_names": discovered_names,
     }
+}
 
 #analyze subdomains for potential risks and extract assets
 def generate_findings_and_assets(normalized_data: dict) -> tuple:
@@ -151,42 +161,13 @@ def generate_findings_and_assets(normalized_data: dict) -> tuple:
     if "error" in normalized_data:
         return findings, assets
         
-    for sub_obj in normalized_data.get("subdomains", []):
-        subdomain = sub_obj.get("subdomain")
-        
-        # Add every discovered subdomain to the PenFlow Asset inventory
-        if subdomain:
-            assets.append(
-            {
-                "asset_type": "subdomain",
-                "value": subdomain,
-                "source": "crt_sh"
-            })
+    subdomains = normalized_data.get("subdomains", {})
+    for subdomain in subdomains.get("discovered_names", []):
+        assets.append({
+            "asset_type": "subdomain",
+            "identifier": subdomain,
+            "source": "crt.sh",
+        })
             
     return findings, assets
 
-
-#execution
-@shared_task(name="scan.crt_sh")
-def run_crt_sh(domain: str) -> dict:
-    raw_data = collect_raw_data(domain)
-    normalized = normalize_data(raw_data)
-    findings, assets = generate_findings_and_assets(normalized)
-    
-    # Extract just the string names for the PDF builder's expected format
-    discovered_names = []
-    for sub in normalized.get("subdomains", []):
-        discovered_names.append(sub.get("subdomain"))
-    
-    return {
-        "source_name": "crt_sh",
-        "status": "completed" if "error" not in normalized else "failed",
-        "raw_result": 
-        {
-            "provider": "crt.sh",
-            "total_found": len(discovered_names),
-            "discovered_names": discovered_names
-        },
-        "findings": findings,
-        "assets": assets
-    }

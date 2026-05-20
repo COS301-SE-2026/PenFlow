@@ -3,8 +3,6 @@ from typing import Any
 
 import dns.resolver
 
-from app.services.whois_service import collect_whois_raw_data
-
 JSONDict = dict[str, Any]
 JSONList = list[JSONDict]
 
@@ -73,11 +71,43 @@ def normalize_dns_data(raw_data: JSONDict, whois_data: JSONDict | None = None,) 
     dmarc_records = raw_data.get("dmarc_records", [])
     detected_services: set[str] = set()
 
+    SERVICE_MAPPING ={
+        "adobe": "Adobe",
+        "anthropic": "Anthropic",
+        "apple": "Apple",
+        "atlassian": "Atlassian",
+        "box": "Box",
+        "canva": "Canva",
+        "citrix": "Citrix",
+        "docusign": "DocuSign",
+        "drift": "Drift",
+        "facebook": "Facebook",
+        "google-site-verification": "Google",
+        "jetbrains": "JetBrains",
+        "monday": "Monday.com",
+        "openai": "OpenAI",
+        "slack": "Slack",
+        "stripe": "Stripe",
+        "zoom": "Zoom"
+    }
+
     for record in raw_data.get("txt_records", []):
-        if "verification" in record.lower() and "-" in record:
-            service_name = record.split("-")[0]
-            service_name = service_name.replace("_", " ").title()
-            detected_services.add(service_name)
+        record_lower = record.lower()
+
+        matched = False
+
+        for keyword, service_name in SERVICE_MAPPING.items():
+            if keyword in record_lower:
+                detected_services.add(service_name)
+                matched = True
+
+        if not matched:
+            if "verification" in record_lower and "-" in record:
+                service_name = record.split("-")[0]
+                service_name = service_name.replace("_", " ").title()
+
+                if len(service_name) > 2:
+                    detected_services.add(service_name)
 
     records: JSONList = []
 
@@ -249,19 +279,4 @@ def generate_dns_findings(normalized_dns: JSONDict) -> JSONList:
         })
 
     return findings
-
-
-def run_dns_scan(domain: str) -> JSONDict:
-    raw_dns = collect_dns_raw_data(domain)
-    raw_whois = collect_whois_raw_data(domain)
-    normalized_dns = normalize_dns_data(raw_dns, raw_whois)
-    findings = generate_dns_findings(normalized_dns)
-
-    return {
-        "source_name": "dns",
-        "status": "completed",
-        "raw_result": normalized_dns,
-        "findings": findings,
-        "assets": [],
-    }
 
