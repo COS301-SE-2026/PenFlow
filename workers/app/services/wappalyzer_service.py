@@ -21,17 +21,17 @@ def collect_raw_data(domain: str) -> dict:
     #Mock mode
     if SCAN_MODE == "MOCK":
         logger.info(f"[Wappalyzer] Running in MOCK mode for {domain}")
-        safeDomain = domain.replace(".", "_")
-        mockFile = WORKERS_ROOT / "docs" / "raw_samples" / f"Wappalyzer_{safeDomain}.json"
+        safe_domain = domain.replace(".", "_")
+        mock_file = WORKERS_ROOT / "docs" / "raw_samples" / f"Wappalyzer_{safe_domain}.json"
         
-        if not mockFile.exists():
-            mockFile = WORKERS_ROOT / "docs" / "raw_samples" / "Wappalyzer_Response.json"
+        if not mock_file.exists():
+            mock_file = WORKERS_ROOT / "docs" / "raw_samples" / "Wappalyzer_Response.json"
             
         try:
-            with open(mockFile, "r") as f:
+            with open(mock_file, "r") as f:
                 return json.load(f)
         except FileNotFoundError:
-            logger.error("X Mock file not found. Returning empty dict.")
+            logger.exception("X Mock file not found. Returning empty dict.")
             return {}
 
     #Live Mode
@@ -40,37 +40,52 @@ def collect_raw_data(domain: str) -> dict:
     try:
         wappalyzer = Wappalyzer.latest()
         page = WebPage.new_from_url(f"https://{domain}")
-        rawData = wappalyzer.analyze_with_versions_and_categories(page)
-        return rawData
+        raw_data = wappalyzer.analyze_with_versions_and_categories(page)
+        return raw_data
     except Exception as e:
-        logger.error(f"X Local Wappalyzer Engine Error: {e}")
+        logger.exception(f"X Local Wappalyzer Engine Error: {e}")
         return {"error": "Local Analysis Failed"}
 
-def normalize_data(rawData: dict) -> dict:
+def normalize_data(raw_data: dict) -> dict:
     """
     Flatten and normalize Wappalyzer's output into our unified schema format.
     """
     logger.info("Normalizing Wappalyzer data:")
 
-    if "error" in rawData:
-        return {"error": rawData["error"]}
-    
-    cms = []
-    frameworks = []
-    webServers = []
-    paas = []
-    programmingLanguages = []
-    databases = []
-    cdns = []
+    if "error" in raw_data:
+        return {"error": raw_data["error"]}
+    normalized = {
+        "provider": "Wappalyzer",
+        "cms": [],
+        "frameworks": [],
+        "webServers": [],
+        "paas": [],
+        "programmingLanguages": [],
+        "databases": [],
+        "cdn": []
+    }
 
-    for techName, details in rawData.items():
+    categories_mapping = {
+        "CMS": "cms",
+        "Web frameworks": "frameworks",
+        "JavaScript frameworks": "frameworks",
+        "JavaScript libraries": "frameworks",
+        "Web servers": "webServers",
+        "Reverse proxies": "webServers",
+        "PaaS": "paas",
+        "Programming languages": "programmingLanguages",
+        "Databases": "databases",
+        "CDN": "cdn"
+    }
+
+    for tech_name, details in raw_data.items():
         #extract first version if it exists
         versions = details.get("versions", [])
         version = versions[0] if versions else "Unknown"
 
-        techObj = \
+        tech_obj = \
         {
-            "name": techName,
+            "name": tech_name,
             "version": version
         }
 
@@ -79,46 +94,20 @@ def normalize_data(rawData: dict) -> dict:
         
         # Sort the technology into our unified schema categories
         for category in categories:
-            if "CMS" in category:
-                if techObj not in cms:
-                    cms.append(techObj)
-            elif "Web frameworks" in category or "JavaScript frameworks" in category or "JavaScript libraries" in category:
-                if techObj not in frameworks:
-                    frameworks.append(techObj)
-            elif "Web servers" in category or "Reverse proxies" in category:
-                if techObj not in webServers:
-                    webServers.append(techObj)
-            elif "PaaS" in category:
-                if techObj not in paas:
-                    paas.append(techObj)
-            elif "Programming languages" in category:
-                if techObj not in programmingLanguages:
-                    programmingLanguages.append(techObj)
-            elif "Databases" in category:
-                if techObj not in databases:
-                    databases.append(techObj)
-            elif "CDN" in category:
-                if techObj not in cdns:
-                    cdns.append(techObj)
+            for keyword,target_list in categories_mapping.items():
+                if keyword in category and tech_obj not in normalized[target_list]:
+                    normalized[target_list].append(tech_obj)
+                    logger.info(f" - Detected {tech_name} categorized as {target_list}")
+                    break
 
-    return \
-    {
-        "provider": "Wappalyzer",
-        "cms": cms,
-        "frameworks": frameworks,
-        "webServers": webServers,
-        "paas": paas,
-        "programmingLanguages": programmingLanguages,
-        "databases": databases,
-        "cdn": cdns
-    }
+    return normalized
 
 #analyze tech stack for known risky software targets
-def generate_findings_and_assets(normalizedData: dict) -> tuple:
+def generate_findings_and_assets(normalized_data: dict) -> tuple:
     findings = []
     assets = []
     
-    if "error" in normalizedData:
+    if "error" in normalized_data:
         return findings, assets
         
     #dictionary of tech that needs strict managment to avoid common exploits here
@@ -129,25 +118,25 @@ def generate_findings_and_assets(normalizedData: dict) -> tuple:
         "jQuery": "Older jQuery versions have known XSS vulnerabilities."
     }
     
-    categoriesToCheck = \
+    categories_to_check = \
     [
         "cms", "frameworks", "webServers", "paas", 
         "programmingLanguages", "databases", "cdn"
     ]
 
-    for categoryKey in categoriesToCheck:
-        for tech in normalizedData.get(categoryKey, []):
-            techName = tech.get("name")
+    for category_key in categories_to_check:
+        for tech in normalized_data.get(category_key, []):
+            tech_name = tech.get("name")
             
-            if techName in RISKY_TECH:
+            if tech_name in RISKY_TECH:
                 findings.append(
                 {
                     "source": "wappalyzer",
                     "severity": "info",
-                    "title": f"Commonly Targeted Technology Detected: {techName}",
-                    "description": f"The target is using {techName}, which requires strict patch management.",
-                    "recommendation": RISKY_TECH[techName],
-                    "evidence": {"technology": techName, "version": tech.get("version")}
+                    "title": f"Commonly Targeted Technology Detected: {tech_name}",
+                    "description": f"The target is using {tech_name}, which requires strict patch management.",
+                    "recommendation": RISKY_TECH[tech_name],
+                    "evidence": {"technology": tech_name, "version": tech.get("version")}
                 })
             
     return findings, assets
@@ -155,8 +144,8 @@ def generate_findings_and_assets(normalizedData: dict) -> tuple:
 #execution
 @shared_task(name="scan.wappalyzer")
 def run_wappalyzer(domain: str) -> dict:
-    rawData = collect_raw_data(domain)
-    normalized = normalize_data(rawData)
+    raw_data = collect_raw_data(domain)
+    normalized = normalize_data(raw_data)
     findings, assets = generate_findings_and_assets(normalized)
     
     return \
