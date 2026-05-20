@@ -29,13 +29,15 @@ def fetch_mock_data(domain: str) -> dict:
             with open(mock_file, "r") as f:
                 data = json.load(f)
                 #wrap the raw list in a dictionary so our pipeline stays consistent
-                return \
-                {
+                return {
                     "certificates": data
                 }
         except FileNotFoundError:
             logger.error("X Mock file not found. Returning empty dict.")
             return {"certificates": []}
+    return{}
+
+
 def fetch_live_data(domain: str) -> dict:
     #Live Mode
     logger.info(f"[CRT.sh] Running in FULL LIVE mode for {domain}")
@@ -101,7 +103,7 @@ def collect_raw_data(domain: str) -> dict:
     
     return fetch_live_data(domain)    
 
-def normalize_data(raw_data: list) -> dict:
+def normalize_data(raw_data: dict) -> dict:
     """
     Extracts and normalizes subdomains from raw crt.sh JSON.
     Removes all duplicates.
@@ -137,8 +139,7 @@ def normalize_data(raw_data: list) -> dict:
             "subdomain": sub
         })
         
-    return \
-    {
+    return {
         "subdomains": normalized_subdomains
     }
 
@@ -177,8 +178,7 @@ def run_crt_sh(domain: str) -> dict:
     for sub in normalized.get("subdomains", []):
         discovered_names.append(sub.get("subdomain"))
     
-    return \
-    {
+    return {
         "source_name": "crt_sh",
         "status": "completed" if "error" not in normalized else "failed",
         "raw_result": 
