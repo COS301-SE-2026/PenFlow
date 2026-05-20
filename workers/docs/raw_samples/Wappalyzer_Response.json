@@ -1,0 +1,57 @@
+{
+  "Nginx": {
+    "versions": [],
+    "categories": [
+      "Web servers",
+      "Reverse proxies"
+    ]
+  },
+  "Google Tag Manager": {
+    "versions": [],
+    "categories": [
+      "Tag managers"
+    ]
+  },
+  "Cloudflare": {
+    "versions": [],
+    "categories": [
+      "CDN"
+    ]
+  },
+  "MariaDB": {
+    "versions": [],
+    "categories": [
+      "Databases"
+    ]
+  },
+  "jQuery": {
+    "versions": [],
+    "categories": [
+      "JavaScript libraries"
+    ]
+  },
+  "Drupal": {
+    "versions": [],
+    "categories": [
+      "CMS"
+    ]
+  },
+  "Varnish": {
+    "versions": [],
+    "categories": [
+      "Caching"
+    ]
+  },
+  "Pantheon": {
+    "versions": [],
+    "categories": [
+      "PaaS"
+    ]
+  },
+  "PHP": {
+    "versions": [],
+    "categories": [
+      "Programming languages"
+    ]
+  }
+}
