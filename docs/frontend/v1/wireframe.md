@@ -5,8 +5,8 @@ View the pdf for detailed documentation
 
 ## Quick Links
 
-- Figma (editable source): [PenFlow Wireframe](https://www.figma.com/design/gigbxTUtCIFVGuLCAPadTc/Penflow-Wireframe?node-id=0-1&t=le59wRg1zwb1qQZd-1)
-- PDF (repo snapshot): [PenflowWireframeDoc.pdf](./PenflowWireframeDoc.pdf)
+- Figma: [PenFlow Wireframe](https://www.figma.com/design/gigbxTUtCIFVGuLCAPadTc/Penflow-Wireframe?node-id=0-1&t=le59wRg1zwb1qQZd-1)
+- PDF: [PenflowWireframeDoc.pdf](./PenflowWireframeDoc.pdf)
 
 ![Wireframe page 1](./images/p1.png)
 ![Wireframe page 2](./images/p2.png)
