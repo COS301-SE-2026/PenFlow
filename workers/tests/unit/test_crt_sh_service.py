@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from app.services.crt_sh_service import run_crt_sh
+from app.tasks.crtsh_tasks import run_crt_sh
 
 
 # Test for "happy paths"
@@ -20,14 +20,17 @@ def test_crt_sh_live_happy_path(mock_get):
     ]
     mock_get.return_value = mock_response
 
-    result = run_crt_sh("acorns.com")
+    result = run_crt_sh("scan-123", "acorns.com")
 
     # should be exact responses
     assert result["status"] == "completed"
-    assert result["source_name"] == "crt_sh"
-    assert result["raw_result"]["total_found"] == 3
-    assert result["raw_result"]["discovered_names"] == \
-    ["acorns.com", "api.acorns.com", "app.acorns.com"]
+    assert result["source_name"] == "crt.sh"
+    assert result["raw_result"]["subdomains"]["total_found"] == 3
+    assert result["raw_result"]["subdomains"]["discovered_names"] == [
+        "acorns.com",
+        "api.acorns.com",
+        "app.acorns.com",
+    ]
 
 
 # Test sad paths for api issues
@@ -42,13 +45,13 @@ def test_crt_sh_sad_path_502_loop(mock_get, mock_sleep):
     mock_response.status_code = 502
     mock_get.return_value = mock_response
 
-    result = run_crt_sh("acorns.com")
+    result = run_crt_sh("scan-123", "acorns.com")
 
     #we cant return errors beacuse the pdf builder expects specific data, 
     # test to see how we handle errors and if we fail gracefully with the expected output.
     assert result["status"] == "failed"
-    assert result["raw_result"]["total_found"] == 0
-    assert result["raw_result"]["discovered_names"] == []
+    assert result["raw_result"]["subdomains"]["total_found"] == 0
+    assert result["raw_result"]["subdomains"]["discovered_names"] == []
     
     # Prove our "Fail Fast" retry loops fired exactly 6 times
     assert mock_get.call_count == 6 
@@ -61,9 +64,9 @@ def test_crt_sh_sad_path_502_loop(mock_get, mock_sleep):
 def test_crt_sh_mock_mode_fallback(mock_get):
     """Test that the worker safely bypasses the internet and loads local data in MOCK mode."""
     
-    result = run_crt_sh("acorns.com")
+    result = run_crt_sh("scan-123", "acorns.com")
     
     #mock shouldnt run httpx or any requests.
     assert not mock_get.called
     assert result["status"] == "completed"
-    assert result["raw_result"]["total_found"] > 0
+    assert result["raw_result"]["subdomains"]["total_found"] > 0

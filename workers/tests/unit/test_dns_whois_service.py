@@ -1,85 +1,184 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from app.services.dns_whois_service import run_dns_whois
+from app.tasks.dns_tasks import run_dns_scan
 
 
-#live happy path
-@patch("app.services.dns_whois_service.whois.whois")
-@patch("app.services.dns_whois_service.dns.resolver.resolve")
-@patch("app.services.dns_whois_service.SCAN_MODE", "LIVE")
-def test_dns_whois_live_happy_path(mock_dns, mock_whois):
-    """Test that native DNS and WHOIS libraries execute and parse correctly."""
-    
-    #fake dns responses based on query type using a side_effect function
-    def dns_side_effect(_domain, qtype):
-        if qtype == 'MX':
-            mock_mx = MagicMock()
-            mock_mx.__str__.return_value = "10 aspmx.l.google.com"
-            return [mock_mx]
-        elif qtype == 'TXT':
-            m1 = MagicMock()
-            m1.__str__.return_value = "v=spf1 include:_spf.google.com ~all"
-            m2 = MagicMock()
-            m2.__str__.return_value = "v=dmarc1; p=none"
-            m3 = MagicMock()
-            m3.__str__.return_value = "slack-domain-verification=123"
-            return [m1, m2, m3]
-        raise ValueError("No records found")
-        
-    mock_dns.side_effect = dns_side_effect
+@patch("app.tasks.dns_tasks.collect_whois_raw_data")
+@patch("app.tasks.dns_tasks.collect_dns_raw_data")
+def test_dns_scan_happy_path(mock_dns, mock_whois):
+    mock_dns.return_value = {
+        "domain": "acorns.com",
+        "mx_records": ["aspmx.l.google.com"],
+        "txt_records": [
+            "v=spf1 include:_spf.google.com -all",
+            "slack-domain-verification=123",
+        ],
+        "spf_records": [
+            "v=spf1 include:_spf.google.com -all",
+        ],
+        "dmarc_records": [
+            "v=DMARC1; p=reject;",
+        ],
+    }
 
-    #fake whois response
-    mock_w = MagicMock()
-    mock_w.registrar = "GoDaddy"
-    mock_w.creation_date = ["2000-01-01"]
-    mock_w.expiration_date = "2025-01-01"
-    mock_w.name_servers = ["ns1.google.com"]
-    mock_whois.return_value = mock_w
+    mock_whois.return_value = {
+        "domain": "acorns.com",
+        "provider": "RDAP",
+        "raw_response": {
+            "entities": [
+                {
+                    "roles": ["registrar"],
+                    "vcardArray": [
+                        "vcard",
+                        [
+                            ["version", {}, "text", "4.0"],
+                            ["fn", {}, "text", "Cloudflare, Inc."],
+                        ],
+                    ],
+                }
+            ],
+            "events": [
+                {
+                    "eventAction": "registration",
+                    "eventDate": "2007-11-26T19:45:36Z",
+                },
+                {
+                    "eventAction": "expiration",
+                    "eventDate": "2026-11-26T19:45:36Z",
+                },
+            ],
+            "secureDNS": {
+                "delegationSigned": True,
+            },
+            "nameservers": [
+                {"ldhName": "A.NS.ACORNS.COM"},
+                {"ldhName": "B.NS.ACORNS.COM"},
+            ],
+            "status": [
+                "client transfer prohibited",
+            ],
+        },
+    }
 
-    #execution
-    result = run_dns_whois("acorns.com")
+    result = run_dns_scan("scan-123", "acorns.com")
 
-    #assertions
+    assert result["scan_id"] == "scan-123"
+    assert result["source_name"] == "dns"
     assert result["status"] == "completed"
-    assert mock_dns.call_count == 2
-    assert mock_whois.called
-    security_data = result["raw_result"]["domain_security"]
-    assert "Google Workspace" in security_data["detected_services"]
-    assert "Slack" in security_data["detected_services"]
-    
-    #verify findings logic works (should pass MX, SPF, DMARC so 0 findings)
-    assert len(result["findings"]) == 0
+    assert result["assets"] == []
+    assert result["findings"] == []
+
+    domain_security = result["raw_result"]["domain_security"]
+
+    assert domain_security["provider"] == "DNS/RDAP"
+    assert "Slack" in domain_security["detected_services"]
+
+    records = {
+        record["record_type"]: record
+        for record in domain_security["records"]
+    }
+
+    assert records["MX"]["status"] == "Pass"
+    assert records["SPF"]["status"] == "Pass"
+    assert records["DMARC"]["status"] == "Pass"
+    assert records["WHOIS/RDAP"]["status"] == "Pass"
+
+    whois = domain_security["whois"]
+
+    assert whois["provider"] == "RDAP"
+    assert whois["registrar"] == "Cloudflare, Inc."
+    assert whois["registration_date"] == "2007-11-26T19:45:36Z"
+    assert whois["expiration_date"] == "2026-11-26T19:45:36Z"
+    assert whois["dnssec_enabled"] is True
+    assert whois["nameservers"] == [
+        "A.NS.ACORNS.COM",
+        "B.NS.ACORNS.COM",
+    ]
 
 
-#sad path for network/library outage
-@patch("app.services.dns_whois_service.whois.whois")
-@patch("app.services.dns_whois_service.dns.resolver.resolve")
-@patch("app.services.dns_whois_service.SCAN_MODE", "LIVE")
-def test_dns_whois_live_failure(mock_dns, mock_whois):
-    """Test that missing records and WHOIS crashes are handled gracefully."""
-    
-    #force both libraries to throw exceptions
-    mock_dns.side_effect = ValueError("DNS Timeout")
-    mock_whois.side_effect = ValueError("WHOIS Socket Error")
-    result = run_dns_whois("acorns.com")
+@patch("app.tasks.dns_tasks.collect_whois_raw_data")
+@patch("app.tasks.dns_tasks.collect_dns_raw_data")
+def test_dns_scan_missing_email_security_records(mock_dns, mock_whois):
+    mock_dns.return_value = {
+        "domain": "acorns.com",
+        "mx_records": [],
+        "txt_records": [],
+        "spf_records": [],
+        "dmarc_records": [],
+    }
+
+    mock_whois.return_value = {
+        "domain": "acorns.com",
+        "provider": "RDAP",
+        "raw_response": {},
+        "error": "RDAP unavailable",
+    }
+
+    result = run_dns_scan("scan-123", "acorns.com")
+
     assert result["status"] == "completed"
-    #should return empty lists and error messages, not crash
-    #verify DNS failure is handled
-    assert len(result["findings"]) == 2
-    finding_titles = [f["title"] for f in result["findings"]]
-    assert "Missing SPF Record" in finding_titles
-    assert "Missing DMARC Record" in finding_titles
+
+    domain_security = result["raw_result"]["domain_security"]
+
+    records = {
+        record["record_type"]: record
+        for record in domain_security["records"]
+    }
+
+    assert records["MX"]["status"] == "Warning"
+    assert records["SPF"]["status"] == "Warning"
+    assert records["DMARC"]["status"] == "Warning"
+    assert records["WHOIS/RDAP"]["status"] == "Unknown"
+
+    finding_titles = [
+        finding["title"]
+        for finding in result["findings"]
+    ]
+
+    assert "Weak SPF configuration" in finding_titles
+    assert "Weak or missing DMARC policy" in finding_titles
+    assert "No MX records found" in finding_titles
 
 
-#mock fallback path
-@patch("app.services.dns_whois_service.whois.whois")
-@patch("app.services.dns_whois_service.dns.resolver.resolve")
-@patch("app.services.dns_whois_service.SCAN_MODE", "MOCK")
-def test_dns_whois_fallback_to_mock(mock_dns, mock_whois):
-    """Test that MOCK mode safely bypasses native libraries and loads local data."""
-    
-    #execution
-    result = run_dns_whois("acorns.com")
-    assert not mock_dns.called
-    assert not mock_whois.called
-    assert result["status"] == "completed"
+@patch("app.tasks.dns_tasks.collect_whois_raw_data")
+@patch("app.tasks.dns_tasks.collect_dns_raw_data")
+def test_dns_scan_detects_spf_fail_policy(mock_dns, mock_whois):
+    mock_dns.return_value = {
+        "domain": "acorns.com",
+        "mx_records": ["mail.acorns.com"],
+        "txt_records": [
+            "v=spf1 +all",
+        ],
+        "spf_records": [
+            "v=spf1 +all",
+        ],
+        "dmarc_records": [
+            "v=DMARC1; p=none;",
+        ],
+    }
+
+    mock_whois.return_value = {
+        "domain": "acorns.com",
+        "provider": "RDAP",
+        "raw_response": {},
+    }
+
+    result = run_dns_scan("scan-123", "acorns.com")
+
+    domain_security = result["raw_result"]["domain_security"]
+
+    records = {
+        record["record_type"]: record
+        for record in domain_security["records"]
+    }
+
+    assert records["SPF"]["status"] == "Fail"
+    assert records["DMARC"]["status"] == "Warning"
+
+    severities = {
+        finding["title"]: finding["severity"]
+        for finding in result["findings"]
+    }
+
+    assert severities["Weak SPF configuration"] == "medium"
+    assert severities["Weak or missing DMARC policy"] == "medium"
