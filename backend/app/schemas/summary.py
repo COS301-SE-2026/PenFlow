@@ -57,8 +57,31 @@ class AssetImpactSummary(BaseModel):
     asset_type_breakdown: list[AssetTypeBreakdown]
     top_affected_assets: list[TopAffectedAsset]
 
+class SourceCoverageItem(BaseModel):
+    source_name: str
+    status: str
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    error_message: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class SourceCoverageAggregate(BaseModel):
+    sources_total: int = 0
+    sources_completed: int = 0
+    sources_failed: int = 0
+    sources_partial: int = 0
+    sources_skipped: int = 0
+
+class SourceCoverageSummary(BaseModel):
+    aggregate: SourceCoverageAggregate
+    sources: list[SourceCoverageItem]
+
 class ExecutiveSummary(BaseModel):
     scan_summary: ScanSummary
     risk_snapshot: RiskSnapshot
     top_findings: list[TopFindingPreview]
     asset_impact: AssetImpactSummary
+    source_coverage: SourceCoverageSummary
+
+ 
