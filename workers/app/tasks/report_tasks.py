@@ -4,13 +4,14 @@ from typing import Any
 
 from app.queue.celery_app import celery_app
 from app.services.pdf_render_service import generate_pdf_from_html
+from app.utils.callback import send_report_callback
 
 JSONDict = dict[str, Any]
 
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(name="render_report")
+@celery_app.task(name="scan.render_report")
 def render_report_pdf_task(scan_id: str, html_content: str, output_path: str) -> JSONDict:
     try:
         pdf_path = generate_pdf_from_html(
@@ -24,6 +25,12 @@ def render_report_pdf_task(scan_id: str, html_content: str, output_path: str) ->
             pdf_path,
         )
 
+        send_report_callback(
+            scan_id=scan_id,
+            status="completed",
+            pdf_path=str(pdf_path),
+        )
+
         return {
             "status": "completed",
             "scan_id": scan_id,
@@ -34,6 +41,12 @@ def render_report_pdf_task(scan_id: str, html_content: str, output_path: str) ->
         logger.exception(
             "Report PDF rendering failed for scan %s",
             scan_id,
+        )
+
+        send_report_callback(
+            scan_id=scan_id,
+            status="failed",
+            error_message=str(error),
         )
 
         return {

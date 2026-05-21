@@ -110,7 +110,8 @@ def build_reputation_context(scan_sources: list[JSONObject] | None) -> JSONDict:
     return {
         "malicious_flags": reputation.get("malicious_flags", 0),
         "urlscan_uuid": reputation.get("urlscan_uuid", "Unavailable"),
-        "screenshot_url": reputation.get("screenshot_url", "default_screenshot.png")
+        "screenshot_url": reputation.get("screenshot_url", "default_screenshot.png"),
+        "screenshot_path": reputation.get("screenshot_path", "default.png"),
     }
 
 

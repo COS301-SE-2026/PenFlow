@@ -100,7 +100,7 @@ def queue_report_generation(db: Session, scan_id: str) -> dict[str, Any]:
         output_path = build_report_output_path(scan_id)
 
         task = celery_app.send_task(
-            "render_report",
+            "scan.render_report",
             args=[scan_id, html_content, str(output_path)],
         )
 
