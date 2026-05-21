@@ -39,6 +39,7 @@ async def initiate_ctem_scan(
             detail="Failed to initiate scan",
         )
 
+
 @router.get(
     "/{scan_id}/report",
     status_code=status.HTTP_200_OK
@@ -102,3 +103,26 @@ async def download_scan_pdf(
     )
 
 
+@router.post("/{scan_id}/email-report", status_code=status.HTTP_200_OK)
+async def email_scan_report(
+    scan_id: UUID,
+    request: EmailReportRequest,
+    db: Session = Depends(get_db),
+):
+    scan = ScanRepository.get_scan_by_id(db, scan_id)
+
+    if scan is None:
+        raise HTTPException(status_code=404, detail="Scan not found")
+
+    report = get_report_by_scan_id(db, str(scan_id))
+
+    if not report or report.status.value != "completed" or not report.pdf_path:
+        raise HTTPException(status_code=400, detail="Report is not ready yet")
+
+    send_report_email(
+        to_email=request.email,
+        domain=scan.domain,
+        pdf_path=report.pdf_path,
+    )
+
+    return {"message": "Report emailed successfully"}
