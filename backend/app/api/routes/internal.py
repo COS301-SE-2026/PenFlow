@@ -22,17 +22,60 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/internal", tags=["Internal Webhooks"])
 
 
+async def save_scan_callback_results(
+    db: AsyncSession,
+    scan_id: UUID,
+    results: dict[str, Any],
+) -> None:
+    for subtask in results.get("subtasks", []):
+        source_name = subtask.get("source_name", "unknown")
+        source_status = subtask.get("status", "failed")
+
+        db.add(
+            ScanSource(
+                scan_id=scan_id,
+                source_name=source_name,
+                status=ScanSourceStatus(source_status),
+                raw_result=subtask.get("raw_result"),
+                error_message=subtask.get("error_message"),
+            )
+        )
+
+        for asset in subtask.get("assets", []):
+            stmt = pg_insert(Asset).values(
+                scan_id=scan_id,
+                identifier=asset["identifier"],
+                asset_type=asset["asset_type"],
+            ).on_conflict_do_nothing(
+                index_elements=["scan_id", "identifier", "asset_type"]
+            )
+            await db.execute(stmt)
+
+        for finding in subtask.get("findings", []):
+            severity = Severity(finding.get("severity", "info").lower())
+            db.add(
+                Finding(
+                    scan_id=scan_id,
+                    source=finding.get("source", source_name),
+                    severity=severity,
+                    title=finding.get("title", "Unknown Finding"),
+                    description=finding.get("description"),
+                    recommendation=finding.get("recommendation"),
+                    evidence=finding.get("evidence"),
+                )
+            )
+
+
 @router.patch("/scans/{scan_id}/status", status_code=status.HTTP_200_OK)
 async def update_scan_status_callback(
     scan_id: UUID,
     payload: ScanCallbackRequest,
     db: AsyncSession = Depends(get_db),
-) -> Any:
-    safe_id = scan_id
+) -> dict[str, Any]:
     queued_report = None
 
     try:
-        scan = await ScanRepository.get_scan_by_id(db, safe_id)
+        scan = await ScanRepository.get_scan_by_id(db, scan_id)
 
         if not scan:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found")
@@ -46,55 +89,16 @@ async def update_scan_status_callback(
             scan.error_message = payload.error_message
 
         if payload.results:
-            for subtask in payload.results.get("subtasks", []):
-                source_name = subtask.get("source_name", "unknown")
-                source_status = subtask.get("status", "failed")
-
-                db.add(
-                    ScanSource(
-                        scan_id=safe_id,
-                        source_name=source_name,
-                        status=ScanSourceStatus(source_status),
-                        raw_result=subtask.get("raw_result"),
-                        error_message=subtask.get("error_message"),
-                    )
-                )
-
-                for a in subtask.get("assets", []):
-                    stmt = pg_insert(Asset).values(
-                        scan_id=safe_id,
-                        identifier=a["identifier"],
-                        asset_type=a["asset_type"],
-                    ).on_conflict_do_nothing(
-                        index_elements=["scan_id", "identifier", "asset_type"]
-                    )
-                    await db.execute(stmt)
-
-                for f in subtask.get("findings", []):
-                    sev = Severity(f.get("severity", "info").lower())
-                    db.add(
-                        Finding(
-                            scan_id=safe_id,
-                            source=f.get("source", source_name),
-                            severity=sev,
-                            title=f.get("title", "Unknown Finding"),
-                            description=f.get("description"),
-                            recommendation=f.get("recommendation"),
-                            evidence=f.get("evidence"),
-                        )
-                    )
-
+            await save_scan_callback_results(db, scan_id, payload.results)
             await db.commit()
-
-            queued_report = await queue_report_generation(db, str(safe_id))
-
+            queued_report = await queue_report_generation(db, str(scan_id))
         else:
             await db.commit()
 
-        logger.info("Scan %s updated to %s", safe_id, payload.status.value)
+        logger.info("Scan %s updated to %s", scan_id, payload.status.value)
 
         return {
-            "scan_id": str(safe_id),
+            "scan_id": str(scan_id),
             "status": payload.status.value,
             "report_status": queued_report["status"] if queued_report else None,
         }
@@ -103,11 +107,11 @@ async def update_scan_status_callback(
         raise
     except Exception:
         await db.rollback()
-        logger.exception("Failed to process worker callback for %s", safe_id)
+        logger.exception("Failed to process worker callback for %s", scan_id)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to process callback",
-        )
+        ) from None
 
 @router.patch("/reports/{scan_id}/status", status_code=status.HTTP_200_OK)
 async def update_report_status_callback(
