@@ -18,7 +18,8 @@ class Finding(Base):
     asset_id = Column(UUID(as_uuid=True), ForeignKey("assets.id", ondelete="SET NULL"), index=True)
     source = Column(String(100), nullable=False) #expl HaveIBeenPwned
     severity = Column(
-        Enum(Severity, values_callable=lambda enum: [item.value for item in enum]),
+        Enum(Severity, values_callable=lambda enum: [item.value for item in enum],
+             name="finding_severity"),
         nullable=False,
         index=True,
     )

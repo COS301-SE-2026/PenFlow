@@ -18,7 +18,8 @@ class Scan(Base):
     domain = Column(String(255),nullable=False, index=True)
     email = Column(String(255))
     status = Column(
-        Enum(ScanStatus, values_callable=lambda enum: [item.value for item in enum]),
+        Enum(ScanStatus, values_callable=lambda enum: [item.value for item in enum],
+             name="scan_status"),
         nullable=False,
         default=ScanStatus.QUEUED,
         index=True,
@@ -33,4 +34,6 @@ class Scan(Base):
     assets = relationship("Asset", back_populates="scan", cascade=CASCADE_ALL)
     findings = relationship("Finding", back_populates="scan", cascade=CASCADE_ALL)
     sources = relationship("ScanSource", back_populates="scan", cascade=CASCADE_ALL)
-    report = relationship("Report", back_populates="scan", cascade="all, delete-orphan", uselist=False)
+    report = relationship(
+        "Report", back_populates="scan", cascade="all, delete-orphan", uselist=False
+    )

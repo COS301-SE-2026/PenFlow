@@ -1,10 +1,9 @@
+import enum
 import uuid
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
-import enum
 
 from app.models.base import Base
 
@@ -25,10 +24,14 @@ class ScanSource(Base):
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    scan_id = Column(UUID(as_uuid=True), ForeignKey("scans.id", ondelete="CASCADE"), nullable=False, index=True)
+    scan_id = Column(
+        UUID(as_uuid=True), ForeignKey("scans.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
     source_name = Column(String(100), nullable=False)
     status = Column(
-        Enum(ScanSourceStatus, values_callable=lambda enum: [item.value for item in enum]),
+        Enum(ScanSourceStatus, values_callable=lambda enum: [item.value for item in enum],
+             name="scan_source_status"),
         nullable=False,
         default=ScanSourceStatus.PENDING,
     )
