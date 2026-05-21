@@ -67,6 +67,8 @@ export default function HistoryPage() {
   return (
     <div
       className={styles.historyPage}
+      role="button"
+      tabIndex={0}
       onClick={modal ? closeModal : undefined}
       onKeyDown={modal ? (e) => e.key === "Escape" && closeModal() : undefined}
     >
@@ -152,22 +154,32 @@ export default function HistoryPage() {
       {modal && (
         <>
           <div
-              className={styles.modalBackdrop}
-              onClick={closeModal}
-              onKeyDown={(e) => e.key === "Escape" && closeModal()}
-            />
+            className={styles.modalBackdrop}
+            role="button"
+            tabIndex={0}
+            onClick={closeModal}
+            onKeyDown={(e) => e.key === "Escape" && closeModal()}
+          />
           <div
             className={styles.modal}
             data-modal
             onClick={e => e.stopPropagation()}
             style={dragPos ? { left: dragPos.x, top: dragPos.y, transform: "none" } : undefined}
           >
-            <div className={styles.modalDomain} onMouseDown={startDrag}>{modal.domain}</div>
+            <div
+              className={styles.modalDomain}
+              role="button"
+              tabIndex={0}
+              onMouseDown={startDrag}
+            >
+              {modal.domain}
+            </div>
+
             <button
               className={`${styles.modalBtn} ${styles.modalBtnReport}`}
               onClick={() => { closeModal(); router.push(`/report/${modal.id}`); }}
             >
-              VIEW REPORT
+            VIEW REPORT
             </button>
             <a
               href={getReportPdfUrl(modal.id)}
