@@ -3,9 +3,9 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.queue.celery_app import celery_app
 from app.repositories.scan_repo import ScanRepository  #type: ignore
 from app.schemas.scan import InitiateScanRequest
-from app.queue.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
