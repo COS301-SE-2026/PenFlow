@@ -75,20 +75,37 @@ _SERVICE_MAPPING: dict[str, str] = {
 }
 
 
+def _guess_service_from_verification_record(record: str, record_lower: str) -> str | None:
+    if "verification" not in record_lower or "-" not in record:
+        return None
+
+    candidate = record.split("-")[0].replace("_", " ").title()
+
+    if len(candidate) <= 2:
+        return None
+
+    return candidate
+
+
 def _detect_services(txt_records: list[str]) -> set[str]:
     detected: set[str] = set()
+
     for record in txt_records:
         record_lower = record.lower()
-        matched = False
-        for kw, svc in _SERVICE_MAPPING.items():
-            if kw in record_lower:
-                detected.add(svc)
-                matched = True
-        if not matched:
-            if "verification" in record_lower and "-" in record:
-                candidate = record.split("-")[0].replace("_", " ").title()
-                if len(candidate) > 2:
-                    detected.add(candidate)
+
+        matched_services = [
+            svc for kw, svc in _SERVICE_MAPPING.items() if kw in record_lower
+        ]
+
+        if matched_services:
+            detected.update(matched_services)
+            continue
+
+        guessed_service = _guess_service_from_verification_record(record, record_lower)
+
+        if guessed_service:
+            detected.add(guessed_service)
+
     return detected
 
 

@@ -65,7 +65,11 @@ export default function HistoryPage() {
   };
 
   return (
-    <div className={styles.historyPage} role="presentation" onClick={modal ? closeModal : undefined} onKeyDown={modal ? (e) => e.key === "Escape" && closeModal() : undefined}>
+    <div
+      className={styles.historyPage}
+      onClick={modal ? closeModal : undefined}
+      onKeyDown={modal ? (e) => e.key === "Escape" && closeModal() : undefined}
+    >
       <NavBar />
 
       {/* Hero */}
@@ -147,14 +151,18 @@ export default function HistoryPage() {
       {/* Row action modal */}
       {modal && (
         <>
-          <div role="presentation" className={styles.modalBackdrop} onClick={closeModal} onKeyDown={(e) => e.key === "Escape" && closeModal()} />
+          <div
+              className={styles.modalBackdrop}
+              onClick={closeModal}
+              onKeyDown={(e) => e.key === "Escape" && closeModal()}
+            />
           <div
             className={styles.modal}
             data-modal
             onClick={e => e.stopPropagation()}
             style={dragPos ? { left: dragPos.x, top: dragPos.y, transform: "none" } : undefined}
           >
-            <div role="presentation" className={styles.modalDomain} onMouseDown={startDrag}>{modal.domain}</div>
+            <div className={styles.modalDomain} onMouseDown={startDrag}>{modal.domain}</div>
             <button
               className={`${styles.modalBtn} ${styles.modalBtnReport}`}
               onClick={() => { closeModal(); router.push(`/report/${modal.id}`); }}

@@ -88,7 +88,14 @@ async def download_scan_pdf(
     )
 
 
-@router.post("/{scan_id}/email-report", status_code=status.HTTP_200_OK)
+@router.post(
+    "/{scan_id}/email-report",
+    status_code=status.HTTP_200_OK,
+    responses={
+        400: {"description": "Report is not ready yet"},
+        404: {"description": "Scan not found"},
+    },
+)
 async def email_scan_report(
     scan_id: UUID,
     request: EmailReportRequest,
