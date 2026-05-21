@@ -1,14 +1,17 @@
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
+import uuid
+from datetime import datetime, timezone
 from app.repositories.scan_repo import ScanRepository
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from uuid import UUID
 from app.schemas.scan import InitiateScanRequest, InitiateScanResponse, ScanHistoryItem
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.scan_service import ScanService
 from app.utils.db import get_db
-
-logger = logging.getLogger(__name__)
+from app.repositories.report_repository import get_report_by_scan_id
+from app.schemas.report import EmailReportRequest
+from app.services.email_service import send_report_email
 
 router= APIRouter(prefix="/scans",tags=["Scans"])
 
@@ -31,8 +34,7 @@ async def list_scans(db: AsyncSession = Depends(get_db)):
 @router.post(
     "/",
     response_model=InitiateScanResponse,
-    status_code=status.HTTP_202_ACCEPTED
-
+    status_code=status.HTTP_202_ACCEPTED,
 )
 
 async def initiate_ctem_scan(
@@ -46,11 +48,12 @@ async def initiate_ctem_scan(
             scan_id=new_scan.id,
             status=new_scan.status
         )
+
     except Exception:
         logger.exception("Failed to initiate scan for domain %s", request.domain)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to initiate scan"
+            detail="Failed to initiate scan",
         )
 
 @router.get(
@@ -80,3 +83,28 @@ async def download_scan_pdf(
             "Content-Disposition": f'attachment; filename="PenFlow_Report_{scan_id}.pdf"'
         }
     )
+
+
+@router.post("/{scan_id}/email-report", status_code=status.HTTP_200_OK)
+async def email_scan_report(
+    scan_id: UUID,
+    request: EmailReportRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    scan = await ScanRepository.get_scan_by_id(db, scan_id)
+
+    if scan is None:
+        raise HTTPException(status_code=404, detail="Scan not found")
+
+    report = await get_report_by_scan_id(db, str(scan_id))
+
+    if not report or report.status.value != "completed" or not report.pdf_path:
+        raise HTTPException(status_code=400, detail="Report is not ready yet")
+
+    send_report_email(
+        to_email=request.email,
+        domain=scan.domain,
+        pdf_path=report.pdf_path,
+    )
+
+    return {"message": "Report emailed successfully"}
