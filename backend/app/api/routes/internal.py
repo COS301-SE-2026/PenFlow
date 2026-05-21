@@ -1,21 +1,21 @@
 import logging
 from typing import Any
-
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.report_service import queue_report_generation
-from app.repositories.scan_repo import ScanRepository
-from app.schemas.scan import ScanCallbackRequest
-from app.utils.db import get_db
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from app.models.scan_source import ScanSource, ScanSourceStatus
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.asset import Asset
 from app.models.base import ScanStatus, Severity
 from app.models.finding import Finding
+from app.models.scan_source import ScanSource, ScanSourceStatus
 from app.repositories.report_repository import mark_report_completed, mark_report_failed
+from app.repositories.scan_repo import ScanRepository
 from app.schemas.report import ReportCallbackRequest
+from app.schemas.scan import ScanCallbackRequest
+from app.services.report_service import queue_report_generation
+from app.utils.db import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +114,7 @@ async def update_report_status_callback(
     scan_id: UUID,
     payload: ReportCallbackRequest,
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, str]:
     try:
         if payload.status == "completed":
             if not payload.pdf_path:

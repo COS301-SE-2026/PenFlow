@@ -55,7 +55,11 @@ async def get_risk_snapshot(db: AsyncSession, scan_id: UUID) -> dict[str, Any]:
 
     return snapshot
 
-async def get_top_findings_preview(db: AsyncSession, scan_id: UUID, limit: int = 5) -> list[dict[str, Any]]:
+async def get_top_findings_preview(
+    db: AsyncSession, 
+    scan_id: UUID, 
+    limit: int = 5,
+    ) -> list[dict[str, Any]]:
 
     """
     Fetches highest severity findings, join resolved assets

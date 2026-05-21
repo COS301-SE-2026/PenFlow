@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import case, func, select
@@ -40,7 +41,11 @@ class ScanRepository:
         return result.scalar_one_or_none()
 
     @staticmethod
-    async def save_normalized_results(db: AsyncSession, scan_id: UUID, results: dict) -> Scan:
+    async def save_normalized_results(
+        db: AsyncSession, 
+        scan_id: UUID, 
+        results: dict[str, Any],
+        ) -> Scan:
         """
         Takes the normalized JSON contract from the Celery worker and 
         translates it into Asset and Finding database records.
@@ -99,7 +104,7 @@ class ScanRepository:
             raise
 
     @staticmethod
-    async def list_scans(db: AsyncSession) -> list[dict]:
+    async def list_scans(db: AsyncSession) -> list[dict[str, Any]]:
         query = (
             select(
                 Scan,
@@ -152,7 +157,7 @@ class ScanRepository:
     async def save_worker_results(
         db: AsyncSession,
         scan_id: UUID,
-        results: dict,
+        results: dict[str, Any],
     ) -> Scan:
         scan = await ScanRepository.get_scan_by_id(db, scan_id)
 

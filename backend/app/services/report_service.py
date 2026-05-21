@@ -4,7 +4,7 @@ from typing import Any
 
 from celery.result import AsyncResult
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.queue.celery_app import celery_app
 from app.repositories.report_repository import (
@@ -46,12 +46,11 @@ def build_report_output_path(scan_id: str) -> Path:
     return REPORT_OUTPUT_DIR / f"ctem_report_{scan_id}.pdf"
 
 
-# Serialized version of pdf gen that can be used for testing
-def generate_report_pdf(db: Session, scan_id: str) -> str:
+async def generate_report_pdf(db: AsyncSession, scan_id: str) -> str:
     try:
-        mark_report_generating(db, scan_id)
+        await mark_report_generating(db, scan_id)
 
-        report_data = load_report_data(db, scan_id)
+        report_data = await load_report_data(db, scan_id)
 
         context = build_report_context(
             scan=report_data["scan"],
@@ -67,7 +66,7 @@ def generate_report_pdf(db: Session, scan_id: str) -> str:
             output_path=output_path,
         )
 
-        mark_report_completed(
+        await mark_report_completed(
             db=db,
             scan_id=scan_id,
             pdf_path=str(pdf_path),
@@ -76,7 +75,7 @@ def generate_report_pdf(db: Session, scan_id: str) -> str:
         return str(pdf_path)
 
     except Exception as error:
-        mark_report_failed(
+        await mark_report_failed(
             db=db,
             scan_id=scan_id,
             error_message=str(error),
@@ -84,11 +83,11 @@ def generate_report_pdf(db: Session, scan_id: str) -> str:
         raise
 
 
-def queue_report_generation(db: Session, scan_id: str) -> dict[str, Any]:
+async def queue_report_generation(db: AsyncSession, scan_id: str) -> dict[str, Any]:
     try:
-        mark_report_generating(db, scan_id)
+        await mark_report_generating(db, scan_id)
 
-        report_data = load_report_data(db, scan_id)
+        report_data = await load_report_data(db, scan_id)
 
         context = build_report_context(
             scan=report_data["scan"],
@@ -104,7 +103,7 @@ def queue_report_generation(db: Session, scan_id: str) -> dict[str, Any]:
             args=[scan_id, html_content, str(output_path)],
         )
 
-        mark_report_task_queued(db, scan_id, task.id)
+        await mark_report_task_queued(db, scan_id, task.id)
 
         return {
             "scan_id": scan_id,
@@ -114,62 +113,66 @@ def queue_report_generation(db: Session, scan_id: str) -> dict[str, Any]:
         }
 
     except Exception as error:
-        mark_report_failed(db, scan_id, str(error))
+        await mark_report_failed(db, scan_id, str(error))
         raise
 
 
-def check_report_task_result(db: Session, scan_id: str, task_id: str) -> dict[str, Any]:
+async def check_report_task_result(
+    db: AsyncSession,
+    scan_id: str,
+    task_id: str,
+) -> dict[str, Any]:
     task = AsyncResult(task_id, app=celery_app)
 
     if not task.ready():
         return {
-            "status": "generating", 
-            "scan_id": scan_id, 
-            "task_id": task_id
+            "status": "generating",
+            "scan_id": scan_id,
+            "task_id": task_id,
         }
 
     result = task.result
 
     if task.failed():
-        report = mark_report_failed(
+        report = await mark_report_failed(
             db=db,
             scan_id=scan_id,
             error_message=str(result),
         )
         return {
-            "status": "failed", 
-            "report": report
+            "status": "failed",
+            "report": report,
         }
 
     if not isinstance(result, dict):
-        report = mark_report_failed(
+        report = await mark_report_failed(
             db=db,
             scan_id=scan_id,
             error_message=f"Unexpected task result: {result}",
         )
         return {
-            "status": "failed", 
-            "report": report
+            "status": "failed",
+            "report": report,
         }
 
     if result.get("status") == "failed":
-        report = mark_report_failed(
+        report = await mark_report_failed(
             db=db,
             scan_id=scan_id,
             error_message=result.get("error", "Report rendering failed"),
         )
         return {
-            "status": "failed", 
-            "report": report
+            "status": "failed",
+            "report": report,
         }
 
-    report = mark_report_completed(
+    report = await mark_report_completed(
         db=db,
         scan_id=scan_id,
         pdf_path=result["pdf_path"],
     )
 
     return {
-        "status": "completed", 
-        "report": report
+        "status": "completed",
+        "report": report,
     }

@@ -115,11 +115,35 @@ export default function ReportPage() {
   const canDownload = report_status?.pdf_path != null;
   const pdfUrl = getReportPdfUrl(scan_id);
 
-  const handleSendReport = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim()) return;
+  const handleSendReport = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!email.trim()) return;
+
+  try {
+    const response = await fetch(
+      `http://localhost:3001/api/v1/scans/${scan_id}/email-report`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to send report");
+    }
+
     setSendStatus("sent");
-  };
+  } catch (err) {
+    console.error(err);
+    alert("Failed to send report email");
+  }
+};
 
   return (
     <div className={styles.reportPage}>

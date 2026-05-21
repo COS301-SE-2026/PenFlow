@@ -1,19 +1,22 @@
-import logging
 
-import uuid
-from datetime import datetime, timezone
-from app.repositories.scan_repo import ScanRepository
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+import logging
+from typing import Any
 from uuid import UUID
-from app.schemas.scan import InitiateScanRequest, InitiateScanResponse, ScanHistoryItem
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.repositories.report_repository import get_report_by_scan_id
+from app.repositories.scan_repo import ScanRepository
+from app.schemas.report import EmailReportRequest
+from app.schemas.scan import InitiateScanRequest, InitiateScanResponse, ScanHistoryItem
+from app.services.email_service import send_report_email
 from app.services.scan_service import ScanService
 from app.utils.db import get_db
-from app.repositories.report_repository import get_report_by_scan_id
-from app.schemas.report import EmailReportRequest
-from app.services.email_service import send_report_email
 
-router= APIRouter(prefix="/scans",tags=["Scans"])
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/scans", tags=["Scans"])
 
 
 @router.get(
@@ -21,7 +24,7 @@ router= APIRouter(prefix="/scans",tags=["Scans"])
     response_model=list[ScanHistoryItem],
     status_code=status.HTTP_200_OK,
 )
-async def list_scans(db: AsyncSession = Depends(get_db)):
+async def list_scans(db: AsyncSession = Depends(get_db)) -> list[dict[str, Any]]:
     try:
         return await ScanRepository.list_scans(db)
     except Exception:
@@ -40,7 +43,7 @@ async def list_scans(db: AsyncSession = Depends(get_db)):
 async def initiate_ctem_scan(
     request: InitiateScanRequest,
     db: AsyncSession = Depends(get_db)
-):
+) -> InitiateScanResponse:
     try:
         new_scan = await ScanService.start_scan(db, request)
 
@@ -66,7 +69,7 @@ async def initiate_ctem_scan(
 async def download_scan_pdf(
     scan_id: str,
 
-):
+) -> Response:
 
     """
     Generate and download a branded PDF report for a completed scan.
@@ -90,7 +93,7 @@ async def email_scan_report(
     scan_id: UUID,
     request: EmailReportRequest,
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, str]:
     scan = await ScanRepository.get_scan_by_id(db, scan_id)
 
     if scan is None:
@@ -103,8 +106,8 @@ async def email_scan_report(
 
     send_report_email(
         to_email=request.email,
-        domain=scan.domain,
-        pdf_path=report.pdf_path,
+        domain=str(scan.domain),
+        pdf_path=str(report.pdf_path),
     )
 
     return {"message": "Report emailed successfully"}
