@@ -7,7 +7,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
     depends_on:
       backend:
         condition: service_started
@@ -24,6 +24,7 @@ services:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
       REDIS_URL: redis://redis:6379/1
       REPORT_OUTPUT_DIR: /app/generated_reports
+      SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
     depends_on:
       postgres-test:
         condition: service_healthy
@@ -48,6 +49,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REPORT_OUTPUT_DIR: /app/generated_reports
+      SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -66,10 +68,12 @@ services:
       context: .
       dockerfile: docker/Dockerfile.workers.test
     environment:
+      BACKEND_API_URL: http://backend:3001/api/v1
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
       REDIS_URL: redis://redis:6379/1
       DATABASE_URL: postgresql://${POSTGRES_TEST_USER}:${POSTGRES_TEST_PASSWORD}@postgres-test:5432/${POSTGRES_TEST_DB}
       REPORT_OUTPUT_DIR: /app/generated_reports
+      SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
     depends_on:
       postgres-test:
         condition: service_healthy
@@ -81,7 +85,7 @@ services:
       - report-files-test:/app/generated_reports
     networks:
       - penflow-network
-    command: ["celery", "-A", "app.queue.celery_app:celery_app", "worker", "--loglevel=info"]
+    command: ["celery", "-A", "app.queue.celery_app:celery_app", "worker", "--loglevel=info", "--concurrency=7"]
 
   workers:
     container_name: penflow-workers
@@ -89,10 +93,15 @@ services:
       context: .
       dockerfile: docker/Dockerfile.workers
     environment:
+      BACKEND_API_URL: http://backend:3001/api/v1
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
       REDIS_URL: redis://redis:6379/0
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      URLSCAN_API_KEY: ${URLSCAN_API_KEY}
+      SHODAN_API_KEY: ${SHODAN_API_KEY}
       REPORT_OUTPUT_DIR: /app/generated_reports
+      SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
+      SCAN_MODE: LIVE
     depends_on:
       rabbitmq:
         condition: service_healthy

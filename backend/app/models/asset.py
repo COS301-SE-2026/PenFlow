@@ -11,7 +11,7 @@ from app.models.base import Base
 class Asset(Base):
     __tablename__ = "assets"
     __table_args__ = (
-        UniqueConstraint('scan_id','identifier','asset_type', name='uq_scan_identifier_type'),
+        UniqueConstraint("scan_id", "identifier", "asset_type", name="uq_scan_identifier_type"),
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -22,4 +22,4 @@ class Asset(Base):
     created_at = Column(DateTime(timezone=True), nullable=False,
     default=lambda: datetime.now(timezone.utc))
     scan = relationship("Scan", back_populates="assets")
-    findings = relationship("Finding", back_populates="assett")
+    findings = relationship("Finding", back_populates="asset")

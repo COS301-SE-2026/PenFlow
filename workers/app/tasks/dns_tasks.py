@@ -11,7 +11,7 @@ from app.services.whois_service import collect_whois_raw_data
 JSONDict = dict[str, Any]
 
 
-@celery_app.task(name="run_dns_scan")
+@celery_app.task(name="scan.dns")
 def run_dns_scan(scan_id: str, domain: str) -> JSONDict:
     raw_dns = collect_dns_raw_data(domain)
     raw_whois = collect_whois_raw_data(domain)
@@ -26,7 +26,7 @@ def run_dns_scan(scan_id: str, domain: str) -> JSONDict:
     return {
         "scan_id": scan_id,
         "source_name": "dns",
-        "status": "completed",
+        "status": "failed" if "error" in normalized_dns else "completed",
         "raw_result": normalized_dns,
         "findings": findings,
         "assets": [],

@@ -1,0 +1,56 @@
+{
+  "verdicts": {
+    "overall": {
+      "score": 0,
+      "malicious": false,
+      "brands": [],
+      "tags": []
+    },
+    "engines": {
+      "score": 0,
+      "malicious": 0,
+      "benign": 0,
+      "total": 0,
+      "verdicts": []
+    }
+  },
+  "task": {
+    "uuid": "019e26a5-49bc-713a-a099-cab0586bcf91",
+    "url": "https://hackerone.com/",
+    "time": "2026-05-14T15:20:00Z",
+    "visibility": "public",
+    "method": "api",
+    "source": "api",
+    "provider": "URLScan",
+    "malicious_flags": 0,
+    "urlscan_uuid": "019e26a5-49bc-713a-a099-cab0586bcf91",
+    "screenshot_url": "urlscan_mock.png"
+  },
+  
+  "page": {
+    "url": "https://hackerone.com/",
+    "domain": "hackerone.com",
+    "ip": "104.16.99.52",
+    "country": "US",
+    "server": "cloudflare",
+    "city": "San Francisco",
+    "asn": "AS13335",
+    "asnname": "CLOUDFLARENET"
+  },
+  "stats": {
+    "resourceStats": [
+      { "count": 24, "size": 124500, "type": "image" },
+      { "count": 18, "size": 892000, "type": "script" },
+      { "count": 5, "size": 45000, "type": "font" }
+    ],
+    "protocolStats": [
+      { "count": 45, "size": 1024500, "protocol": "h3" }
+    ]
+  },
+  "lists": {
+    "ips": ["104.16.99.52", "104.16.100.52"],
+    "countries": ["US"],
+    "asns": [13335],
+    "domains": ["hackerone.com", "cloudflare.com", "googletagmanager.com"]
+  }
+}
