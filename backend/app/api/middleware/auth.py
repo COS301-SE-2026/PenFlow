@@ -1,4 +1,5 @@
 #type: ignore
+import logging
 import os
 from typing import Any
 
@@ -6,6 +7,8 @@ import httpx
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
+
+logger = logging.getLogger(__name__)
 
 KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "http://localhost:8080")
 REALM = os.getenv("KEYCLOAK_REALM", "penflow")
@@ -71,4 +74,16 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
+        ) from exc
+    except httpx.RequestError as exc:
+        logger.exception("[auth] JWKS fetch failed: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Auth service unreachable",
+        ) from exc
+    except Exception as exc:
+        logger.exception("[auth] unexpected error during token validation")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Token validation error",
         ) from exc

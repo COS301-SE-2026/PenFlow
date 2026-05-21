@@ -1,5 +1,6 @@
-from app.models.base import Base, ScanStatus, Severity
+# type: ignore
 from app.models.asset import Asset
+from app.models.base import Base, ScanStatus, Severity
 from app.models.finding import Finding
 from app.models.scan import Scan
 from app.models.user import User

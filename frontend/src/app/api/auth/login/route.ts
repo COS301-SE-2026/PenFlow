@@ -35,9 +35,17 @@ export async function POST(req: NextRequest) {
       path: "/",
     });
 
-    fetch(`${BACKEND_URL}/api/v1/users/me`, {
+    const provisionRes = await fetch(`${BACKEND_URL}/api/v1/users/me`, {
       headers: { Authorization: `Bearer ${tokens.access_token}` },
-    }).catch(() => undefined);
+    }).catch((err: unknown) => {
+      console.error("[login] backend unreachable during provisioning:", err);
+      return null;
+    });
+
+    if (provisionRes && !provisionRes.ok) {
+      const body = await provisionRes.text().catch(() => "");
+      console.error(`[login] provisioning returned ${provisionRes.status}:`, body);
+    }
 
     return res;
   } catch (err) {
