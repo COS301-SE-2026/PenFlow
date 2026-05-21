@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import health, internal, scans
+from app.api.routes import health, internal, scans, users
 from app.realtime import stream
 
 app = FastAPI(
@@ -18,6 +18,7 @@ app.include_router(health.router)
 app.include_router(scans.router, prefix=API_V1_PREFIX)
 app.include_router(stream.router, prefix=API_V1_PREFIX)
 app.include_router(internal.router, prefix=API_V1_PREFIX)
+app.include_router(users.router, prefix=API_V1_PREFIX)
 
 app.add_middleware(
     CORSMiddleware,
