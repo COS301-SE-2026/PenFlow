@@ -120,3 +120,19 @@ export async function fetchScanSummary(scanId: string) {
 export function getReportPdfUrl(scanId: string): string {
   return `${API_BASE}/scans/${scanId}/pdf`;
 }
+
+export const SEVERITY_COLORS: Record<string, string> = {
+  critical: "#ff5f4e",
+  high:     "#f08030",
+  medium:   "#f5c842",
+  low:      "#4ade80",
+  info:     "#4f9fff",
+};
+
+export function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  });
+}

@@ -3,26 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import NavBar from "@/components/NavBar";
-import { fetchScanHistory, getReportPdfUrl } from "@/lib/scanService";
+import { fetchScanHistory, getReportPdfUrl, SEVERITY_COLORS, formatDate } from "@/lib/scanService";
 import type { ScanHistoryItem } from "@/lib/scanService";
 import Image from "next/image";
 import submarineImage from "@/app/images/images/submarine.png";
 import styles from "./history.module.css";
 
-const SEVERITY_COLORS = {
-  critical: "#ff5f4e",
-  high:     "#f08030",
-  medium:   "#f5c842",
-  low:      "#4ade80",
-};
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-  });
-}
 
 function SeverityDots({ count, color }: { count: number; color: string }) {
   return Array.from({ length: Math.min(count, 8) }).map((_, i) => (

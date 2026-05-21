@@ -224,15 +224,15 @@
 }
 
 .modalBtnReport {
-  background: #ff5f4e;
+  background: var(--col-alert);
 }
 
 .modalBtnDownload {
-  background: #f08030;
+  background: var(--col-orange);
 }
 
 .modalBtnSend {
-  background: #4ade80;
+  background: var(--col-success);
 }
 
 /* ── States ── */
