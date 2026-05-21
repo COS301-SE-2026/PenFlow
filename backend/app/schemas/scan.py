@@ -1,5 +1,5 @@
 #I am just going to implement a rought draft so long until we get the worker logic figured out
-
+from typing import Any
 from uuid import UUID
 
 from pydantic import (  #The email logic here is for the download we discussed, not any sort of auth
@@ -21,4 +21,5 @@ class InitiateScanResponse(BaseModel):
 
 class ScanCallbackRequest(BaseModel):
     status: ScanStatus
+    results: dict[str, Any] | None = None
     error_message: str | None = None

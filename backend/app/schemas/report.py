@@ -3,7 +3,7 @@ from enum import Enum
 from typing import List
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 #we can change this this is just for my rough draft
 
@@ -35,3 +35,11 @@ class ScanReportResponse(BaseModel):
     total_findings: int
     critical_count: int
     high_count: int
+
+class ReportCallbackRequest(BaseModel):
+    status: str
+    pdf_path: str | None = None
+    error_message: str | None = None
+
+class EmailReportRequest(BaseModel):
+    email: EmailStr
