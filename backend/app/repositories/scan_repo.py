@@ -2,7 +2,7 @@
 import logging
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import case, func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -97,6 +97,40 @@ class ScanRepository:
             db.rollback()
             logger.exception("Failed to save scan for domain %s", scan_id)
             raise
+
+    @staticmethod
+    async def list_scans(db: AsyncSession) -> list[dict]:
+        query = (
+            select(
+                Scan,
+                func.count(Finding.id).label("total_findings"),
+                func.sum(case((Finding.severity == Severity.CRITICAL, 1), else_=0))
+                .label("critical_count"),
+                func.sum(case((Finding.severity == Severity.HIGH, 1), else_=0))
+                .label("high_count"),
+                func.sum(case((Finding.severity == Severity.MEDIUM, 1), else_=0))
+                .label("medium_count"),
+                func.sum(case((Finding.severity == Severity.LOW, 1), else_=0)).label("low_count"),
+            )
+            .outerjoin(Finding, Finding.scan_id == Scan.id)
+            .group_by(Scan.id)
+            .order_by(Scan.created_at.desc())
+        )
+        rows = (await db.execute(query)).all()
+        return [
+            {
+                "id": row.Scan.id,
+                "domain": row.Scan.domain,
+                "created_at": row.Scan.created_at,
+                "status": row.Scan.status,
+                "total_findings": int(row.total_findings or 0),
+                "critical_count": int(row.critical_count or 0),
+                "high_count": int(row.high_count or 0),
+                "medium_count": int(row.medium_count or 0),
+                "low_count": int(row.low_count or 0),
+            }
+            for row in rows
+        ]
 
     @staticmethod
     async def mark_scan_failed(db: AsyncSession, scan_id: UUID, error_message: str, is_partial: bool = False) ->Scan: # noqa: E501

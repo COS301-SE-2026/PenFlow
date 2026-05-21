@@ -1,12 +1,14 @@
 from uuid import UUID
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.scan import Scan, ScanSource, Report  #type: ignore
-from app.models.finding import Finding  #type: ignore
 from app.models.asset import Asset  #type: ignore
+from app.models.finding import Finding  #type: ignore
+from app.models.report import Report
+from app.models.scan import Scan
+from app.models.scan_source import ScanSource
 
 
 async def get_scan_summary(db: AsyncSession, scan_id: UUID) -> Scan | None:
@@ -150,7 +152,8 @@ async def get_asset_impact_summary(db: AsyncSession, scan_id: UUID) -> dict:
     top_assets.sort(
         key=lambda x: (
             severity_rank.get(
-                x["highest_severity"].value if hasattr(x["highest_severity"], 'value') else str(x["highest_severity"]).lower(), 0
+                x["highest_severity"].value if hasattr(x["highest_severity"], 'value')
+                else str(x["highest_severity"]).lower(), 0
             ),
             x["finding_count"]
         ),
