@@ -24,7 +24,7 @@
 
 .consoleTop {
   display: grid;
-  grid-template-columns: minmax(300px, 1fr) 220px;
+  grid-template-columns: minmax(300px, 1fr) 460px;
   gap: 16px;
 }
 
@@ -136,8 +136,21 @@
   border-radius: 14px;
   background: linear-gradient(180deg, #0e1e38, #0a1828);
   padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.processCols {
   display: grid;
-  align-content: start;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  flex: 1;
+}
+
+.processCol {
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
@@ -164,11 +177,18 @@
   color: var(--col-success);
 }
 
+.normalisingLabel[data-done="true"] {
+  color: #e6a820;
+}
+
 .viewReportButton {
   color: var(--col-muted);
   cursor: not-allowed;
   opacity: 0.45;
   transition: background 400ms ease, color 400ms ease, opacity 400ms ease, box-shadow 400ms ease;
+  min-height: 68px !important;
+  width: 60% !important;
+  margin: 0 auto;
 }
 
 .viewReportButton[data-ready="true"] {
