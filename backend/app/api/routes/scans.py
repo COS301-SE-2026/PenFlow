@@ -2,47 +2,42 @@
 
 import uuid
 from datetime import datetime, timezone
-
-from fastapi import APIRouter, HTTPException, Response, status
-
-from app.models.base import ScanStatus
+from app.repositories.scan_repo import ScanRepository
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from uuid import UUID
 from app.schemas.scan import InitiateScanRequest, InitiateScanResponse
+from sqlalchemy.orm import Session
+from app.services.scan_service import ScanService
+from app.utils.db import get_db
+from app.repositories.report_repository import get_report_by_scan_id
+from app.schemas.report import EmailReportRequest
+from app.services.email_service import send_report_email
 
 router= APIRouter(prefix="/scans",tags=["Scans"])
 
 @router.post(
     "/",
     response_model=InitiateScanResponse,
-    status_code=status.HTTP_202_ACCEPTED
-
+    status_code=status.HTTP_202_ACCEPTED,
 )
 
 async def initiate_ctem_scan(
     request: InitiateScanRequest,
-    #db stuff 
-
+    db: Session = Depends(get_db),
 ):
-
-#Phase 1 this is the no auth scan also just a rough implementation for now until we have the other
-#logic figured out
-
     try:
-    #I'm going to pass the validated request to the service layer
-    #db stuff
-    #placeholder return
+        scan = await ScanService.start_scan(db, request)
 
         return InitiateScanResponse(
-            scan_id=uuid.uuid4(),
-            status=ScanStatus.QUEUED
-
+            scan_id=scan.id,
+            status=scan.status,
         )
+
     except Exception:
-    #Once proper logic is setup I'll rather log this and return a 500/specific 400 code 
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to initiate scan"
+            detail="Failed to initiate scan",
         )
-
 
 @router.get(
     "/{scan_id}/report",
@@ -105,3 +100,5 @@ async def download_scan_pdf(
             "Content-Disposition": f'attachment; filename="PenFlow_Report_{scan_id}.pdf"'
         }
     )
+
+

@@ -9,6 +9,7 @@ from app.models.asset import Asset
 from app.models.base import ScanStatus, Severity
 from app.models.finding import Finding
 from app.models.scan import Scan
+from app.models.scan_source import ScanSource, ScanSourceStatus
 
 logger = logging.getLogger(__name__)
 
@@ -112,3 +113,69 @@ class ScanRepository:
         db.commit()
         db.refresh(scan)
         return scan
+
+    @staticmethod
+    def save_worker_results(db: Session, scan_id: UUID, results: dict) -> Scan:
+        scan = ScanRepository.get_scan_by_id(db, scan_id)
+
+        if not scan:
+            raise ValueError(f"Scan {scan_id} not found.")
+
+        try:
+            subtasks = results.get("subtasks", [])
+
+            for subtask in subtasks:
+                source_name = subtask.get("source_name", "unknown")
+                source_status = subtask.get("status", "failed")
+
+                logger.info(
+                    "Source %s has %s assets and %s findings",
+                    source_name,
+                    len(subtask.get("assets", [])),
+                    len(subtask.get("findings", [])),
+                )
+
+                scan_source = ScanSource(
+                    scan_id=scan.id,
+                    source_name=source_name,
+                    status=ScanSourceStatus(source_status),
+                    raw_result=subtask.get("raw_result"),
+                    error_message=subtask.get("error_message"),
+                )
+                db.add(scan_source)
+
+                for asset_data in subtask.get("assets", []):
+                    identifier = asset_data.get("identifier")
+
+                    if not identifier:
+                        continue
+
+                    asset = Asset(
+                        scan_id=scan.id,
+                        identifier=asset_data.get("identifier"),
+                        asset_type=asset_data.get("asset_type", "unknown"),
+                    )
+                    db.add(asset)
+
+                for finding_data in subtask.get("findings", []):
+                    finding = Finding(
+                        scan_id=scan.id,
+                        source=finding_data.get("source", source_name),
+                        severity=Severity(finding_data.get("severity", "info")),
+                        title=finding_data.get("title", "Untitled finding"),
+                        description=finding_data.get("description"),
+                        recommendation=finding_data.get("recommendation"),
+                        evidence=finding_data.get("evidence"),
+                    )
+                    db.add(finding)
+
+            scan.progress = 100
+
+            db.commit()
+            db.refresh(scan)
+            return scan
+
+        except SQLAlchemyError:
+            db.rollback()
+            logger.exception("Failed to save worker results for scan %s", scan_id)
+            raise
