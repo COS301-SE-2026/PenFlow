@@ -2,14 +2,21 @@ import os
 
 from celery import Celery
 
-rabbitmq_url = os.getenv(
-    "RABBITMQ_URL",
-    "amqp://guest:guest@localhost:5672//",
-)
-
 celery_app = Celery(
     "penflow_workers",
-    broker=rabbitmq_url,
+    broker=os.getenv("RABBITMQ_URL"),
+    backend=os.getenv("REDIS_URL"),
+    include=[
+        "app.tasks.report_tasks",
+        "app.tasks.dns_tasks",
+        "app.tasks.urlscan_tasks",
+        "app.tasks.wappalyzer_tasks",
+        "app.tasks.crtsh_tasks",
+        "app.tasks.shodan_tasks",
+        "app.tasks.hunter_tasks",
+        "app.tasks.hibp_tasks",
+        "app.tasks.full_scan_tasks",
+    ],
 )
 
 @celery_app.task(name="health_check")

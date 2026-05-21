@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from app.services.wappalyzer_service import run_wappalyzer
+from app.tasks.wappalyzer_tasks import run_wappalyzer
 
 
 #live happy path
@@ -23,7 +23,7 @@ def test_wappalyzer_live_happy_path(mock_wappalyzer_latest, mock_webpage):
     mock_wappalyzer_latest.return_value = mock_engine_instance
 
     #execution
-    result = run_wappalyzer("acorns.com")
+    result = run_wappalyzer("scan-123", "acorns.com")
 
     #assertions
     assert result["status"] == "completed"
@@ -49,7 +49,7 @@ def test_wappalyzer_live_engine_failure(_mock_wappalyzer_latest, mock_webpage):
     mock_webpage.side_effect = Exception("Connection Timeout")
     
     #execution
-    result = run_wappalyzer("acorns.com")
+    result = run_wappalyzer("scan-123", "acorns.com")
     
     #expect clean failure dict
     assert result["status"] == "failed"
@@ -64,7 +64,7 @@ def test_wappalyzer_fallback_to_mock(mock_wappalyzer_latest, mock_webpage):
     """Test that the worker safely bypasses the local engine and loads local mock data."""
     
     #execution
-    result = run_wappalyzer("acorns.com")
+    result = run_wappalyzer("scan-123", "acorns.com")
     assert not mock_wappalyzer_latest.called
     assert not mock_webpage.called
     assert result["status"] == "completed"

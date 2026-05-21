@@ -78,6 +78,10 @@ jobs:
         run: ruff check app
 
       - name: Test Backend
+        env:
+          DATABASE_URL: postgresql+asyncpg://${{ secrets.CI_POSTGRES_USER }}:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/penflow_test
+          RABBITMQ_URL: amqp://guest:guest@localhost:5672//
+          REDIS_URL: redis://localhost:6379/0
         run: pytest
 
   workers:

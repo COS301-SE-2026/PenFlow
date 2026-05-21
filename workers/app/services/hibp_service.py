@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 
 import httpx
-from celery import shared_task
 
 #logger to tell is this file was in error
 logger = logging.getLogger(__name__)
@@ -81,9 +80,11 @@ def normalize_data(raw_data: list) -> dict:
     
     return \
     {
+        "breach_data": {
         "provider": "HaveIBeenPwned",
         "pwned_accounts_count": len(known_breaches),
-        "known_breaches": known_breaches
+        "known_breaches": known_breaches,
+        }
     }
 
 #analyze breaches for potential risks
@@ -94,8 +95,9 @@ def generate_findings_and_assets(normalized_data: dict) -> tuple:
     if "error" in normalized_data:
         return findings, assets
         
-    pwned_count = normalized_data.get("pwned_accounts_count", 0)
-    known_breaches = normalized_data.get("known_breaches", [])
+    breach_data = normalized_data.get("breach_data", {})
+    pwned_count = breach_data.get("pwned_accounts_count", 0)
+    known_breaches = breach_data.get("known_breaches", [])
     
     # If the domain has been in any breaches, generate a High severity
     #  finding(might be replaced by ai recomendations at a later date)
@@ -113,20 +115,3 @@ def generate_findings_and_assets(normalized_data: dict) -> tuple:
         })
             
     return findings, assets
-
-
-#execution
-@shared_task(name="scan.hibp")
-def run_hibp(domain: str) -> dict:
-    raw_data = collect_raw_data(domain)
-    normalized = normalize_data(raw_data)
-    findings, assets = generate_findings_and_assets(normalized)
-    
-    return \
-    {
-        "source_name": "hibp",
-        "status": "completed" if "error" not in normalized else "failed",
-        "raw_result": normalized,
-        "findings": findings,
-        "assets": assets
-    }

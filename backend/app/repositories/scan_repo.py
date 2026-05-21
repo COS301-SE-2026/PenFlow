@@ -1,50 +1,56 @@
-#type: ignore
 import logging
+from typing import Any
 from uuid import UUID
 
+from sqlalchemy import case, func, select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
 from app.models.base import ScanStatus, Severity
 from app.models.finding import Finding
 from app.models.scan import Scan
+from app.models.scan_source import ScanSource, ScanSourceStatus
 
 logger = logging.getLogger(__name__)
 
 class ScanRepository:
 
     @staticmethod
-    def create_scan(db: Session, domain: str, email: str | None = None) -> Scan:
+    async def create_scan(db: AsyncSession, domain: str, email: str | None = None) -> Scan:
         """Creates a new pending scan record in the database."""
         try:
             new_scan = Scan(
                 domain=domain,
                 email=email,
-                status=ScanStatus.QUEUED,
-                progress=0
             )
             db.add(new_scan)
-            db.commit()
-            db.refresh(new_scan)
+            await db.commit()
+            await db.refresh(new_scan)
             return new_scan
         except SQLAlchemyError:
-            db.rollback()
+            await db.rollback()
             logger.exception("Failed to create scan for domain %s",domain)
             raise
 
     @staticmethod
-    def get_scan_by_id(db: Session, scan_id: UUID) -> Scan | None:
+    async def get_scan_by_id(db: AsyncSession, scan_id: UUID) -> Scan | None:
         """Retrieves a scan and its associated assets/findings."""
-        return db.query(Scan).filter(Scan.id == scan_id).first()
+        query = select(Scan).where(Scan.id == scan_id)
+        result = await db.execute(query)
+        return result.scalar_one_or_none()
 
     @staticmethod
-    def save_normalized_results(db: Session, scan_id: UUID, results: dict) -> Scan:
+    async def save_normalized_results(
+        db: AsyncSession, 
+        scan_id: UUID, 
+        results: dict[str, Any],
+        ) -> Scan:
         """
         Takes the normalized JSON contract from the Celery worker and 
         translates it into Asset and Finding database records.
         """
-        scan = ScanRepository.get_scan_by_id(db, scan_id)
+        scan = await ScanRepository.get_scan_by_id(db, scan_id)
         if not scan:
             raise ValueError(f"Scan {scan_id} not found.")
 
@@ -88,27 +94,132 @@ class ScanRepository:
 
             scan.status = ScanStatus.COMPLETED
             scan.progress = 100
-            db.commit()
-            db.refresh(scan)
+            await db.commit()
+            await db.refresh(scan)
             return scan
 
         except SQLAlchemyError:
-            db.rollback()
+            await db.rollback()
             logger.exception("Failed to save scan for domain %s", scan_id)
             raise
 
     @staticmethod
-    def mark_scan_failed(db: Session, scan_id: UUID, error_message: str, is_partial: bool = False) ->Scan: # noqa: E501
+    async def list_scans(db: AsyncSession) -> list[dict[str, Any]]:
+        query = (
+            select(
+                Scan,
+                func.count(Finding.id).label("total_findings"),
+                func.sum(case((Finding.severity == Severity.CRITICAL, 1), else_=0))
+                .label("critical_count"),
+                func.sum(case((Finding.severity == Severity.HIGH, 1), else_=0))
+                .label("high_count"),
+                func.sum(case((Finding.severity == Severity.MEDIUM, 1), else_=0))
+                .label("medium_count"),
+                func.sum(case((Finding.severity == Severity.LOW, 1), else_=0)).label("low_count"),
+            )
+            .outerjoin(Finding, Finding.scan_id == Scan.id)
+            .group_by(Scan.id)
+            .order_by(Scan.created_at.desc())
+        )
+        rows = (await db.execute(query)).all()
+        return [
+            {
+                "id": row.Scan.id,
+                "domain": row.Scan.domain,
+                "created_at": row.Scan.created_at,
+                "status": row.Scan.status,
+                "total_findings": int(row.total_findings or 0),
+                "critical_count": int(row.critical_count or 0),
+                "high_count": int(row.high_count or 0),
+                "medium_count": int(row.medium_count or 0),
+                "low_count": int(row.low_count or 0),
+            }
+            for row in rows
+        ]
+
+    @staticmethod
+    async def mark_scan_failed(db: AsyncSession, scan_id: UUID, error_message: str, is_partial: bool = False) ->Scan: # noqa: E501
         """
         Update scan's status to failed or partial and logs the exact error, for frontend display
         """
-        scan = ScanRepository.get_scan_by_id(db, scan_id)
+        scan = await ScanRepository.get_scan_by_id(db, scan_id)
         if not scan:
             raise ValueError(f"Scan {scan_id} not found.")
 
         scan.status = ScanStatus.PARTIAL if is_partial else ScanStatus.FAILED
         scan.error_message = error_message
 
-        db.commit()
-        db.refresh(scan)
+        await db.commit()
+        await db.refresh(scan)
         return scan
+
+    @staticmethod
+    async def save_worker_results(
+        db: AsyncSession,
+        scan_id: UUID,
+        results: dict[str, Any],
+    ) -> Scan:
+        scan = await ScanRepository.get_scan_by_id(db, scan_id)
+
+        if not scan:
+            raise ValueError(f"Scan {scan_id} not found.")
+
+        try:
+            subtasks = results.get("subtasks", [])
+
+            for subtask in subtasks:
+                source_name = subtask.get("source_name", "unknown")
+                source_status = subtask.get("status", "failed")
+
+                logger.info(
+                    "Source %s has %s assets and %s findings",
+                    source_name,
+                    len(subtask.get("assets", [])),
+                    len(subtask.get("findings", [])),
+                )
+
+                scan_source = ScanSource(
+                    scan_id=scan.id,
+                    source_name=source_name,
+                    status=ScanSourceStatus(source_status),
+                    raw_result=subtask.get("raw_result"),
+                    error_message=subtask.get("error_message"),
+                )
+                db.add(scan_source)
+
+                for asset_data in subtask.get("assets", []):
+                    identifier = asset_data.get("identifier")
+
+                    if not identifier:
+                        continue
+
+                    asset = Asset(
+                        scan_id=scan.id,
+                        identifier=identifier,
+                        asset_type=asset_data.get("asset_type", "unknown"),
+                    )
+                    db.add(asset)
+
+                for finding_data in subtask.get("findings", []):
+                    finding = Finding(
+                        scan_id=scan.id,
+                        source=finding_data.get("source", source_name),
+                        severity=Severity(finding_data.get("severity", "info")),
+                        title=finding_data.get("title", "Untitled finding"),
+                        description=finding_data.get("description"),
+                        recommendation=finding_data.get("recommendation"),
+                        evidence=finding_data.get("evidence"),
+                    )
+                    db.add(finding)
+
+            scan.progress = 100
+            scan.status = ScanStatus.COMPLETED
+
+            await db.commit()
+            await db.refresh(scan)
+            return scan
+
+        except SQLAlchemyError:
+            await db.rollback()
+            logger.exception("Failed to save worker results for scan %s", scan_id)
+            raise

@@ -1,5 +1,12 @@
 # PenFlow
 
+![CI](https://github.com/COS301-SE-2026/PenFlow/actions/workflows/ci.yml/badge.svg)
+[![codecov](https://codecov.io/gh/COS301-SE-2026/PenFlow/branch/main/graph/badge.svg)](https://codecov.io/gh/COS301-SE-2026/PenFlow)
+![Issues](https://img.shields.io/github/issues/COS301-SE-2026/PenFlow)
+![Requirements](https://img.shields.io/badge/requirements-up%20to%20date-brightgreen)
+![Monitoring](https://img.shields.io/badge/monitoring-planned-lightgrey)
+
+
 PenFlow is a distributed, pipeline-driven platform for managing the full penetration testing lifecycle, from passive reconnaissance to automated scanning and coordinated manual engagements.
 
 ## Phases
