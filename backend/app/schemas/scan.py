@@ -1,4 +1,5 @@
 #I am just going to implement a rought draft so long until we get the worker logic figured out
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -19,3 +20,16 @@ class ScanCallbackRequest(BaseModel):
     status: ScanStatus
     results: dict[str, Any] | None = None
     error_message: str | None = None
+
+class ScanHistoryItem(BaseModel):
+    id: UUID
+    domain: str
+    created_at: datetime
+    status: ScanStatus
+    total_findings: int
+    critical_count: int
+    high_count: int
+    medium_count: int
+    low_count: int
+
+    model_config = ConfigDict(from_attributes=True)

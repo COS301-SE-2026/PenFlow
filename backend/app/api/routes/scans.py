@@ -5,13 +5,29 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.scan_repo import ScanRepository
-from app.schemas.scan import InitiateScanRequest, InitiateScanResponse
+from app.schemas.scan import InitiateScanRequest, InitiateScanResponse, ScanHistoryItem
+from app.services.scan_service import ScanService
 from app.utils.db import get_db
 
 logger = logging.getLogger(__name__)
 
 router= APIRouter(prefix="/scans",tags=["Scans"])
 
+
+@router.get(
+    "/",
+    response_model=list[ScanHistoryItem],
+    status_code=status.HTTP_200_OK,
+)
+async def list_scans(db: AsyncSession = Depends(get_db)):
+    try:
+        return await ScanRepository.list_scans(db)
+    except Exception:
+        logger.exception("Failed to list scans")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve scan history",
+        )
 
 @router.post(
     "/",
@@ -25,7 +41,7 @@ async def initiate_ctem_scan(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        new_scan = await ScanRepository.create_scan(db, domain=request.domain)
+        new_scan = await ScanService.start_scan(db, request)
 
         return InitiateScanResponse(
             scan_id=new_scan.id,
