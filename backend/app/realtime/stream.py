@@ -40,4 +40,4 @@ async def scan_progress_stream(websocket: WebSocket, scan_id: str)-> Any:
         await websocket.close()
 
     except WebSocketDisconnect:
-        logger.info(f"Client disconnected from scan stream: {scan_id}")
+        logger.info("Client disconnected from scan stream")

@@ -33,7 +33,7 @@ def get_raw_result(scan_sources: list[JSONObject] | None, source_name: str) -> J
 
 
 def calculate_severity_counts(findings: list[JSONObject] | None) -> dict[str, int]:
-    counts = {severity: 0 for severity in SEVERITIES}
+    counts = dict.fromkeys(SEVERITIES, 0)
 
     for finding in findings or []:
         severity = get_value(finding, "severity", "info").lower()

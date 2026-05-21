@@ -65,13 +65,7 @@ export default function HistoryPage() {
   };
 
   return (
-    <div
-      className={styles.historyPage}
-      role="button"
-      tabIndex={0}
-      onClick={modal ? closeModal : undefined}
-      onKeyDown={modal ? (e) => e.key === "Escape" && closeModal() : undefined}
-    >
+    <div className={styles.historyPage}>
       <NavBar />
 
       {/* Hero */}
@@ -152,54 +146,64 @@ export default function HistoryPage() {
 
       {/* Row action modal */}
       {modal && (
-        <>
-          <div
-            className={styles.modalBackdrop}
-            role="button"
-            tabIndex={0}
-            onClick={closeModal}
-            onKeyDown={(e) => e.key === "Escape" && closeModal()}
-          />
-          <div
-            className={styles.modal}
-            data-modal
-            onClick={e => e.stopPropagation()}
-            style={dragPos ? { left: dragPos.x, top: dragPos.y, transform: "none" } : undefined}
-          >
-            <div
-              className={styles.modalDomain}
-              role="button"
-              tabIndex={0}
-              onMouseDown={startDrag}
-            >
-              {modal.domain}
-            </div>
+      <>
+        <button
+          type="button"
+          aria-label="Close modal"
+          className={styles.modalBackdrop}
+          onClick={closeModal}
+        />
 
-            <button
-              className={`${styles.modalBtn} ${styles.modalBtnReport}`}
-              onClick={() => { closeModal(); router.push(`/report/${modal.id}`); }}
-            >
+        <div
+          className={styles.modal}
+          data-modal
+          role="dialog"
+          tabIndex={0}
+          onClick={e => e.stopPropagation()}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              closeModal();
+            }
+          }}
+          style={dragPos ? { left: dragPos.x, top: dragPos.y, transform: "none" } : undefined}
+        >
+          <button
+            type="button"
+            className={styles.modalDomain}
+            onMouseDown={startDrag}
+          >
+            {modal.domain}
+          </button>
+
+          <button
+            type="button"
+            className={`${styles.modalBtn} ${styles.modalBtnReport}`}
+            onClick={() => { closeModal(); router.push(`/report/${modal.id}`); }}
+          >
             VIEW REPORT
-            </button>
-            <a
-              href={getReportPdfUrl(modal.id)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`${styles.modalBtn} ${styles.modalBtnDownload}`}
-              onClick={closeModal}
-            >
-              ↓ DOWNLOAD PDF
-            </a>
-            <button
-              className={`${styles.modalBtn} ${styles.modalBtnSend}`}
-              disabled={!!emailSent[modal.id]}
-              onClick={() => handleSendEmail(modal.id)}
-            >
-              {emailSent[modal.id] ? "EMAIL SENT" : "SEND EMAIL"}
-            </button>
-          </div>
-        </>
-      )}
+          </button>
+
+          <a
+            href={getReportPdfUrl(modal.id)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`${styles.modalBtn} ${styles.modalBtnDownload}`}
+            onClick={closeModal}
+          >
+            ↓ DOWNLOAD PDF
+          </a>
+
+          <button
+            type="button"
+            className={`${styles.modalBtn} ${styles.modalBtnSend}`}
+            disabled={!!emailSent[modal.id]}
+            onClick={() => handleSendEmail(modal.id)}
+          >
+            {emailSent[modal.id] ? "EMAIL SENT" : "SEND EMAIL"}
+          </button>
+        </div>
+      </>
+    )}
     </div>
   );
 }

@@ -12,13 +12,17 @@ def test_shodan_live_happy_path(mock_get, mock_socket):
     """Test that a real key triggers IP resolution and a live Shodan API request."""
     
     #fake the ip resolution
-    mock_socket.return_value = "151.101.130.49" #NOSONAR
+
+
+    TEST_IP = "151.101.130.49"
+
+    mock_socket.return_value = TEST_IP #NOSONAR
 
     #fake the live api response
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {
-        "ip_str": "151.101.130.49",
+        "ip_str": TEST_IP,
         "org": "Fastly, Inc.",
         "ports": [80, 443],
     }
