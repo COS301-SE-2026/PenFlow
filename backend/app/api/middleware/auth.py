@@ -21,29 +21,26 @@ _jwks_cache: dict[str, Any] = {}
 security = HTTPBearer()
 
 
-async def _get_jwks() -> dict[str, Any]:
+async def _get_jwks() -> list[dict[str, Any]]:
     if _jwks_cache:
-        return _jwks_cache
+        return _jwks_cache.get("keys", [])
 
     async with httpx.AsyncClient(timeout=_JWKS_TIMEOUT) as client:
         res = await client.get(JWKS_URL)
         res.raise_for_status()
         _jwks_cache.update(res.json())
 
-    return _jwks_cache
+    return _jwks_cache.get("keys", [])
 
 
-def _find_rsa_key(jwks: dict[str, Any], kid: str) -> dict[str, Any]:
-    for key in jwks.get("keys", []):
-        if key.get("kid") == kid:
-            return {
-                "kty": key["kty"],
-                "kid": key["kid"],
-                "use": key["use"],
-                "n": key["n"],
-                "e": key["e"],
-            }
-    return {}
+def _to_rsa_key(key: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "kty": key["kty"],
+        "kid": key["kid"],
+        "use": key["use"],
+        "n": key["n"],
+        "e": key["e"],
+    }
 
 
 async def get_current_user(
@@ -52,32 +49,29 @@ async def get_current_user(
     token = credentials.credentials
 
     try:
-        header = jwt.get_unverified_header(token)
-        jwks = await _get_jwks()
-        rsa_key = _find_rsa_key(jwks, header.get("kid", ""))
+        keys = await _get_jwks()
 
-        if not rsa_key:
-            _jwks_cache.clear()
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Unable to find matching public key",
-            )
+        for key in keys:
+            try:
+                return jwt.decode(
+                    token,
+                    _to_rsa_key(key),
+                    algorithms=["RS256"],
+                    issuer=ISSUER,
+                    options={"verify_aud": False},
+                )
+            except JWTError:
+                continue
 
-        payload: dict[str, Any] = jwt.decode(
-            token,
-            rsa_key,
-            algorithms=["RS256"],
-            issuer=ISSUER,
-            options={"verify_aud": False},
-        )
-        return payload
-
-    except JWTError as exc:
+        _jwks_cache.clear()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
-        ) from exc
+        )
+
+    except HTTPException:
+        raise
     except httpx.RequestError as exc:
         logger.exception("[auth] JWKS fetch failed: %s", exc)
         raise HTTPException(

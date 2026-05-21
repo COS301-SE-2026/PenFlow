@@ -1,6 +1,6 @@
 #type: ignore
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -13,11 +13,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
+CurrentUser = Annotated[dict[str, Any], Depends(get_current_user)]
+DbSession = Annotated[Session, Depends(get_db)]
+
 
 @router.get("/me")
 def provision_user(
-    current_user: dict[str, Any] = Depends(get_current_user),
-    db: Session = Depends(get_db),
+    current_user: CurrentUser,
+    db: DbSession,
 ) -> dict[str, Any]:
     try:
         return get_or_create_user(
