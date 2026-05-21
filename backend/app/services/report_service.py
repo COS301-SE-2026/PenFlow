@@ -38,7 +38,7 @@ def render_report_html(context: dict[str, Any]) -> str:
     template_env = get_template_environment()
     template = template_env.get_template(REPORT_TEMPLATE_NAME)
 
-    return template.render(**context)
+    return str(template.render(**context))
 
 
 def build_report_output_path(scan_id: str) -> Path:
