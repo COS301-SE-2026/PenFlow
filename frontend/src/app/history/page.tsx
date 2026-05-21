@@ -12,7 +12,7 @@ import styles from "./history.module.css";
 
 function SeverityDots({ count, color }: { count: number; color: string }) {
   return Array.from({ length: Math.min(count, 8) }).map((_, i) => (
-    <span key={i} className={styles.dot} style={{ backgroundColor: color }} />
+    <span key={`${color}-${i}`} className={styles.dot} style={{ backgroundColor: color }} />
   ));
 }
 
@@ -33,9 +33,9 @@ export default function HistoryPage() {
       setDragPos({ x: e.clientX - dragOffset.current.x, y: e.clientY - dragOffset.current.y });
     };
     const onUp = () => { isDragging.current = false; };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    return () => { window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); };
+    globalThis.addEventListener("mousemove", onMove);
+    globalThis.addEventListener("mouseup", onUp);
+    return () => { globalThis.removeEventListener("mousemove", onMove); globalThis.removeEventListener("mouseup", onUp); };
   }, []);
 
   const startDrag = (e: React.MouseEvent<HTMLElement>) => {
@@ -60,13 +60,12 @@ export default function HistoryPage() {
   const closeModal = () => { setModal(null); setDragPos(null); };
 
   const handleSendEmail = (scanId: string) => {
-    // TODO: wire up to email endpoint — sends to logged-in user's email
     setEmailSent(prev => ({ ...prev, [scanId]: true }));
     closeModal();
   };
 
   return (
-    <div className={styles.historyPage} onClick={modal ? closeModal : undefined}>
+    <div className={styles.historyPage} role="presentation" onClick={modal ? closeModal : undefined} onKeyDown={modal ? (e) => e.key === "Escape" && closeModal() : undefined}>
       <NavBar />
 
       {/* Hero */}
@@ -97,19 +96,11 @@ export default function HistoryPage() {
       </section>
 
       <div className={styles.content}>
-        {loading ? (
-          <div className={styles.stateWrap}>
-            <p className={styles.stateText}>LOADING HISTORY...</p>
-          </div>
-        ) : error ? (
-          <div className={styles.stateWrap}>
-            <p className={styles.stateText}>{error}</p>
-          </div>
-        ) : scans.length === 0 ? (
-          <div className={styles.stateWrap}>
-            <p className={styles.stateText}>NO SCANS YET</p>
-          </div>
-        ) : (
+        {(() => {
+          if (loading) return <div className={styles.stateWrap}><p className={styles.stateText}>LOADING HISTORY...</p></div>;
+          if (error) return <div className={styles.stateWrap}><p className={styles.stateText}>{error}</p></div>;
+          if (scans.length === 0) return <div className={styles.stateWrap}><p className={styles.stateText}>NO SCANS YET</p></div>;
+          return (
           <div className={styles.card}>
             <table className={styles.table}>
               <colgroup>
@@ -149,20 +140,21 @@ export default function HistoryPage() {
               </tbody>
             </table>
           </div>
-        )}
+          );
+        })()}
       </div>
 
       {/* Row action modal */}
       {modal && (
         <>
-          <div className={styles.modalBackdrop} onClick={closeModal} />
+          <div role="presentation" className={styles.modalBackdrop} onClick={closeModal} onKeyDown={(e) => e.key === "Escape" && closeModal()} />
           <div
             className={styles.modal}
             data-modal
             onClick={e => e.stopPropagation()}
             style={dragPos ? { left: dragPos.x, top: dragPos.y, transform: "none" } : undefined}
           >
-            <p className={styles.modalDomain} onMouseDown={startDrag}>{modal.domain}</p>
+            <div role="presentation" className={styles.modalDomain} onMouseDown={startDrag}>{modal.domain}</div>
             <button
               className={`${styles.modalBtn} ${styles.modalBtnReport}`}
               onClick={() => { closeModal(); router.push(`/report/${modal.id}`); }}

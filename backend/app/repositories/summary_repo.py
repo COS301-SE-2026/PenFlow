@@ -1,11 +1,12 @@
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.asset import Asset  #type: ignore
-from app.models.finding import Finding  #type: ignore
+from app.models.asset import Asset
+from app.models.finding import Finding
 from app.models.report import Report
 from app.models.scan import Scan
 from app.models.scan_source import ScanSource
@@ -20,7 +21,7 @@ async def get_scan_summary(db: AsyncSession, scan_id: UUID) -> Scan | None:
     result = await db.execute(query)
     return result.scalar_one_or_none()
 
-async def get_risk_snapshot(db: AsyncSession, scan_id: UUID) -> dict:
+async def get_risk_snapshot(db: AsyncSession, scan_id: UUID) -> dict[str, Any]:
     """
     Fetches a risk snapshot for the given scan_id.
     This aggregates findings by severity to give a quick overview of the scan's risk profile.
@@ -54,7 +55,7 @@ async def get_risk_snapshot(db: AsyncSession, scan_id: UUID) -> dict:
 
     return snapshot
 
-async def get_top_findings_preview(db: AsyncSession, scan_id: UUID, limit: int = 5) -> list[dict]:
+async def get_top_findings_preview(db: AsyncSession, scan_id: UUID, limit: int = 5) -> list[dict[str, Any]]:
 
     """
     Fetches highest severity findings, join resolved assets
@@ -96,7 +97,7 @@ async def get_top_findings_preview(db: AsyncSession, scan_id: UUID, limit: int =
 
     return previews
 
-async def get_asset_impact_summary(db: AsyncSession, scan_id: UUID) -> dict:
+async def get_asset_impact_summary(db: AsyncSession, scan_id: UUID) -> dict[str, Any]:
     """
     Fetches an impact summary for the given scan_id.
     This aggregates asset-related information to give a quick overview of the scan's impact.
@@ -111,7 +112,7 @@ async def get_asset_impact_summary(db: AsyncSession, scan_id: UUID) -> dict:
 
     total_assets = len(assets)
     affected_assets = 0
-    breakdown_dict = {}
+    breakdown_dict: dict[str, dict[str, Any]] = {}
     top_assets = []
 
     severity_rank = {"info": 1, "low": 2, "medium": 3, "high": 4, "critical": 5}
@@ -167,7 +168,7 @@ async def get_asset_impact_summary(db: AsyncSession, scan_id: UUID) -> dict:
         "top_affected_assets": top_assets[:5]
     }
 
-async def get_source_coverage(db: AsyncSession, scan_id: UUID) -> dict:
+async def get_source_coverage(db: AsyncSession, scan_id: UUID) -> dict[str, Any]:
     """
     Fetches all execution sources for a scan and computes the aggregate
     completion statuses

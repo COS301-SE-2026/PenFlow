@@ -29,7 +29,7 @@ class ScanSource(Base):
         nullable=False, index=True,
     )
     source_name = Column(String(100), nullable=False)
-    status = Column(
+    status: Column[str] = Column(
         Enum(ScanSourceStatus, values_callable=lambda enum: [item.value for item in enum],
              name="scan_source_status"),
         nullable=False,

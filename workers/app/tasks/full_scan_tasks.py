@@ -1,5 +1,7 @@
 from typing import Any
+
 from celery import chord
+
 from app.queue.celery_app import celery_app
 from app.utils.callback import send_scan_callback
 

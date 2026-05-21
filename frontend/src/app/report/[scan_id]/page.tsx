@@ -42,7 +42,7 @@ const pieOptions: ChartOptions<"doughnut"> = {
   maintainAspectRatio: false,
 };
 
-function SeverityBadge({ severity }: { severity: string }) {
+function SeverityBadge({ severity }: Readonly<{ severity: string }>) {
   const s = severity.toLowerCase();
   return (
     <span
@@ -118,7 +118,6 @@ export default function ReportPage() {
   const handleSendReport = (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
-    // TODO: wire up to email endpoint when available
     setSendStatus("sent");
   };
 

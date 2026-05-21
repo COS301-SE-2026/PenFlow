@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Any
+
 from app.queue.celery_app import celery_app
 from app.services.urlscan_service import (
     collect_raw_data,

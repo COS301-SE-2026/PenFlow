@@ -8,6 +8,7 @@ import httpx
 
 # Logger to track this specific worker
 logger = logging.getLogger(__name__)
+DEFAULT_SCREENSHOT = "default.png"
 
 #scan mode between live and mock
 SCAN_MODE = os.getenv("SCAN_MODE", "MOCK").upper()
@@ -135,7 +136,7 @@ def normalize_data(raw_data: dict) -> dict:
                 "provider": "URLScan",
                 "malicious_flags": 0,
                 "urlscan_uuid": "Unknown",
-                "screenshot_url": "default.png",
+                "screenshot_url": DEFAULT_SCREENSHOT,
                 "error": raw_data["error"],
             }
         }
@@ -153,7 +154,7 @@ def normalize_data(raw_data: dict) -> dict:
                 "provider": "URLScan",
                 "malicious_flags": 1 if is_malicious else 0,
                 "urlscan_uuid": raw_data.get("task", {}).get("uuid", "Unknown"),
-                "screenshot_url": raw_data.get("_local_screenshot_path", "default.png")
+                "screenshot_url": raw_data.get("_local_screenshot_path", DEFAULT_SCREENSHOT)
             }
         }
     else:
@@ -163,7 +164,7 @@ def normalize_data(raw_data: dict) -> dict:
                 "provider": raw_data.get("provider", "URLScan"),
                 "malicious_flags": raw_data.get("malicious_flags", 0),
                 "urlscan_uuid": raw_data.get("urlscan_uuid", "Unknown"),
-                "screenshot_url": raw_data.get("screenshot_url", "default.png")
+                "screenshot_url": raw_data.get("screenshot_url", DEFAULT_SCREENSHOT)
             }
 
         }

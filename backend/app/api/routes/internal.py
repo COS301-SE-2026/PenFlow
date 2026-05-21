@@ -22,7 +22,7 @@ router = APIRouter(prefix="/internal", tags=["Internal Webhooks"])
 async def update_scan_status_callback(
     scan_id: str,
     payload: ScanCallbackRequest,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_db)
 ) -> Any:
     safe_id = scan_id.replace("\n", "").replace("\r", "")
 

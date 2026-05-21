@@ -18,7 +18,7 @@ class Report(Base):
         unique=True, nullable=False,
     )
     task_id = Column(String(255))
-    status = Column(
+    status: Column[str] = Column(
         Enum(ReportStatus, values_callable=lambda enum: [item.value for item in enum],
              name="report_status"),
         nullable=False,

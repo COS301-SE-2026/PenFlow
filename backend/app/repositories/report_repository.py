@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -27,8 +28,8 @@ def get_or_create_report(db: Session, scan_id: str) -> Report:
 
 def mark_report_generating(db: Session, scan_id: str) -> Report:
     report = get_or_create_report(db, scan_id)
-    report.status = ReportStatus.GENERATING
-    report.error_message = None
+    report.status = ReportStatus.GENERATING  # type: ignore[assignment]
+    report.error_message = None  # type: ignore[assignment]
 
     db.commit()
     db.refresh(report)
@@ -37,9 +38,9 @@ def mark_report_generating(db: Session, scan_id: str) -> Report:
 
 def mark_report_task_queued(db: Session, scan_id: str, task_id: str) -> Report:
     report = get_or_create_report(db, scan_id)
-    report.task_id = task_id
-    report.status = ReportStatus.GENERATING
-    report.error_message = None
+    report.task_id = task_id  # type: ignore[assignment]
+    report.status = ReportStatus.GENERATING  # type: ignore[assignment]
+    report.error_message = None  # type: ignore[assignment]
 
     db.commit()
     db.refresh(report)
@@ -48,10 +49,10 @@ def mark_report_task_queued(db: Session, scan_id: str, task_id: str) -> Report:
 
 def mark_report_completed(db: Session, scan_id: str, pdf_path: str) -> Report:
     report = get_or_create_report(db, scan_id)
-    report.status = ReportStatus.COMPLETED
-    report.pdf_path = pdf_path
-    report.generated_at = datetime.now(timezone.utc)
-    report.error_message = None
+    report.status = ReportStatus.COMPLETED  # type: ignore[assignment]
+    report.pdf_path = pdf_path  # type: ignore[assignment]
+    report.generated_at = datetime.now(timezone.utc)  # type: ignore[assignment]
+    report.error_message = None  # type: ignore[assignment]
 
     db.commit()
     db.refresh(report)
@@ -60,15 +61,15 @@ def mark_report_completed(db: Session, scan_id: str, pdf_path: str) -> Report:
 
 def mark_report_failed(db: Session, scan_id: str, error_message: str) -> Report:
     report = get_or_create_report(db, scan_id)
-    report.status = ReportStatus.FAILED
-    report.error_message = error_message
+    report.status = ReportStatus.FAILED  # type: ignore[assignment]
+    report.error_message = error_message  # type: ignore[assignment]
 
     db.commit()
     db.refresh(report)
     return report
 
 
-def load_report_data(db: Session, scan_id: str) -> dict:
+def load_report_data(db: Session, scan_id: str) -> dict[str, Any]:
     scan = db.query(Scan).filter(Scan.id == UUID(scan_id)).first()
 
     if scan is None:

@@ -28,8 +28,8 @@ async def health_check(
     try:
         await db.execute(text("SELECT 1"))
         db_status = "connected"
-    except Exception as e:
-        logger.error("Database connection failed: %s", e)
+    except Exception:
+        logger.exception("Database connection failed")
     
     return {
         "status": "ok",

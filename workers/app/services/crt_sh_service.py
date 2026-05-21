@@ -8,6 +8,7 @@ import httpx
 
 # Logger to track this specific worker
 logger = logging.getLogger(__name__)
+CRT_SH_PROVIDER = "crt.sh"
 SCAN_MODE = os.getenv("SCAN_MODE", "MOCK").upper()
 WORKERS_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -111,7 +112,7 @@ def normalize_data(raw_data: dict) -> dict:
     if "error" in raw_data:
         return {
             "subdomains": {
-                "provider": "crt.sh",
+                "provider": CRT_SH_PROVIDER,
                 "total_found": 0,
                 "discovered_names": [],
                 "error": raw_data.get("error"),
@@ -147,7 +148,7 @@ def normalize_data(raw_data: dict) -> dict:
         
     return {
         "subdomains": {
-            "provider": "crt.sh",
+            "provider": CRT_SH_PROVIDER,
             "total_found": len(discovered_names),
             "discovered_names": discovered_names,
     }
@@ -166,7 +167,7 @@ def generate_findings_and_assets(normalized_data: dict) -> tuple:
         assets.append({
             "asset_type": "subdomain",
             "identifier": subdomain,
-            "source": "crt.sh",
+            "source": CRT_SH_PROVIDER,
         })
             
     return findings, assets

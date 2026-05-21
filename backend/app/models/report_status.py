@@ -1,5 +1,6 @@
 import enum
 
+
 class ReportStatus(str, enum.Enum):
     PENDING = "pending"
     GENERATING = "generating"

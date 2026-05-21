@@ -1,4 +1,3 @@
-# type: ignore
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status

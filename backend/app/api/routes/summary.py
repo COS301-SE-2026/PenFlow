@@ -14,7 +14,7 @@ router = APIRouter(prefix="/scans", tags=["Executive Summary"])
 async def get_scan_summary(
     scan_id: UUID,
     db: AsyncSession = Depends(get_db)
-)-> Any:
+) -> Any:
     """
     Generates the complete Executive Summary for a specific scan.
     Currently compiled blocks:
