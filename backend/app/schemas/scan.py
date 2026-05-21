@@ -1,4 +1,5 @@
-from datetime import datetime
+#I am just going to implement a rought draft so long until we get the worker logic figured out
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
@@ -16,16 +17,5 @@ class InitiateScanResponse(BaseModel):
 
 class ScanCallbackRequest(BaseModel):
     status: ScanStatus
+    results: dict[str, Any] | None = None
     error_message: str | None = None
-
-class ScanResponse(BaseModel):
-    id: UUID
-    domain: str
-    status: ScanStatus
-    progress: int
-    created_at: datetime
-    started_at: datetime | None = None
-    completed_at: datetime | None = None
-    error_message: str | None = None
-
-    model_config = ConfigDict(from_attributes=True)

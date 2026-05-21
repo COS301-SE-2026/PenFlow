@@ -1,5 +1,5 @@
 from typing import Any
-
+from pathlib import Path
 from app.queue.celery_app import celery_app
 from app.services.urlscan_service import (
     collect_raw_data,
@@ -16,6 +16,14 @@ def run_urlscan(scan_id: str, domain: str) -> JSONDict:
     normalized = normalize_data(raw_data)
     findings = generate_findings(normalized)
     reputation = normalized.get("reputation", {})
+
+    screenshot_path = reputation.get("screenshot_url")
+
+    if screenshot_path and screenshot_path != "default.png":
+        reputation["screenshot_path"] = Path(screenshot_path).as_uri()
+    else:
+        reputation["screenshot_path"] = "default.png"
+
     status = "failed" if "error" in reputation else "completed"
 
     return {

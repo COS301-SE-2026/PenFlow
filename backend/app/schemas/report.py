@@ -3,7 +3,7 @@ from enum import Enum
 from typing import List
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, EmailStr
 
 
 class SeverityEnum(str, Enum):
@@ -36,4 +36,11 @@ class ScanReportResponse(BaseModel):
     total_findings: int
     critical_count: int
     high_count: int
-    model_config = ConfigDict(from_attributes=True)
+
+class ReportCallbackRequest(BaseModel):
+    status: str
+    pdf_path: str | None = None
+    error_message: str | None = None
+
+class EmailReportRequest(BaseModel):
+    email: EmailStr

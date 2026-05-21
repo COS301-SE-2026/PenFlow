@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.scan_repo import ScanRepository  #type: ignore
 from app.schemas.scan import InitiateScanRequest
+from app.queue.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +23,11 @@ class ScanService:
 
         #fire off Celery task to the RabbitMQ queue
         try:
-            #trigger_osint_scan_task.delay(str(scan_record.id), scan_data.domain)
-            logger.info("Successfully queued OSINT worker for scan %s", scan_record.id)
+            task = celery_app.send_task(
+                "scan.full",
+                args=[str(scan_record.id), scan_data.domain],
+            )
+            logger.info("Queued OSINT worker task %s for scan %s", task.id, scan_record.id)
         except Exception:
             logger.exception("Failed to push task to queue for scan %s", scan_record.id)
 
