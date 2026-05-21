@@ -4,6 +4,7 @@ import httpx
 
 from app.tasks.hibp_tasks import run_hibp
 
+
 #live happy path
 @patch("app.services.hibp_service.httpx.Client.get")
 @patch("app.services.hibp_service.HIBP_API_KEY", "Real_Cos_301_FUN")

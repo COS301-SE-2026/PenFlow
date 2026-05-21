@@ -4,6 +4,7 @@ import httpx
 
 from app.tasks.urlscan_tasks import run_urlscan
 
+
 #Test happy path for our url loop
 @patch("app.services.urlscan_service._download_screenshot")
 @patch("app.services.urlscan_service.httpx.Client.get")
