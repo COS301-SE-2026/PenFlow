@@ -44,7 +44,7 @@ async def update_scan_status_callback(
                         scan_id=UUID(safe_id),
                         identifier=a["identifier"],
                         asset_type=a["asset_type"],
-                    ).on_conflict_do_nothing(constraint="uq_scan_identifier_type")
+                    ).on_conflict_do_nothing(index_elements=["scan_id", "identifier", "asset_type"])
                     await db.execute(stmt)
 
                 for f in subtask.get("findings", []):
