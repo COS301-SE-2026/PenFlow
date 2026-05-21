@@ -37,4 +37,5 @@ Thumbs.db
 .vscode/
 .idea/
 *.code-workspace
-.env
+
+generated_reports

@@ -4,7 +4,6 @@ import os
 import warnings
 from pathlib import Path
 
-from celery import shared_task
 from Wappalyzer import Wappalyzer, WebPage
 
 warnings.filterwarnings("ignore")
@@ -141,19 +140,3 @@ def generate_findings_and_assets(normalized_data: dict) -> tuple:
                 })
             
     return findings, assets
-
-#execution
-@shared_task(name="scan.wappalyzer")
-def run_wappalyzer(domain: str) -> dict:
-    raw_data = collect_raw_data(domain)
-    normalized = normalize_data(raw_data)
-    findings, assets = generate_findings_and_assets(normalized)
-    
-    return \
-    {
-        "source_name": "wappalyzer",
-        "status": "completed" if "error" not in normalized else "failed",
-        "raw_result": {"tech_stack": normalized},
-        "findings": findings,
-        "assets": assets
-    }

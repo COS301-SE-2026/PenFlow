@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 
 import httpx
-from celery import shared_task
 
 # Logger to track this specific worker
 logger = logging.getLogger(__name__)
@@ -84,9 +83,11 @@ def normalize_data(raw_data: dict) -> dict:
 
     return \
     {
+        "phishing_surface": {
             "provider": "Hunter.io",
-        "email_format_pattern": pattern,
-        "public_emails_found": formatted_emails
+            "email_format_pattern": pattern,
+            "public_emails_found": formatted_emails,
+        }
     }
 
 #analyze emails for potential risks and extract assets
@@ -97,7 +98,8 @@ def generate_findings_and_assets(normalized_data: dict) -> tuple:
     if "error" in normalized_data:
         return findings, assets
         
-    emails_found = normalized_data.get("public_emails_found", [])
+    phishing_surface = normalized_data.get("phishing_surface", {})
+    emails_found = phishing_surface.get("public_emails_found", [])
     
     for email_obj in emails_found:
         email_address = email_obj.get("email")
@@ -107,15 +109,15 @@ def generate_findings_and_assets(normalized_data: dict) -> tuple:
             assets.append(
             {
                 "asset_type": "email",
-                "value": email_address,
-                "source": "hunter"
+                "identifier": email_address,
+                "source": "hunter.io"
             })
             
     # If we found emails, flag it for the phishing simulation team
     if assets:
         findings.append(
         {
-            "source": "hunter",
+            "source": "hunter.io",
             "severity": "info",
             "title": f"Discovered {len(assets)} Public Email Addresses",
             "description": ("Publicly accessible email addresses were discovered for this domain."
@@ -123,24 +125,8 @@ def generate_findings_and_assets(normalized_data: dict) -> tuple:
             "recommendation": ("Ensure all staff undergo regular phishing awareness training "
             "and implement strict email filtering."),
             "evidence": {"email_count": len(assets), 
-            "pattern": normalized_data.get("email_format_pattern")}
+            "pattern": phishing_surface.get("email_format_pattern")}
         })
             
     return findings, assets
 
-
-#execution
-@shared_task(name="scan.hunter")
-def run_hunter(domain: str) -> dict:
-    raw_data = collect_raw_data(domain)
-    normalized = normalize_data(raw_data)
-    findings, assets = generate_findings_and_assets(normalized)
-    
-    return \
-    {
-        "source_name": "hunter",
-        "status": "completed" if "error" not in normalized else "failed",
-        "raw_result": normalized,
-        "findings": findings,
-        "assets": assets
-    }

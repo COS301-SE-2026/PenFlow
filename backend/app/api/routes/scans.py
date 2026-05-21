@@ -1,82 +1,63 @@
-#type: ignore
 
-import uuid
-from datetime import datetime, timezone
+import logging
+from typing import Any
+from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.base import ScanStatus
-from app.schemas.scan import InitiateScanRequest, InitiateScanResponse
+from app.repositories.report_repository import get_report_by_scan_id
+from app.repositories.scan_repo import ScanRepository
+from app.schemas.report import EmailReportRequest
+from app.schemas.scan import InitiateScanRequest, InitiateScanResponse, ScanHistoryItem
+from app.services.email_service import send_report_email
+from app.services.scan_service import ScanService
+from app.utils.db import get_db
 
-router= APIRouter(prefix="/scans",tags=["Scans"])
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/scans", tags=["Scans"])
+
+
+@router.get(
+    "/",
+    response_model=list[ScanHistoryItem],
+    status_code=status.HTTP_200_OK,
+)
+async def list_scans(db: AsyncSession = Depends(get_db)) -> list[dict[str, Any]]:
+    try:
+        return await ScanRepository.list_scans(db)
+    except Exception:
+        logger.exception("Failed to list scans")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve scan history",
+        )
 
 @router.post(
     "/",
     response_model=InitiateScanResponse,
-    status_code=status.HTTP_202_ACCEPTED
-
+    status_code=status.HTTP_202_ACCEPTED,
 )
 
 async def initiate_ctem_scan(
     request: InitiateScanRequest,
-    #db stuff 
-
-):
-
-#Phase 1 this is the no auth scan also just a rough implementation for now until we have the other
-#logic figured out
-
+    db: AsyncSession = Depends(get_db)
+) -> InitiateScanResponse:
     try:
-    #I'm going to pass the validated request to the service layer
-    #db stuff
-    #placeholder return
+        new_scan = await ScanService.start_scan(db, request)
 
         return InitiateScanResponse(
-            scan_id=uuid.uuid4(),
-            status=ScanStatus.QUEUED
-
+            scan_id=new_scan.id,
+            status=new_scan.status
         )
+
     except Exception:
-    #Once proper logic is setup I'll rather log this and return a 500/specific 400 code 
+        logger.exception("Failed to initiate scan for domain %s", request.domain)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to initiate scan"
+            detail="Failed to initiate scan",
         )
-
-
-@router.get(
-    "/{scan_id}/report",
-    status_code=status.HTTP_200_OK
-)
-async def get_scan_report(scan_id: str):
-    """
-    Retrieve full OSINT report for a specific scan.
-    Mock from frontend
-    """
-    return{
-        "scan_id": scan_id,
-        "domain": "jeandre.co",
-        "status": "completed",
-        "completed_at": datetime.now(timezone.utc).isoformat(),
-        "assets": [
-            {
-                "id": str(uuid.uuid4()),
-                "identifier": "jeandre.co",
-                "asset_type": "Domain",
-                "findings": [
-                    {
-                        "id": str(uuid.uuid4()),
-                        "title": "Missing DMARC",
-                        "severity": "Medium"
-                    }
-                ]
-            }
-        ],
-        "total_findings": 1,
-        "critical_count": 0,
-        "high_count": 0
-    }
-
 
 @router.get(
     "/{scan_id}/pdf",
@@ -88,7 +69,7 @@ async def get_scan_report(scan_id: str):
 async def download_scan_pdf(
     scan_id: str,
 
-):
+) -> Response:
 
     """
     Generate and download a branded PDF report for a completed scan.
@@ -105,3 +86,35 @@ async def download_scan_pdf(
             "Content-Disposition": f'attachment; filename="PenFlow_Report_{scan_id}.pdf"'
         }
     )
+
+
+@router.post(
+    "/{scan_id}/email-report",
+    status_code=status.HTTP_200_OK,
+    responses={
+        400: {"description": "Report is not ready yet"},
+        404: {"description": "Scan not found"},
+    },
+)
+async def email_scan_report(
+    scan_id: UUID,
+    request: EmailReportRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    scan = await ScanRepository.get_scan_by_id(db, scan_id)
+
+    if scan is None:
+        raise HTTPException(status_code=404, detail="Scan not found")
+
+    report = await get_report_by_scan_id(db, str(scan_id))
+
+    if not report or report.status.value != "completed" or not report.pdf_path:
+        raise HTTPException(status_code=400, detail="Report is not ready yet")
+
+    send_report_email(
+        to_email=request.email,
+        domain=str(scan.domain),
+        pdf_path=str(report.pdf_path),
+    )
+
+    return {"message": "Report emailed successfully"}

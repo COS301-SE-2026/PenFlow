@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from app.services.shodan_service import run_shodan
+from app.tasks.shodan_tasks import run_shodan
 
 
 #live happy path
@@ -12,26 +12,29 @@ def test_shodan_live_happy_path(mock_get, mock_socket):
     """Test that a real key triggers IP resolution and a live Shodan API request."""
     
     #fake the ip resolution
-    mock_socket.return_value = "151.101.130.49" #NOSONAR
+
+
+    TEST_IP = "151.101.130.49"
+
+    mock_socket.return_value = TEST_IP #NOSONAR
 
     #fake the live api response
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {
+        "ip_str": TEST_IP,
         "org": "Fastly, Inc.",
         "ports": [80, 443],
-        "data": [
-            {"port": 80, "transport": "tcp"},
-            {"port": 443, "transport": "tcp"}
-        ]
     }
     mock_get.return_value = mock_response
 
     #execution
-    result = run_shodan("acorns.com")
+    result = run_shodan("scan-123", "acorns.com")
 
     #assertions
     assert result["status"] == "completed"
+    assert result["scan_id"] == "scan-123"
+    assert result["source_name"] == "shodan"
     assert mock_get.called #proves it hit the internet
     assert mock_socket.called #proves it resolved the IP
     assert result["raw_result"]["infrastructure"]["hosting_provider"] == "Fastly, Inc."
@@ -53,10 +56,11 @@ def test_shodan_live_api_failure(mock_get, mock_socket):
     mock_get.side_effect = httpx.HTTPError("Shodan API Down")
     
     #execution
-    result = run_shodan("acorns.com")
+    result = run_shodan("scan-123", "acorns.com")
     
     #expect clean failure dict
     assert result["status"] == "failed"
+    assert result["scan_id"] == "scan-123"
     assert "error" in result["raw_result"]["infrastructure"]
 
 
@@ -69,12 +73,13 @@ def test_shodan_fallback_to_mock(mock_get, mock_socket):
     """Test that a fake key safely bypasses the internet and loads local mock data."""
     
     #execution
-    result = run_shodan("acorns.com")
+    result = run_shodan("scan-123", "acorns.com")
 
     #key is fake so it should never attempt a network request or DNS resolution
     assert not mock_get.called 
     assert not mock_socket.called
     assert result["status"] == "completed"
+    assert result["scan_id"] == "scan-123"
     
     #mock data should load safely
     assert "hosting_provider" in result["raw_result"]["infrastructure"]

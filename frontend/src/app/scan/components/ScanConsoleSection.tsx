@@ -7,7 +7,9 @@ import styles from "./ScanConsoleSection.module.css";
 import { validateDomain } from "@/lib/domainValidator";   
 import { postScanRequest } from "@/lib/scanService";  
 
-const SOURCES = ["crt.sh", "Shodan", "HaveIBeenPwned", "Wappalyser", "Normalising"];
+const LEFT_SOURCES  = ["Shodan", "HaveIBeenPwned", "URLScan.io", "Hunter.io"];
+const RIGHT_SOURCES = ["crt.sh", "WHOIS", "DNS"];
+const SOURCES = [...LEFT_SOURCES, ...RIGHT_SOURCES, "Normalising"];
 
 export default function ScanConsoleSection() {
   const [domain, setDomain] = useState("");
@@ -15,6 +17,7 @@ export default function ScanConsoleSection() {
   const [status, setStatus] = useState("Ready to scan");
   const [stepsDone, setStepsDone] = useState<boolean[]>(Array(SOURCES.length).fill(false));
   const [reportReady, setReportReady] = useState(false);
+  const [scanId, setScanId] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [sweeping, setSweeping] = useState(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -67,7 +70,8 @@ export default function ScanConsoleSection() {
     }
 
     try {
-      await postScanRequest(result.domain); //calls the backend api when validator is true
+      const { scan_id } = await postScanRequest(result.domain);
+      setScanId(scan_id);
       setSubmittedDomain(result.domain);
       startScanSequence(result.domain);
     } catch (err: unknown) {
@@ -77,8 +81,8 @@ export default function ScanConsoleSection() {
   };
 
   const handleViewReport = () => {
-    if (reportReady && submittedDomain) {
-      router.push("/report");
+    if (reportReady && scanId) {
+      router.push(`/report/${scanId}`);
     } else if (!submittedDomain) {
       setStatus("No report yet — run a scan first");
     } else {
@@ -112,11 +116,25 @@ export default function ScanConsoleSection() {
           </div>
 
           <div className={styles.processPanel}>
-            {SOURCES.map((source, i) => (
-              <span key={source} className={styles.processLabel} data-done={stepsDone[i]}>
-                {source}
-              </span>
-            ))}
+            <div className={styles.processCols}>
+              <div className={styles.processCol}>
+                {LEFT_SOURCES.map((source, i) => (
+                  <span key={source} className={styles.processLabel} data-done={stepsDone[i]}>
+                    {source}
+                  </span>
+                ))}
+              </div>
+              <div className={styles.processCol}>
+                {RIGHT_SOURCES.map((source, i) => (
+                  <span key={source} className={styles.processLabel} data-done={stepsDone[LEFT_SOURCES.length + i]}>
+                    {source}
+                  </span>
+                ))}
+                <span className={`${styles.processLabel} ${styles.normalisingLabel}`} data-done={stepsDone[SOURCES.length - 1]}>
+                  Normalising
+                </span>
+              </div>
+            </div>
             <Button
               type="button"
               variant="ghost"

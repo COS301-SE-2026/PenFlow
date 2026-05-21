@@ -1,13 +1,17 @@
-#type: ignore
 import asyncio
 import json
+import logging
+from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/ws", tags=["Realtime"])
 
+
 @router.websocket("/scans/{scan_id}/stream")
-async def scan_progress_stream(websocket: WebSocket, scan_id: str):
+async def scan_progress_stream(websocket: WebSocket, scan_id: str)-> Any:
     """
     WebSocket endpoint for real-time Phase 1 scan progress.
     The React frontend connects to this to update the UI loading bar.
@@ -36,4 +40,4 @@ async def scan_progress_stream(websocket: WebSocket, scan_id: str):
         await websocket.close()
 
     except WebSocketDisconnect:
-        print(f"Client dissconnected from scan stream: {scan_id}")
+        logger.info("Client disconnected from scan stream")
