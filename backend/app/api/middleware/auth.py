@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 KEYCLOAK_URL = os.getenv("KEYCLOAK_URL", "http://localhost:8080")
 REALM = os.getenv("KEYCLOAK_REALM", "penflow")
 JWKS_URL = f"{KEYCLOAK_URL}/realms/{REALM}/protocol/openid-connect/certs"
+ISSUER = f"{KEYCLOAK_URL}/realms/{REALM}"
+_JWKS_TIMEOUT = 10.0
 
 _jwks_cache: dict[str, Any] = {}
 
@@ -23,7 +25,7 @@ async def _get_jwks() -> dict[str, Any]:
     if _jwks_cache:
         return _jwks_cache
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=_JWKS_TIMEOUT) as client:
         res = await client.get(JWKS_URL)
         res.raise_for_status()
         _jwks_cache.update(res.json())
@@ -65,6 +67,7 @@ async def get_current_user(
             token,
             rsa_key,
             algorithms=["RS256"],
+            issuer=ISSUER,
             options={"verify_aud": False},
         )
         return payload
