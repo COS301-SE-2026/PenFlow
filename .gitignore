@@ -41,3 +41,5 @@ Thumbs.db
 
 # Generated at container startup — never commit; secret comes from env var
 docker/keycloak/penflow-realm.json
+
+generated_reports

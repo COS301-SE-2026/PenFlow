@@ -1,0 +1,340 @@
+/* Page wrapper — mirrors .landing padding */
+.reportPage {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-left: 130px;
+  background: var(--col-navy);
+}
+
+/* ── Hero (white section + waves, same pattern as home) ── */
+.hero {
+  background: #ffffff;
+  position: relative;
+}
+
+.heroTextWrap {
+  padding: 48px 60px 0;
+}
+
+.heroTextWrap h1 {
+  margin: 0;
+  font-size: clamp(3rem, 7vw, 8rem);
+  line-height: 0.92;
+  color: #0a1628;
+  text-align: right;
+}
+
+.heroDomain {
+  margin: 8px 0 0;
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: clamp(2.1rem, 4.5vw, 3.75rem);
+  letter-spacing: 0.06em;
+  color: #0a1628;
+  text-align: center;
+  transform: translateX(230px);
+}
+
+.waterline {
+  position: relative;
+  height: 200px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.submarine {
+  position: absolute;
+  left: 0;
+  bottom: 18px;
+  z-index: 5;
+  width: clamp(182px, 22vw, 280px);
+  height: auto;
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.45));
+}
+
+/* ── Content area ── */
+.content {
+  flex: 1;
+  padding: 48px 60px;
+  margin-top: -60px;
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 920px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.domainHeading {
+  margin: 0;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  color: var(--col-text);
+  letter-spacing: 0.06em;
+}
+
+/* ── Cards ── */
+.grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+}
+
+.card {
+  background: var(--col-deep);
+  border: 1px solid var(--col-edge);
+  border-radius: 14px;
+  padding: 28px 32px;
+}
+
+.cardLabel {
+  display: block;
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 1.44rem;
+  letter-spacing: 0.1em;
+  color: #ffffff;
+  margin: 0 0 18px;
+}
+
+/* ── Exposed assets list ── */
+.assetRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--col-edge);
+}
+
+.assetRow:last-child {
+  border-bottom: none;
+}
+
+.assetLabel {
+  font-family: var(--font-display), sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  color: var(--col-muted);
+}
+
+.assetCount {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.2rem;
+  color: var(--col-cyan);
+  letter-spacing: 0.04em;
+}
+
+/* ── Top risk category ── */
+.riskCategory {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.07em;
+  color: var(--col-text);
+  background: rgba(43, 180, 220, 0.06);
+  border: 1px solid var(--col-edge);
+  border-radius: 8px;
+  padding: 14px 20px;
+}
+
+/* ── Findings table ── */
+.findingsTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.findingsTable th {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--col-muted);
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--col-edge);
+}
+
+.findingsTable td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(43, 180, 220, 0.08);
+  color: var(--col-text);
+  font-size: 0.82rem;
+  vertical-align: middle;
+}
+
+.findingsTable tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Severity badge ── */
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 4px;
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+  color: #0a1628;
+}
+
+/* ── Asset identifier cell ── */
+.assetLink {
+  color: var(--col-cyan);
+  font-family: monospace;
+  font-size: 0.78rem;
+}
+
+/* ── Shared text helpers ── */
+.emptyText {
+  color: var(--col-muted);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.mutedText {
+  color: var(--col-muted);
+  font-size: 0.78rem;
+}
+
+/* ── Bottom bar ── */
+.bottomBar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.emailRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 280px;
+}
+
+.emailInput {
+  flex: 1;
+  height: 48px !important;
+  border-radius: 100px !important;
+  border-color: var(--col-cyan) !important;
+  background: rgba(6, 14, 28, 0.6) !important;
+  color: var(--col-text) !important;
+  padding: 0 22px !important;
+  font-family: var(--font-body), sans-serif !important;
+  font-size: 0.9rem !important;
+}
+
+.emailInput::placeholder {
+  color: var(--col-text) !important;
+}
+
+.emailInput:focus-visible {
+  border-color: var(--col-success) !important;
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.18) !important;
+}
+
+.sendBtn {
+  flex-shrink: 0;
+  font-family: var(--font-display), Impact, sans-serif;
+  letter-spacing: 0.08em;
+  font-size: 0.85rem;
+  background: rgba(9, 22, 40, 0.9);
+  border: 1px solid var(--col-edge-hot);
+  color: var(--col-cyan);
+  padding: 0 32px;
+  height: 48px;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: background 200ms, border-color 200ms, box-shadow 200ms;
+  white-space: nowrap;
+}
+
+.sendBtn:hover:not(:disabled) {
+  background: rgba(43, 216, 245, 0.1);
+  border-color: var(--col-cyan);
+  box-shadow: 0 0 20px rgba(43, 216, 245, 0.15);
+}
+
+.sendBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sendBtnActive {
+  background: var(--col-success) !important;
+  border-color: var(--col-success) !important;
+  color: #0a1628 !important;
+  box-shadow: 0 0 18px rgba(74, 222, 128, 0.45);
+}
+
+/* ── Download button ── */
+.downloadBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display), Impact, sans-serif;
+  letter-spacing: 0.08em;
+  font-size: 0.85rem;
+  background: linear-gradient(135deg, rgba(255, 95, 78, 0.2), rgba(240, 128, 48, 0.15));
+  border: 1px solid rgba(255, 95, 78, 0.45);
+  color: var(--col-text);
+  padding: 12px 28px;
+  border-radius: 14px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 200ms, border-color 200ms, box-shadow 200ms;
+}
+
+.downloadBtn:hover {
+  background: linear-gradient(135deg, rgba(255, 95, 78, 0.35), rgba(240, 128, 48, 0.28));
+  border-color: rgba(255, 95, 78, 0.75);
+}
+
+.downloadBtnDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Loading / error states ── */
+.stateWrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 60vh;
+}
+
+.stateText {
+  font-family: var(--font-display), Impact, sans-serif;
+  letter-spacing: 0.1em;
+  font-size: 1.2rem;
+  color: var(--col-muted);
+  margin: 0;
+}
+
+.errorText {
+  color: var(--col-alert);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .reportPage {
+    padding-left: 0;
+    padding-top: 60px;
+  }
+
+  .heroTextWrap {
+    padding: 32px 20px 0;
+  }
+
+  .content {
+    padding: 32px 20px;
+  }
+
+  .grid2 {
+    grid-template-columns: 1fr;
+  }
+}

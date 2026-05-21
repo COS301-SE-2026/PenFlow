@@ -5,10 +5,10 @@ import time
 from pathlib import Path
 
 import httpx
-from celery import shared_task
 
 # Logger to track this specific worker
 logger = logging.getLogger(__name__)
+DEFAULT_SCREENSHOT = "default.png"
 
 #scan mode between live and mock
 SCAN_MODE = os.getenv("SCAN_MODE", "MOCK").upper()
@@ -16,24 +16,29 @@ URLSCAN_API_KEY = os.getenv("URLSCAN_API_KEY", "fake_key_1234")
 
 WORKERS_ROOT = Path(__file__).resolve().parent.parent.parent
 
-TEMPLATES_DIR = WORKERS_ROOT.parent / "backend" / "app" / "templates"
+SCREENSHOT_OUTPUT_DIR = Path(
+    os.getenv("SCREENSHOT_OUTPUT_DIR", "/app/generated_reports/screenshots")
+)
+
 
 #so we can display screen shot
 def _download_screenshot(image_url: str, target_filename: str) -> str:
     """Downloads an image from the web and saves it to the shared templates folder."""
     try:
         logger.info(f"Downloading live screenshot from: {image_url}")
-        TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
+
+        SCREENSHOT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        save_path = SCREENSHOT_OUTPUT_DIR / target_filename
+
         response = httpx.get(image_url, timeout=15.0)
         response.raise_for_status()
 
         # Save it directly where the PDF engine expects to find it
-        save_path = TEMPLATES_DIR / target_filename
         with open(save_path, "wb") as f:
             f.write(response.content)
 
-        logger.info(f"Screenshot saved successfully as: {target_filename}")
-        return target_filename
+        logger.info(f"Screenshot saved successfully as: {save_path}")
+        return str(save_path)
     except Exception as e:
         logger.exception(f"X Failed to download screenshot: {e}")
 
@@ -126,7 +131,16 @@ def normalize_data(raw_data: dict) -> dict:
     """
 
     if "error" in raw_data:
-        return {"provider": "URLScan", "error": raw_data["error"]}
+        return {
+            "reputation": {
+                "provider": "URLScan",
+                "malicious_flags": 0,
+                "urlscan_uuid": "Unknown",
+                "screenshot_url": DEFAULT_SCREENSHOT,
+                "error": raw_data["error"],
+            }
+        }
+
     logger.info("Normalizing URLScan data (Production Mode):")
 
     is_live_data = "verdicts" in raw_data
@@ -136,24 +150,30 @@ def normalize_data(raw_data: dict) -> dict:
         # Extract from URLScan's actual JSON structure
         is_malicious = raw_data.get("verdicts", {}).get("overall", {}).get("malicious", False)
         return {
-            "provider": "URLScan",
-            "malicious_flags": 1 if is_malicious else 0,
-            "urlscan_uuid": raw_data.get("task", {}).get("uuid", "Unknown"),
-            "screenshot_url": raw_data.get("_local_screenshot_path", "default.png")
+            "reputation":{
+                "provider": "URLScan",
+                "malicious_flags": 1 if is_malicious else 0,
+                "urlscan_uuid": raw_data.get("task", {}).get("uuid", "Unknown"),
+                "screenshot_url": raw_data.get("_local_screenshot_path", DEFAULT_SCREENSHOT)
+            }
         }
     else:
         # Extract from our flat Mock JSON structure
         return {
-            "provider": raw_data.get("provider", "URLScan"),
-            "malicious_flags": raw_data.get("malicious_flags", 0),
-            "urlscan_uuid": raw_data.get("urlscan_uuid", "Unknown"),
-            "screenshot_url": raw_data.get("screenshot_url", "default.png")
+            "reputation":{
+                "provider": raw_data.get("provider", "URLScan"),
+                "malicious_flags": raw_data.get("malicious_flags", 0),
+                "urlscan_uuid": raw_data.get("urlscan_uuid", "Unknown"),
+                "screenshot_url": raw_data.get("screenshot_url", DEFAULT_SCREENSHOT)
+            }
+
         }
 
 #findings
 def generate_findings(normalized_data: dict) -> list:
     findings = []
-    if normalized_data.get("malicious_flags", 0) > 0:
+    reputation = normalized_data.get("reputation", {})
+    if reputation.get("malicious_flags", 0) > 0:
         findings.append({
             "source": "urlscan",
             "severity": "high",
@@ -165,19 +185,3 @@ def generate_findings(normalized_data: dict) -> list:
             "evidence": normalized_data
         })
     return findings    
-
-#execution
-@shared_task(name="scan.urlscan")
-def run_urlscan(domain: str) -> dict:
-    raw_data = collect_raw_data(domain)
-    normalized = normalize_data(raw_data)
-    findings = generate_findings(normalized)
-
-    return \
-    {
-        "source_name": "urlscan",
-        "status": "completed" if "error" not in normalized else "failed",
-        "raw_result": {"reputation": normalized},
-        "findings": findings,
-        "assets": []
-    }

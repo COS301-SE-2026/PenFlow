@@ -136,5 +136,79 @@
     "provider": "HaveIBeenPwned",
     "pwned_accounts_count": 0,
     "known_breaches": []
+  },
+
+  "domain_security": 
+  {
+    "provider": "DNS/RDAP",
+    "records": 
+    [
+      {
+        "record_type": "MX",
+        "status": "Pass",
+        "finding": "MX records are configured for this domain."
+      },
+      {
+        "record_type": "SPF",
+        "status": "Pass",
+        "finding": "SPF record is present and uses a hard fail policy."
+      },
+      {
+        "record_type": "DMARC",
+        "status": "Pass",
+        "finding": "DMARC record is present and uses a reject policy."
+      },
+      {
+        "record_type": "WHOIS/RDAP",
+        "status": "Pass",
+        "finding": "WHOIS/RDAP registration data was available for this domain."
+      }
+    ],
+
+    "whois": 
+    {
+      "provider": "RDAP",
+      "registrar": "Cloudflare, Inc.",
+      "registration_date": "2007-11-26T19:45:36Z",
+      "expiration_date": "2026-11-26T19:45:36Z",
+      "dnssec_enabled": true,
+      "nameservers": 
+      [
+        "A.NS.HACKERONE.COM",
+        "B.NS.HACKERONE.COM"
+      ],
+      "status": 
+      [
+        "client transfer prohibited",
+        "server transfer prohibited"
+      ]
+    },
+    
+    "detected_services": 
+    [ 
+      "Adobe", 
+      "Anthropic", 
+      "Apple", 
+      "Atlassian", 
+      "Box", 
+      "Canva", 
+      "Citrix", 
+      "Clayton", 
+      "Cloudpiercer", 
+      "Drift", 
+      "Ethiack", 
+      "Facebook", 
+      "Google", 
+      "H1", 
+      "Jetbrains", 
+      "Monday", 
+      "Onetrust", 
+      "Openai", 
+      "Protonmail", 
+      "Slack", 
+      "Stripe", 
+      "Wework", 
+      "Zapier" 
+    ]
   }
 }

@@ -34,6 +34,7 @@ coverage.xml
 
 tests/e2e/videos/
 tests/e2e/screenshots/
+generated_reports/
 
 .git/
 .gitignore

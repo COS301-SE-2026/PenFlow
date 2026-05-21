@@ -7,8 +7,25 @@ ENV PYTHONUNBUFFERED=1
 
 COPY workers/requirements.txt ./requirements.txt
 
-RUN pip install --no-cache-dir --upgrade pip \ 
-&& pip install --no-cache-dir -r requirements.txt
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libharfbuzz0b \
+    libffi-dev \
+    libjpeg62-turbo \
+    libopenjp2-7 \
+    libgdk-pixbuf-2.0-0 \
+    libglib2.0-0 \
+    shared-mime-info \
+    fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip uv
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --system \
+    -r requirements.txt
 
 FROM python:3.12-slim AS runner
 
@@ -17,12 +34,27 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libharfbuzz0b \
+    libffi-dev \
+    libjpeg62-turbo \
+    libopenjp2-7 \
+    libgdk-pixbuf-2.0-0 \
+    libglib2.0-0 \
+    shared-mime-info \
+    fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=deps /usr/local /usr/local
 COPY workers/app ./app
+COPY workers/docs ./docs
 
 RUN adduser --disabled-password --gecos "" appuser && \
+    mkdir -p /app/generated_reports && \
     chown -R appuser:appuser /app
 
 USER appuser
 
-CMD ["celery", "-A", "app.queue.celery_app:celery_app", "worker", "--loglevel=info"]
+CMD ["celery", "-A", "app.queue.celery_app:celery_app", "worker", "--loglevel=info", "--concurrency=7"]

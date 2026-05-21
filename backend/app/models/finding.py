@@ -1,4 +1,3 @@
-#type: ignore
 import uuid
 from datetime import datetime, timezone
 
@@ -17,10 +16,15 @@ class Finding(Base):
     index=True)
     asset_id = Column(UUID(as_uuid=True), ForeignKey("assets.id", ondelete="SET NULL"), index=True)
     source = Column(String(100), nullable=False) #expl HaveIBeenPwned
-    severity = Column(Enum(Severity), nullable=False, index=True)
+    severity = Column(
+        Enum(Severity, values_callable=lambda enum: [item.value for item in enum],
+             name="finding_severity"),
+        nullable=False,
+        index=True,
+    )
     title = Column(String(255), nullable=False)
     description = Column(Text)
-    recommedendation = Column(Text)
+    recommendation = Column(Text)
     evidence = Column(JSONB)
     created_at = Column(DateTime(timezone=True), nullable=False,
     default=lambda: datetime.now(timezone.utc))

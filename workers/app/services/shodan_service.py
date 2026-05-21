@@ -7,7 +7,6 @@ import socket
 from pathlib import Path
 
 import httpx
-from celery import shared_task
 
 #Logger to tell us this file was in error
 logger = logging.getLogger(__name__)
@@ -71,7 +70,7 @@ def collect_raw_data(domain: str) -> dict:
             res = client.get(url, timeout=15.0)
             if res.status_code == 404:
                 logger.info(f"[Shodan] No infrastructure data found on Shodan for {target_ip}")
-                return {"ipStr": target_ip, "ports": [], "org": "Unknown"}
+                return {"ip_str": target_ip, "ports": [], "org": "Unknown"}
             res.raise_for_status()
             return res.json()
         except httpx.HTTPError as e:
@@ -114,7 +113,7 @@ def generate_findings_and_assets(normalized_data: dict) -> tuple:
         assets.append(
         {
             "asset_type": "ip_address",
-            "value": ip_obj["ip_str"],
+            "identifier": ip_obj["ip_str"],
             "source": "shodan"
         })
 
@@ -146,19 +145,3 @@ def generate_findings_and_assets(normalized_data: dict) -> tuple:
             })
 
     return findings, assets
-
-#execution
-@shared_task(name="scan.shodan")
-def run_shodan(domain: str) -> dict:
-    raw_data = collect_raw_data(domain)
-    normalized = normalize_data(raw_data)
-    findings, assets = generate_findings_and_assets(normalized)
-
-    return \
-    {
-        "source_name": "shodan",
-        "status": "completed" if "error" not in normalized else "failed",
-        "raw_result": {"infrastructure": normalized},
-        "findings": findings,
-        "assets": assets
-    }
