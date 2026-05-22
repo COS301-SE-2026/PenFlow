@@ -1,10 +1,10 @@
 <mxfile host="Electron" pages="9">
-  <diagram name="Copy of Architecture" id="VN4cfk-qMCUa_dB0O0OE">
-    <mxGraphModel dx="3260" dy="1206" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#F8F9FA" math="0" shadow="0">
+  <diagram name="Architecture" id="xc2N0BSMwmgfor-Udmmb">
+    <mxGraphModel dx="3121" dy="1080" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#F8F9FA" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#2C3E50;" value="High-Level System Architecture" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=20;fontStyle=1;fontColor=#2C3E50;" value="High-Level Logical System Architecture" vertex="1">
           <mxGeometry height="28" width="500" x="352" y="261" as="geometry" />
         </mxCell>
         <mxCell id="HslSJj7kDVjQqgx8sG7l-2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#8E44AD;strokeWidth=2;dashed=1;verticalAlign=top;fontStyle=1;fontSize=13;fontColor=#8E44AD;align=left;spacingLeft=10;spacingTop=2;arcSize=23;" value="Presentation Layer" vertex="1">
@@ -13,7 +13,7 @@
         <mxCell id="HslSJj7kDVjQqgx8sG7l-3" parent="HslSJj7kDVjQqgx8sG7l-2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8E44AD;fontColor=#ffffff;strokeColor=none;fontSize=11;aspect=fixed;shadow=1;" value="Security Analyst&lt;br&gt;Interface" vertex="1">
           <mxGeometry height="50" width="150" x="17.08" y="27.5" as="geometry" />
         </mxCell>
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-4" parent="HslSJj7kDVjQqgx8sG7l-2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8E44AD;fontColor=#ffffff;strokeColor=none;fontSize=11;aspect=fixed;shadow=1;" value="Next.js Client&lt;br&gt;Frontend" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-4" parent="HslSJj7kDVjQqgx8sG7l-2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8E44AD;fontColor=#ffffff;strokeColor=none;fontSize=11;aspect=fixed;shadow=1;" value="Web Client&lt;br&gt;Frontend" vertex="1">
           <mxGeometry height="50" width="150" x="367" y="25" as="geometry" />
         </mxCell>
         <mxCell id="HslSJj7kDVjQqgx8sG7l-5" parent="HslSJj7kDVjQqgx8sG7l-2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#8E44AD;fontColor=#ffffff;strokeColor=none;fontSize=11;aspect=fixed;shadow=1;" value="Admin / Settings&lt;br&gt;Dashboard" vertex="1">
@@ -28,13 +28,13 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#34495E;fontColor=#ffffff;strokeColor=none;fontSize=11;fontStyle=1;aspect=fixed;shadow=1;" value="AWS API Gateway /&lt;br&gt;Load Balancer" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#34495E;fontColor=#ffffff;strokeColor=none;fontSize=11;fontStyle=1;aspect=fixed;shadow=1;" value="API Gateway /&lt;br&gt;Load Balancer" vertex="1">
           <mxGeometry height="50" width="200" x="96.00000000000006" y="393" as="geometry" />
         </mxCell>
         <mxCell id="HslSJj7kDVjQqgx8sG7l-7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#2980B9;strokeWidth=2;dashed=1;verticalAlign=top;fontStyle=1;fontSize=13;fontColor=#2980B9;align=left;spacingLeft=10;spacingTop=2;" value="&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;API Application Tier" vertex="1">
           <mxGeometry height="370" width="430" x="562" y="447" as="geometry" />
         </mxCell>
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-8" parent="HslSJj7kDVjQqgx8sG7l-7" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2980B9;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="FastAPI Router &amp;amp;&lt;br&gt;Validation Layer" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-8" parent="HslSJj7kDVjQqgx8sG7l-7" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2980B9;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="Request Routing &amp;amp;&lt;br&gt;Validation Layer" vertex="1">
           <mxGeometry height="50" width="150" x="40.58" y="43.43" as="geometry" />
         </mxCell>
         <mxCell id="HslSJj7kDVjQqgx8sG7l-9" parent="HslSJj7kDVjQqgx8sG7l-7" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2980B9;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="OSINT Domain Logic Layer" vertex="1">
@@ -43,10 +43,10 @@
         <mxCell id="HslSJj7kDVjQqgx8sG7l-10" parent="HslSJj7kDVjQqgx8sG7l-7" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2980B9;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="State Management Layer" vertex="1">
           <mxGeometry height="50" width="150" x="99.99" y="206" as="geometry" />
         </mxCell>
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-11" parent="HslSJj7kDVjQqgx8sG7l-7" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2980B9;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="SQLAlchemy Repo Layer" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-11" parent="HslSJj7kDVjQqgx8sG7l-7" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2980B9;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="Data Repository Layer" vertex="1">
           <mxGeometry height="50" width="150" x="40.58" y="285.99" as="geometry" />
         </mxCell>
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-12" parent="HslSJj7kDVjQqgx8sG7l-7" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2980B9;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="JWT Verification&lt;br&gt;Middleware" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-12" parent="HslSJj7kDVjQqgx8sG7l-7" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#2980B9;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="Token Verification&lt;br&gt;Middleware" vertex="1">
           <mxGeometry height="50" width="150" x="250" y="43" as="geometry" />
         </mxCell>
         <mxCell id="KtHI0TU-w5p3qW_d6ZWZ-5" edge="1" parent="HslSJj7kDVjQqgx8sG7l-7" source="HslSJj7kDVjQqgx8sG7l-8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#34495E;strokeWidth=1.5;endArrow=classic;" target="HslSJj7kDVjQqgx8sG7l-12">
@@ -81,46 +81,46 @@
         <mxCell id="HslSJj7kDVjQqgx8sG7l-13" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#E67E22;strokeWidth=2;dashed=1;verticalAlign=top;fontStyle=1;fontSize=13;fontColor=#E67E22;align=left;spacingLeft=10;spacingTop=2;" value="Event Broker Tier" vertex="1">
           <mxGeometry height="270" width="180" x="196.05999999999995" y="641" as="geometry" />
         </mxCell>
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-14" parent="HslSJj7kDVjQqgx8sG7l-13" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E67E22;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="RabbitMQ: Scan Queue" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-14" parent="HslSJj7kDVjQqgx8sG7l-13" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E67E22;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="Message Broker:&lt;br&gt;Scan Queue" vertex="1">
           <mxGeometry height="50" width="150" x="20.79" y="53.99" as="geometry" />
         </mxCell>
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-15" parent="HslSJj7kDVjQqgx8sG7l-13" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E67E22;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="RabbitMQ: Report Queue" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-15" parent="HslSJj7kDVjQqgx8sG7l-13" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E67E22;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="Message Broker:&lt;br&gt;Report Queue" vertex="1">
           <mxGeometry height="50" width="150" x="20.79" y="123.49" as="geometry" />
         </mxCell>
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-16" parent="HslSJj7kDVjQqgx8sG7l-13" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#E67E22;fontColor=#ffffff;strokeColor=none;fontSize=10;size=8;aspect=fixed;shadow=1;" value="Redis Broker&lt;br&gt;State (Temporary)" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-16" parent="HslSJj7kDVjQqgx8sG7l-13" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#E67E22;fontColor=#ffffff;strokeColor=none;fontSize=10;size=8;aspect=fixed;shadow=1;" value="In-Memory Broker&lt;br&gt;State (Temporary)" vertex="1">
           <mxGeometry height="50" width="150" x="20.79" y="199.99" as="geometry" />
         </mxCell>
         <mxCell id="HslSJj7kDVjQqgx8sG7l-17" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#27AE60;strokeWidth=2;dashed=1;verticalAlign=top;fontStyle=1;fontSize=13;fontColor=#27AE60;align=left;spacingLeft=10;spacingTop=2;" value="Data Tier" vertex="1">
           <mxGeometry height="200" width="340" x="602" y="948" as="geometry" />
         </mxCell>
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-18" parent="HslSJj7kDVjQqgx8sG7l-17" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#27AE60;fontColor=#ffffff;strokeColor=none;fontSize=10;size=8;aspect=fixed;shadow=1;" value="PostgreSQL 16&lt;br&gt;Database" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-18" parent="HslSJj7kDVjQqgx8sG7l-17" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#27AE60;fontColor=#ffffff;strokeColor=none;fontSize=10;size=8;aspect=fixed;shadow=1;" value="Relational&lt;br&gt;Database" vertex="1">
           <mxGeometry height="50" width="150" x="20" y="25" as="geometry" />
         </mxCell>
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-19" parent="HslSJj7kDVjQqgx8sG7l-17" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#27AE60;fontColor=#ffffff;strokeColor=none;fontSize=10;size=8;aspect=fixed;shadow=1;" value="Redis&lt;br&gt;(WebSockets/State)" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-19" parent="HslSJj7kDVjQqgx8sG7l-17" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#27AE60;fontColor=#ffffff;strokeColor=none;fontSize=10;size=8;aspect=fixed;shadow=1;" value="In-Memory Cache&lt;br&gt;(WebSockets/State)" vertex="1">
           <mxGeometry height="50" width="150" x="170" y="75" as="geometry" />
         </mxCell>
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-20" parent="HslSJj7kDVjQqgx8sG7l-17" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#27AE60;fontColor=#ffffff;strokeColor=none;fontSize=10;size=8;aspect=fixed;shadow=1;" value="AWS S3&lt;br&gt;Object Storage" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-20" parent="HslSJj7kDVjQqgx8sG7l-17" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;fillColor=#27AE60;fontColor=#ffffff;strokeColor=none;fontSize=10;size=8;aspect=fixed;shadow=1;" value="Blob / Object&lt;br&gt;Storage" vertex="1">
           <mxGeometry height="50" width="150" x="20" y="135" as="geometry" />
         </mxCell>
         <mxCell id="HslSJj7kDVjQqgx8sG7l-21" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#16A085;strokeWidth=2;dashed=1;verticalAlign=top;fontStyle=1;fontSize=13;fontColor=#16A085;align=left;spacingLeft=10;spacingTop=2;" value="Async Service Tier" vertex="1">
           <mxGeometry height="180" width="230" x="181.05999999999995" y="921" as="geometry" />
         </mxCell>
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-22" parent="HslSJj7kDVjQqgx8sG7l-21" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#16A085;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="Celery OSINT Worker&lt;br&gt;(Adapter &amp;amp; Retry Logic)" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-22" parent="HslSJj7kDVjQqgx8sG7l-21" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#16A085;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="Background OSINT Worker&lt;br&gt;(Adapter &amp;amp; Retry Logic)" vertex="1">
           <mxGeometry height="50" width="200" x="16.22" y="35" as="geometry" />
         </mxCell>
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-23" parent="HslSJj7kDVjQqgx8sG7l-21" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#16A085;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="PDF Generation Worker&lt;br&gt;(Report Compilation)" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-23" parent="HslSJj7kDVjQqgx8sG7l-21" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#16A085;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="Report Generation Worker&lt;br&gt;(Compilation)" vertex="1">
           <mxGeometry height="50" width="200" x="16.22" y="113" as="geometry" />
         </mxCell>
         <mxCell id="HslSJj7kDVjQqgx8sG7l-24" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#C0392B;strokeWidth=2;dashed=1;verticalAlign=top;fontStyle=1;fontSize=13;fontColor=#C0392B;align=left;spacingLeft=10;spacingTop=2;" value="External Systems" vertex="1">
           <mxGeometry height="270" width="180" x="1209" y="451" as="geometry" />
         </mxCell>
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-25" parent="HslSJj7kDVjQqgx8sG7l-24" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C0392B;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="Hunter.io / crt.sh APIs" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-25" parent="HslSJj7kDVjQqgx8sG7l-24" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C0392B;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="Domain Enrichment APIs" vertex="1">
           <mxGeometry height="50" width="150" x="15" y="119.77" as="geometry" />
         </mxCell>
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-26" parent="HslSJj7kDVjQqgx8sG7l-24" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C0392B;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="Auth0 Identity Provider" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-26" parent="HslSJj7kDVjQqgx8sG7l-24" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C0392B;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="External Identity Provider" vertex="1">
           <mxGeometry height="50" width="150" x="15" y="38" as="geometry" />
         </mxCell>
-        <mxCell id="HslSJj7kDVjQqgx8sG7l-27" parent="HslSJj7kDVjQqgx8sG7l-24" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C0392B;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="Shodan REST API" vertex="1">
+        <mxCell id="HslSJj7kDVjQqgx8sG7l-27" parent="HslSJj7kDVjQqgx8sG7l-24" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C0392B;fontColor=#ffffff;strokeColor=none;fontSize=10;aspect=fixed;shadow=1;" value="Network Intelligence API" vertex="1">
           <mxGeometry height="50" width="150" x="15" y="202.5" as="geometry" />
         </mxCell>
         <mxCell id="HslSJj7kDVjQqgx8sG7l-49" edge="1" parent="1" source="HslSJj7kDVjQqgx8sG7l-3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#34495E;strokeWidth=1.5;endArrow=classic;entryX=0.507;entryY=0.986;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.89;exitY=0.008;exitDx=0;exitDy=0;exitPerimeter=0;" target="HslSJj7kDVjQqgx8sG7l-6">
@@ -287,8 +287,8 @@
       </root>
     </mxGraphModel>
   </diagram>
-  <diagram name="Copy of API gateway" id="TZwpxuosOZaQNW018IPH">
-    <mxGraphModel dx="1627" dy="938" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#FFFFFF" math="0" shadow="0">
+  <diagram name="API gateway" id="TZwpxuosOZaQNW018IPH">
+    <mxGraphModel dx="1464" dy="810" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#FFFFFF" math="0" shadow="0">
       <root>
         <mxCell id="KiCFG-DJ72nKgVMDIuYN-0" />
         <mxCell id="KiCFG-DJ72nKgVMDIuYN-1" parent="KiCFG-DJ72nKgVMDIuYN-0" />

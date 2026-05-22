@@ -82,7 +82,7 @@ PenFlow is a **layered modular monolith** with an **event-driven orchestration l
 - **Auth:** Auth0 (JWT + RBAC)
 
 ### High-Level System Architecture
-<img src="docs/images/Architecture%20Diagram.png" alt="High-Level System Architecture" width="100%" />
+<img src="docs/Architecture/images/Architecture Diagram.jpg" alt="High-Level System Architecture" width="100%" />
 
 ### Documentation
 - **Software Architecture (Demo 1):** `docs/architecture.md`
@@ -105,73 +105,6 @@ PenFlow is a **layered modular monolith** with an **event-driven orchestration l
 | CI/CD | GitHub Actions |
 | Testing | PyTest, Jest, Cypress |
 
----
-
-## Getting Started (Local)
-
-> These commands assume you have **Docker** installed.
-
-### 1) Configure environment
-Create a `.env` in the repo root:
-
-```env
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=penflow
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-
-REDIS_URL=redis://localhost:6379/0
-RABBITMQ_URL=amqp://guest:guest@localhost:5672//
-
-AUTH0_DOMAIN=your-domain
-AUTH0_AUDIENCE=your-audience
-AUTH0_ISSUER=your-issuer
-
-AWS_REGION=your-region
-AWS_S3_BUCKET=your-bucket
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-```
-
-### 2) Start infrastructure
-```bash
-docker compose up -d postgres redis rabbitmq
-```
-
-### 3) Run API
-```bash
-cd backend
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-
-### 4) Run worker
-```bash
-cd workers
-source .venv/bin/activate
-celery -A app.celery_app worker --loglevel=INFO
-```
-
-### 5) Run frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
----
-
-## Demo 1 Definition of Done
-
-- [ ] Start CTEM scan from UI
-- [ ] API returns immediately (202) and scan continues asynchronously
-- [ ] Worker pulls scan job from RabbitMQ
-- [ ] Progress updates visible in UI (Redis + WebSockets)
-- [ ] Findings persisted (PostgreSQL)
-- [ ] Report stored and downloadable (S3)
 
 ---
 
