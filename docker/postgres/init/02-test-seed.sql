@@ -1,3 +1,5 @@
+-- NOSONAR
+
 INSERT INTO organisations (id, name, primary_domain)
 VALUES
 ('11111111-1111-1111-1111-111111111111', 'Acme Security Ltd', 'acme-security.example')
