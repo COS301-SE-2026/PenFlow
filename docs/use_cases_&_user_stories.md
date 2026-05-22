@@ -19,14 +19,7 @@ An actor denotes a business role played by (and on the behalf of) a set of busin
 
 ---
 
-## 2. Use Case Diagram
-The diagram below illustrates the system boundaries and the relationships between our actors and their respective business processes.
-
-![PenFlow Use Case Diagram](./use_cases.png)
-
----
-
-## 3. Use Case Specifications
+## 2. Use Case Specifications
 
 ### UC-01: Initiate OSINT Scan
 **Actor(s):** PenFlow User
