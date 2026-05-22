@@ -1,9 +1,11 @@
 
 import logging
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.report_repository import get_report_by_scan_id
@@ -59,33 +61,45 @@ async def initiate_ctem_scan(
             detail="Failed to initiate scan",
         )
 
+
 @router.get(
     "/{scan_id}/pdf",
-    response_class=Response,
-    status_code=status.HTTP_200_OK
-
+    response_class=FileResponse,
+    status_code=status.HTTP_200_OK,
 )
-
 async def download_scan_pdf(
-    scan_id: str,
+    scan_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> FileResponse:
 
-) -> Response:
+    report = await get_report_by_scan_id(db, str(scan_id))
 
-    """
-    Generate and download a branded PDF report for a completed scan.
-    Triggers WeasyPrint in the background/service layer.
-    """
+    if report is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Report not found",
+        )
 
-    #MOCK, I AM MOCKING THIS!!!!
-    mock_pdf_content = b"%PDF-1.4\n%Mock PDF Document for PenFlow Phase 1\n"
+    if report.status.value != "completed" or not report.pdf_path:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Report is not ready yet",
+        )
 
-    return Response(
-        content=mock_pdf_content,
+    pdf_path = Path(report.pdf_path)
+
+    if not pdf_path.exists():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="PDF file not found on server",
+        )
+
+    return FileResponse(
+        path=str(pdf_path),
         media_type="application/pdf",
-        headers={
-            "Content-Disposition": f'attachment; filename="PenFlow_Report_{scan_id}.pdf"'
-        }
+        filename=f"PenFlow_Report_{scan_id}.pdf",
     )
+
 
 
 @router.post(

@@ -1,6 +1,3 @@
-# Remember to add health checks plus ensure run time compatibility for things such as e2e/integration tests
-# Also codecov
-
 name: PenFlow CI
 
 on:
@@ -9,6 +6,31 @@ on:
   pull_request:
     branches: ["dev", "main"]
 
+env:
+  NODE_VERSION: "20.x"
+  PNPM_VERSION: "10.33.2"
+  PYTHON_VERSION: "3.12"
+
+  POSTGRES_USER: ${{ secrets.CI_POSTGRES_USER }}
+  POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
+  POSTGRES_DB: penflow
+
+  POSTGRES_TEST_USER: ${{ secrets.CI_POSTGRES_USER }}
+  POSTGRES_TEST_PASSWORD: ${{ secrets.CI_POSTGRES_TEST_PASSWORD }}
+  POSTGRES_TEST_DB: penflow_test
+
+  KEYCLOAK_ADMIN_PASSWORD: ${{ secrets.CI_KEYCLOAK_ADMIN_PASSWORD }}
+
+  SMTP_HOST: localhost
+  SMTP_PORT: "1025"
+  SMTP_USER: test
+  SMTP_PASSWORD: ${{ secrets.CI_SMTP_PASSWORD }}
+  SMTP_FROM: test@penflow.local
+
+  URLSCAN_API_KEY: ${{ secrets.CI_KEYCLOAK_ADMIN_PASSWORD }}
+  SHODAN_API_KEY: ${{ secrets.CI_SHODAN_API_KEY }}
+  KEYCLOAK_CLIENT_SECRET: ${{ secrets.CI_KEYCLOAK_CLIENT_SECRET}}
+
 jobs:
   frontend:
     name: Frontend
@@ -16,17 +38,17 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320
+        uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa
         with:
-          version: 10.33.2
+          version: ${{ env.PNPM_VERSION }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: "20.x"
+          node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
 
       - name: Install Dependencies
@@ -54,19 +76,22 @@ jobs:
         working-directory: backend
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081
+        with:
+          enable-cache: true
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
-          python-version: "3.12"
-          cache: "pip"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install Dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+          uv pip install --system -r requirements.txt
+          uv pip install --system -r requirements-dev.txt
 
       - name: Compile Backend
         run: python -m compileall app
@@ -75,14 +100,22 @@ jobs:
         run: mypy app
 
       - name: Lint Backend
-        run: ruff check app
+        run: ruff check app tests
 
-      - name: Test Backend
+      - name: Run Backend Unit Tests
         env:
           DATABASE_URL: postgresql+asyncpg://${{ secrets.CI_POSTGRES_USER }}:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/penflow_test
           RABBITMQ_URL: amqp://guest:guest@localhost:5672//
           REDIS_URL: redis://localhost:6379/0
-        run: pytest
+        run: |
+          PYTHONPATH=. pytest tests/unit --cov=app --cov-report=xml
+
+      - name: Upload Backend Coverage
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
+        with:
+          files: backend/coverage.xml
+          flags: backend
+          fail_ci_if_error: true
 
   workers:
     name: Workers
@@ -94,19 +127,22 @@ jobs:
         working-directory: workers
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081
+        with:
+          enable-cache: true
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
-          python-version: "3.12"
-          cache: "pip"
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install Dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+          uv pip install --system -r requirements.txt
+          uv pip install --system -r requirements-dev.txt
 
       - name: Compile Workers
         run: python -m compileall app
@@ -115,19 +151,123 @@ jobs:
         run: mypy app
 
       - name: Lint Workers
-        run: ruff check app
+        run: ruff check app tests
 
-      - name: Test Workers
-        run: pytest
+      - name: Run Worker Unit Tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://${{ secrets.CI_POSTGRES_USER }}:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/penflow_test
+          RABBITMQ_URL: amqp://guest:guest@localhost:5672//
+          REDIS_URL: redis://localhost:6379/0
+        run: |
+          PYTHONPATH=. pytest tests/unit --cov=app --cov-report=xml
 
-  docker:
+      - name: Upload Worker Coverage
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
+        with:
+          files: workers/coverage.xml
+          flags: workers
+          fail_ci_if_error: true
+
+  docker-build:
     name: Docker Build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     needs: [frontend, backend, workers]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - name: Build Docker Images
+      - name: Build Docker images
         run: docker compose build
+
+  system-integration:
+    name: System Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [docker-build]
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Build Test Images
+        run: |
+          docker compose --profile test build \
+            backend-test \
+            workers-test
+
+      - name: Start Integration Services
+        run: |
+          docker compose --profile test up -d \
+            postgres-test \
+            rabbitmq \
+            redis \
+            workers-test
+
+      - name: RabbitMQ Health Check
+        run: |
+          for i in {1..20}; do
+            docker compose ps
+            docker compose exec rabbitmq rabbitmq-diagnostics ping && exit 0
+            sleep 3
+          done
+
+          docker compose logs rabbitmq
+          exit 1
+
+      - name: Run Backend Integration Tests
+        run: |
+          docker compose --profile test run --rm backend-test \
+            pytest tests/integration
+
+      - name: Run Worker Integration Tests
+        run: |
+          docker compose --profile test run --rm workers-test \
+            pytest tests/integration
+
+      - name: Show Docker Logs on Failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop Integration Services
+        if: always()
+        run: docker compose down -v --remove-orphans
+
+  docker-health:
+    name: Docker Health Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [docker-build]
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Start Full Docker Stack
+        run: docker compose up -d --build
+
+      - name: Check Backend Health
+        run: |
+          for i in {1..20}; do
+            curl -f http://localhost:3001/health && exit 0
+            sleep 3
+          done
+
+          docker compose logs backend
+          exit 1
+
+      - name: Check Frontend Responds
+        run: |
+          for i in {1..20}; do
+            curl -f http://localhost:3000 && exit 0
+            sleep 3
+          done
+
+          docker compose logs frontend
+          exit 1
+
+      - name: Show Docker Logs on Failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop Docker stack
+        if: always()
+        run: docker compose down -v --remove-orphans
