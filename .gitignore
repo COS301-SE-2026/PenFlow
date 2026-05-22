@@ -14,7 +14,7 @@ venv/
 env
 env.*
 *.env
-
+.env.local
 dist/
 .next/
 out/
@@ -37,5 +37,9 @@ Thumbs.db
 .vscode/
 .idea/
 *.code-workspace
+.env
+
+# Generated at container startup — never commit; secret comes from env var
+docker/keycloak/penflow-realm.json
 
 generated_reports

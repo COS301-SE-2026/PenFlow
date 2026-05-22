@@ -2,8 +2,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import health, internal, scans
-from app.api.routes.summary import router as summary_router
+import app.models  # noqa: F401 — registers all SQLAlchemy mappers before any query runs
+from app.api.routes import health, internal, scans, summary, users
 from app.realtime import stream
 
 app = FastAPI(
@@ -27,6 +27,7 @@ app.include_router(health.router)
 app.include_router(scans.router, prefix=API_V1_PREFIX)
 app.include_router(stream.router, prefix=API_V1_PREFIX)
 app.include_router(internal.router, prefix=API_V1_PREFIX)
-app.include_router(summary_router, prefix=API_V1_PREFIX)
+app.include_router(users.router, prefix=API_V1_PREFIX)
+app.include_router(summary.router, prefix=API_V1_PREFIX)
 
 

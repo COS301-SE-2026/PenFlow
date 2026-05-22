@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   frontend:
     container_name: penflow-frontend
@@ -8,9 +10,18 @@ services:
       - "3000:3000"
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
+      API_URL: http://backend:3001
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: penflow
+      KEYCLOAK_CLIENT_ID: penflow-frontend
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
     depends_on:
       backend:
         condition: service_started
+      keycloak:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - penflow-network
@@ -48,6 +59,9 @@ services:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
       REDIS_URL: redis://redis:6379/0
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: penflow
+      KEYCLOAK_CLIENT_ID: penflow-frontend
       REPORT_OUTPUT_DIR: /app/generated_reports
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
       SMTP_HOST: ${SMTP_HOST}
@@ -55,13 +69,14 @@ services:
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       SMTP_FROM: ${SMTP_FROM}
-
     depends_on:
       rabbitmq:
         condition: service_healthy
       redis:
         condition: service_started
       postgres:
+        condition: service_healthy
+      keycloak:
         condition: service_healthy
     volumes:
       - report-files:/app/generated_reports
@@ -150,11 +165,6 @@ services:
     image: postgres:16-alpine
     ports:
       - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -162,6 +172,12 @@ services:
     volumes:
       - penflow-postgres-data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     restart: unless-stopped
     networks:
       - penflow-network
@@ -184,11 +200,61 @@ services:
     networks:
       - penflow-network
 
+  keycloak-db:
+    image: postgres:15
+    container_name: penflow-keycloak-db
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak_password
+    volumes:
+      - keycloak-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - penflow-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: penflow-keycloak
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak_password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_ENABLED: "true"
+    volumes:
+      - ./docker/keycloak:/opt/keycloak/data/import
+    command:
+      - start-dev
+      - --import-realm
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080 && printf 'GET /realms/penflow HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q 'penflow'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    networks:
+      - penflow-network
+
 networks:
   penflow-network:
     driver: bridge
 
 volumes:
   penflow-postgres-data:
+  keycloak-postgres-data:
   report-files:
   report-files-test:

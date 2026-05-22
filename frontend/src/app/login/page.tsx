@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import NavBar from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
@@ -5,6 +9,43 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    const form = e.currentTarget;
+    const username = (form.elements.namedItem("username") as HTMLInputElement).value;
+    const password = (form.elements.namedItem("password") as HTMLInputElement).value;
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json() as { error?: string };
+
+      if (!res.ok) {
+        setError(data.error ?? "Login failed");
+        return;
+      }
+
+      // TODO: redirect to scan history once implemented
+      // router.push("/scan-history");
+      router.push("/");
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <main className="auth-page min-h-screen flex flex-col">
       <NavBar />
@@ -17,7 +58,11 @@ export default function LoginPage() {
           </h1>
 
           <div className="auth-card rounded-2xl p-8">
-            <form className="flex flex-col gap-6">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+
+              {error && (
+                <p className="text-red-400 text-sm text-center">{error}</p>
+              )}
 
               <div className="flex flex-col gap-2">
                 <Label
@@ -55,9 +100,10 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
+                disabled={loading}
                 className="auth-btn mt-1 h-11 w-full rounded-full text-sm font-semibold tracking-widest cursor-pointer transition-all duration-200 hover:-translate-y-px"
               >
-                LOGIN
+                {loading ? "LOGGING IN..." : "LOGIN"}
               </Button>
             </form>
           </div>
