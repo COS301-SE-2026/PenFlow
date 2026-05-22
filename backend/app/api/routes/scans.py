@@ -1,12 +1,13 @@
 
 import logging
+from pathlib import Path
 from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from pathlib import Path
 from fastapi.responses import FileResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.repositories.report_repository import get_report_by_scan_id
 from app.repositories.scan_repo import ScanRepository
 from app.schemas.report import EmailReportRequest

@@ -16,6 +16,7 @@ services:
       - penflow-network
 
   backend-test:
+    profiles: ["test"]
     build:
       context: .
       dockerfile: docker/Dockerfile.backend.test
@@ -70,6 +71,7 @@ services:
       - penflow-network
 
   workers-test:
+    profiles: ["test"]
     build:
       context: .
       dockerfile: docker/Dockerfile.workers.test
@@ -80,6 +82,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_TEST_USER}:${POSTGRES_TEST_PASSWORD}@postgres-test:5432/${POSTGRES_TEST_DB}
       REPORT_OUTPUT_DIR: /app/generated_reports
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
+      SCAN_MODE: MOCK
     depends_on:
       postgres-test:
         condition: service_healthy
@@ -167,6 +170,7 @@ services:
       - penflow-network
 
   postgres-test:
+    profiles: ["test"]
     container_name: penflow-postgres-test
     image: postgres:16-alpine
     healthcheck:
