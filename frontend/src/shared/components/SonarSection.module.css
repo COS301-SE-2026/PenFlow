@@ -1,0 +1,88 @@
+.sonarSection {
+  background: var(--col-deep);
+  padding: clamp(48px, 7vw, 96px) clamp(16px, 4vw, 40px);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(24px, 4vw, 60px);
+  align-items: center;
+}
+
+.sonarPanel {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.sonarStage {
+  position: relative;
+  width: 540px;
+  height: 540px;
+}
+
+.sonarDotField {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(41, 1fr);
+  grid-template-rows: repeat(41, 1fr);
+  gap: 2px;
+}
+
+.sonarDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--col-cyan);
+  opacity: var(--dot-alpha, 0.2);
+}
+
+.sonarHotDot {
+  background: var(--col-alert);
+  box-shadow: 0 0 4px 1px rgba(255, 30, 30, 0.35);
+}
+
+.sonarSubmarineWrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sonarSubmarine {
+  width: clamp(180px, 24vw, 308px);
+  height: auto;
+  filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.6));
+}
+
+.sonarCopy {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.sonarCopy h2 {
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  color: var(--col-text);
+  margin: 0;
+}
+
+.sonarCopy p {
+  color: var(--col-text);
+  font-size: clamp(0.9rem, 1.3vw, 1.05rem);
+  line-height: 1.75;
+  margin: 0;
+  font-weight: 500;
+}
+
+@media (max-width: 900px) {
+  .sonarSection {
+    grid-template-columns: 1fr;
+  }
+
+  .sonarStage {
+    width: 340px;
+    height: 340px;
+    margin: 0 auto;
+  }
+}

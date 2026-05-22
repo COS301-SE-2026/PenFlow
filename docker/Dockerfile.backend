@@ -1,0 +1,40 @@
+FROM python:3.12-slim AS runner
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libharfbuzz0b \
+    libffi-dev \
+    libjpeg62-turbo \
+    libopenjp2-7 \
+    libgdk-pixbuf-2.0-0 \
+    libglib2.0-0 \
+    shared-mime-info \
+    fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY backend/requirements.txt ./requirements.txt
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade pip uv
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --system \
+    -r requirements.txt
+
+COPY backend/app ./app
+
+RUN adduser --disabled-password --gecos "" appuser && \
+    mkdir -p /app/generated_reports && \
+    chown -R appuser:appuser /app
+
+USER appuser
+
+EXPOSE 3001
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3001"]

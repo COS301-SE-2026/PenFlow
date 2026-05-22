@@ -1,0 +1,214 @@
+{
+  "scan_id": "a1b2c3d4-e5f6-7890-1234-56789abcdef0",
+  "target_domain": "hackerone.com",
+  "scan_timestamp": "2026-05-13T10:45:00Z",
+  "status": "completed",
+  
+  
+  "infrastructure": 
+  {
+    "provider": "Shodan",
+    "hosting_provider": "Cloudflare, Inc.",
+    "ip_addresses": 
+    [
+      {
+        "ip_str": "104.16.99.52",
+        "ip_int": 1745904436
+      }
+    ],
+    "open_ports": 
+    [
+      {
+        "port": 80,
+        "state": "open"
+      },
+      {
+        "port": 443,
+        "state": "open"
+      }
+    ]
+  },
+  
+  
+  "tech_stack": 
+  {
+    "provider": "Wappalyzer",
+    "cms": 
+    [
+      {
+        "name": "Drupal",
+        "version": "Unknown"
+      }
+    ],
+    "frameworks": 
+    [
+      {
+        "name": "jQuery",
+        "version": "Unknown"
+      },
+      {
+        "name": "React",
+        "version": "18.2.0"
+      }
+    ],
+    "web_servers": 
+    [
+      {
+        "name": "Nginx",
+        "version": "1.18.0"
+      }
+    ],
+    "paas": 
+    [
+      {
+        "name": "Pantheon",
+        "version": "Unknown"
+      }
+    ],
+    "programming_languages":
+    [
+      {
+        "name": "PHP",
+        "version": "Unknown"
+      }
+    ],
+    "databases":
+    [
+      {
+        "name": "MariaDB",
+        "version": "Unknown"
+      }
+    ],
+    "cdn":
+    [
+      {
+        "name": "Cloudflare",
+        "version": "Unknown"
+      }
+    ]
+  },
+  
+  
+  "subdomains": 
+  {
+    "provider": "crt.sh",
+    "total_found": 3,
+    "discovered_names": 
+    [
+      "api.hackerone.com",
+      "docs.hackerone.com",
+      "hackerone.com"
+    ]
+  },
+  
+  
+  "reputation": 
+  {
+    "provider": "URLScan",
+    "malicious_flags": 0,
+    "urlscan_uuid": "019e1c44-...",
+    "screenshot_url": "https://urlscan.io/screenshots/019e1c44-....png"
+  },
+  
+  
+  "phishing_surface": 
+  {
+    "provider": "Hunter.io",
+    "email_format_pattern": "{first}.{last}",
+    "public_emails_found": 
+    [
+      {
+        "email": "jobert@hackerone.com",
+        "type": "personal",
+        "confidence_score": 99
+      },
+      {
+        "email": "security@hackerone.com",
+        "type": "generic",
+        "confidence_score": 95
+      }
+    ]
+  },
+  
+  
+  "breach_data": 
+  {
+    "provider": "HaveIBeenPwned",
+    "pwned_accounts_count": 0,
+    "known_breaches": []
+  },
+
+  "domain_security": 
+  {
+    "provider": "DNS/RDAP",
+    "records": 
+    [
+      {
+        "record_type": "MX",
+        "status": "Pass",
+        "finding": "MX records are configured for this domain."
+      },
+      {
+        "record_type": "SPF",
+        "status": "Pass",
+        "finding": "SPF record is present and uses a hard fail policy."
+      },
+      {
+        "record_type": "DMARC",
+        "status": "Pass",
+        "finding": "DMARC record is present and uses a reject policy."
+      },
+      {
+        "record_type": "WHOIS/RDAP",
+        "status": "Pass",
+        "finding": "WHOIS/RDAP registration data was available for this domain."
+      }
+    ],
+
+    "whois": 
+    {
+      "provider": "RDAP",
+      "registrar": "Cloudflare, Inc.",
+      "registration_date": "2007-11-26T19:45:36Z",
+      "expiration_date": "2026-11-26T19:45:36Z",
+      "dnssec_enabled": true,
+      "nameservers": 
+      [
+        "A.NS.HACKERONE.COM",
+        "B.NS.HACKERONE.COM"
+      ],
+      "status": 
+      [
+        "client transfer prohibited",
+        "server transfer prohibited"
+      ]
+    },
+    
+    "detected_services": 
+    [ 
+      "Adobe", 
+      "Anthropic", 
+      "Apple", 
+      "Atlassian", 
+      "Box", 
+      "Canva", 
+      "Citrix", 
+      "Clayton", 
+      "Cloudpiercer", 
+      "Drift", 
+      "Ethiack", 
+      "Facebook", 
+      "Google", 
+      "H1", 
+      "Jetbrains", 
+      "Monday", 
+      "Onetrust", 
+      "Openai", 
+      "Protonmail", 
+      "Slack", 
+      "Stripe", 
+      "Wework", 
+      "Zapier" 
+    ]
+  }
+}

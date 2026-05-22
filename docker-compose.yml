@@ -1,0 +1,262 @@
+services:
+  frontend:
+    container_name: penflow-frontend
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
+      API_URL: http://backend:3001
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: penflow
+      KEYCLOAK_CLIENT_ID: penflow-frontend
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    depends_on:
+      backend:
+        condition: service_started
+      keycloak:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - penflow-network
+
+  backend-test:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend.test
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_TEST_USER}:${POSTGRES_TEST_PASSWORD}@postgres-test:5432/${POSTGRES_TEST_DB}
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
+      REDIS_URL: redis://redis:6379/1
+      REPORT_OUTPUT_DIR: /app/generated_reports
+      SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - report-files-test:/app/generated_reports
+    networks:
+      - penflow-network
+
+  backend:
+    container_name: penflow-backend
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    ports:
+      - "3001:3001"
+    environment:
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: penflow
+      KEYCLOAK_CLIENT_ID: penflow-frontend
+      REPORT_OUTPUT_DIR: /app/generated_reports
+      SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+    volumes:
+      - report-files:/app/generated_reports
+    restart: unless-stopped
+    networks:
+      - penflow-network
+
+  workers-test:
+    profiles: ["test"]
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.workers.test
+    environment:
+      BACKEND_API_URL: http://backend:3001/api/v1
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
+      REDIS_URL: redis://redis:6379/1
+      DATABASE_URL: postgresql://${POSTGRES_TEST_USER}:${POSTGRES_TEST_PASSWORD}@postgres-test:5432/${POSTGRES_TEST_DB}
+      REPORT_OUTPUT_DIR: /app/generated_reports
+      SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
+      SCAN_MODE: MOCK
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - report-files-test:/app/generated_reports
+    networks:
+      - penflow-network
+    command: ["celery", "-A", "app.queue.celery_app:celery_app", "worker", "--loglevel=info", "--concurrency=7"]
+
+  workers:
+    container_name: penflow-workers
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.workers
+    environment:
+      BACKEND_API_URL: http://backend:3001/api/v1
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
+      REDIS_URL: redis://redis:6379/0
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      URLSCAN_API_KEY: ${URLSCAN_API_KEY}
+      SHODAN_API_KEY: ${SHODAN_API_KEY}
+      REPORT_OUTPUT_DIR: /app/generated_reports
+      SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
+      SCAN_MODE: LIVE
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+    volumes:
+      - report-files:/app/generated_reports
+    restart: unless-stopped
+    networks:
+      - penflow-network
+
+  rabbitmq:
+    container_name: penflow-rabbitmq
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - penflow-network
+
+  redis:
+    container_name: penflow-redis
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - penflow-network
+
+  postgres:
+    container_name: penflow-postgres
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - penflow-postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - penflow-network
+
+  postgres-test:
+    profiles: ["test"]
+    container_name: penflow-postgres-test
+    image: postgres:16-alpine
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_TEST_USER} -d ${POSTGRES_TEST_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    environment:
+      POSTGRES_USER: ${POSTGRES_TEST_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_TEST_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_TEST_DB}
+    volumes:
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    restart: "no"
+    networks:
+      - penflow-network
+
+  keycloak-db:
+    image: postgres:15
+    container_name: penflow-keycloak-db
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak_password
+    volumes:
+      - keycloak-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - penflow-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: penflow-keycloak
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak_password
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_ENABLED: "true"
+    volumes:
+      - ./docker/keycloak:/opt/keycloak/data/import
+    command:
+      - start-dev
+      - --import-realm
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/8080"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    networks:
+      - penflow-network
+
+networks:
+  penflow-network:
+    driver: bridge
+
+volumes:
+  penflow-postgres-data:
+  keycloak-postgres-data:
+  report-files:
+  report-files-test:

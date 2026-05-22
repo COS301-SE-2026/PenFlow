@@ -1,7 +1,17 @@
+# type: ignore
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="PenFlow API")
+import app.models  # noqa: F401 — registers all SQLAlchemy mappers before any query runs
+from app.api.routes import health, internal, scans, summary, users
+from app.realtime import stream
+
+app = FastAPI(
+    title="PenFlow API",
+    description="Core backend API for the PenFlow platform.",
+    version="1.0.0"
+              
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -11,7 +21,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+API_V1_PREFIX = "/api/v1"
 
-@app.get("/health")
-def health_check() -> dict[str, str]:
-    return {"status": "ok"}
+app.include_router(health.router)
+app.include_router(scans.router, prefix=API_V1_PREFIX)
+app.include_router(stream.router, prefix=API_V1_PREFIX)
+app.include_router(internal.router, prefix=API_V1_PREFIX)
+app.include_router(users.router, prefix=API_V1_PREFIX)
+app.include_router(summary.router, prefix=API_V1_PREFIX)
+
+

@@ -1,0 +1,96 @@
+from datetime import datetime
+from typing import Optional
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict
+
+from app.models.base import Severity
+
+
+class ScanSummary(BaseModel):
+    id: UUID
+    domain: str
+    status: str
+    progress: int
+    created_at: datetime
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    error_message: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class RiskSnapshot(BaseModel):
+    total_findings: int = 0
+    critical_count: int = 0
+    high_count: int = 0
+    medium_count: int = 0
+    low_count: int = 0
+    info_count: int = 0
+
+class TopFindingPreview(BaseModel):
+    id: UUID
+    severity: Severity
+    title: str
+    description: Optional[str] = None
+    recommendation: Optional[str] = None
+    source: str
+    asset_identifier: Optional[str] = None
+    asset_type: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class AssetTypeBreakdown(BaseModel):
+    asset_type: str
+    total_assets: int
+    affected_assets: int
+
+class TopAffectedAsset(BaseModel):
+    identifier: str
+    asset_type: str
+    finding_count: int
+    highest_severity: Severity
+
+class AssetImpactSummary(BaseModel):
+    total_assets_scanned: int
+    affected_assets_count: int
+    asset_type_breakdown: list[AssetTypeBreakdown]
+    top_affected_assets: list[TopAffectedAsset]
+
+class SourceCoverageItem(BaseModel):
+    source_name: str
+    status: str
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    error_message: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class SourceCoverageAggregate(BaseModel):
+    sources_total: int = 0
+    sources_completed: int = 0
+    sources_failed: int = 0
+    sources_partial: int = 0
+    sources_skipped: int = 0
+
+class SourceCoverageSummary(BaseModel):
+    aggregate: SourceCoverageAggregate
+    sources: list[SourceCoverageItem]
+
+class Report(BaseModel):
+    status: str
+    generated_at: Optional[datetime] = None
+    pdf_path: Optional[str] = None
+    error_message: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ExecutiveSummary(BaseModel):
+    scan_summary: ScanSummary
+    risk_snapshot: RiskSnapshot
+    top_findings: list[TopFindingPreview]
+    asset_impact: AssetImpactSummary
+    source_coverage: SourceCoverageSummary
+    report_status: Optional[Report] = None
+
+ 
