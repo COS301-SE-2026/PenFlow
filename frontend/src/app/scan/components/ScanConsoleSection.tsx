@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import styles from "./ScanConsoleSection.module.css";
 import { validateDomain } from "@/lib/domainValidator";   
-import { postScanRequest } from "@/lib/scanService";  
+import { postScanRequest,  fetchScanSummary  } from "@/lib/scanService";  
 
 const LEFT_SOURCES  = ["Shodan", "HaveIBeenPwned", "URLScan.io", "Hunter.io"];
 const RIGHT_SOURCES = ["crt.sh", "WHOIS", "DNS"];
@@ -13,7 +13,6 @@ const SOURCES = [...LEFT_SOURCES, ...RIGHT_SOURCES, "Normalising"];
 
 export default function ScanConsoleSection() {
   const [domain, setDomain] = useState("");
-  const [submittedDomain, setSubmittedDomain] = useState("");
   const [status, setStatus] = useState("Ready to scan");
   const [stepsDone, setStepsDone] = useState<boolean[]>(Array(SOURCES.length).fill(false));
   const [reportReady, setReportReady] = useState(false);
@@ -72,7 +71,6 @@ export default function ScanConsoleSection() {
     try {
       const { scan_id } = await postScanRequest(result.domain);
       setScanId(scan_id);
-      setSubmittedDomain(result.domain);
       startScanSequence(result.domain);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Scan request failed";
@@ -80,13 +78,28 @@ export default function ScanConsoleSection() {
     }
   };
 
-  const handleViewReport = () => {
-    if (reportReady && scanId) {
-      router.push(`/report/${scanId}`);
-    } else if (!submittedDomain) {
+  const handleViewReport = async () => {
+    if (!scanId) {
       setStatus("No report yet — run a scan first");
-    } else {
-      setStatus("Scan still in progress...");
+      return;
+    }
+
+    try {
+      setStatus("Checking report status...");
+
+      const summary = await fetchScanSummary(scanId);
+
+      if (
+        summary.report_status?.status === "completed" &&
+        summary.report_status?.pdf_path
+      ) {
+        router.push(`/report/${scanId}`);
+        return;
+      }
+
+      setStatus("Report is still generating...");
+    } catch {
+      setStatus("Report is not ready yet...");
     }
   };
 
