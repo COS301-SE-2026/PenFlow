@@ -44,12 +44,13 @@ async def test_initiate_scan_invalid_domain(test_client):
 
 @pytest.mark.asyncio
 @patch("app.api.routes.scans.get_report_by_scan_id")
-async def test_download_scan_pdf(mock_get_report, test_client):
+async def test_download_scan_pdf(mock_get_report, test_client, tmp_path):
     """Test that the pdf endpoint returns a file with correct headers"""
-
+    test_pdf = tmp_path / "test.pdf"
+    test_pdf.write_bytes(b"%PDF-1.4\n%test pdf\n")
     mock_report = MagicMock()
     mock_report.status.value = "completed"
-    mock_report.pdf_path = "/tmp/test.pdf"
+    mock_report.pdf_path = str(test_pdf)
 
     mock_get_report.return_value = mock_report
 
@@ -57,7 +58,7 @@ async def test_download_scan_pdf(mock_get_report, test_client):
         "/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/pdf"
     )
 
-    assert response.status_code == status.HTTP_404_NOT_FOUND
+    assert response.status_code == status.HTTP_200_OK
 
 @pytest.mark.asyncio
 @patch("app.api.routes.internal.ScanRepository.get_scan_by_id", new_callable=AsyncMock)
