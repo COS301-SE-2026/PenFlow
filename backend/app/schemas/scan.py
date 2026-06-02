@@ -33,3 +33,11 @@ class ScanHistoryItem(BaseModel):
     low_count: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ScanSourceCallbackRequest(BaseModel):
+    status: str
+    raw_result: dict | None = None
+    findings: list[dict] = []
+    assets: list[dict] = []
+    error_message: str | None = None
