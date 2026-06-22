@@ -62,6 +62,25 @@ async def initiate_ctem_scan(
         )
 
 
+@router.get("/{scan_id}/status")
+async def get_scan_status(
+    scan_id: UUID,
+    db: AsyncSession = Depends(get_db),
+): 
+    status_info = await ScanRepository.get_scan_status(
+        db,
+        scan_id,
+    )
+
+    if not status_info:
+        raise HTTPException(
+            status_code=404,
+            detail="Scan not found",
+        )
+    
+    return status_info
+
+
 @router.get(
     "/{scan_id}/pdf",
     response_class=FileResponse,
