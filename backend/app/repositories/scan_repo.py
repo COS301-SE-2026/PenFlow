@@ -244,12 +244,12 @@ class ScanRepository:
         
         try:
             source_status = payload["status"]
-            existing_source_query = select(ScanSource).where(
+            source_query = select(ScanSource).where(
                 ScanSource.scan_id == scan.id,
                 ScanSource.source_name == source_name,
             )
-            existing_source_result = await db.execute(existing_source_query)
-            scan_source = existing_source_result.scalar_one_or_none()
+            source_result = await db.execute(source_query)
+            scan_source = source_result.scalar_one_or_none()
 
             if scan_source:
                 scan_source.status = ScanSourceStatus(source_status)
@@ -298,12 +298,12 @@ class ScanRepository:
 
             await db.flush()
 
-            finished_count_query = select(func.count(ScanSource.id)).where(
+            sources_finished_query = select(func.count(ScanSource.id)).where(
                 ScanSource.scan_id == scan.id,
                 ScanSource.status.in_(finished_statuses),
             )
 
-            finished_count = (await db.execute(finished_count_query)).scalar() or 0
+            finished_count = (await db.execute(sources_finished_query)).scalar() or 0
             total_sources = len(TOTAL_SCAN_SOURCES)
             scan.progress = min(int((finished_count / total_sources) * 100), 100)
 
@@ -321,3 +321,39 @@ class ScanRepository:
             await db.rollback()
             logger.exception("Failed to save scan source result for scan %s", scan_id)
             raise
+
+
+    @staticmethod
+    async def get_scan_status(db: AsyncSession, scan_id: UUID) -> dict[str, Any] | None:
+        scan = await ScanRepository.get_scan_by_id(db, scan_id)
+
+        if not scan:
+            return None
+        
+        source_results = await db.execute(
+            select(ScanSource).where(ScanSource.scan_id == scan_id)
+        )
+        sources = source_results.scalars().all()
+
+        report_result = await db.execute(
+            select(Report).where(Report.scan_id == scan_id)
+        )
+        report = report_result.scalar_one_or_none()
+
+        return {
+            "scan_id": str(scan.id),
+            "status": scan.status.value,
+            "progress": scan.progress,
+            "sources": [
+                {
+                    "source_name": source.source_name,
+                    "status": source.status.value,
+                    "error_message": source.error_message,
+                }
+                for source in sources
+            ],
+            "report_status": {
+                "status": report.status.value,
+                "pdf_path": report.pdf_path,
+            } if report else None,
+        }
