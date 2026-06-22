@@ -18,7 +18,6 @@ class InitiateScanResponse(BaseModel):
 
 class ScanCallbackRequest(BaseModel):
     status: ScanStatus
-    results: dict[str, Any] | None = None
     error_message: str | None = None
 
 class ScanHistoryItem(BaseModel):
