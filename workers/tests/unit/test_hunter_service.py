@@ -5,10 +5,11 @@ import httpx
 from app.tasks.hunter_tasks import run_hunter
 
 
+@patch("app.tasks.hunter_tasks.send_source_callback")
 @patch("app.services.hunter_service.httpx.Client.get")
 @patch("app.services.hunter_service.HUNTER_API_KEY", "a_real_key_301")
 @patch("app.services.hunter_service.SCAN_MODE", "LIVE")
-def test_hunter_live_happy_path(mock_get):
+def test_hunter_live_happy_path(mock_get, mock_send_callback):
     """Test that a real key triggers a live HTTP request and parses correctly."""
     
     #fake the live api response
@@ -39,12 +40,14 @@ def test_hunter_live_happy_path(mock_get):
     assert phishing_surface["provider"] == "Hunter.io"
     assert len(phishing_surface["public_emails_found"]) == 2
     assert len(result["findings"]) == 1 #should generate 1 finding for discovered emails
+    mock_send_callback.assert_called_once()
 
 
+@patch("app.tasks.hunter_tasks.send_source_callback")
 @patch("app.services.hunter_service.httpx.Client.get")
 @patch("app.services.hunter_service.HUNTER_API_KEY", "a_real_key_301")
 @patch("app.services.hunter_service.SCAN_MODE", "LIVE")
-def test_hunter_live_api_failure(mock_get):
+def test_hunter_live_api_failure(mock_get, mock_send_callback):
     """Test that an HTTP error gracefully degrades into a failed status."""
     #force a network crash
     mock_get.side_effect = httpx.HTTPError("Hunter API Down")
@@ -55,12 +58,14 @@ def test_hunter_live_api_failure(mock_get):
     #expect a clean failure dict not a crash
     assert result["status"] == "failed"
     assert "error" in result["raw_result"]
+    mock_send_callback.assert_called_once()
 
 
+@patch("app.tasks.hunter_tasks.send_source_callback")
 @patch("app.services.hunter_service.httpx.Client.get")
 @patch("app.services.hunter_service.HUNTER_API_KEY", "fake_key_1234")
 @patch("app.services.hunter_service.SCAN_MODE", "LIVE") #force live mode to test fake key trigger
-def test_hunter_fallback_to_mock(mock_get):
+def test_hunter_fallback_to_mock(mock_get, mock_send_callback):
     #execution
     result = run_hunter("scan-123", "acorns.com")
 
@@ -72,3 +77,4 @@ def test_hunter_fallback_to_mock(mock_get):
     assert "phishing_surface" in result["raw_result"]
     #if local mock file is loading it should have a pattern and emails
     assert "email_format_pattern" in result["raw_result"]["phishing_surface"]
+    mock_send_callback.assert_called_once()

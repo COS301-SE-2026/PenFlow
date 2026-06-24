@@ -4,10 +4,11 @@ from app.tasks.wappalyzer_tasks import run_wappalyzer
 
 
 #live happy path
+@patch("app.tasks.wappalyzer_tasks.send_source_callback")
 @patch("app.services.wappalyzer_service.WebPage.new_from_url")
 @patch("app.services.wappalyzer_service.Wappalyzer.latest")
 @patch("app.services.wappalyzer_service.SCAN_MODE", "LIVE")
-def test_wappalyzer_live_happy_path(mock_wappalyzer_latest, mock_webpage):
+def test_wappalyzer_live_happy_path(mock_wappalyzer_latest, mock_webpage, mock_send_callback):
     """Test that the native Wappalyzer library executes and parses correctly."""
     
     #fake the page object
@@ -36,13 +37,15 @@ def test_wappalyzer_live_happy_path(mock_wappalyzer_latest, mock_webpage):
     assert tech_stack["programmingLanguages"][0]["name"] == "PHP"
     assert tech_stack["frameworks"][0]["name"] == "React"
     assert len(result["findings"]) == 2
+    mock_send_callback.assert_called_once()
 
 
 #sad path for engine outage
+@patch("app.tasks.wappalyzer_tasks.send_source_callback")
 @patch("app.services.wappalyzer_service.WebPage.new_from_url")
 @patch("app.services.wappalyzer_service.Wappalyzer.latest")
 @patch("app.services.wappalyzer_service.SCAN_MODE", "LIVE")
-def test_wappalyzer_live_engine_failure(_mock_wappalyzer_latest, mock_webpage):
+def test_wappalyzer_live_engine_failure(_mock_wappalyzer_latest, mock_webpage, mock_send_callback):
     """Test that a local engine crash gracefully degrades into a failed status."""
     
     #force a crash when trying to fetch the webpage
@@ -54,13 +57,15 @@ def test_wappalyzer_live_engine_failure(_mock_wappalyzer_latest, mock_webpage):
     #expect clean failure dict
     assert result["status"] == "failed"
     assert "error" in result["raw_result"]["tech_stack"]
+    mock_send_callback.assert_called_once()
 
 
 #mock fallback path
+@patch("app.tasks.wappalyzer_tasks.send_source_callback")
 @patch("app.services.wappalyzer_service.WebPage.new_from_url")
 @patch("app.services.wappalyzer_service.Wappalyzer.latest")
 @patch("app.services.wappalyzer_service.SCAN_MODE", "MOCK")
-def test_wappalyzer_fallback_to_mock(mock_wappalyzer_latest, mock_webpage):
+def test_wappalyzer_fallback_to_mock(mock_wappalyzer_latest, mock_webpage, mock_send_callback):
     """Test that the worker safely bypasses the local engine and loads local mock data."""
     
     #execution
@@ -68,3 +73,4 @@ def test_wappalyzer_fallback_to_mock(mock_wappalyzer_latest, mock_webpage):
     assert not mock_wappalyzer_latest.called
     assert not mock_webpage.called
     assert result["status"] == "completed"
+    mock_send_callback.assert_called_once()

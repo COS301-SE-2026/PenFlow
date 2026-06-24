@@ -4,11 +4,12 @@ from app.tasks.shodan_tasks import run_shodan
 
 
 #live happy path
+@patch("app.tasks.shodan_tasks.send_source_callback")
 @patch("app.services.shodan_service.socket.gethostbyname")
 @patch("app.services.shodan_service.httpx.Client.get")
 @patch("app.services.shodan_service.SHODAN_API_KEY", "COS_301_1s_FUN")
 @patch("app.services.shodan_service.SCAN_MODE", "LIVE")
-def test_shodan_live_happy_path(mock_get, mock_socket):
+def test_shodan_live_happy_path(mock_get, mock_socket, mock_send_callback):
     """Test that a real key triggers IP resolution and a live Shodan API request."""
     
     #fake the ip resolution
@@ -39,14 +40,16 @@ def test_shodan_live_happy_path(mock_get, mock_socket):
     assert mock_socket.called #proves it resolved the IP
     assert result["raw_result"]["infrastructure"]["hosting_provider"] == "Fastly, Inc."
     assert len(result["raw_result"]["infrastructure"]["open_ports"]) == 2
+    mock_send_callback.assert_called_once()
 
 
 #sad path for api outage
+@patch("app.tasks.shodan_tasks.send_source_callback")
 @patch("app.services.shodan_service.socket.gethostbyname")
 @patch("app.services.shodan_service.httpx.Client.get")
 @patch("app.services.shodan_service.SHODAN_API_KEY", "COS_301_1s_FUN")
 @patch("app.services.shodan_service.SCAN_MODE", "LIVE")
-def test_shodan_live_api_failure(mock_get, mock_socket):
+def test_shodan_live_api_failure(mock_get, mock_socket, mock_send_callback):
     """Test that a network crash gracefully degrades to a failed status."""
     
     import httpx
@@ -62,14 +65,16 @@ def test_shodan_live_api_failure(mock_get, mock_socket):
     assert result["status"] == "failed"
     assert result["scan_id"] == "scan-123"
     assert "error" in result["raw_result"]["infrastructure"]
+    mock_send_callback.assert_called_once()
 
 
 #mock fallback path
+@patch("app.tasks.shodan_tasks.send_source_callback")
 @patch("app.services.shodan_service.socket.gethostbyname")
 @patch("app.services.shodan_service.httpx.Client.get")
 @patch("app.services.shodan_service.SHODAN_API_KEY", "fake_key_1234")
 @patch("app.services.shodan_service.SCAN_MODE", "LIVE")
-def test_shodan_fallback_to_mock(mock_get, mock_socket):
+def test_shodan_fallback_to_mock(mock_get, mock_socket, mock_send_callback):
     """Test that a fake key safely bypasses the internet and loads local mock data."""
     
     #execution
@@ -83,3 +88,4 @@ def test_shodan_fallback_to_mock(mock_get, mock_socket):
     
     #mock data should load safely
     assert "hosting_provider" in result["raw_result"]["infrastructure"]
+    mock_send_callback.assert_called_once()
