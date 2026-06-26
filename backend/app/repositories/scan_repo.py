@@ -307,8 +307,8 @@ class ScanRepository:
             finished_count = (await db.execute(sources_finished_query)).scalar() or 0
             total_sources = len(TOTAL_SCAN_SOURCES)
             progress = int((finished_count / total_sources) * 100)
-            minProgress = builtins.min(progress, 100)
-            setattr(scan, "progress", minProgress)
+            min_progress = builtins.min(progress, 100)
+            setattr(scan, "progress", min_progress)
 
             scan.status = (
                 ScanStatus.COMPLETED
