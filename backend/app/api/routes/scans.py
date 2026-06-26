@@ -66,7 +66,7 @@ async def initiate_ctem_scan(
 async def get_scan_status(
     scan_id: UUID,
     db: AsyncSession = Depends(get_db),
-): 
+) -> dict[str, Any]:
     status_info = await ScanRepository.get_scan_status(
         db,
         scan_id,

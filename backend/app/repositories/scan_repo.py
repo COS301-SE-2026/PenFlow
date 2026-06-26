@@ -1,3 +1,4 @@
+import builtins
 import logging
 from typing import Any
 from uuid import UUID
@@ -9,14 +10,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.asset import Asset
 from app.models.base import ScanStatus, Severity
 from app.models.finding import Finding
+from app.models.report import Report
 from app.models.scan import Scan
 from app.models.scan_source import ScanSource, ScanSourceStatus
-from app.models.report import Report
 
 logger = logging.getLogger(__name__)
 
 # This could easily change
-TOTAL_SCAN_SOURCES = ["dns", "urlscan", "wappalyzer", "crt_sh", "shodan", "hunter", "hibp"]
+TOTAL_SCAN_SOURCES = ["dns", "urlscan", "wappalyzer", "crt.sh", "shodan", "hunter.io", "hibp"]
 
 class ScanRepository:
 
@@ -305,7 +306,9 @@ class ScanRepository:
 
             finished_count = (await db.execute(sources_finished_query)).scalar() or 0
             total_sources = len(TOTAL_SCAN_SOURCES)
-            scan.progress = min(int((finished_count / total_sources) * 100), 100)
+            progress = int((finished_count / total_sources) * 100)
+            minProgress = builtins.min(progress, 100)
+            setattr(scan, "progress", minProgress)
 
             scan.status = (
                 ScanStatus.COMPLETED

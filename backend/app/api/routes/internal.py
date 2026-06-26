@@ -166,7 +166,7 @@ async def update_scan_source_callback(
     source_name: str,
     payload: ScanSourceCallbackRequest,
     db: AsyncSession = Depends(get_db),
-):
+) -> dict[str, Any]:
     try:
         scan = await ScanRepository.save_source_result(
             db=db,

@@ -36,7 +36,7 @@ class ScanHistoryItem(BaseModel):
 
 class ScanSourceCallbackRequest(BaseModel):
     status: str
-    raw_result: dict | None = None
-    findings: list[dict] = []
-    assets: list[dict] = []
+    raw_result: dict[str, Any] | None = None
+    findings: list[dict[str, Any]] = []
+    assets: list[dict[str, Any]] = []
     error_message: str | None = None

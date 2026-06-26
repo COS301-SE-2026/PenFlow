@@ -1,4 +1,5 @@
 from unittest.mock import patch
+
 from app.queue.celery_app import health_check
 from app.tasks.wappalyzer_tasks import run_wappalyzer
 

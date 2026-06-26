@@ -1,6 +1,5 @@
 from typing import Any
 
-from app.utils.callback import send_source_callback
 from app.queue.celery_app import celery_app
 from app.services.dns_service import (
     collect_dns_raw_data,
@@ -8,6 +7,7 @@ from app.services.dns_service import (
     normalize_dns_data,
 )
 from app.services.whois_service import collect_whois_raw_data
+from app.utils.callback import send_source_callback
 
 JSONDict = dict[str, Any]
 

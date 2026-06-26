@@ -1,12 +1,12 @@
 from typing import Any
 
-from app.utils.callback import send_source_callback
 from app.queue.celery_app import celery_app
 from app.services.shodan_service import (
     collect_raw_data,
     generate_findings_and_assets,
     normalize_data,
 )
+from app.utils.callback import send_source_callback
 
 JSONDict = dict[str, Any]
 

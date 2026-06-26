@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from app.tasks.dns_tasks import run_dns_scan
 
+
 @patch("app.tasks.dns_tasks.send_source_callback")
 @patch("app.tasks.dns_tasks.collect_whois_raw_data")
 @patch("app.tasks.dns_tasks.collect_dns_raw_data")
