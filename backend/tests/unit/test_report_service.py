@@ -18,3 +18,52 @@ def test_build_report_output_path(monkeypatch, tmp_path):
     
     assert result == tmp_path / "ctem_report_scan-1234.pdf"
     assert tmp_path.exists()
+
+
+@patch("app.services.report_service.get_template_environment")
+def test_render_report_html(mock_get_template_environment):
+    template = MagicMock()
+    template.render.return_value = "<html>Test</html>"
+    env = MagicMock()
+    env.get_template.return_value = template
+    mock_get_template_environment.return_value = env
+
+    result = render_report_html({"domain": "test.com"})
+
+    assert result == "<html>Test</html>"
+    env.get_template.assert_called_once()
+    template.render.assert_called_once_with(domain="test.com")
+
+
+@pytest.mark.asyncio
+@patch("app.services.report_service.generate_pdf_from_html")
+@patch("app.services.report_service.build_report_context")
+@patch("app.services.report_service.load_report_data", new_callable=AsyncMock)
+@patch("app.services.report_service.mark_report_completed", new_callable=AsyncMock)
+@patch("app.services.report_service.mark_report_generating", new_callable=AsyncMock)
+async def test_generate_report_pdf_success(
+    mock_mark_generating,
+    mock_mark_completed,
+    mock_load_report_data,
+    mock_build_context,
+    mock_generate_pdf,
+    tmp_path,
+):
+    db = AsyncMock()
+    pdf_path = tmp_path / "report.pdf"
+
+    mock_load_report_data.return_value = {
+        "scan": MagicMock(),
+        "findings": [],
+        "scan_sources": [],
+    }
+    mock_build_context.return_value = {"domain": "test.com"}
+    mock_generate_pdf.return_value = pdf_path
+
+    with patch("app.services.report_service.render_report_html", return_value="<html></html>"), \
+         patch("app.services.report_service.build_report_output_path", return_value=pdf_path):
+        result = await generate_report_pdf(db, "scan-1234")
+
+    assert result == str(pdf_path)
+    mock_mark_generating.assert_awaited_once()
+    mock_mark_completed.assert_awaited_once()
