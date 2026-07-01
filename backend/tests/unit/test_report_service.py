@@ -67,3 +67,56 @@ async def test_generate_report_pdf_success(
     assert result == str(pdf_path)
     mock_mark_generating.assert_awaited_once()
     mock_mark_completed.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@patch("app.services.report_service.mark_report_failed", new_callable=AsyncMock)
+@patch("app.services.report_service.mark_report_generating", new_callable=AsyncMock)
+async def test_generate_report_pdf_fail(mock_mark_generating, mock_mark_failed):
+    db = AsyncMock()
+
+    with patch("app.services.report_service.load_report_data", side_effect=Exception("failure")):
+        with pytest.raises(Exception, match="failure"):
+            await generate_report_pdf(db, "scan-1234")
+
+    mock_mark_failed.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@patch("app.services.report_service.mark_report_task_queued", new_callable=AsyncMock)
+@patch("app.services.report_service.mark_report_generating", new_callable=AsyncMock)
+@patch("app.services.report_service.load_report_data", new_callable=AsyncMock)
+@patch("app.services.report_service.build_report_context")
+@patch("app.services.report_service.render_report_html")
+@patch("app.services.report_service.build_report_output_path")
+async def test_queue_report_generation_success(
+    mock_output_path,
+    mock_render_html,
+    mock_build_context,
+    mock_load_report_data,
+    mock_mark_generating,
+    mock_mark_task_queued,
+    tmp_path,
+):
+    db = AsyncMock()
+    pdf_path = tmp_path / "report.pdf"
+
+    mock_output_path.return_value = pdf_path
+    mock_render_html.return_value = "<html>Test</html>"
+    mock_build_context.return_value = {"domain": "test.com"}
+    mock_load_report_data.return_value = {
+        "scan": MagicMock(),
+        "findings": [],
+        "scan_sources": []
+    }
+
+    simulated_task = MagicMock()
+    simulated_task.id = "task-1234"
+
+    with patch("app.services.report_service.celery_app.send_task", return_value=simulated_task):
+        result = await queue_report_generation(db, "scan-1234")
+    
+    assert result["scan_id"] == "scan-1234"
+    assert result["task_id"] == "task-1234"
+    assert result["status"] == "generating"
+    mock_mark_task_queued.assert_awaited_once()
