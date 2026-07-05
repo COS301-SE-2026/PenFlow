@@ -98,3 +98,31 @@ async def test_update_scan_status_missing_scan(mock_scan):
 
     assert excep.value.status_code == 404
     assert excep.value.detail == "Scan not found"
+
+
+@pytest.mark.asyncio
+@patch("app.api.routes.internal.mark_report_completed", new_callable=AsyncMock)
+async def test_update_report_status_completed(mock_completed):
+    scan_id = uuid4()
+    db = AsyncMock()
+
+    report = SimpleNamespace(status=SimpleNamespace(value="completed"))
+    mock_completed.return_value = report
+
+    payload = ReportCallbackRequest(
+        status = "completed",
+        pdf_path = "/report/report.pdf",
+    )
+
+    result = await update_report_status_callback(scan_id, payload, db)
+
+    mock_completed.assert_awaited_once_with(
+        db = db,
+        scan_id = str(scan_id),
+        pdf_path = "/report/report.pdf",
+    )
+
+    assert result == {
+        "scan_id": str(scan_id),
+        "report_status": "completed",
+    }
