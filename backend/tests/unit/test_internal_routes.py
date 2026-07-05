@@ -3,6 +3,7 @@ from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
+from fastapi import HTTPException
 
 from app.api.routes.internal import (
     update_report_status_callback,
@@ -11,7 +12,8 @@ from app.api.routes.internal import (
 )
 
 from app.models.base import ScanStatus
-from app.schemas.scan import ScanCallbackRequest
+from app.schemas.report import ReportCallbackRequest
+from app.schemas.scan import ScanCallbackRequest, ScanSourceCallbackRequest
 
 
 @pytest.mark.asyncio
@@ -79,3 +81,20 @@ async def test_update_scan_status_running_does_not_queue_report(mock_scan, mock_
         "status": "running",
         "report_status": None,
     }
+
+
+@pytest.mark.asyncio
+@patch("app.api.routes.internal.ScanRepository.get_scan_by_id", new_callable=AsyncMock)
+async def test_update_scan_status_missing_scan(mock_scan):
+    scan_id = uuid4()
+    db = AsyncMock()
+
+    mock_scan.return_value = None
+
+    payload = ScanCallbackRequest(status=ScanStatus.COMPLETED)
+
+    with pytest.raises(HTTPException) as excep:
+        await update_scan_status_callback(scan_id, payload, db)
+
+    assert excep.value.status_code == 404
+    assert excep.value.detail == "Scan not found"
