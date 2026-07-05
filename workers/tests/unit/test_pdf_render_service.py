@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from app.services import pdf_render_service
 from app.services.pdf_render_service import generate_pdf_from_html
 
+
 @patch("app.services.pdf_render_service.CSS")
 @patch("app.services.pdf_render_service.HTML")
 def test_generate_pdf_from_html(mock_html, mock_css, tmp_path):

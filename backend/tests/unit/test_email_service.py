@@ -4,6 +4,7 @@ import pytest
 
 from app.services.email_service import send_report_email
 
+
 @patch("app.services.email_service.smtplib.SMTP")
 def test_send_report_email_success(mock_smtp, tmp_path, monkeypatch):
     pdf = tmp_path / "report.pdf"

@@ -4,6 +4,7 @@ from email.message import EmailMessage
 from pathlib import Path
 
 
+# Currently sync, consider the potential for making this a Celery task or async
 def send_report_email(to_email: str, domain: str, pdf_path: str) -> None:
     msg = EmailMessage()
     msg["Subject"] = f"Your PenFlow CTEM Report for {domain}"

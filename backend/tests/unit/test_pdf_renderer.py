@@ -1,7 +1,7 @@
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from app.services.pdf_renderer import generate_pdf_from_html
+
 
 @patch("app.services.pdf_renderer.CSS")
 @patch("app.services.pdf_renderer.HTML")

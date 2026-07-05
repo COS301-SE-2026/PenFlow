@@ -1,15 +1,14 @@
-from pathlib import Path
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest 
+import pytest
 
 from app.services.report_service import (
     build_report_output_path,
-    check_report_task_result,
     generate_report_pdf,
     queue_report_generation,
     render_report_html,
 )
+
 
 def test_build_report_output_path(monkeypatch, tmp_path):
     monkeypatch.setattr("app.services.report_service.REPORT_OUTPUT_DIR", tmp_path)
