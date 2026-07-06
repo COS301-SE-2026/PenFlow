@@ -126,3 +126,45 @@ async def test_update_report_status_completed(mock_completed):
         "scan_id": str(scan_id),
         "report_status": "completed",
     }
+
+
+@pytest.mark.asyncio
+async def test_update_report_status_completed_needs_pdfs_path():
+    scan_id = uuid4()
+    db = AsyncMock()
+
+    payload = ReportCallbackRequest(status="completed", pdf_path=None) 
+
+    with pytest.raises(HTTPException) as excep:
+        await update_report_status_callback(scan_id, payload, db)
+    
+    assert excep.value.status_code == 400
+    assert excep.value.detail == "pdf_path is required for completed reports"
+
+
+@pytest.mark.asyncio
+@patch("app.api.routes.internal.mark_report_failed", new_callable=AsyncMock)
+async def test_update_report_status_failed(mock_failed):
+    scan_id = uuid4()
+    db = AsyncMock()
+
+    report = SimpleNamespace(status=SimpleNamespace(value="failed"))
+    mock_failed.return_value = report
+
+    payload = ReportCallbackRequest(
+        status = "failed",
+        error_message = "Report generation failed",
+    )
+
+    result = await update_report_status_callback(scan_id, payload, db)
+
+    mock_failed.assert_awaited_once_with(
+        db = db,
+        scan_id = str(scan_id),
+        error_message = "Report generation failed",
+    )
+
+    assert result == {
+        "scan_id": str(scan_id),
+        "report_status": "failed",
+    }
