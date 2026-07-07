@@ -6,21 +6,48 @@ from app.services.wappalyzer_service import (
     generate_findings_and_assets,
     normalize_data,
 )
+from app.utils.callback import send_source_callback
 
 JSONDict = dict[str, Any]
 
 
 @celery_app.task(name="scan.wappalyzer")
 def run_wappalyzer(scan_id: str, domain: str) -> JSONDict:
-    raw_data = collect_raw_data(domain)
-    normalized = normalize_data(raw_data)
-    findings, assets = generate_findings_and_assets(normalized)
+    try:
+        raw_data = collect_raw_data(domain)
+        normalized = normalize_data(raw_data)
+        findings, assets = generate_findings_and_assets(normalized)
 
-    return {
-        "scan_id": scan_id,
-        "source_name": "wappalyzer",
-        "status": "failed" if "error" in normalized else "completed",
-        "raw_result": {"tech_stack": normalized},
-        "findings": findings,
-        "assets": assets,
-    }
+        status = "failed" if "error" in normalized else "completed"
+
+        result = {
+            "scan_id": scan_id,
+            "source_name": "wappalyzer",
+            "status": status,
+            "raw_result": {"tech_stack": normalized},
+            "findings": findings,
+            "assets": assets,
+        }
+    
+    except Exception as error:
+        result = {
+            "scan_id": scan_id,
+            "source_name": "wappalyzer",
+            "status": "failed",
+            "raw_result": {"error": str(error)},
+            "findings": [],
+            "assets": [],
+            "error_message": str(error),
+        }
+
+    send_source_callback(
+        scan_id=scan_id,
+        source_name=result["source_name"],
+        status=result["status"],
+        raw_result=result["raw_result"],
+        findings=result["findings"],
+        assets=result["assets"],
+        error_message=result.get("error_message"),
+    )
+
+    return result
