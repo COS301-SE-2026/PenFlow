@@ -221,3 +221,26 @@ async def test_update_scan_source_callback(mock_save_source_result):
         "scan_status": "running",
         "progress": 37,
     }
+
+
+@pytest.mark.asyncio
+@patch("app.api.routes.internal.ScanRepository.save_source_result", new_callable=AsyncMock)
+async def test_update_scan_source_callback_scan_not_found(mock_save_source_result):
+    scan_id = uuid4()
+    db = AsyncMock()
+
+    mock_save_source_result.side_effect = ValueError("Scan not found")
+
+    payload = ScanSourceCallbackRequest(
+        status = "failed",
+        raw_result = None,
+        assets = [],
+        findings = [],
+        error_message = "Unable to retrieve DNS information",
+    )
+
+    with pytest.raises(HTTPException) as excep:
+        await update_scan_source_callback(scan_id, "dns", payload, db)
+
+    assert excep.value.status_code == 404
+    assert excep.value.detail == "Scan not found"
