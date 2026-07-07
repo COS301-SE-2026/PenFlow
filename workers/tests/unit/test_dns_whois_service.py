@@ -188,3 +188,31 @@ def test_dns_scan_detects_spf_fail_policy(mock_dns, mock_whois, mock_send_callba
     assert severities["Weak SPF configuration"] == "medium"
     assert severities["Weak or missing DMARC policy"] == "medium"
     mock_send_callback.assert_called_once()
+
+
+@patch("app.tasks.dns_tasks.send_source_callback")
+@patch("app.tasks.dns_tasks.collect_raw_data")
+def test_run_dns_exception(mock_collect_dns, mock_callback):
+    mock_collect_dns.side_effect = Exception("Some DNS exception")
+
+    result = run_dns_scan("scan-1234", "acorns.com")
+
+    assert result == {
+        "scan_id": "scan-1234",
+        "source_name": "dns",
+        "status": "failed",
+        "raw_result": {"error: Some DNS exception"},
+        "findings": [],
+        "assets": [],
+        "error_message": "Some DNS exception",
+    }
+
+    mock_send_callback.assert_called_once_with(
+        scan_id = "scan-1234",
+        source_name = "dns",
+        status = "failed",
+        raw_result = {"error: Some DNS exception"},
+        findings = [],
+        assets = [],
+        error_message = "Some DNS exception",
+    )

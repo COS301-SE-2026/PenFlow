@@ -76,3 +76,31 @@ def test_crt_sh_mock_mode_fallback(mock_get, mock_send_callback):
     assert result["status"] == "completed"
     assert result["raw_result"]["subdomains"]["total_found"] > 0
     mock_send_callback.assert_called_once()
+
+
+@patch("app.tasks.crtsh_tasks.send_source_callback")
+@patch("app.tasks.crtsh_tasks.collect_raw_data")
+def test_crtsh_exception(mock_send_callback, mock_raw_data):
+    mock_raw_data.side_effect = Exception("Some crt.sh exception")
+
+    result = run_crt_sh("scan-1234", "acorns.com")
+
+    assert result == {
+        "scan_id": "scan-1234",
+        "source_name": "crt_sh",
+        "status": "failed",
+        "raw_result": {"error: Some crt.sh exception"},
+        "findings": [],
+        "assets": [],
+        "error_message": "Some crt.sh exception",
+    }
+
+    mock_send_callback.assert_called_once_with(
+        scan_id = "scan-1234",
+        source_name = "crt.sh",
+        status = "failed",
+        raw_result = {"error: Some crt.sh exception"},
+        findings = [],
+        assets = [],
+        error_message = "Some crt.sh exception",
+    )
