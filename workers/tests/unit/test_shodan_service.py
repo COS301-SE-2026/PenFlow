@@ -89,3 +89,31 @@ def test_shodan_fallback_to_mock(mock_get, mock_socket, mock_send_callback):
     #mock data should load safely
     assert "hosting_provider" in result["raw_result"]["infrastructure"]
     mock_send_callback.assert_called_once()
+
+
+@patch("app.tasks.shodan_tasks.send_source_callback")
+@patch("app.tasks.shodan_tasks.collect_raw_data")
+def test_hibp_exception(mock_raw_data, mock_send_callback):
+    mock_raw_data.side_effect = Exception("Some shodan exception")
+
+    result = run_shodan("scan-1234", "acorns.com")
+
+    assert result == {
+        "scan_id": "scan-1234",
+        "source_name": "shodan",
+        "status": "failed",
+        "raw_result": {"error": "Some shodan exception"},
+        "findings": [],
+        "assets": [],
+        "error_message": "Some shodan exception",
+    }
+
+    mock_send_callback.assert_called_once_with(
+        scan_id = "scan-1234",
+        source_name = "shodan",
+        status = "failed",
+        raw_result = {"error": "Some shodan exception"},
+        findings = [],
+        assets = [],
+        error_message = "Some shodan exception",
+    )

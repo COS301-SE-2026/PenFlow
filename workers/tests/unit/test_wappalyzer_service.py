@@ -74,3 +74,31 @@ def test_wappalyzer_fallback_to_mock(mock_wappalyzer_latest, mock_webpage, mock_
     assert not mock_webpage.called
     assert result["status"] == "completed"
     mock_send_callback.assert_called_once()
+
+
+@patch("app.tasks.wappalyzer_tasks.send_source_callback")
+@patch("app.tasks.wappalyzer_tasks.collect_raw_data")
+def test_hibp_exception(mock_raw_data, mock_send_callback):
+    mock_raw_data.side_effect = Exception("Some wappalyzer exception")
+
+    result = run_wappalyzer("scan-1234", "acorns.com")
+
+    assert result == {
+        "scan_id": "scan-1234",
+        "source_name": "wappalyzer",
+        "status": "failed",
+        "raw_result": {"error": "Some wappalyzer exception"},
+        "findings": [],
+        "assets": [],
+        "error_message": "Some wappalyzer exception",
+    }
+
+    mock_send_callback.assert_called_once_with(
+        scan_id = "scan-1234",
+        source_name = "wappalyzer",
+        status = "failed",
+        raw_result = {"error": "Some wappalyzer exception"},
+        findings = [],
+        assets = [],
+        error_message = "Some wappalyzer exception",
+    )

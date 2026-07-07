@@ -191,8 +191,8 @@ def test_dns_scan_detects_spf_fail_policy(mock_dns, mock_whois, mock_send_callba
 
 
 @patch("app.tasks.dns_tasks.send_source_callback")
-@patch("app.tasks.dns_tasks.collect_raw_data")
-def test_run_dns_exception(mock_collect_dns, mock_callback):
+@patch("app.tasks.dns_tasks.collect_dns_raw_data")
+def test_run_dns_exception(mock_collect_dns, mock_send_callback):
     mock_collect_dns.side_effect = Exception("Some DNS exception")
 
     result = run_dns_scan("scan-1234", "acorns.com")
@@ -201,7 +201,7 @@ def test_run_dns_exception(mock_collect_dns, mock_callback):
         "scan_id": "scan-1234",
         "source_name": "dns",
         "status": "failed",
-        "raw_result": {"error: Some DNS exception"},
+        "raw_result": {"error": "Some DNS exception"},
         "findings": [],
         "assets": [],
         "error_message": "Some DNS exception",
@@ -211,7 +211,7 @@ def test_run_dns_exception(mock_collect_dns, mock_callback):
         scan_id = "scan-1234",
         source_name = "dns",
         status = "failed",
-        raw_result = {"error: Some DNS exception"},
+        raw_result = {"error": "Some DNS exception"},
         findings = [],
         assets = [],
         error_message = "Some DNS exception",

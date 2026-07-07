@@ -78,3 +78,31 @@ def test_hunter_fallback_to_mock(mock_get, mock_send_callback):
     #if local mock file is loading it should have a pattern and emails
     assert "email_format_pattern" in result["raw_result"]["phishing_surface"]
     mock_send_callback.assert_called_once()
+
+
+@patch("app.tasks.hunter_tasks.send_source_callback")
+@patch("app.tasks.hunter_tasks.collect_raw_data")
+def test_hibp_exception(mock_raw_data, mock_send_callback):
+    mock_raw_data.side_effect = Exception("Some hunter exception")
+
+    result = run_hunter("scan-1234", "acorns.com")
+
+    assert result == {
+        "scan_id": "scan-1234",
+        "source_name": "hunter.io",
+        "status": "failed",
+        "raw_result": {"error": "Some hunter exception"},
+        "findings": [],
+        "assets": [],
+        "error_message": "Some hunter exception",
+    }
+
+    mock_send_callback.assert_called_once_with(
+        scan_id = "scan-1234",
+        source_name = "hunter.io",
+        status = "failed",
+        raw_result = {"error": "Some hunter exception"},
+        findings = [],
+        assets = [],
+        error_message = "Some hunter exception",
+    )

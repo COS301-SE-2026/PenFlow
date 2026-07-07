@@ -80,16 +80,16 @@ def test_crt_sh_mock_mode_fallback(mock_get, mock_send_callback):
 
 @patch("app.tasks.crtsh_tasks.send_source_callback")
 @patch("app.tasks.crtsh_tasks.collect_raw_data")
-def test_crtsh_exception(mock_send_callback, mock_raw_data):
+def test_crtsh_exception(mock_raw_data, mock_send_callback):
     mock_raw_data.side_effect = Exception("Some crt.sh exception")
 
     result = run_crt_sh("scan-1234", "acorns.com")
 
     assert result == {
         "scan_id": "scan-1234",
-        "source_name": "crt_sh",
+        "source_name": "crt.sh",
         "status": "failed",
-        "raw_result": {"error: Some crt.sh exception"},
+        "raw_result": {"error": "Some crt.sh exception"},
         "findings": [],
         "assets": [],
         "error_message": "Some crt.sh exception",
@@ -99,7 +99,7 @@ def test_crtsh_exception(mock_send_callback, mock_raw_data):
         scan_id = "scan-1234",
         source_name = "crt.sh",
         status = "failed",
-        raw_result = {"error: Some crt.sh exception"},
+        raw_result = {"error": "Some crt.sh exception"},
         findings = [],
         assets = [],
         error_message = "Some crt.sh exception",

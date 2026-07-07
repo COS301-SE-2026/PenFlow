@@ -74,3 +74,31 @@ def test_urlscan_mock_mode_fallback(mock_get, mock_post, mock_send_callback):
     assert "malicious_flags" in reputation
     assert reputation["provider"] == "URLScan"
     mock_send_callback.assert_called_once()
+
+
+@patch("app.tasks.urlscan_tasks.send_source_callback")
+@patch("app.tasks.urlscan_tasks.collect_raw_data")
+def test_hibp_exception(mock_raw_data, mock_send_callback):
+    mock_raw_data.side_effect = Exception("Some urlscan exception")
+
+    result = run_urlscan("scan-1234", "acorns.com")
+
+    assert result == {
+        "scan_id": "scan-1234",
+        "source_name": "urlscan",
+        "status": "failed",
+        "raw_result": {"error": "Some urlscan exception"},
+        "findings": [],
+        "assets": [],
+        "error_message": "Some urlscan exception",
+    }
+
+    mock_send_callback.assert_called_once_with(
+        scan_id = "scan-1234",
+        source_name = "urlscan",
+        status = "failed",
+        raw_result = {"error": "Some urlscan exception"},
+        findings = [],
+        assets = [],
+        error_message = "Some urlscan exception",
+    )

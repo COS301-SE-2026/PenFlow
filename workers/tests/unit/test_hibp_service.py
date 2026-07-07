@@ -75,3 +75,31 @@ def test_hibp_fallback_to_mock(mock_get, mock_send_callback):
     #mock data should load safely
     assert "pwned_accounts_count" in result["raw_result"]["breach_data"]
     mock_send_callback.assert_called_once()
+
+
+@patch("app.tasks.hibp_tasks.send_source_callback")
+@patch("app.tasks.hibp_tasks.collect_raw_data")
+def test_hibp_exception(mock_raw_data, mock_send_callback):
+    mock_raw_data.side_effect = Exception("Some hibp exception")
+
+    result = run_hibp("scan-1234", "acorns.com")
+
+    assert result == {
+        "scan_id": "scan-1234",
+        "source_name": "hibp",
+        "status": "failed",
+        "raw_result": {"error": "Some hibp exception"},
+        "findings": [],
+        "assets": [],
+        "error_message": "Some hibp exception",
+    }
+
+    mock_send_callback.assert_called_once_with(
+        scan_id = "scan-1234",
+        source_name = "hibp",
+        status = "failed",
+        raw_result = {"error": "Some hibp exception"},
+        findings = [],
+        assets = [],
+        error_message = "Some hibp exception",
+    )
