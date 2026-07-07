@@ -168,3 +168,56 @@ async def test_update_report_status_failed(mock_failed):
         "scan_id": str(scan_id),
         "report_status": "failed",
     }
+
+
+@pytest.mark.asyncio
+async def test_update_report_status_invalid():
+    scan_id = uuid4()
+    db = AsyncMock()
+
+    result = ReportCallbackRequest(status="Incorrect Status")
+
+    with pytest.raises(HTTPException) as excep:
+        await update_report_status_callback(scan_id, result, db)
+
+    assert excep.value.status_code == 400
+    assert excep.value.detail == "Invalid report status"
+
+
+@pytest.mark.asyncio
+@patch("app.api.routes.internal.ScanRepository.save_source_result", new_callable=AsyncMock)
+async def test_update_scan_source_callback(mock_save_source_result):
+    scan_id = uuid4()
+    db = AsyncMock()
+
+    scan = SimpleNamespace(
+        id = scan_id,
+        status = SimpleNamespace(value="running"),
+        progress = 37,
+    )
+
+    mock_save_source_result.return_value = scan
+
+    payload = ScanCallbackRequest(
+        status = "completed",
+        raw_result = {"Raw Result of some kind": True},
+        assets = [],
+        findings = [],
+        error_message = None,
+    )
+
+    result = await update_scan_source_callback(scan_id, "dns", payload, db)
+
+    mock_save_source_result.assert_awaited_once_with(
+        db = db,
+        scan_id = scan_id,
+        source_name = "dns",
+        payload = payload.model_dump(),
+    )
+
+    assert result == {
+        "scan_id": str(scan_id),
+        "source_name": "dns",
+        "scan_status": "running",
+        "progress": 37,
+    }
