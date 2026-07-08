@@ -88,5 +88,22 @@ async def test_worker_failure_callback(mock_get_scan_by_id, test_client):
 @patch("app.api.routes.scans.ScanRepository.list_scans", new_callable=AsyncMock)
 async def test_list_scans_success(mock_list_scans, test_client):
     mock_list_scans.return_value = [
-        "id"
+        {
+        "id": UUID("550e8400-e29b-41d4-a716-446655440000"),
+        "domain": "test.com",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "completed",
+        "total_findings": 5,
+        "critical_count": 0,
+        "high_count": 1,
+        "medium_count": 2,
+        "low_count": 2,
+        }
     ]
+
+    response = await test_client.get("/api/v1/scans/")
+
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["domain"] == "test.com"
