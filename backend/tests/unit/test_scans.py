@@ -4,6 +4,8 @@ from uuid import UUID
 import pytest
 from fastapi import status
 
+from datetime import datetime, timezone
+
 
 # POST tests /scans/ (Initiate Scan)
 @pytest.mark.asyncio
@@ -81,3 +83,10 @@ async def test_worker_failure_callback(mock_get_scan_by_id, test_client):
     )
 
     assert response.status_code == status.HTTP_200_OK
+
+@pytest.mark.asyncio
+@patch("app.api.routes.scans.ScanRepository.list_scans", new_callable=AsyncMock)
+async def test_list_scans_success(mock_list_scans, test_client):
+    mock_list_scans.return_value = [
+        "id"
+    ]
