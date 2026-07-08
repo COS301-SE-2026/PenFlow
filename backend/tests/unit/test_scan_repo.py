@@ -34,3 +34,18 @@ async def test_get_scan_by_id_not_found(db_session):
     retrieved_scan = await ScanRepository.get_scan_by_id(db_session, random_id)
 
     assert retrieved_scan is None
+
+@pytest.mark.asyncio
+async def test_mark_scan_failed(db_session):
+    new_scan = await ScanRepository.create_scan(db_session, "fail-test.com")
+    error_msg = "DNS resolution failed"
+
+    failed_scan = await ScanRepository.mark_scan_failed(
+        db=db_session,
+        scan_id=new_scan.id,
+        error_message=error_msg,
+        is_partial=False
+    )
+
+    assert failed_scan.status == ScanStatus.FAILED
+    assert failed_scan.error_message == error_msg
