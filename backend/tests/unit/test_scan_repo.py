@@ -27,3 +27,10 @@ async def test_get_scan_by_id_success(db_session):
     assert retrieed_scan is not None
     assert retrieved_scan.id == new_scan.id
     assert retrieved_scan.domain == domain
+
+@pytest.mark.asyncio
+async def test_get_scan_by_id_not_found(db_session):
+    random_id = UUID("00000000-0000-0000-0000-000000000000")
+    retrieved_scan = await ScanRepository.get_scan_by_id(db_session, random_id)
+
+    assert retrieved_scan is None
