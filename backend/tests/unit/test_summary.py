@@ -64,7 +64,7 @@ async def test_get_scan_summary_success(
     # mocked asset impact
     mock_get_asset_impact.return_value = {
         "total_assets_scanned": 5,
-        "affectd_assets_count": 1,
+        "affected_assets_count": 1,
         "asset_type_breakdown": [
             {"asset_type": "Email", "total_assets": 1, "affected_assets": 1}
         ],
@@ -116,3 +116,12 @@ async def test_get_scan_summary_success(
     assert data["risk_snapshot"]["total_findings"] == 10
     assert len(data["top_findings"]) == 1
     assert data["asset_impact"]["total_assets_scanned"] == 5
+
+@pytest.mark.asyncio
+@patch("app.api.routes.summary.summary_repo.get_scan_summary", new_callable=AsyncMock)
+async def test_get_scan_summary_not_found(mock_get_scan, test_client):
+    mock_get_scan.return_value = None
+
+    response = await test_client.get("/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/summary")
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
