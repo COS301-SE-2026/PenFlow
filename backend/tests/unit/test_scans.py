@@ -107,3 +107,19 @@ async def test_list_scans_success(mock_list_scans, test_client):
     data = response.json()
     assert len(data) == 1
     assert data[0]["domain"] == "test.com"
+
+@pytest.mark.asyncio
+@patch("app.api.routes.scans.ScanRepository.get_scan_status", new_callable=AsyncMock)
+async def test_get_scan_status_success(mock_get_status, test_client):
+    mock_get_status.return_value = {
+        "scan_id": "550e8400-e29b-41d4-a716-446655440000",
+        "status": "running",
+        "progress": 60,
+        "sources": [],
+        "report_status": None
+    }
+
+    response = await test_client.get("/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/status")
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["progress"] == 60
