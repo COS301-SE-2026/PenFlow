@@ -1,4 +1,3 @@
-# auth.py — backend/tests/unit/test_auth.py
 # _jwks_cache is module-level state, so tests clear it before/after
 # each test to avoid leaking cached keys across tests.
 
@@ -15,16 +14,19 @@ from app.api.middleware import auth as auth_module
 
 @pytest.fixture(autouse=True)
 def clear_jwks_cache():
+    """Clear the JWKS cache before and after each test to ensure test isolation."""
     auth_module._jwks_cache.clear()
     yield
     auth_module._jwks_cache.clear()
 
 
 def _credentials(token="fake.jwt.token"):
+    """Helper function to create HTTPAuthorizationCredentials for testing."""
     return HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
 
 
 def test_to_rsa_key_extracts_expected_fields():
+    """Test that _to_rsa_key properly extracts and filters JWK fields."""
     jwk = {
         "kty": "RSA",
         "kid": "abc123",
@@ -36,6 +38,7 @@ def test_to_rsa_key_extracts_expected_fields():
 
     result = auth_module._to_rsa_key(jwk)
 
+    # Verify that only the expected RSA key fields are returned
     assert result == {
         "kty": "RSA",
         "kid": "abc123",
@@ -47,11 +50,15 @@ def test_to_rsa_key_extracts_expected_fields():
 
 @pytest.mark.asyncio
 async def test_get_jwks_fetches_and_caches():
+    """Test that _get_jwks fetches keys from the endpoint and caches the result."""
     mock_response = MagicMock()
     mock_response.json.return_value = {"keys": [{"kid": "key-1"}]}
     mock_response.raise_for_status = MagicMock()
 
-    with patch.object(httpx.AsyncClient, "get", new=AsyncMock(return_value=mock_response)) as mock_get:
+    # FIX: Line 54 - Properly formatted with line breaks and indentation
+    with patch.object(
+        httpx.AsyncClient, "get", new=AsyncMock(return_value=mock_response)
+    ) as mock_get:
         first = await auth_module._get_jwks()
         second = await auth_module._get_jwks()
 
@@ -63,6 +70,7 @@ async def test_get_jwks_fetches_and_caches():
 
 @pytest.mark.asyncio
 async def test_get_current_user_success():
+    """Test successful user authentication with valid JWT token."""
     fake_keys = [{"kty": "RSA", "kid": "k1", "use": "sig", "n": "n", "e": "e"}]
     decoded_payload = {"sub": "user-1", "email": "user@example.com"}
 
@@ -76,6 +84,7 @@ async def test_get_current_user_success():
 
 @pytest.mark.asyncio
 async def test_get_current_user_invalid_token_raises_401():
+    """Test that invalid JWT tokens raise a 401 Unauthorized exception."""
     fake_keys = [{"kty": "RSA", "kid": "k1", "use": "sig", "n": "n", "e": "e"}]
 
     with patch.object(auth_module, "_get_jwks", new=AsyncMock(return_value=fake_keys)), \
@@ -88,7 +97,11 @@ async def test_get_current_user_invalid_token_raises_401():
 
 @pytest.mark.asyncio
 async def test_get_current_user_jwks_unreachable_raises_503():
-    with patch.object(auth_module, "_get_jwks", new=AsyncMock(side_effect=httpx.RequestError("timeout"))):
+    """Test that JWKS endpoint unreachable raises a 503 Service Unavailable."""
+    # FIX: Line 91 - Properly formatted with line breaks and closing parentheses
+    with patch.object(
+        auth_module, "_get_jwks", new=AsyncMock(side_effect=httpx.RequestError("timeout"))
+    ):
         with pytest.raises(HTTPException) as exc_info:
             await auth_module.get_current_user(_credentials())
 
@@ -97,6 +110,7 @@ async def test_get_current_user_jwks_unreachable_raises_503():
 
 @pytest.mark.asyncio
 async def test_get_current_user_unexpected_error_raises_500():
+    """Test that unexpected errors raise a 500 Internal Server Error."""
     with patch.object(auth_module, "_get_jwks", new=AsyncMock(side_effect=ValueError("boom"))):
         with pytest.raises(HTTPException) as exc_info:
             await auth_module.get_current_user(_credentials())

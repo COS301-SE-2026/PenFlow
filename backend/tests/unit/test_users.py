@@ -15,7 +15,9 @@ def test_provision_user_returns_provisioned_user():
         "role": "client",
     }
 
-    with patch("app.api.routes.users.get_or_create_user", return_value=expected) as mock_get_or_create:
+    with patch(
+        "app.api.routes.users.get_or_create_user", return_value=expected
+    ) as mock_get_or_create:
         result = provision_user(current_user=current_user, db=db)
 
     assert result == expected
@@ -32,7 +34,9 @@ def test_provision_user_defaults_missing_email_to_empty_string():
     db = MagicMock()
     expected = {"id": "id-2", "email": "", "role": "client"}
 
-    with patch("app.api.routes.users.get_or_create_user", return_value=expected) as mock_get_or_create:
+    with patch(
+        "app.api.routes.users.get_or_create_user", return_value=expected
+    ) as mock_get_or_create:
         provision_user(current_user=current_user, db=db)
 
     mock_get_or_create.assert_called_once_with(
@@ -53,3 +57,5 @@ def test_provision_user_wraps_db_errors_as_500():
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.detail == "Failed to provision user"
+
+    
