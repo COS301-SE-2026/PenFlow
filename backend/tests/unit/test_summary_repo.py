@@ -130,3 +130,15 @@ async def test_get_source_coverage(db_session: AsyncSession):
     assert aggregate["sources_partial"] == 0
     assert len(coverage["sources"]) == 2
 
+@pytest.mark.asyncio
+async def test_get_report_status(db_session: AsyncSession):
+    scan = await scan_repo.ScanRepository.create_scan(db_session, "report-test.com")
+
+    report = Report(scan_id=scan.id, status=ReportStatus.GENERATING)
+    db_session.add(report)
+    await db_session.commit()
+
+    fetched_report = await summary_repo.get_report_status(db_session, scan.id)
+
+    assert fetched_report is not None
+    assert fetched_report.status == ReportStatus.GENERATING
