@@ -79,3 +79,33 @@ async def test_get_top_findings_preview(db_session: AsyncSession):
     assert previews[0]["description"].endswith("...")
     assert previews[1]["severity"] == Severity.LOW
     assert previews[1]["asset_identifier"] == "api.preview-test.com"
+
+@pytest.mark.asyncio
+async def test_get_asset_impact_summary(db_session: AsyncSession):
+    scan = await scan_repo.ScanRepository.create_scan(db_session, "impact-test.com")
+
+    ip_asset = Asset(scan_id=scan.id, identifier="192.168.1.1", asset_type="IP Address")
+    safe_ip = Asset(scan_id=scan.id, identifier="10.0.0.1", asset_type="IP Address")
+    sub_asset = Asset(scan_id=scan.id, identifier="dev.impact-test.com", asset_type="Subdomain")
+
+    db_session.add_all([ip_asset, safe_ip, sub_asset])
+    await db_session.commit()
+    await db_session.refresh(ip_asset)
+    await db_session.refresh(sub_asset)
+
+    findings = [
+        Finding(scan_id=scan.id, asset_id=ip_asset.id,source="shodan", severity=Severity.HIGH, title="Vuln 1"),
+        Finding(scan_id=scan.id, asset_id=ip_asset.id,source="crt.sh", severity=Severity.INFO, title="Info 1"),
+    ]
+    db_session.add_all(findings)
+    await db_session.commit()
+
+    impact = await summary_repo.get_asset_impact_summary(db_session, scan.id)
+
+    assert impact["total_assets_scanned"] ==3
+    assert impact["affected_assets_count"] == 2
+
+    breakdown = impact["asset_type_breakdown"]
+    ip_breakdown = next(b for b in breakdown if b["asset_type"] == "IP Address")
+    assert ip_breakdown["total_assets"] == 2
+    assert ip_breakdown["affected_assets"] == 1
