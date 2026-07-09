@@ -40,3 +40,42 @@ async def test_get_risk_snapshot(db_session: AsyncSession):
     assert snapshot["medium_count"] == 1
     assert snapshot["critical_count"] == 0
     assert snapshot["info_count"] == 1
+
+@pytest.mark.asyncio
+async def test_get_top_findings_preview(db_session: AsyncSession):
+    scan = await scan_repo.ScanRepository.create_scan(db_session, "preview-test.com")
+    asset = Asset(scan_id=scan.id, identifier="api.preview-test.com", asset_type="Subdomain")
+    db_session.add(asset)
+    await db_session.commit()
+    await db_session.refresh(asset)
+
+    #seed 1 critical, 1 low.
+    long_desc = "A" * 150
+    findings = [
+        Finding(
+            scan_id=scan.id,
+            asset_id=asset.id,
+            source="test",
+            severity=Severity.LOW,
+            title="Low Risk"
+        ),
+        Finding(
+            scan_id=scan.id,
+            source="test",
+            severity=Severity.CRITICAL,
+            title="Ctit Risk",
+            description=long_desc
+        ),
+    ]
+    db_session.add_all(findings)
+    await db_session.commit()
+
+    previews = await summary_repo.get_top_findings_preview(db_session, scan.id, limit=5)
+
+    assert len(previews) == 2
+    #crit first
+    assert preview[0]["severity"] == Severity.CRITICAL
+    assert len(previews[0]["description"]) == 123
+    assert previews[0]["description"].endswith("...")
+    assert previews[1]["severity"] == Severity.LOW
+    assert previews[1]["asset_identifier"] == "api.preview-test.com"
