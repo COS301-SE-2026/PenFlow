@@ -109,3 +109,24 @@ async def test_get_asset_impact_summary(db_session: AsyncSession):
     ip_breakdown = next(b for b in breakdown if b["asset_type"] == "IP Address")
     assert ip_breakdown["total_assets"] == 2
     assert ip_breakdown["affected_assets"] == 1
+
+@pytest.mark.asyncio
+async def test_get_source_coverage(db_session: AsyncSession):
+    scan = await scan_repo.ScanRepository.create_scan(db_session, "coverage-test.com")
+
+    sources = [
+        ScanSource(scan_id=scan.id, source_name="shodan", status=ScanSourceStatus.COMPLETED),
+        ScanSource(scan_id=scan.id, source_name="hibp", status=ScanSourceStatus.FAILED),
+    ]
+    db_session.add_all(sources)
+    await db_session.commit()
+
+    coverage = await summary_repo.get_source_coverage(db_session, scan.id)
+
+    aggregate = coverage["aggregate"]
+    assert aggregate["sources_total"] == 2
+    assert aggregate["sources_completed"] == 1
+    assert aggregate["sources_failed"] == 1
+    assert aggregate["sources_partial"] == 0
+    assert len(coverage["sources"]) == 2
+
