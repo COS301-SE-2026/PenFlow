@@ -75,6 +75,7 @@ export interface ScanStartResponse {
 export async function postScanRequest(domain: string): Promise<ScanStartResponse> {
     const response = await fetch(`${API_BASE}/scans/`, {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ domain }),
     });
@@ -100,7 +101,9 @@ export interface ScanHistoryItem {
 }
 
 export async function fetchScanHistory() {
-  const response = await fetch(`${API_BASE}/scans/`);
+  const response = await fetch(`${API_BASE}/scans/`, {
+    credentials: "include",
+  });
   if (!response.ok) {
     const err = await response.json().catch(() => ({ detail: "Failed to load scan history" }));
     throw new Error(err.detail ?? "Failed to load scan history");
@@ -109,7 +112,9 @@ export async function fetchScanHistory() {
 }
 
 export async function fetchScanSummary(scanId: string) {
-  const response = await fetch(`${API_BASE}/scans/${scanId}/summary`);
+  const response = await fetch(`${API_BASE}/scans/${scanId}/summary`, {
+    credentials: "include",
+  });
   if (!response.ok) {
     const err = await response.json().catch(() => ({ detail: "Failed to load summary" }));
     throw new Error(err.detail ?? "Failed to load summary");
