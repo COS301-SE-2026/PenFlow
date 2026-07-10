@@ -141,44 +141,35 @@
   gap: 10px;
 }
 
-.processCols {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+.scanningBox {
   flex: 1;
-}
-
-.processCol {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.processLabel,
-.viewReportButton {
   border: 1px solid var(--col-edge);
-  border-radius: 8px;
-  background: rgba(16, 36, 72, 0.8);
-  min-height: 44px;
+  border-radius: 10px;
+  background: rgba(16, 36 , 72, 0.8);
   display: grid;
   place-items: center;
-  font-family: var(--font-display), "Courier New", monospace;
-  font-size: clamp(0.85rem, 1.25vw, 1.05rem);
-  font-weight: 600;
-  letter-spacing: 0.08em;
 }
 
-.processLabel {
-  color: rgba(122, 170, 200, 0.4);
-  transition: color 300ms ease;
+
+.scanningText {
+  font-family: var(--font-display), Impact, sans-serif; font-size: clamp (2rem, 4vw, 3.2rem); font-weight: 700;
+  letter-spacing: 0.14em;
+  color: rgba(122, 170, 200, 0.25); transition: color 400ms ease;
 }
 
-.processLabel[data-done="true"] {
+.scanningText[data-state="scanning"] { 
+  color: var(--col-orange);
+  animation: flashOrange 0.8s ease-in-out infinite;
+}
+
+.scanningText[data-state="complete"] { 
   color: var(--col-success);
+  animation: none;
 }
 
-.normalisingLabel[data-done="true"] {
-  color: #e6a820;
+@keyframes flashOrange {
+0%, 100% { opacity: 1; }
+50% { opacity: 0.2; }
 }
 
 .viewReportButton {
