@@ -95,3 +95,17 @@ async def test_download_scan_pdf_report_missing(mock_get_report, test_client):
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+
+
+@patch("app.api.routes.scans.get_report_by_scan_id")
+async def test_download_scan_pdf_uncompleted(mock_get_report, test_client):
+    mock_report = MagicMock()
+    mock_report.status.value = "generating"
+    mock_get_report.return_value = mock_report
+    response = await test_client.get(
+        "/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/pdf",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
