@@ -4,7 +4,7 @@ import os
 from typing import Any
 
 import httpx
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 
@@ -18,7 +18,7 @@ _JWKS_TIMEOUT = 10.0
 
 _jwks_cache: dict[str, Any] = {}
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 async def _get_jwks() -> list[dict[str, Any]]:
@@ -43,10 +43,26 @@ def _to_rsa_key(key: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _extract_token(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None,
+) -> str | None:
+    if credentials is not None:
+        return credentials.credentials
+    return request.cookies.get("access_token")
+
+
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
 ) -> dict[str, Any]:
-    token = credentials.credentials
+    token = _extract_token(request, credentials)
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
     try:
         keys = await _get_jwks()
@@ -84,3 +100,16 @@ async def get_current_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Token validation error",
         ) from exc
+
+
+async def get_current_user_optional(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+) -> dict[str, Any] | None:
+    token = _extract_token(request, credentials)
+    if token is None:
+        return None
+    try:
+        return await get_current_user(request, credentials)
+    except HTTPException:
+        return None
