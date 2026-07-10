@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import cast
 
 from dotenv import load_dotenv
 from sqlalchemy.engine import URL
@@ -35,7 +36,7 @@ def get_database_url() -> str:
         "DATABASE_USER",
         "DATABASE_PASSWORD",
     )
-
+ 
     values = {
         variable: os.getenv(variable)
         for variable in required_variables
@@ -53,17 +54,11 @@ def get_database_url() -> str:
             + ", ".join(missing_vars)
         )
     
-    database_host = values["DATABASE_HOST"]
-    database_port = values["DATABASE_PORT"]
-    database_name = values["DATABASE_NAME"]
-    database_user = values["DATABASE_USER"]
-    database_password = values["DATABASE_PASSWORD"]
-
-    assert database_host is not None
-    assert database_port is not None
-    assert database_name is not None
-    assert database_user is not None
-    assert database_password is not None
+    database_host = cast(str, values["DATABASE_HOST"])
+    database_port = cast(str, values["DATABASE_PORT"])
+    database_name = cast(str, values["DATABASE_NAME"])
+    database_user = cast(str, values["DATABASE_USER"])
+    database_password = cast(str, values["DATABASE_PASSWORD"])
 
     return URL.create(
         drivername = "postgresql+asyncpg",
