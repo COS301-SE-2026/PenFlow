@@ -4,7 +4,6 @@ from uuid import UUID
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
