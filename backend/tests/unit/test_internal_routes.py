@@ -10,7 +10,6 @@ from app.api.routes.internal import (
     update_scan_source_callback,
     update_scan_status_callback,
 )
-
 from app.models.base import ScanStatus
 from app.schemas.report import ReportCallbackRequest
 from app.schemas.scan import ScanCallbackRequest, ScanSourceCallbackRequest
