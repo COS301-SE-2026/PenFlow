@@ -29,5 +29,6 @@ app.include_router(stream.router, prefix=API_V1_PREFIX)
 app.include_router(internal.router, prefix=API_V1_PREFIX)
 app.include_router(users.router, prefix=API_V1_PREFIX)
 app.include_router(summary.router, prefix=API_V1_PREFIX)
+app.include_router(domains.router, prefix=API_V1_PREFIX)
 
 
