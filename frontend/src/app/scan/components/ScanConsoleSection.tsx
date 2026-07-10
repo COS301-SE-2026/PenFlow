@@ -4,61 +4,53 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import styles from "./ScanConsoleSection.module.css";
-import { validateDomain } from "@/lib/domainValidator";   
-import { postScanRequest,  fetchScanSummary  } from "@/lib/scanService";  
+import { validateDomain } from "@/lib/domainValidator";
+import { postScanRequest, fetchScanSummary } from "@/lib/scanService";
 
-const LEFT_SOURCES  = ["Shodan", "HaveIBeenPwned", "URLScan.io", "Hunter.io"];
-const RIGHT_SOURCES = ["crt.sh", "WHOIS", "DNS"];
-const SOURCES = [...LEFT_SOURCES, ...RIGHT_SOURCES, "Normalising"];
+type ScanState = "idle" | "scanning" | "complete";
 
 export default function ScanConsoleSection() {
   const [domain, setDomain] = useState("");
   const [status, setStatus] = useState("Ready to scan");
-  const [stepsDone, setStepsDone] = useState<boolean[]>(Array(SOURCES.length).fill(false));
   const [reportReady, setReportReady] = useState(false);
   const [scanId, setScanId] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [sweeping, setSweeping] = useState(false);
-  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const [scanState, setScanState] = useState<ScanState>("idle");
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const router = useRouter();
 
   const canScan = domain.trim().length > 2;
 
-  const clearAllTimers = () => {
-    timersRef.current.forEach(clearTimeout);
-    timersRef.current = [];
+  const stopPolling = () => {
+    if (pollingRef.current != null) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+  }
   };
 
-  const startScanSequence = (domainValue: string) => {
-    clearAllTimers();
-    setStepsDone(Array(SOURCES.length).fill(false));
-    setReportReady(false);
-    setScanning(true);
-    setSweeping(true);
-    setStatus(`Scanning ${domainValue}...`);
-
-    SOURCES.forEach((_, index) => {
-      const timer = setTimeout(() => {
-        setStepsDone(prev => {
-          const next = [...prev];
-          next[index] = true;
-          return next;
-        });
-        if (index === SOURCES.length - 1) {
-          const reportTimer = setTimeout(() => {
-            setReportReady(true);
-            setScanning(false);
-            setSweeping(false);
-            setStatus("Scan complete — report ready");
-          }, 1000);
-          timersRef.current.push(reportTimer);
+  const startPolling = (id: string) => {
+    stopPolling();
+    pollingRef.current = setInterval(async () => {
+      try {
+        const summary = await fetchScanSummary(id);
+        const done =
+          summary.scan_summary?.status === "completed" || 
+          (summary.report_status?.status === "completed" && summary.report_status?.pdf_path);
+        if (done) {
+          stopPolling();
+          setReportReady(true);
+          setScanning(false);
+          setSweeping(false);
+          setScanState("complete");
+          setStatus("Scan complete: report ready");
         }
-      }, (index + 1) * 1000);
-      timersRef.current.push(timer);
-    });
+      } catch{
+
+      }
+    }, 2000);
   };
 
-    //the validation moves to  lib/domainvalidator and add scan service
   const onSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
 
@@ -71,7 +63,12 @@ export default function ScanConsoleSection() {
     try {
       const { scan_id } = await postScanRequest(result.domain);
       setScanId(scan_id);
-      startScanSequence(result.domain);
+      setReportReady(false);
+      setScanning(true);
+      setSweeping(true);
+      setScanState("scanning");
+      setStatus(`Scanning ${result.domain}...`);
+      startPolling(scan_id);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Scan request failed";
       setStatus(message);
@@ -103,7 +100,7 @@ export default function ScanConsoleSection() {
     }
   };
 
-  useEffect(() => () => clearAllTimers(), []);
+  useEffect(() => () => stopPolling(), []);
 
   return (
     <section id="scan" className={styles.scanSection}>
@@ -129,24 +126,10 @@ export default function ScanConsoleSection() {
           </div>
 
           <div className={styles.processPanel}>
-            <div className={styles.processCols}>
-              <div className={styles.processCol}>
-                {LEFT_SOURCES.map((source, i) => (
-                  <span key={source} className={styles.processLabel} data-done={stepsDone[i]}>
-                    {source}
-                  </span>
-                ))}
-              </div>
-              <div className={styles.processCol}>
-                {RIGHT_SOURCES.map((source, i) => (
-                  <span key={source} className={styles.processLabel} data-done={stepsDone[LEFT_SOURCES.length + i]}>
-                    {source}
-                  </span>
-                ))}
-                <span className={`${styles.processLabel} ${styles.normalisingLabel}`} data-done={stepsDone[SOURCES.length - 1]}>
-                  Normalising
-                </span>
-              </div>
+            <div className={styles.scanningBox}>
+              <span className={styles.scanningText} data-state={scanState}>
+                SCANNING
+              </span>
             </div>
             <Button
               type="button"
