@@ -1,12 +1,10 @@
-
-#Shared test fixtures: real DB session + FastAPI client for integration tests (unit tests mock 
-# their own db instead)
-# Shared test fixtures for the backend tests.
+# Shared test fixtures: real DB session + FastAPI client for integration tests
 # This file provides fixtures for:
 # 1. Real database sessions for integration tests
 # 2. FastAPI test client with dependency overrides
 # 3. Authentication override for testing protected endpoints
 # Unit tests should mock their own dependencies instead of using these fixtures.
+
 import os
 import sys
 from pathlib import Path
@@ -55,12 +53,15 @@ TestingSessionLocal = async_sessionmaker(
 
 @pytest_asyncio.fixture
 async def db_session():
+    # Provides a real async database session for integration tests
     async with TestingSessionLocal() as session:
         yield session
 
 
 @pytest_asyncio.fixture
 async def test_client(db_session):
+    # Provides a FastAPI test client with database dependency overridden
+    # Overrides get_db to use the test database session
     async def override_get_db():
         yield db_session
 
@@ -72,4 +73,33 @@ async def test_client(db_session):
     ) as client:
         yield client
 
+    # Clean up dependency overrides after test completes
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def login_as():
+    """
+    Simulate a logged-in user by overriding the auth dependency.
+    
+    This fixture allows integration tests to bypass real Keycloak authentication
+    by overriding get_current_user to return a mock user identity.
+    
+    Usage:
+        await login_as({
+            "sub": "kc-123",
+            "email": "test@example.com",
+            "name": "Test User"
+        })
+    """
+    def _login(identity: dict):
+        # Override the auth dependency to return the provided identity
+        # This bypasses all JWT validation and Keycloak calls
+        app.dependency_overrides[get_current_user] = lambda: identity
+
+    # Yield the login function to the test
+    yield _login
+    
+    # Cleanup: Remove the override after the test completes
+    # Ensures other tests don't inherit this override
+    app.dependency_overrides.pop(get_current_user, None)
