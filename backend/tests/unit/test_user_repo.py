@@ -1,4 +1,6 @@
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
 
 from app.repositories.user_repo import get_or_create_user
 
@@ -11,11 +13,21 @@ def _make_row(id_="550e8400-e29b-41d4-a716-446655440000", email="test@example.co
     return row
 
 
-def test_get_or_create_user_returns_expected_dict():
+def _make_db(row):
+    # db.execute is async and must be awaited, but its return value (Result.fetchone()) is sync — not waited.
     db = MagicMock()
-    db.execute.return_value.fetchone.return_value = _make_row()
+    result = MagicMock()
+    result.fetchone.return_value = row
+    db.execute = AsyncMock(return_value=result)
+    db.commit = AsyncMock()
+    return db
 
-    result = get_or_create_user(
+
+@pytest.mark.asyncio
+async def test_get_or_create_user_returns_expected_dict():
+    db = _make_db(_make_row())
+
+    result = await get_or_create_user(
         db=db,
         auth_provider_id="kc-123",
         email="test@example.com",
@@ -29,24 +41,24 @@ def test_get_or_create_user_returns_expected_dict():
     }
 
 
-def test_get_or_create_user_commits_transaction():
-    db = MagicMock()
-    db.execute.return_value.fetchone.return_value = _make_row()
+@pytest.mark.asyncio
+async def test_get_or_create_user_commits_transaction():
+    db = _make_db(_make_row())
 
-    get_or_create_user(
+    await get_or_create_user(
         db=db,
         auth_provider_id="kc-123",
-        email="test@example.com"
+        email="test@example.com",
     )
 
     db.commit.assert_called_once()
 
 
-def test_get_or_create_user_passes_correct_query_params():
-    db = MagicMock()
-    db.execute.return_value.fetchone.return_value = _make_row()
+@pytest.mark.asyncio
+async def test_get_or_create_user_passes_correct_query_params():
+    db = _make_db(_make_row())
 
-    get_or_create_user(
+    await get_or_create_user(
         db=db,
         auth_provider_id="kc-456",
         email="jane@example.com",
@@ -61,14 +73,14 @@ def test_get_or_create_user_passes_correct_query_params():
     }
 
 
-def test_get_or_create_user_defaults_full_name_to_none():
-    db = MagicMock()
-    db.execute.return_value.fetchone.return_value = _make_row()
+@pytest.mark.asyncio
+async def test_get_or_create_user_defaults_full_name_to_none():
+    db = _make_db(_make_row())
 
-    get_or_create_user(
+    await get_or_create_user(
         db=db,
         auth_provider_id="kc-789",
-        email="no-name@example.com"
+        email="no-name@example.com",
     )
 
     _, params = db.execute.call_args.args
