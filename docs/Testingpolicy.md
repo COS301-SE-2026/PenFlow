@@ -85,7 +85,7 @@ integration tests are integrated into the CI pipeline, which is
 configured using GitHub Actions. Automated testing is a key component
 in the pipeline, preventing code from being merged into the main branch
 if tests fail. This approach maintains high standards of code quality.
-To maintain a robust testing framework, a minimum test coverage of 70%
+To maintain a robust testing framework, a minimum test coverage of 80%
 is targeted across all testable layers of the project. This policy must
 be implemented by all contributors and is designed to facilitate
 continuous improvement in the application.
@@ -111,7 +111,7 @@ or develop branch.
 
 #### 2.1.3 Coverage
 
-A minimum code coverage of 70% is targeted for unit testing across all
+A minimum code coverage of 80% is targeted for unit testing across all
 backend services, Celery workers, and frontend components. All service
 layer functions and utility helpers must undergo unit testing. Coverage
 reports are generated on every CI run using pytest-cov for Python
