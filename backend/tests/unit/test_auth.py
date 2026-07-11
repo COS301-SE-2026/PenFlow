@@ -25,6 +25,12 @@ def _credentials(token="fake.jwt.token"):
     return HTTPAuthorizationCredentials(scheme="Bearer", credentials=token)
 
 
+def _request():
+    """get_current_user takes `request` as its first positional/keyword arg;
+    it's only touched when credentials is None, so a bare mock is enough."""
+    return MagicMock()
+
+
 def test_to_rsa_key_extracts_expected_fields():
     """Test that _to_rsa_key properly extracts and filters JWK fields."""
     jwk = {
@@ -55,7 +61,6 @@ async def test_get_jwks_fetches_and_caches():
     mock_response.json.return_value = {"keys": [{"kid": "key-1"}]}
     mock_response.raise_for_status = MagicMock()
 
-    # FIX: Line 54 - Properly formatted with line breaks and indentation
     with patch.object(
         httpx.AsyncClient, "get", new=AsyncMock(return_value=mock_response)
     ) as mock_get:
@@ -76,7 +81,9 @@ async def test_get_current_user_success():
 
     with patch.object(auth_module, "_get_jwks", new=AsyncMock(return_value=fake_keys)), \
             patch.object(auth_module.jwt, "decode", return_value=decoded_payload) as mock_decode:
-        result = await auth_module.get_current_user(_credentials())
+            # accept 2 paramter ,parm1 fastapi request object , param2 credential
+            #add await
+        result = await auth_module.get_current_user(request=_request(), credentials=_credentials()) 
 
     assert result == decoded_payload
     mock_decode.assert_called_once()
@@ -90,7 +97,7 @@ async def test_get_current_user_invalid_token_raises_401():
     with patch.object(auth_module, "_get_jwks", new=AsyncMock(return_value=fake_keys)), \
             patch.object(auth_module.jwt, "decode", side_effect=JWTError("bad signature")):
         with pytest.raises(HTTPException) as exc_info:
-            await auth_module.get_current_user(_credentials())
+            await auth_module.get_current_user(request=_request(), credentials=_credentials())
 
     assert exc_info.value.status_code == 401
 
@@ -98,12 +105,11 @@ async def test_get_current_user_invalid_token_raises_401():
 @pytest.mark.asyncio
 async def test_get_current_user_jwks_unreachable_raises_503():
     """Test that JWKS endpoint unreachable raises a 503 Service Unavailable."""
-    # FIX: Line 91 - Properly formatted with line breaks and closing parentheses
     with patch.object(
         auth_module, "_get_jwks", new=AsyncMock(side_effect=httpx.RequestError("timeout"))
     ):
         with pytest.raises(HTTPException) as exc_info:
-            await auth_module.get_current_user(_credentials())
+            await auth_module.get_current_user(request=_request(), credentials=_credentials())
 
     assert exc_info.value.status_code == 503
 
@@ -113,6 +119,6 @@ async def test_get_current_user_unexpected_error_raises_500():
     """Test that unexpected errors raise a 500 Internal Server Error."""
     with patch.object(auth_module, "_get_jwks", new=AsyncMock(side_effect=ValueError("boom"))):
         with pytest.raises(HTTPException) as exc_info:
-            await auth_module.get_current_user(_credentials())
+            await auth_module.get_current_user(request=_request(), credentials=_credentials())
 
     assert exc_info.value.status_code == 500
