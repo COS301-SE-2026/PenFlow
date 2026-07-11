@@ -27,7 +27,7 @@ def _credentials(token="fake.jwt.token"):
 
 def _request():
     #get_current_user takes `request` as its first positional/keyword arg;
-    it's only touched when credentials is None, so a bare mock is enough.
+    #it's only touched when credentials is None, so a bare mock is enough.
     return MagicMock()
 
 
