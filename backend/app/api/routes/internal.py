@@ -7,11 +7,15 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
-from app.models.report_status import ReportStatus
 from app.models.base import ScanStatus, Severity
 from app.models.finding import Finding
+from app.models.report_status import ReportStatus
 from app.models.scan_source import ScanSource, ScanSourceStatus
-from app.repositories.report_repository import mark_report_completed, mark_report_failed, get_report_by_scan_id
+from app.repositories.report_repository import (
+    get_report_by_scan_id,
+    mark_report_completed,
+    mark_report_failed,
+)
 from app.repositories.scan_repo import ScanRepository
 from app.schemas.report import ReportCallbackRequest
 from app.schemas.scan import ScanCallbackRequest, ScanSourceCallbackRequest

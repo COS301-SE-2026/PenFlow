@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 from typing import Any
 
-from celery.result import AsyncResult
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy.ext.asyncio import AsyncSession
 

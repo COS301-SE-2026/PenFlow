@@ -160,7 +160,8 @@ class ScanRepository:
             await db.flush()
 
             source_status_results = await db.execute(
-                select(ScanSource.source_name, ScanSource.status).where(ScanSource.scan_id == scan.id)
+                select(ScanSource.source_name, 
+                       ScanSource.status).where(ScanSource.scan_id == scan.id)
             )
 
             source_statuses = source_status_results.all()
