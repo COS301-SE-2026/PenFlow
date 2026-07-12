@@ -40,3 +40,22 @@ async def test_verify_domain_ownership_success(mock_verify_txt, test_client):
 
     assert data["status"] == DomainVerificationStatus.VERIFIED.value
     assert data["verified_at"] is not None
+
+@pytest.mark.asyncio
+@patch("app.api.routes.domains.VerificationService.verify_dns_txt")
+async def test_verify_domain_ownership_fail(mock_verify_txt, test_client):
+    #force a false
+    mock_verify_txt.return_value = False
+
+    #add a domain
+    add_response = await test_client.post(
+        "/api/v1/domains/",
+        json={"domain": "fail-test.com"}
+    )
+    domain_id = add_response.json()["id"]
+
+    #hit the verification endpoint
+    verify_response = await test_client.post(f"/api/v1/domains/{domain_id}/verify")
+
+    assert verify_response.status_code == status.HTTP_400_BAD_REQUEST
+    assert "Verification failed" in verify_response.json()["detail"]
