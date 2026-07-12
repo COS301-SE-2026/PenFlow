@@ -12,6 +12,29 @@ const OSINT_SOURCES = [
   { name: "HUNTER.IO", desc: "Discovers publicly available email addresses associated with a domain." },
 ];
 
+export default function OsintPanel() {
+  const [activeIdx, setActiveIdx] = useState<number | null>(null);
+  const [displayed, setDisplayed] = useState("");
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect( () => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  const handleClick = (idx: number) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setActiveIdx(idx);
+    setDisplayed("");
+    const full = `${OSINT_SOURCES[idx].name}:\n${OSINT_SOURCES[idx].desc}`;
+    let i = 0;
+    const tick = () => {
+      i++;
+      setDisplayed(full.slice(0,i));
+      if (i < full.length) timerRef.current = setTimeout(tick, 16);
+      };
+      timerRef.current = setTimeout(tick, 16);
+    };
+
+
+
 return (
   <div className={styles.osintTerminal}>
     <div className={styles.terminalBar}>
@@ -43,3 +66,4 @@ return (
     </div>
   </div>
 );
+}
