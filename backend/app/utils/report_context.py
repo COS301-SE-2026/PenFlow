@@ -56,6 +56,7 @@ def format_generated_at(value: datetime | str | None = None) -> str:
     return value.strftime("%d %B %Y")
 
 
+#Look into reworking this function if there can be multiple ip addresses which I think there can be.
 def build_infrastructure_context(scan_sources: list[JSONObject] | None) -> JSONDict:
     raw = get_raw_result(scan_sources, "shodan")
     infrastructure = raw.get("infrastructure", raw)

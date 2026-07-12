@@ -18,7 +18,6 @@ class InitiateScanResponse(BaseModel):
 
 class ScanCallbackRequest(BaseModel):
     status: ScanStatus
-    results: dict[str, Any] | None = None
     error_message: str | None = None
 
 class ScanHistoryItem(BaseModel):
@@ -33,3 +32,11 @@ class ScanHistoryItem(BaseModel):
     low_count: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ScanSourceCallbackRequest(BaseModel):
+    status: str
+    raw_result: dict[str, Any] | None = None
+    findings: list[dict[str, Any]] = []
+    assets: list[dict[str, Any]] = []
+    error_message: str | None = None

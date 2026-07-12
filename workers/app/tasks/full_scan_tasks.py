@@ -11,28 +11,36 @@ JSONDict = dict[str, Any]
 @celery_app.task(name="scan.aggregate")
 def aggregate_scan_results(results: list[JSONDict], scan_id: str) -> JSONDict:
     failed_sources = [
-        item.get("source_name")
+        item.get("source_name", "unknown")
         for item in results
         if item.get("status") != "completed"
     ]
 
-    status = "completed" if len(failed_sources) < len(results) else "failed"
-    payload = {
-        "scan_id": scan_id,
-        "status": status,
-        "results": {
-            "subtasks": results,
-            "failed_sources": failed_sources,
-        },
-    }
+    if not failed_sources:
+        status = "completed"
+    elif len(failed_sources) == len(results):
+        status = "failed"
+    else:
+        status = "partial"
+
+    error_message = None
+
+    if status == "failed":
+        error_message = "All scan sources failed"
+    elif status == "partial":
+        error_message = f"Some scans sources failed: {', '.join(failed_sources)}"
 
     send_scan_callback(
-        scan_id,
-        status,
-        results=payload["results"],
+        scan_id=scan_id,
+        status=status,
+        error_message=error_message,
     )
 
-    return payload
+    return {
+        "scan_id": scan_id,
+        "status": status,
+        "failed_sources": failed_sources,
+    }
 
 
 @celery_app.task(name="scan.full")
