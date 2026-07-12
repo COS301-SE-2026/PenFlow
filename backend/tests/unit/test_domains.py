@@ -59,3 +59,12 @@ async def test_verify_domain_ownership_fail(mock_verify_txt, test_client):
 
     assert verify_response.status_code == status.HTTP_400_BAD_REQUEST
     assert "Verification failed" in verify_response.json()["detail"]
+
+@pytest.mark.asyncio
+async def test_verify_domain_not_found(test_client):
+    #fake uuid
+    fake_id = "00000000-0000-0000-0000-000000000000"
+
+    verify_response = await test_client.post(f"/api/v1/domains/{fake_id}/verify")
+
+    assert verify_response.status_code == status.HTTP_404_NOT_FOUND
