@@ -68,25 +68,25 @@ export interface ExecutiveSummary {
 }
 
 export interface ScanStartResponse {
-    scan_id: string;
-    status: string;
-  }
+  scan_id: string;
+  status: string;
+}
 
 export async function postScanRequest(domain: string): Promise<ScanStartResponse> {
-    const response = await fetch(`${API_BASE}/scans/`, {
-      method: "POST",
-      credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ domain }),
-    });
+  const response = await fetch(`${API_BASE}/scans/`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ domain }),
+  });
 
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({ detail: "Scan request failed" }));
-      throw new Error(err.detail ?? "Scan request failed");
-    }
-
-    return response.json();
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: "Scan request failed" }));
+    throw new Error(err.detail ?? "Scan request failed");
   }
+
+  return response.json();
+}
 
 export interface ScanHistoryItem {
   id: string;
@@ -100,7 +100,7 @@ export interface ScanHistoryItem {
   low_count: number;
 }
 
-export async function fetchScanHistory() {
+export async function fetchScanHistory(): Promise<ScanHistoryItem[]> {
   const response = await fetch(`${API_BASE}/scans/`, {
     credentials: "include",
   });
@@ -111,7 +111,7 @@ export async function fetchScanHistory() {
   return response.json();
 }
 
-export async function fetchScanSummary(scanId: string) {
+export async function fetchScanSummary(scanId: string): Promise<ExecutiveSummary> {
   const response = await fetch(`${API_BASE}/scans/${scanId}/summary`, {
     credentials: "include",
   });
@@ -128,10 +128,10 @@ export function getReportPdfUrl(scanId: string): string {
 
 export const SEVERITY_COLORS: Record<string, string> = {
   critical: "#ff5f4e",
-  high:     "#f08030",
-  medium:   "#f5c842",
-  low:      "#4ade80",
-  info:     "#4f9fff",
+  high: "#f08030",
+  medium: "#f5c842",
+  low: "#4ade80",
+  info: "#4f9fff",
 };
 
 export function formatDate(iso: string): string {
@@ -140,4 +140,49 @@ export function formatDate(iso: string): string {
     month: "2-digit",
     year: "2-digit",
   });
+}
+
+export interface ScanSourceStatus {
+  source_name: string;
+  status: string;
+  error_message: string | null;
+}
+
+export interface RealTimeScanStatus {
+  scan_id: string;
+  status: string;
+  progress: number;
+  sources: ScanSourceStatus[];
+  report_status: ReportStatus | null;
+}
+
+export async function fetchScanStatus(scanId: string): Promise<RealTimeScanStatus> {
+  const response = await fetch(`${API_BASE}/scans/${scanId}/status`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({
+      detail: "Unable to retrieve scan status",
+    }));
+    throw new Error(error.detail ?? "Unable to retrieve scan status");
+  }
+  return response.json();
+}
+
+export async function sendReportEmail(scanId: string, email: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/scans/${scanId}/email-report`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({
+      detail: "Failed to send report to email",
+    }));
+
+    throw new Error(error.detail ?? "Failed to send report to email");
+  }
 }

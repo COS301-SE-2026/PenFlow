@@ -1,7 +1,6 @@
-#type: ignore
 import logging
 import os
-from typing import Any
+from typing import Any, cast
 
 import httpx
 from fastapi import Depends, HTTPException, Request, status
@@ -23,14 +22,14 @@ security = HTTPBearer(auto_error=False)
 
 async def _get_jwks() -> list[dict[str, Any]]:
     if _jwks_cache:
-        return _jwks_cache.get("keys", [])
+        return cast(list[dict[str, Any]], _jwks_cache.get("keys", []))
 
     async with httpx.AsyncClient(timeout=_JWKS_TIMEOUT) as client:
         res = await client.get(JWKS_URL)
         res.raise_for_status()
         _jwks_cache.update(res.json())
 
-    return _jwks_cache.get("keys", [])
+    return cast(list[dict[str, Any]], _jwks_cache.get("keys", []))
 
 
 def _to_rsa_key(key: dict[str, Any]) -> dict[str, Any]:
@@ -69,12 +68,15 @@ async def get_current_user(
 
         for key in keys:
             try:
-                return jwt.decode(
-                    token,
-                    _to_rsa_key(key),
-                    algorithms=["RS256"],
-                    issuer=ISSUER,
-                    options={"verify_aud": False},
+                return cast(
+                    dict[str, Any],
+                    jwt.decode(
+                        token,
+                        _to_rsa_key(key),
+                        algorithms=["RS256"],
+                        issuer=ISSUER,
+                        options={"verify_aud": False},
+                    ),
                 )
             except JWTError:
                 continue

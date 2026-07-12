@@ -1,5 +1,5 @@
-#type: ignore
 import logging
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import text
@@ -13,7 +13,7 @@ async def get_or_create_user(
     auth_provider_id: str,
     email: str,
     full_name: str | None = None,
-) -> dict:
+) -> dict[str, Any]:
     result = await db.execute(
         text("""
             INSERT INTO users (auth_provider, auth_provider_id, email, full_name, role)
@@ -31,6 +31,9 @@ async def get_or_create_user(
     )
     await db.commit()
     row = result.fetchone()
+    if row is None:
+        raise RuntimeError(f"Failed to provision user for auth_provider_id={auth_provider_id}")
+
     logger.info("[user_repo] provisioned user %s (%s)", row.id, row.email)
     return {"id": str(row.id), "email": row.email, "role": row.role}
 
