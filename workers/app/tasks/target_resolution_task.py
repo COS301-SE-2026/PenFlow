@@ -28,32 +28,43 @@ def run_target_resolution(
 
     try:
         ip_data = resolve_target_ips(domain)
-        assets = (
-            [
-                {
-                    "type": "ipv4",
-                    "value": ip,
-                }
-                for ip in ip_data["ipv4"]
-            ]
-            + [
-                {
-                    "type": "ipv6",
-                    "value": ip,
-                }
-                for ip in ip_data["ipv6"]
-            ]
+        assets = [
+                     {
+                         "type": "ipv4",
+                         "value": ip,
+                     }
+                     for ip in ip_data["ipv4"]
+                 ] + [
+                     {
+                         "type": "ipv6",
+                         "value": ip,
+                     }
+                     for ip in ip_data["ipv6"]
+                 ]
+
+        has_targets = bool(
+            ip_data["ipv4"] or ip_data["ipv6"]
+        )
+
+        status = "completed" if has_targets else "failed"
+
+        error_message = (
+            None
+            if has_targets
+            else "No IPv4 or IPv6 addresses were resolved."
         )
 
         result = {
             "scan_id": scan_id,
             "source_name": "target_resolution",
-            "status": "completed",
+            "status": status,
             "raw_result": ip_data,
-            #findings and assets are both blank we just want the ip's
             "findings": [],
             "assets": assets,
         }
+
+        if error_message:
+            result["error_message"] = error_message
 
     except Exception as error:
         logger.exception(
