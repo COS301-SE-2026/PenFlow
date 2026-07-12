@@ -8,8 +8,8 @@
 # All tests use real database operations (no mocks) to verify the actual
 # SQL and database constraints work correctly.
 
-from sqlalchemy import text
 from fastapi import status
+from sqlalchemy import text
 
 
 async def test_first_login_creates_user_row(test_client, db_session, login_as):

@@ -21,8 +21,10 @@ from sqlalchemy.pool import NullPool
 # Shared test fixtures: real DB session + FastAPI client for integration tests
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT_DIR))
-from app.main import app  # noqa: E402
+
+
 from app.api.middleware.auth import get_current_user  # noqa: E402
+from app.main import app  # noqa: E402
 from app.utils.db import get_db  # noqa: E402
 
 # Configure test database URL
