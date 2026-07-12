@@ -32,3 +32,13 @@ def test_verify_dns_txt_failure_wrong_token(mock_resolve):
     result = VerificationService.verify_dns_txt("jeandre.co", "penflow-verification=12345")
 
     assert result is False
+
+@patch("app.services.verification_service.dns.resolver.resolve")
+def test_verify_dns_txt_nxdomain(mock_resolve):
+    mock_resolve.side_effect = dns.resolver.NXDOMAIN
+
+    with pytest.raises(HTTPException) as exc_info:
+        VerificationService.verify_dns_txt("not-a-real-domain.xyz", "token")
+
+    assert exc_info.value.status_code == 404
+    assert "does not exist" in exc_info.value.detail
