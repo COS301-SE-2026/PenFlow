@@ -1,0 +1,118 @@
+.dashboard-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+}
+
+.dashboard-tab {
+    position: relative;
+    padding: 14px 18px;
+    text-decoration: none;
+}
+
+.dashboard-layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.dashboard-main {
+    flex: 1;
+    min-width: 0;
+    padding: 32px;
+    overflow-x: hidden;
+}
+
+.dashboard-sidebar {
+    width: 240px;
+    min-height: 100vh;
+    flex-shrink: 0;
+    padding: 24px 18px;
+}
+
+.dashboard-sidebar h2 {
+    margin: 0 0 32px;
+    font-size: 22px;
+}
+
+.dashboard-sidebar nav ul {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.dashboard-sidebar nav a {
+    display: block;
+    padding: 12px 14px;
+    border-radius: 8px;
+    color: #cbd5e1;
+    text-decoration: none;
+}
+
+.dashboard-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 28px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #243047;
+}
+
+.dashboard-header h1 {
+    margin: 0 0 8px;
+    font-size: 32px;
+}
+
+.dashboard-header p {
+    margin: 0;
+    color: #94a3b8;
+}
+
+.dashboard-header button {
+    flex-shrink: 0;
+    padding: 12px 18px;
+    border: 1px solid;
+    border-radius: 8px;
+}
+
+.dashboard-overview {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.dashboard-overview > div {
+    min-height: 150px;
+    padding: 22px;
+    border: 1px solid #243047;
+    border-radius: 12px;
+    background: #101827;
+}
+
+.dashboard-overview > div:nth-child(1) {
+    grid-column: span 4;
+}
+
+.dashboard-overview > div:nth-child(2) {
+    grid-column: span 8;
+}
+
+.dashboard-overview > div:nth-child(3) {
+    grid-column: span 12;
+    min-height: 280px;
+}
+
+.dashboard-overview > div:nth-child(4) {
+    grid-column: span 4;
+}
+
+.dashboard-overview > div:nth-child(5) {
+    grid-column: span 4;
+}
+
+.dashboard-overview > div:nth-child(6) {
+    grid-column: span 4;
+}

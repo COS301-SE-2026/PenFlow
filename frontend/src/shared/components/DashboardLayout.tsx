@@ -1,3 +1,4 @@
+import "./Dashboard.css"
 import DashboardSidebar from "./DashboardSidebar";
 
 interface DashboardLayoutProperty {
