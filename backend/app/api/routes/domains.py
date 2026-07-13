@@ -1,13 +1,13 @@
+from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
-from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.middleware.auth import get_current_user
-from app.models.verified_domain import VerifiedDomain, DomainVerificationStatus
+#from app.api.middleware.auth import get_current_user
+from app.models.verified_domain import DomainVerificationStatus, VerifiedDomain
 from app.schemas.domain import AddDomainRequest, VerifiedDomainResponse
 from app.services.verification_service import VerificationService
 from app.utils.db import get_db
@@ -18,7 +18,7 @@ router =  APIRouter(prefix="/domains", tags=["Domain Verification"])
 async def add_domain_for_verification(
     request: AddDomainRequest,
     db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user)
+    #current_user = Depends(get_current_user)
 ) -> Any:
    #Generate token
    token = VerificationService.generate_txt_token()
@@ -28,7 +28,7 @@ async def add_domain_for_verification(
         domain=request.domain,
         verification_token=token,
         status=DomainVerificationStatus.PENDING,
-        organisation_id=current_user.get("org_id")
+        #organisation_id=current_user.get("org_id")
    )
 
    db.add(new_domain)
@@ -37,7 +37,10 @@ async def add_domain_for_verification(
 
    return new_domain
 
-@router.post("/{domain_id}/verify", response_model=VerifiedDomainResponse, status_code=status.HTTP_200_OK)
+@router.post(
+    "/{domain_id}/verify",
+    response_model=VerifiedDomainResponse,
+    status_code=status.HTTP_200_OK)
 async def verify_domain_ownership(
     domain_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -53,8 +56,8 @@ async def verify_domain_ownership(
         return domain_record
 
     is_verified = VerificationService.verify_dns_txt(
-        domain=domain_record.domain,
-        expected_token=domain_record.verification_token
+        domain=str(domain_record.domain),
+        expected_token=str(domain_record.verification_token)
     )
 
     if is_verified:

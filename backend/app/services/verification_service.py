@@ -1,6 +1,8 @@
 import secrets
+
 import dns.resolver
 from fastapi import HTTPException, status
+
 
 class VerificationService:
     @staticmethod
@@ -25,8 +27,14 @@ class VerificationService:
             return False
 
         except dns.resolver.NXDOMAIN:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Domain does not exist.")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Domain does not exist."
+            )
         except (dns.resolver.NoAnswer, dns.resolver.NoNameservers):
             return False
         except Exception as e:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"DNS lookup failed: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"DNS lookup failed: {str(e)}"
+            )

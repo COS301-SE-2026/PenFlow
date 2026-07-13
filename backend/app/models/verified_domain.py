@@ -26,7 +26,11 @@ class VerifiedDomain(Base):
     domain = Column(String(255), nullable=False, index=True)
 
     status = Column(
-        Enum(DomainVerificationStatus, values_callable=lambda e: [i.value for i in e], name="domain_verification_status"),
+        Enum(
+            DomainVerificationStatus,
+            values_callable=lambda e: [i.value for i in e],
+            name="domain_verification_status"
+        ),
         nullable=False,
         default=DomainVerificationStatus.PENDING,
         index=True
@@ -37,4 +41,8 @@ class VerifiedDomain(Base):
 
     verified_at = Column(DateTime(timezone=True))
     expires_at = Column(DateTime(timezone=True))
-    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc)
+    )
