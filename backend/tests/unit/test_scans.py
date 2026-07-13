@@ -122,3 +122,14 @@ login_as):
 
     assert response.status_code ==status.HTTP_200_OK
     assert response.json() == []
+
+#Test User not found
+@pytest.mark.asyncio
+@patch("app.api.routes.scans.get_user_id_by_provider_id",new_callable=AsyncMock)
+async def test_list_scan_user_not_found(mock_get_user_id,test_client,login_as):
+      login_as({"sub": "kc-unknown", "email": "ghost@example.com"})
+      mock_get_user_id.return_value = None
+       
+      response = await test_client.get("/api/v1/scans/")
+
+      assert response.status_code ==status.HTTP_404_NOT_FOUND
