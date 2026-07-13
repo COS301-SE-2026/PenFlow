@@ -1,12 +1,12 @@
-import pytest
 from unittest.mock import patch
-from uuid import UUID
+
+import pytest
 from fastapi import status
 
+from app.api.middleware.auth import get_current_user
+from app.main import app
 from app.models.verified_domain import DomainVerificationStatus
 
-from app.main import app
-from app.api.middleware.auth import get_current_user
 
 async def override_get_current_user():
     return {"id": "12345678-1234-5678-1234-567812345678", "role": "client"}

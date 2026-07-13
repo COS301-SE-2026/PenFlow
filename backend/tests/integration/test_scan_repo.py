@@ -1,8 +1,10 @@
-import pytest
 from uuid import UUID
-from app.repositories.scan_repo import ScanRepository
+
+import pytest
+
 from app.models.base import ScanStatus
-from app.models.scan import Scan
+from app.repositories.scan_repo import ScanRepository
+
 
 @pytest.mark.asyncio
 async def test_create_scan_success(db_session):

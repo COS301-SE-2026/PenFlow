@@ -5,6 +5,7 @@ from uuid import UUID
 import pytest
 from fastapi import status
 
+
 @pytest.mark.asyncio
 @patch("app.api.routes.summary.summary_repo.get_report_status", new_callable=AsyncMock)
 @patch("app.api.routes.summary.summary_repo.get_source_coverage", new_callable=AsyncMock)

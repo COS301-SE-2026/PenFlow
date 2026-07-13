@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock, patch
+
 import dns.resolver
 import pytest
 from fastapi import HTTPException

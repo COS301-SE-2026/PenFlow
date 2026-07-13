@@ -1,10 +1,9 @@
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID
 
 import pytest
 from fastapi import status
-
-from datetime import datetime, timezone
 
 
 # POST tests /scans/ (Initiate Scan)
@@ -137,7 +136,12 @@ async def test_get_scan_status_not_found(mock_get_status, test_client):
 @patch("app.api.routes.scans.send_report_email")
 @patch("app.api.routes.scans.get_report_by_scan_id", new_callable=AsyncMock)
 @patch("app.api.routes.scans.ScanRepository.get_scan_by_id", new_callable=AsyncMock)
-async def test_email_scan_report_success(mock_get_scan, mock_get_report, mock_send_email, test_client):
+async def test_email_scan_report_success(
+    mock_get_scan, 
+    mock_get_report, 
+    mock_send_email, 
+    test_client
+    ):
     # mocking the scan
     mock_scan =  MagicMock()
     mock_scan.domain = "jeandre.co"

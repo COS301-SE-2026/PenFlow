@@ -6,9 +6,9 @@ from app.models.base import Severity
 from app.models.finding import Finding
 from app.models.report import Report
 from app.models.report_status import ReportStatus
-from app.models.scan import Scan
 from app.models.scan_source import ScanSource, ScanSourceStatus
 from app.repositories import scan_repo, summary_repo
+
 
 @pytest.mark.asyncio
 async def test_get_scan_summary(db_session: AsyncSession):
@@ -94,8 +94,20 @@ async def test_get_asset_impact_summary(db_session: AsyncSession):
     await db_session.refresh(sub_asset)
 
     findings = [
-        Finding(scan_id=scan.id, asset_id=ip_asset.id,source="shodan", severity=Severity.HIGH, title="Vuln 1"),
-        Finding(scan_id=scan.id, asset_id=sub_asset.id,source="crt.sh", severity=Severity.INFO, title="Info 1"),
+        Finding(
+            scan_id=scan.id, 
+            asset_id=ip_asset.id,
+            source="shodan", 
+            severity=Severity.HIGH, 
+            title="Vuln 1"
+            ),
+        Finding(
+            scan_id=scan.id, 
+            asset_id=sub_asset.id,
+            source="crt.sh", 
+            severity=Severity.INFO, 
+            title="Info 1"
+            ),
     ]
     db_session.add_all(findings)
     await db_session.commit()
