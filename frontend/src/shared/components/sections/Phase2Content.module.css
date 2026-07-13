@@ -1,0 +1,63 @@
+.phaseContent {
+  background: var(--col-abyss);
+  padding: clamp(28px, 4vw, 48px) clamp(16px, 4vw, 40px);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(24px, 4vw, 60px);
+  align-items: center;
+}
+
+.phaseCopyWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.phaseHeading {
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  color: var(--col-text);
+  margin: 0;
+  letter-spacing: 0.06em;
+}
+
+.phaseBody {
+  color: var(--col-text);
+  font-size: clamp(0.9rem, 1.3vw, 1.05rem);
+  line-height: 1.75;
+  margin: 0;
+  font-weight: 500;
+}
+
+.visual {
+  border: 1px solid var(--col-edge);
+  border-radius: 14px;
+  background: rgba(6, 14, 28, 0.97);
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 8, 24, 0.6), var(--sh-glow-cyan);
+  max-width: 420px;
+}
+
+.terminalBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(13, 30, 58, 0.9);
+  border-bottom: 1px solid var(--col-edge);
+  border-radius: 14px 14px 0 0;
+}
+
+.termTitle {
+  font-family: var(--font-display), monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  color: var(--col-text);
+  flex: 1;
+  text-align: center;
+}
+
+.secureSvg {
+  width: 100%;
+  max-width: 360px;
+}
+
