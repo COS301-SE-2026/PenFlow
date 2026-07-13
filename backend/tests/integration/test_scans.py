@@ -82,6 +82,8 @@ async def test_worker_failure_callback(mock_get_scan_by_id, test_client):
     )
 
     assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert data["status"] == "failed"
 
 @pytest.mark.asyncio
 @patch("app.api.routes.scans.ScanRepository.list_scans", new_callable=AsyncMock)
@@ -167,3 +169,26 @@ async def test_email_scan_report_success(
         domain="jeandre.co",
         pdf_path="/tmp/report.pdf"
     )
+
+@pytest.mark.asyncio
+@patch("app.api.routes.scans.get_report_by_scan_id")
+async def test_download_scan_pdf_report_missing(mock_get_report, test_client):
+    mock_get_report.return_value = None
+
+    response = await test_client.get(
+        "/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/pdf",
+    )
+
+    assert response.status_code == status.HTTP_404_NOT_FOUND
+
+@pytest.mark.asyncio
+@patch("app.api.routes.scans.get_report_by_scan_id")
+async def test_download_scan_pdf_uncompleted(mock_get_report, test_client):
+    mock_report = MagicMock()
+    mock_report.status.value = "generating"
+    mock_get_report.return_value = mock_report
+    response = await test_client.get(
+        "/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/pdf"
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
