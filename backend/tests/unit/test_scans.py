@@ -133,3 +133,17 @@ async def test_list_scan_user_not_found(mock_get_user_id,test_client,login_as):
       response = await test_client.get("/api/v1/scans/")
 
       assert response.status_code ==status.HTTP_404_NOT_FOUND
+ 
+#Test Internal Error
+@pytest.mark.asyncio
+@patch("app.api.routes.scans.ScanRepository.list_scans",new_callable =AsyncMock)
+@patch("app.api.routes.scans.get_user_id_by_provider_id",new_callable =AsyncMock)
+async def test_list_scans_internal_error(mock_get_user_id, mock_list_scans,
+test_client, login_as):
+    login_as({"sub": "kc-123", "email": "user@example.com"})
+    mock_get_user_id.return_value ==UUID("550e8400-e29b-41d4-a716-446655440000")
+    mock_list_scans.side_effect = RuntimeError("db exploded")
+
+    response = await test_client.get("/api/v1/scans/")
+
+    assert response.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR
