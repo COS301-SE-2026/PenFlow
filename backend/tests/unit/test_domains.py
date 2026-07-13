@@ -5,6 +5,14 @@ from fastapi import status
 
 from app.models.verified_domain import DomainVerificationStatus
 
+from app.main import app
+from app.api.middleware.auth import get_current_user
+
+async def override_get_current_user():
+    return {"id": "12345678-1234-5678-1234-567812345678", "role": "client"}
+
+app.dependency_overrides[get_current_user] = override_get_current_user
+
 @pytest.mark.asyncio
 async def test_add_domain_for_verification(test_client):
     payload = {"domain": "pen-flow.com"}
@@ -24,6 +32,8 @@ async def test_add_domain_for_verification(test_client):
 async def test_verify_domain_ownership_success(mock_verify_txt, test_client):
     #force a true
     mock_verify_txt.return_value = True
+
+    app.dependency_overrides[get_current_user] = override_get_current_user
 
     #add domain to db
     add_response = await test_client.post(
@@ -46,6 +56,8 @@ async def test_verify_domain_ownership_success(mock_verify_txt, test_client):
 async def test_verify_domain_ownership_fail(mock_verify_txt, test_client):
     #force a false
     mock_verify_txt.return_value = False
+
+    app.dependency_overrides[get_current_user] = override_get_current_user
 
     #add a domain
     add_response = await test_client.post(

@@ -24,7 +24,9 @@ async def test_get_scan_by_id_success(db_session):
     domain = "pen-flow.com"
     new_scan = await ScanRepository.create_scan(db_session, domain)
 
-    assert retrieed_scan is not None
+    retrieved_scan = await ScanRepository.get_scan_by_id(db_session, new_scan.id)
+
+    assert retrieved_scan is not None
     assert retrieved_scan.id == new_scan.id
     assert retrieved_scan.domain == domain
 

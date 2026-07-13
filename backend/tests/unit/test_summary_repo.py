@@ -74,7 +74,7 @@ async def test_get_top_findings_preview(db_session: AsyncSession):
 
     assert len(previews) == 2
     #crit first
-    assert preview[0]["severity"] == Severity.CRITICAL
+    assert previews[0]["severity"] == Severity.CRITICAL
     assert len(previews[0]["description"]) == 123
     assert previews[0]["description"].endswith("...")
     assert previews[1]["severity"] == Severity.LOW
@@ -95,7 +95,7 @@ async def test_get_asset_impact_summary(db_session: AsyncSession):
 
     findings = [
         Finding(scan_id=scan.id, asset_id=ip_asset.id,source="shodan", severity=Severity.HIGH, title="Vuln 1"),
-        Finding(scan_id=scan.id, asset_id=ip_asset.id,source="crt.sh", severity=Severity.INFO, title="Info 1"),
+        Finding(scan_id=scan.id, asset_id=sub_asset.id,source="crt.sh", severity=Severity.INFO, title="Info 1"),
     ]
     db_session.add_all(findings)
     await db_session.commit()

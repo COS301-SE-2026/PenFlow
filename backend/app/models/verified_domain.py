@@ -21,7 +21,7 @@ class VerifiedDomain(Base):
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    organisation_id = Column(UUID(as_uuid=True), ForeignKey("organisations.id", ondelete="CASCADE"))
+    organisation_id = Column(UUID(as_uuid=True), index=True)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
     domain = Column(String(255), nullable=False, index=True)
 
