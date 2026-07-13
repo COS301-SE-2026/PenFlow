@@ -14,7 +14,7 @@ from app.api.middleware import auth as auth_module
 
 @pytest.fixture(autouse=True)
 def clear_jwks_cache():
-    """Clear the JWKS cache before and after each test to ensure test isolation."""
+    #Clear the JWKS cache before and after each test to ensure test isolation.
     auth_module._jwks_cache.clear()
     yield
     auth_module._jwks_cache.clear()
@@ -122,3 +122,15 @@ async def test_get_current_user_unexpected_error_raises_500():
             await auth_module.get_current_user(request=_request(), credentials=_credentials())
 
     assert exc_info.value.status_code == 500
+
+@pytest.mark.asyncio
+async def test_extract_token_falls_back_to_cookie():
+    #test the extract token falls back to cookie when no credential provided
+    #when user have invalid credentials
+    request = MagicMock()
+    request.cookies = {}
+    
+    with pytest.raises(HTTPException) as exc_info:
+        await auth_module.get_current_user(request=request, credentials =None)
+
+    assert exc_info.value.status_code ==401
