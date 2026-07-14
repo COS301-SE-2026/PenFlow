@@ -37,3 +37,17 @@ async def test_create_scan_success():
     db.add.assert_called_once()
     db.commit.assert_awaited_once()
     db.refresh.assert_awaited_once()
+
+
+# test get scan id
+@pytest.mark.asyncio
+async def test_get_scan_by_id_returns_scan():
+    db = _make_db()
+    fake_scan = SimpleNamespace(id = uuid4())
+    result =MagicMock()
+    result.scalar_one_or_none.return_value =fake_scan
+    db.execute = AsyncMock(return_value = result)
+
+    scan = await ScanRepository.get_scan_by_id(db,fake_scan.id)
+
+    assert scan is fake_scan
