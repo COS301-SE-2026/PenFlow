@@ -188,7 +188,7 @@ async def test_initiate_scan_authenticated_user_attaches_user_id(
     finally:
         app.dependency_overrides.pop(get_current_user_optional,None)
 
-#scan status not found 200 
+#test: scan status not found 200 
 @pytest.mark.asyncio 
 @patch("app.api.routes.scans.ScanRepository.get_scan_status",new_callable =AsyncMock)
 async def test_get_scan_status_found(mock_get_status,test_client):

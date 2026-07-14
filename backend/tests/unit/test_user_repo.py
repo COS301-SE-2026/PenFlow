@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.repositories.user_repo import get_or_create_user
+from app.repositories.user_repo import get_or_create_user ,get_user_id_by_provider_id
 
 
 def _make_row(id_="550e8400-e29b-41d4-a716-446655440000", email="test@example.com", role="client"):
@@ -15,7 +15,6 @@ def _make_row(id_="550e8400-e29b-41d4-a716-446655440000", email="test@example.co
 
 def _make_db(row):
     # db.execute is async and must be awaited, but its return value
-    # (Result.fetchone()) is sync — not waited.
     db = MagicMock()
     result = MagicMock()
     result.fetchone.return_value = row
@@ -86,3 +85,15 @@ async def test_get_or_create_user_defaults_full_name_to_none():
 
     _, params = db.execute.call_args.args
     assert params["full_name"] is None
+
+# unit test error handling if no database qury return nothing for creating a user
+@pytest.mark.asyncio
+async def test_get_or_create_user_raises_when_no_row_returned():
+    db = _make_db(row= None)
+
+    with pytest.raises(RuntimeError,match = "kc-missing"):
+        await get_or_create_user(
+            db=db,
+            auth_provider_id = "kc-missing",
+            email = "ghost@example.com"
+        )
