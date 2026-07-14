@@ -1,0 +1,62 @@
+.pipeline {
+  background: var(--col-navy);
+  border-top: 1px solid var(--col-edge);
+  border-bottom: 1px solid var(--col-edge);
+}
+
+.piplineHeadingWrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: clamp(40px, 6vw, 80px) clamp(16px, 4vw, 40 px) clamp(32px, 5vw, 64px);
+}
+
+.pipelineHeading {
+  font-size: clamp(1.8px, 3vw, 2.6px);
+  text-align: center;
+  color: var(--col-text);
+  margin: 0;
+  letter-spacing: 0.1em;
+}
+
+.phaseLabel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-top: 1px solid var(--col-edge);
+  gap: 6px;
+  padding: clamp(32px, 5vw, 56px) clamp(16px, 4vw, 40 px) clamp(16px, 2vw, 24px);
+}
+
+.phaseLabel[data-first="true"] {
+  border-top: none;
+}
+
+.phaseNum {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size:1.5rem;
+  letter-spacing: 0.18em;
+  color: var(--col-cyan);
+}
+
+.phaseTitle {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  letter-spacing: 0.1em;
+  color: var(--col-text);
+}
+
+.safetyOsintRow {
+  background: var(--col-deep);
+  padding: clamp(48px, 7vw, 96px) clamp(16px, 4vw, 40 px);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(24px, 4vw, 60px);
+  align-items: center;
+  border-bottom: 1px solid var(--col-edge);
+}
+
+@media (max-width: 900px) {
+  .safetyOsintRow {
+    grid-template-columns: 1fr;
+  }
+}

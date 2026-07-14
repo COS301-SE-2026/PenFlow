@@ -54,7 +54,7 @@ export default function Home() {
 
         <div className={styles.phaseLabel} data-first="true">
           <span className={styles.phaseNum}>PHASE 1</span>
-          <span className ={styles.phaseTitles}>DISCOVER</span>
+          <span className ={styles.phaseTitle}>DISCOVER</span>
         </div>
         <DangerSection />
         <SonarSection />
@@ -66,13 +66,13 @@ export default function Home() {
 
         <div className={styles.phaseLabel}>
           <span className={styles.phaseNum}>PHASE 2</span>
-          <span className ={styles.phaseTitles}>ANALYSE</span>
+          <span className ={styles.phaseTitle}>ANALYSE</span>
         </div>
         <Phase2Content/>
 
         <div className={styles.phaseLabel}>
           <span className={styles.phaseNum}>PHASE 3</span>
-          <span className ={styles.phaseTitles}>REACT</span>
+          <span className ={styles.phaseTitle}>REACT</span>
         </div>
         <Phase3Content/>
       </div>
