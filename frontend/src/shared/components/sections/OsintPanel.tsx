@@ -46,6 +46,7 @@ return (
         <button
           key={src.name}
           className={styles.osintCard}
+          data-active={activeIdx === i}
           onClick={() => handleClick(i)}
         >
           <span className={styles.osintDot} />
