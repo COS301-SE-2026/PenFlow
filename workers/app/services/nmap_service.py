@@ -11,9 +11,10 @@ SCAN_PROFILES = \
     "standard":
     (
         "-Pn "
+        "-T4 "
+        "--version-light "
         "-sV "
-        "--top-ports 1000 "
-        "--script=http-title,http-headers,ssl-cert,banner"
+        "--top-ports 200 "
     ),
     #can add more profiles here later on
 }
@@ -81,17 +82,21 @@ def run_live_nmap_scan\
             return result
 
         host = scanner.all_hosts()[0]
+        result["ip"] = host
         host_data = scanner[host]
 
         result["status"] = host_data.state()
 
         if "hostnames" in host_data:
-            result["hostnames"] = \
-            [
-                hostname.get("name")
-                for hostname in host_data["hostnames"]
-                if hostname.get("name")
-            ]
+            result["hostnames"] = (list
+            (
+                dict.fromkeys
+                (
+                    hostname.get("name")
+                    for hostname in host_data["hostnames"]
+                    if hostname.get("name")
+                )
+            ))
 
         if "tcp" in host_data:
 
@@ -117,53 +122,26 @@ def run_live_nmap_scan\
                     "product": port_data.get
                     (
                         "product",
-                        "",
+                        None,
                     ),
                     "version": port_data.get
                     (
                         "version",
-                        "",
+                        None,
                     ),
                     "extra_info": port_data.get
                     (
-                        "extra_info",
-                        "",
+                        "extrainfo",
+                        None,
                     ),
-
-                    "http_title": scripts.get
-                    (
-                        "http-title",
-                        "",
-                    ),
-
-                    "http_headers": scripts.get
-                    (
-                        "http-headers",
-                        "",
-                    ),
-
-                    "server_header": scripts.get
-                    (
-                        "http-server-header",
-                        "",
-                    ),
-
-                    "ssl_certificate": scripts.get
-                    (
-                        "ssl-cert",
-                        "",
-                    ),
-
-                    "banner": scripts.get
-                    (
-                        "banner",
-                        "",
-                    ),
-
-                    "scripts": scripts,
                 }
 
                 result["ports"].append(parsed_port)
+
+        (result["ports"].sort
+            (
+            key=lambda port: port["port"]
+        ))
 
         logger.info(
             f"[NMAP_Service] Completed scan for {ip_address}. "
