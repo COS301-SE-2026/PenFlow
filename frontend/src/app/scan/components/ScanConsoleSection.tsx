@@ -1,13 +1,25 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import styles from "./ScanConsoleSection.module.css";
-import { validateDomain } from "@/lib/domainValidator";
-import { postScanRequest, fetchScanSummary } from "@/lib/scanService";
+import { validateDomain } from "@/lib/domainValidator";   
+import { postScanRequest,  fetchScanStatus} from "@/lib/scanService";  
 
-type ScanState = "idle" | "scanning" | "complete";
+const LEFT_SOURCES  = ["Shodan", "HaveIBeenPwned", "URLScan.io", "Hunter.io"];
+const RIGHT_SOURCES = ["crt.sh", "WHOIS", "DNS"];
+const SOURCES = [...LEFT_SOURCES, ...RIGHT_SOURCES, "Normalising"];
+const SOURCE_MAPPINGS: Record<string, string> = {
+  Shodan: "shodan",
+  HaveIBeenPwned: "hibp",
+  "URLScan.io": "urlscan",
+  "Hunter.io": "hunter.io",
+  "crt.sh": "crt.sh",
+  WHOIS: "dns",
+  DNS: "dns",
+  Normalising: "normalising",
+};
 
 export default function ScanConsoleSection() {
   const [domain, setDomain] = useState("");
@@ -16,41 +28,15 @@ export default function ScanConsoleSection() {
   const [scanId, setScanId] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [sweeping, setSweeping] = useState(false);
-  const [scanState, setScanState] = useState<ScanState>("idle");
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [stepsDone, setStepsDone] = useState<boolean[]>(Array(SOURCES.length).fill(false));
   const router = useRouter();
 
   const canScan = domain.trim().length > 2;
 
-  const stopPolling = () => {
-    if (pollingRef.current != null) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-  }
-  };
 
-  const startPolling = (id: string) => {
-    stopPolling();
-    pollingRef.current = setInterval(async () => {
-      try {
-        const summary = await fetchScanSummary(id);
-        const done =
-          summary.scan_summary?.status === "completed" || 
-          (summary.report_status?.status === "completed" && summary.report_status?.pdf_path);
-        if (done) {
-          stopPolling();
-          setReportReady(true);
-          setScanning(false);
-          setSweeping(false);
-          setScanState("complete");
-          setStatus("Scan complete: report ready");
-        }
-      } catch{
 
-      }
-    }, 2000);
-  };
 
+    //the validation moves to  lib/domainvalidator and add scan service
   const onSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
 
@@ -63,12 +49,11 @@ export default function ScanConsoleSection() {
     try {
       const { scan_id } = await postScanRequest(result.domain);
       setScanId(scan_id);
+      setStepsDone(Array(SOURCES.length).fill(false));
       setReportReady(false);
       setScanning(true);
       setSweeping(true);
-      setScanState("scanning");
       setStatus(`Scanning ${result.domain}...`);
-      startPolling(scan_id);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Scan request failed";
       setStatus(message);
@@ -84,7 +69,7 @@ export default function ScanConsoleSection() {
     try {
       setStatus("Checking report status...");
 
-      const summary = await fetchScanSummary(scanId);
+      const summary = await fetchScanStatus(scanId);
 
       if (
         summary.report_status?.status === "completed" &&
@@ -100,7 +85,48 @@ export default function ScanConsoleSection() {
     }
   };
 
-  useEffect(() => () => stopPolling(), []);
+  useEffect(() => {
+    if (!scanId || !scanning) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const liveScanStatus = await fetchScanStatus(scanId);
+
+        setStepsDone(SOURCES.map((source) => {
+            if (source === "Normalising") {
+              return liveScanStatus.status === "completed" || liveScanStatus.progress === 100;
+            }
+
+            const sourceName = SOURCE_MAPPINGS[source];
+            return liveScanStatus.sources.some((item) =>
+                item.source_name === sourceName &&
+                ["completed", "failed", "partial"].includes(item.status)
+            );
+          })
+        );
+
+        if (liveScanStatus.report_status?.status === "completed") {
+          setReportReady(true);
+          setScanning(false);
+          setSweeping(false);
+          setStatus("Scan complete and report ready");
+          clearInterval(interval);
+          return;
+        }
+
+        if (liveScanStatus.status === "completed") {
+          setStatus("Scan complete, generating report...");
+        } else {
+          setStatus(`Scanning... ${liveScanStatus.progress}% complete`);
+        }
+      } catch {
+        setStatus("Unable to fetch scan progress");
+      }
+
+    }, 2000);
+  
+    return () => clearInterval(interval);
+  }, [scanId, scanning]);
 
   return (
     <section id="scan" className={styles.scanSection}>
@@ -125,12 +151,27 @@ export default function ScanConsoleSection() {
             </div>
           </div>
 
-          <div className={styles.processPanel}>
-            <div className={styles.scanningBox}>
-              <span className={styles.scanningText} data-state={scanState}>
-                SCANNING
-              </span>
+        <div className={styles.processPanel}>
+          <div className={styles.processCols}>
+              <div className={styles.processCol}>
+                {LEFT_SOURCES.map((source, i) => (
+                  <span key={source} className={styles.processLabel} data-done={stepsDone[i]}>
+                    {source}
+                  </span>
+                ))}
+              </div>
+              <div className={styles.processCol}>
+                {RIGHT_SOURCES.map((source, i) => (
+                  <span key={source} className={styles.processLabel} data-done={stepsDone[LEFT_SOURCES.length + i]}>
+                    {source}
+                  </span>
+                ))}
+                <span className={`${styles.processLabel} ${styles.normalisingLabel}`} data-done={stepsDone[SOURCES.length - 1]}>
+                  Normalising
+                </span>
+              </div>
             </div>
+
             <Button
               type="button"
               variant="ghost"
@@ -140,8 +181,9 @@ export default function ScanConsoleSection() {
             >
               VIEW REPORT
             </Button>
+            </div>
           </div>
-        </div>
+
 
         <form className={styles.consoleBottom} onSubmit={onSubmit}>
           <div className={styles.domainForm}>

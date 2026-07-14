@@ -99,7 +99,7 @@ export interface ScanHistoryItem {
   low_count: number;
 }
 
-export async function fetchScanHistory() {
+export async function fetchScanHistory(): Promise<ScanHistoryItem[]> {
   const response = await fetch(`${API_BASE}/scans/`);
   if (!response.ok) {
     const err = await response.json().catch(() => ({ detail: "Failed to load scan history" }));
@@ -108,7 +108,7 @@ export async function fetchScanHistory() {
   return response.json();
 }
 
-export async function fetchScanSummary(scanId: string) {
+export async function fetchScanSummary(scanId: string): Promise<ExecutiveSummary> {
   const response = await fetch(`${API_BASE}/scans/${scanId}/summary`);
   if (!response.ok) {
     const err = await response.json().catch(() => ({ detail: "Failed to load summary" }));
@@ -135,4 +135,46 @@ export function formatDate(iso: string): string {
     month: "2-digit",
     year: "2-digit",
   });
+}
+
+export interface ScanSourceStatus {
+  source_name: string;
+  status: string;
+  error_message: string | null;
+}
+
+export interface RealTimeScanStatus {
+  scan_id: string;
+  status: string;
+  progress: number;
+  sources: ScanSourceStatus[];
+  report_status: ReportStatus | null;
+}
+
+export async function fetchScanStatus(scanId: string): Promise<RealTimeScanStatus> {
+  const response = await fetch(`${API_BASE}/scans/${scanId}/status`);
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({
+      detail: "Unable to retrieve scan status",
+    }));
+    throw new Error(error.detail ?? "Unable to retrieve scan status");
+  }
+  return response.json();
+}
+
+export async function sendReportEmail(scanId: string, email: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/scans/${scanId}/email-report`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify( { email }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({
+        detail: "Failed to send report to email",
+      }));
+
+      throw new Error(error.detail ?? "Failed to send report to email");
+    }
 }

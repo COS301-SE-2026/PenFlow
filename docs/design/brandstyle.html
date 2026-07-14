@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PenFlow — Brand Style Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="brandstyle.css" />
+</head>
+<body>
+
+<div class="page-wrap">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div style="background:#fff; border-radius:10px; padding:10px 12px; display:flex; flex-direction:column; align-items:center; gap:8px;">
+        <img src="images/Bluevision logo.png" alt="Bluevision" style="width:100%; height:auto; max-height:36px; object-fit:contain;" />
+        <div style="width:80%; height:1px; background:#d0d8e4;"></div>
+        <img src="images/BroCode logo.png" alt="BroCode" style="width:100%; height:auto; max-height:36px; object-fit:contain;" />
+      </div>
+    </div>
+    <nav>
+      <a href="#golden-thread">· Theme</a>
+      <a href="#foundation">· Tone</a>
+      <a href="#motion">· Animation</a>
+      <a href="#colour">01 · Colour</a>
+      <a href="#typography">02 · Typography</a>
+      <a href="#components">03 · Logo &amp; Iconography</a>
+      <a href="#principles">04 · Design Principles</a>
+      <a href="#accessibility">05 · Accessibility</a>
+    </nav>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="main">
+
+    <!-- Hero — matches actual PenFlow home page layout -->
+    <div class="hero">
+
+      <div class="hero-text-wrap">
+        
+        <h1>PENFLOW</h1>
+        <p class="hero-sub">
+          Brand Style Guide Documentation
+        </p>
+      </div>
+
+      <!-- three-layer waterline — exact SVG paths from page.tsx -->
+      <div class="hero-waterline" aria-hidden="true">
+        <svg viewBox="0 0 1440 200" xmlns="http://www.w3.org/2000/svg"
+             preserveAspectRatio="none"
+             style="position:absolute;inset:0;width:100%;height:100%;">
+          <path d="M0,40 Q180,80 360,40 T720,40 T1080,40 T1440,40 V200 H0 Z"
+                fill="rgba(43,180,220,0.35)" />
+          <path d="M0,90 Q200,130 400,90 T800,90 T1200,90 T1440,90 V200 H0 Z"
+                fill="rgba(15,37,75,0.9)" />
+          <path d="M0,150 Q220,178 440,150 T880,150 T1320,150 T1440,150 V200 H0 Z"
+                fill="#091628" />
+        </svg>
+      </div>
+
+    </div>
+
+    <!-- THEME -->
+    <section class="section" id="golden-thread">
+      <span class="section-eyebrow">THEME</span>
+      <h2 class="section-title">The Theme</h2>
+      <div style="display:grid; grid-template-columns:1fr auto; align-items:center; gap:32px; margin-bottom:32px;">
+        <p class="section-lead" style="margin:0;">
+          Running a scan for OSINT data on an attack surface is like a submarine sweeping
+          the ocean floor with sonar — probing the dark for signals, surfacing only what
+          the target has unknowingly left exposed.
+        </p>
+        <img src="images/submarine.png" alt="Submarine" style="width:clamp(180px,22vw,300px); height:auto; filter:drop-shadow(0 8px 24px rgba(0,0,0,0.5)); opacity:0.9;" />
+      </div>
+
+      <div class="grid-2" style="margin-top: 0;">
+
+        <div class="card">
+          <span class="card-label">THE OCEAN</span>
+          <p>
+            The deep-navy palette evokes crushing depth and the unknown. Just as the ocean
+            conceals what lurks beneath, a target network hides its vulnerabilities until
+            something with the right instruments looks closely enough. PenFlow allows the
+            user to see for themselves.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="card-label">THE SUBMARINE</span>
+          <p>
+            The submarine is the product's spirit animal: it operates silently, reads its
+            environment through sonar, and surfaces only with actionable intelligence.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="card-label">THE SCAN</span>
+          <p>
+            Cyan is the sonar pulse — sent out into the dark and returning with what it finds.
+            Every interactive element that confirms an action or surfaces data uses cyan,
+            the same way a submarine's sonar cuts through the unknown and brings the
+            hidden into view.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="card-label">SECURITY &amp; TRUST</span>
+          <p>
+            Despite the dark aesthetic, the UI must feel controlled and trustworthy — not
+            chaotic. Tight grid alignment, deliberate whitespace, and restrained motion
+            signal expertise. Red (<code>#ff5f4e</code>) surfaces danger without panic.
+            The overall effect is a product that feels like it has already assessed the
+            situation and is calmly reporting back: <em>you are in capable hands.</em>
+          </p>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- TONE -->
+    <section class="section" id="foundation">
+      <span class="section-eyebrow">TONE</span>
+      <h2 class="section-title">Tone</h2>
+      <div class="grid-2">
+
+        <div class="card">
+          <span class="card-label">BUILT FOR EVERYONE</span>
+          <p>
+            Security tooling has a reputation for being impenetrable. PenFlow pushes back
+            against that. Whether the user is a CTO reviewing an executive summary or a
+            junior developer seeing a CVE score for the first time, the interface meets them
+            where they are. Labels are written in plain language first, technical identifiers
+            second. No user should feel like the product was built for someone else.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="card-label">FRIENDLY, NOT CASUAL</span>
+          <p>
+            Approachable does not mean informal. PenFlow is friendly in the way a trusted
+            expert is friendly — warm enough to make a first-time user feel welcome, precise
+            enough to make a seasoned analyst feel respected. Copy avoids jargon walls and
+            acronym soup, but it also avoids over-explaining to people who clearly know what
+            they are doing. The interface reads the room and responds accordingly.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="card-label">EXPLAINING THE SYSTEM</span>
+          <p>
+            Key sections of the UI carry short contextual explanations — not tooltips
+            buried behind hover states, but visible, readable callouts that explain what a
+            section shows and why it matters. A user who has never run a penetration test
+            should finish their first PenFlow report with a clearer understanding of their
+            attack surface than when they started. Education is a feature, not an afterthought.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="card-label">TONE IN PRACTICE</span>
+          <p>
+            A scan completion is confident: <em>"Scan complete — 14 findings detected."</em>
+            A critical finding is sober: <em>"Critical · Port 22 exposed to all traffic."</em>
+            An explanation panel is reassuring: <em>"This means your login page is reachable
+            without authentication. Here is what to do next."</em> Same product, same voice,
+            adjusted for what the user needs in that moment.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ANIMATION -->
+    <section class="section" id="motion">
+      <span class="section-eyebrow">ANIMATION</span>
+      <h2 class="section-title">Animations</h2>
+      <p class="section-lead">
+        Using AnimeJs simple animations communicate state changes the eye would otherwise miss.
+      </p>
+
+      <div class="motion-showcase">
+
+        <div class="ms-row">
+          <div class="ms-info">
+            <span class="ms-token">motion.fast</span>
+            <div class="ms-meta">
+              <span class="ms-duration">150ms</span>
+              <span class="ms-easing">ease</span>
+            </div>
+            <p class="ms-desc">Hover colour changes, border transitions, icon scale</p>
+          </div>
+          <div class="ms-demo" aria-label="Live demo: 150ms nav-link hover">
+            <div class="demo-nav-wrap">
+              <div class="demo-nav-item">NAV ITEM</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ms-row">
+          <div class="ms-info">
+            <span class="ms-token">motion.normal</span>
+            <div class="ms-meta">
+              <span class="ms-duration">180–200ms</span>
+              <span class="ms-easing">ease</span>
+            </div>
+            <p class="ms-desc">Button backgrounds, input focus borders, nav highlights</p>
+          </div>
+          <div class="ms-demo" aria-label="Live demo: 200ms button hover">
+            <button class="demo-btn-anim">SCAN NOW</button>
+          </div>
+        </div>
+
+        <div class="ms-row">
+          <div class="ms-info">
+            <span class="ms-token">motion.slow</span>
+            <div class="ms-meta">
+              <span class="ms-duration">300–400ms</span>
+              <span class="ms-easing">ease</span>
+            </div>
+            <p class="ms-desc">Process state transitions (scan step completion), modals</p>
+          </div>
+          <div class="ms-demo" aria-label="Live demo: 400ms process-step completion">
+            <div class="demo-steps">
+              <div class="demo-step-item" style="animation-delay:0s">RECON</div>
+              <div class="demo-step-item" style="animation-delay:1.4s">SCAN</div>
+              <div class="demo-step-item" style="animation-delay:2.8s">REPORT</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ms-row">
+          <div class="ms-info">
+            <span class="ms-token">radar.sweep</span>
+            <div class="ms-meta">
+              <span class="ms-duration">4s linear ∞</span>
+              <span class="ms-easing">linear</span>
+            </div>
+            <p class="ms-desc">Radar animation on scan console — signals active scanning</p>
+          </div>
+          <div class="ms-demo" aria-label="Live demo: 4s radar sweep">
+            <div class="demo-radar-sm">
+              <div class="demo-rs-ring dr1"></div>
+              <div class="demo-rs-ring dr2"></div>
+              <div class="demo-rs-cross-h"></div>
+              <div class="demo-rs-cross-v"></div>
+              <div class="demo-rs-sweep"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ms-row ms-row-last">
+          <div class="ms-info">
+            <span class="ms-token">radar.ping</span>
+            <div class="ms-meta">
+              <span class="ms-duration">4s ∞ staggered</span>
+              <span class="ms-easing">keyframes</span>
+            </div>
+            <p class="ms-desc">Asset dots pinging — communicates discovered targets by severity</p>
+          </div>
+          <div class="ms-demo" aria-label="Live demo: staggered severity pings">
+            <div class="demo-ping-scope">
+              <div class="demo-rs-ring dr1"></div>
+              <div class="demo-rs-ring dr2"></div>
+              <div class="demo-rs-cross-h"></div>
+              <div class="demo-rs-cross-v"></div>
+              <div class="demo-pdot" style="top:22%;right:22%;background:var(--col-alert);  box-shadow:0 0 8px var(--col-alert);  animation-delay:.5s"></div>
+              <div class="demo-pdot" style="top:35%;left:28%; background:var(--col-cyan);   box-shadow:0 0 8px var(--col-cyan);   animation-delay:0s"></div>
+              <div class="demo-pdot" style="bottom:26%;left:22%;background:var(--col-yellow);box-shadow:0 0 8px var(--col-yellow);animation-delay:2.1s"></div>
+              <div class="demo-pdot" style="top:55%;right:24%;background:var(--col-orange); box-shadow:0 0 8px var(--col-orange); animation-delay:1.2s"></div>
+              <div class="demo-pdot" style="bottom:28%;right:32%;background:var(--col-blue);box-shadow:0 0 8px var(--col-blue);   animation-delay:3.1s"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="divider"></div>
+
+    </section>
+
+    <!-- COLOUR -->
+    <section class="section" id="colour">
+      <span class="section-eyebrow">01 · COLOUR</span>
+      <h2 class="section-title">Colour</h2>
+
+      <h3 style="font-size:0.72rem; letter-spacing:0.2em; color:var(--col-cyan); margin-bottom:16px; font-family:'Bebas Neue',Impact,sans-serif;">BACKGROUND SCALE</h3>
+      <div class="swatch-row">
+        <div class="swatch" style="flex:1">
+          <div class="swatch-block" style="background:#060e1c; border:1px solid rgba(255,255,255,0.1);"></div>
+          <span class="swatch-name">navy</span>
+          <span class="swatch-hex">--col-navy · #060e1c</span>
+          <span class="swatch-role">primary bg · page</span>
+        </div>
+        <div class="swatch" style="flex:1">
+          <div class="swatch-block" style="background:#091628;"></div>
+          <span class="swatch-name">deep</span>
+          <span class="swatch-hex">--col-deep · #091628</span>
+          <span class="swatch-role">card bg · sidebar</span>
+        </div>
+        <div class="swatch" style="flex:1">
+          <div class="swatch-block" style="background:#0d1e3a;"></div>
+          <span class="swatch-name">abyss</span>
+          <span class="swatch-hex">--col-abyss · #0d1e3a</span>
+          <span class="swatch-role">tertiary bg · hover state</span>
+        </div>
+      </div>
+
+      <h3 style="font-size:0.72rem; letter-spacing:0.2em; color:var(--col-cyan); margin-bottom:16px; font-family:'Bebas Neue',Impact,sans-serif;">ACCENT &amp; SEMANTIC</h3>
+      <div class="swatch-row">
+        <div class="swatch" style="flex:1">
+          <div class="swatch-block" style="background:#2bd8f5;"></div>
+          <span class="swatch-name">focus</span>
+          <span class="swatch-hex">--col-cyan · #2bd8f5</span>
+        </div>
+        <div class="swatch" style="flex:1">
+          <div class="swatch-block" style="background:#4f9fff;"></div>
+          <span class="swatch-name">info</span>
+          <span class="swatch-hex">--col-blue · #4f9fff</span>
+        </div>
+        <div class="swatch" style="flex:1">
+          <div class="swatch-block" style="background:#4ade80;"></div>
+          <span class="swatch-name">success</span>
+          <span class="swatch-hex">--col-success · #4ade80</span>
+        </div>
+        <div class="swatch" style="flex:1">
+          <div class="swatch-block" style="background:#f5c842;"></div>
+          <span class="swatch-name">medium</span>
+          <span class="swatch-hex">--col-yellow · #f5c842</span>
+        </div>
+        <div class="swatch" style="flex:1">
+          <div class="swatch-block" style="background:#f08030;"></div>
+          <span class="swatch-name">high</span>
+          <span class="swatch-hex">--col-orange · #f08030</span>
+        </div>
+        <div class="swatch" style="flex:1">
+          <div class="swatch-block" style="background:#ff5f4e;"></div>
+          <span class="swatch-name">alert</span>
+          <span class="swatch-hex">--col-alert · #ff5f4e</span>
+        </div>
+      </div>
+
+      <h3 style="font-size:0.72rem; letter-spacing:0.2em; color:var(--col-cyan); margin-bottom:16px; font-family:'Bebas Neue',Impact,sans-serif;">TEXT &amp; BORDER</h3>
+      <div class="swatch-row">
+        <div class="swatch" style="flex:1">
+          <div class="swatch-block" style="background:#e5f3ff;"></div>
+          <span class="swatch-name">text</span>
+          <span class="swatch-hex">--col-text · #e5f3ff</span>
+          <span class="swatch-role">primary body text</span>
+        </div>
+        <div class="swatch" style="flex:1">
+          <div class="swatch-block" style="background:#4a7a9b;"></div>
+          <span class="swatch-name">muted</span>
+          <span class="swatch-hex">--col-muted · #4a7a9b</span>
+          <span class="swatch-role">secondary text · labels</span>
+        </div>
+        <div class="swatch" style="flex:1">
+          <div class="swatch-block" style="background:rgba(43,180,220,0.18); border:1px dashed rgba(43,180,220,0.4);"></div>
+          <span class="swatch-name">edge</span>
+          <span class="swatch-hex">--col-edge</span>
+          <span class="swatch-role">default border</span>
+        </div>
+        <div class="swatch" style="flex:1">
+          <div class="swatch-block" style="background:rgba(43,216,245,0.38); border:1px dashed rgba(43,216,245,0.6);"></div>
+          <span class="swatch-name">edge-hot</span>
+          <span class="swatch-hex">--col-edge-hot</span>
+          <span class="swatch-role">focus / active border</span>
+        </div>
+      </div>
+
+    </section>
+
+
+    <!-- TYPOGRAPHY -->
+    <section class="section" id="typography">
+      <span class="section-eyebrow">02 · TYPOGRAPHY</span>
+      <h2 class="section-title">Typography</h2>
+      <p class="section-lead">
+        PenFlow uses two typefaces.<br>
+        <strong style="color:var(--col-text)">Bebas Neue</strong> (<code>--font-display</code>) is the tactical voice — uppercase, condensed, and mission-critical.<br>
+        <strong style="color:var(--col-text)">Rajdhani</strong> (<code>--font-body</code>) is the operational voice — readable at density, technical, precise.
+      </p>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:40px;">
+        <div class="type-scale">
+          <div class="type-row">
+            <span class="type-token">display</span>
+            <span class="type-meta">48 / 56</span>
+            <span class="type-display-sample">PENFLOW</span>
+          </div>
+          <div class="type-row">
+            <span class="type-token">heading-1</span>
+            <span class="type-meta">32 / 40</span>
+            <span class="type-h1-sample">Scan Report</span>
+          </div>
+          <div class="type-row">
+            <span class="type-token">heading-2</span>
+            <span class="type-meta">24 / 32</span>
+            <span class="type-h2-sample">Critical Findings</span>
+          </div>
+          <div class="type-row">
+            <span class="type-token">heading-3</span>
+            <span class="type-meta">18 / 24</span>
+            <span class="type-h3-sample">Exposed Assets</span>
+          </div>
+        </div>
+        <div class="type-scale">
+          <div class="type-row">
+            <span class="type-token">body-lg</span>
+            <span class="type-meta">18 / 28</span>
+            <span class="type-body-lg-sample">Identified 14 open ports across 3 hosts.</span>
+          </div>
+          <div class="type-row">
+            <span class="type-token">body</span>
+            <span class="type-meta">16 / 24</span>
+            <span class="type-body-sample">CVE-2024-21626 allows container escape.</span>
+          </div>
+          <div class="type-row">
+            <span class="type-token">caption</span>
+            <span class="type-meta">12 / 16</span>
+            <span class="type-caption-sample">Last scanned · 2026-05-21 · 14:32 UTC</span>
+          </div>
+          <div class="type-row">
+            <span class="type-token">mono</span>
+            <span class="type-meta">14 / 20</span>
+            <span class="type-mono-sample">192.168.1.1:8080/admin</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <span class="card-label">WEIGHTS ARE A LADDER</span>
+          <h3>400 / 500 / 600 / 700</h3>
+          <p>
+            Each weight has a job. Regular (400) carries body copy. Medium (500) adds
+            emphasis without shouting. Semi-bold (600) anchors labels, nav items, and
+            UI controls. Bold (700) is reserved for display numbers and critical values
+            where the figure itself needs to land before the label is read. Mixing
+            adjacent weights flattens the hierarchy — step at least two rungs when
+            creating contrast.
+          </p>
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:16px; background:rgba(6,14,28,0.7); border:1px solid var(--col-edge); border-radius:10px; padding:14px 16px;">
+            <div style="display:flex; align-items:baseline; justify-content:space-between;">
+              <span style="font-family:'Rajdhani',sans-serif; font-weight:400; font-size:0.95rem; color:var(--col-text);">Scan results surface public signals attackers can already inspect.</span>
+              <span style="font-family:'Bebas Neue',sans-serif; font-size:0.62rem; color:var(--col-muted); letter-spacing:0.1em; margin-left:12px; white-space:nowrap;">400</span>
+            </div>
+            <div style="height:1px; background:var(--col-edge); opacity:0.4;"></div>
+            <div style="display:flex; align-items:baseline; justify-content:space-between;">
+              <span style="font-family:'Rajdhani',sans-serif; font-weight:500; font-size:0.95rem; color:var(--col-text);">8 findings across 3 exposed services.</span>
+              <span style="font-family:'Bebas Neue',sans-serif; font-size:0.62rem; color:var(--col-muted); letter-spacing:0.1em; margin-left:12px; white-space:nowrap;">500</span>
+            </div>
+            <div style="height:1px; background:var(--col-edge); opacity:0.4;"></div>
+            <div style="display:flex; align-items:baseline; justify-content:space-between;">
+              <span style="font-family:'Rajdhani',sans-serif; font-weight:600; font-size:0.95rem; color:var(--col-text);">TARGET DOMAIN</span>
+              <span style="font-family:'Bebas Neue',sans-serif; font-size:0.62rem; color:var(--col-muted); letter-spacing:0.1em; margin-left:12px; white-space:nowrap;">600 · label</span>
+            </div>
+            <div style="height:1px; background:var(--col-edge); opacity:0.4;"></div>
+            <div style="display:flex; align-items:baseline; justify-content:space-between;">
+              <span style="font-family:'Rajdhani',sans-serif; font-weight:700; font-size:1.4rem; color:var(--col-alert); line-height:1;">12</span>
+              <span style="font-family:'Bebas Neue',sans-serif; font-size:0.62rem; color:var(--col-muted); letter-spacing:0.1em; margin-left:12px; white-space:nowrap;">700 · display number</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <span class="card-label">LETTER SPACING</span>
+          <h3>Tight display, open labels</h3>
+          <p>
+            Headings use <code>letter-spacing: 0.06em</code>. Nav and eyebrow labels
+            use <code>0.1–0.22em</code>. Code and table cells use <code>0</code> — monospace
+            already carries visual rhythm.
+          </p>
+          <div style="display:flex; flex-direction:column; gap:6px; margin-top:16px; background:rgba(6,14,28,0.7); border:1px solid var(--col-edge); border-radius:10px; padding:14px 16px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-family:'Bebas Neue',sans-serif; font-size:1.3rem; letter-spacing:0.06em; color:var(--col-text);">SCAN REPORT</span>
+              <span style="font-family:'Bebas Neue',sans-serif; font-size:0.62rem; color:var(--col-muted); letter-spacing:0.1em; white-space:nowrap;">0.06em · heading</span>
+            </div>
+            <div style="height:1px; background:var(--col-edge); opacity:0.4;"></div>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-family:'Bebas Neue',sans-serif; font-size:0.8rem; letter-spacing:0.15em; color:var(--col-cyan);">03 · COLOUR</span>
+              <span style="font-family:'Bebas Neue',sans-serif; font-size:0.62rem; color:var(--col-muted); letter-spacing:0.1em; white-space:nowrap;">0.15em · nav</span>
+            </div>
+            <div style="height:1px; background:var(--col-edge); opacity:0.4;"></div>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-family:'Bebas Neue',sans-serif; font-size:0.68rem; letter-spacing:0.22em; color:var(--col-muted);">SEVERITY LEVEL</span>
+              <span style="font-family:'Bebas Neue',sans-serif; font-size:0.62rem; color:var(--col-muted); letter-spacing:0.1em; white-space:nowrap;">0.22em · eyebrow</span>
+            </div>
+            <div style="height:1px; background:var(--col-edge); opacity:0.4;"></div>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-family:monospace; font-size:0.82rem; letter-spacing:0; color:var(--col-cyan);">192.168.1.1:443</span>
+              <span style="font-family:'Bebas Neue',sans-serif; font-size:0.62rem; color:var(--col-muted); letter-spacing:0.1em; white-space:nowrap;">0 · code</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DESIGN PRINCIPLES -->
+    <section class="section" id="principles">
+      <span class="section-eyebrow">04 · DESIGN PRINCIPLES</span>
+      <h2 class="section-title">Design Principles</h2>
+    
+
+      <div class="grid-2">
+
+        <div class="card">
+          <span class="card-label">CONSISTENCY</span>
+          <p>Same element, same look, every page. The user learns the interface once and applies it everywhere.</p>
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:16px;">
+            <!-- History row mock -->
+            <div style="background:rgba(6,14,28,0.8); border:1px solid var(--col-edge); border-radius:10px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; max-width:72%;">
+              <div>
+                <div style="font-family:'Bebas Neue',sans-serif; font-size:0.8rem; letter-spacing:0.08em; color:var(--col-text);">example.com</div>
+                <div style="font-size:0.68rem; color:var(--col-muted); margin-top:2px;">History page</div>
+              </div>
+              <span style="background:#ff5f4e; color:#0a1628; padding:2px 9px; border-radius:4px; font-family:'Bebas Neue',sans-serif; font-size:0.68rem;">CRITICAL</span>
+            </div>
+            <!-- Report findings row mock -->
+            <div style="background:rgba(6,14,28,0.8); border:1px solid var(--col-edge); border-radius:10px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; max-width:72%;">
+              <div>
+                <div style="font-family:monospace; font-size:0.75rem; color:var(--col-cyan);">192.168.1.1:22</div>
+                <div style="font-size:0.68rem; color:var(--col-muted); margin-top:2px;">Report findings table</div>
+              </div>
+              <span style="background:#ff5f4e; color:#0a1628; padding:2px 9px; border-radius:4px; font-family:'Bebas Neue',sans-serif; font-size:0.68rem;">CRITICAL</span>
+            </div>
+            <p style="color:rgba(180,200,220,0.5); font-size:0.75rem; margin:4px 0 0;">Same badge padding, radius, colour, and font across both pages.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="card-label">SIMPLICITY</span>
+          <p>Every element earns its place. Empty space gives critical information room to land — when in doubt, leave it out.</p>
+          <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:10px; max-width:72%;">
+            <div style="background:rgba(6,14,28,0.8); border:1px solid var(--col-edge); border-radius:10px; padding:12px;">
+              <div style="font-family:'Bebas Neue',sans-serif; font-size:0.65rem; color:var(--col-muted); letter-spacing:0.1em; margin-bottom:4px;">SEVERITY</div>
+              <span style="background:#ff5f4e; color:#0a1628; padding:2px 9px; border-radius:4px; font-family:'Bebas Neue',sans-serif; font-size:0.7rem;">CRITICAL</span>
+            </div>
+            <div style="background:rgba(6,14,28,0.8); border:1px solid var(--col-edge); border-radius:10px; padding:12px;">
+              <div style="font-family:'Bebas Neue',sans-serif; font-size:0.65rem; color:var(--col-muted); letter-spacing:0.1em; margin-bottom:4px;">PORT</div>
+              <span style="color:var(--col-text); font-size:0.85rem; font-weight:600;">22 / SSH</span>
+            </div>
+          </div>
+          <p style="color:rgba(180,200,220,0.5); font-size:0.75rem; margin:8px 0 0;">Two data points, no decoration — the finding is immediately readable.</p>
+        </div>
+
+        <div class="card">
+          <span class="card-label">ACCESSIBILITY</span>
+          <p>PenFlow is built for every organisation, not just security experts. The interface must never assume prior knowledge.</p>
+          <div style="margin-top:16px; background:var(--col-navy); border:1px solid var(--col-edge); border-radius:10px; padding:16px 20px;">
+            <h4 style="font-family:'Bebas Neue',sans-serif; font-size:1.1rem; letter-spacing:0.06em; color:var(--col-text); margin:0 0 10px;">WHAT IS A CTEM SCAN?</h4>
+            <p style="font-family:'Bebas Neue',sans-serif; font-size:0.72rem; letter-spacing:0.06em; color:var(--col-text); line-height:1.7; margin:0 0 8px;">THE SCAN STARTS WITH YOUR DOMAIN AND FOLLOWS PUBLIC SIGNALS: SUBDOMAINS, DNS RECORDS, CERTIFICATES, AND EXPOSED SERVICES.</p>
+            <p style="font-family:'Bebas Neue',sans-serif; font-size:0.72rem; letter-spacing:0.06em; color:var(--col-text); line-height:1.7; margin:0;">PENFLOW GROUPS THOSE SIGNALS INTO ASSETS AND FINDINGS, HIGHLIGHTS SUSPICIOUS EXPOSURE, AND PREPARES A COMPREHENSIVE REPORT.</p>
+          </div>
+          <p style="color:rgba(180,200,220,0.5); font-size:0.75rem; margin:8px 0 0;">Plain-language explainer shown to users before their first scan — no assumed knowledge.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- LOGO & ICONOGRAPHY -->
+    <section class="section" id="components">
+      <h2 class="section-title">Logo &amp; Iconography</h2>
+      <div class="grid-2" style="margin-bottom:40px; align-items:start;">
+        <div>
+          <p class="section-lead" style="margin-bottom:20px;">
+            PenFlow is a joint product of Bluevision and BroCode. Both logos appear together
+            in the navigation bar.
+          </p>
+          <div style="background:#fff; border-radius:14px; display:inline-flex; align-items:center; gap:24px; padding:20px 32px; box-shadow:var(--sh-sm);">
+            <img src="images/Bluevision logo.png" alt="Bluevision" style="height:96px; width:auto;" />
+            <div style="width:1px; height:96px; background:#d0d8e4;"></div>
+            <img src="images/BroCode logo.png" alt="BroCode" style="height:96px; width:auto;" />
+          </div>
+        </div>
+
+        <div class="card">
+          <span style="font-size:0.65rem; letter-spacing:0.2em; color:var(--col-cyan); font-family:'Bebas Neue',Impact,sans-serif; display:block; margin-bottom:6px;">BUTTONS</span>
+          <span class="card-label">SIZING &amp; SPACING</span>
+          <p>Buttons use <code>clamp()</code> font sizing with <code>0.08em</code> letter spacing. Padding is <code>12px 28px</code> for standard buttons, <code>height: 48px</code> for pill variants. Minimum touch target is 44×44px. Never place two primary buttons side by side — one primary action per context.</p>
+          <div class="btn-group" style="margin-top:16px;">
+            <button class="btn btn-primary">Primary Action</button>
+            <button class="btn btn-danger">Scan Now</button>
+            <button class="btn btn-ghost">Cancel</button>
+            <button class="btn btn-success">Report Ready</button>
+            <button class="btn btn-disabled" disabled>Disabled</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Badges -->
+      <h3 style="font-size:0.72rem; letter-spacing:0.2em; color:var(--col-cyan); margin-bottom:16px; font-family:'Bebas Neue',Impact,sans-serif;">SEVERITY BADGES</h3>
+      <div class="grid-2" style="margin-bottom:40px;">
+        <div class="card">
+          <span class="card-label">SIZING &amp; COLOUR</span>
+          <p>Badges are <code>padding: 2px 9px</code>, <code>border-radius: 4px</code>, font size <code>0.68rem</code> in Bebas Neue. Text colour is always <code>#0a1628</code> (dark) — never white — on the severity background. Minimum width is dictated by the longest label (CRITICAL).</p>
+          <div class="badge-row" style="margin-top:16px;">
+            <span class="badge badge-critical">CRITICAL</span>
+            <span class="badge badge-high">HIGH</span>
+            <span class="badge badge-medium">MEDIUM</span>
+            <span class="badge badge-low">LOW</span>
+            <span class="badge badge-info">INFO</span>
+            <span class="badge badge-success">PASS</span>
+          </div>
+        </div>
+        <div class="card">
+          <span class="card-label">PLACEMENT RULES</span>
+          <p>Badges always appear to the right of the asset or finding they describe — never above or below. They are right-aligned in table cells. A badge must never appear without the text label; colour alone does not satisfy accessibility requirements. Do not resize badges or change their border-radius.</p>
+        </div>
+      </div>
+
+      <!-- Cards -->
+      <h3 style="font-size:0.72rem; letter-spacing:0.2em; color:var(--col-cyan); margin-bottom:16px; font-family:'Bebas Neue',Impact,sans-serif;">CARDS</h3>
+      <div class="grid-2" style="margin-bottom:40px;">
+        <div class="card">
+          <span class="card-label">SIZING &amp; SPACING</span>
+          <p style="margin-bottom:16px;">Cards use <code>padding: 28px 32px</code> on desktop, <code>border-radius: --radius-xl (14px)</code>, and a <code>1px solid --col-edge</code> border. Background is <code>--col-deep</code>. Internal elements follow a consistent stack: label → title → body, each separated by <code>10–12px</code>.</p>
+          <div style="background:var(--col-deep); border:1px solid var(--col-edge); border-radius:14px; position:relative; padding:28px 32px;">
+            <div style="position:absolute; top:0; left:0; width:32px; height:100%; background:rgba(43,216,245,0.04); border-right:1px dashed rgba(43,216,245,0.2); border-radius:14px 0 0 14px;"></div>
+            <div style="position:absolute; top:0; right:0; width:32px; height:100%; background:rgba(43,216,245,0.04); border-left:1px dashed rgba(43,216,245,0.2); border-radius:0 14px 14px 0;"></div>
+            <div style="position:absolute; top:0; left:0; height:28px; width:100%; background:rgba(43,216,245,0.04); border-bottom:1px dashed rgba(43,216,245,0.2); border-radius:14px 14px 0 0;"></div>
+            <span style="font-family:'Bebas Neue',sans-serif; font-size:1rem; letter-spacing:0.15em; color:var(--col-cyan); display:block; margin-bottom:10px;">CARD LABEL</span>
+            <h3 style="font-size:1.2rem; color:var(--col-text); margin:0 0 12px;">Card Title</h3>
+            <p style="font-size:0.92rem; color:var(--col-text); line-height:1.65; margin:0;">Card body text at 0.92rem / 1.65 line-height using Rajdhani 400.</p>
+          </div>
+          <p style="margin-top:8px; font-size:0.78rem; color:var(--col-muted);">↑ highlighted gutters show 28px top, 32px sides — <code>report.module.css</code></p>
+        </div>
+        <div class="card" style="border-color: var(--col-edge-hot); box-shadow: var(--sh-glow-cyan);">
+          <span class="card-label">ACTIVE STATE</span>
+          <p>When selected or focused, border upgrades to <code>--col-edge-hot</code> and a <code>--sh-glow-cyan</code> shadow is applied. No background colour change — the border and glow are the only visual indicators. The card does not shift or resize on activation.</p>
+        </div>
+      </div>
+
+      <!-- Inputs -->
+      <h3 style="font-size:0.72rem; letter-spacing:0.2em; color:var(--col-cyan); margin-bottom:16px; font-family:'Bebas Neue',Impact,sans-serif;">FORM INPUTS</h3>
+      <div class="card" style="margin-bottom:40px;">
+        <div class="grid-2">
+          <div>
+            <div class="input-group">
+              <label class="input-label" for="demo-domain">TARGET DOMAIN</label>
+              <input class="input-demo" id="demo-domain" type="text" placeholder="example.com" />
+            </div>
+            <p style="color:rgba(180,200,220,0.55); font-size:0.78rem; margin-top:10px; line-height:1.5;">Rest — border <code style="color:var(--col-cyan); background:rgba(43,216,245,0.08); padding:1px 5px; border-radius:3px;">rgba(43,180,220,0.22)</code>, min-height <code style="color:var(--col-cyan); background:rgba(43,216,245,0.08); padding:1px 5px; border-radius:3px;">88px</code>, padding <code style="color:var(--col-cyan); background:rgba(43,216,245,0.08); padding:1px 5px; border-radius:3px;">10px 14px</code></p>
+          </div>
+          <div>
+            <div class="input-group">
+              <label class="input-label" for="demo-focused">FOCUSED STATE</label>
+              <input class="input-demo" id="demo-focused" type="text" placeholder="Click to see focus ring" style="border-color:var(--col-edge-hot); box-shadow:0 0 0 3px rgba(43,216,245,0.08);" />
+            </div>
+            <p style="color:rgba(180,200,220,0.55); font-size:0.78rem; margin-top:10px; line-height:1.5;">Focus — border upgrades to <code style="color:var(--col-cyan); background:rgba(43,216,245,0.08); padding:1px 5px; border-radius:3px;">--col-edge-hot</code>, 3px cyan glow ring. Label must always be visible above the input — never use placeholder as the only label.</p>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ACCESSIBILITY -->
+    <section class="section" id="accessibility">
+      <span class="section-eyebrow">05 · ACCESSIBILITY</span>
+      <h2 class="section-title">Accessibility</h2>
+      
+
+      <div class="grid-2" style="margin-bottom:40px;">
+
+        <div class="card">
+          <span class="card-label">COLOUR CONTRAST</span>
+          <p>
+            PenFlow targets WCAG 2.2 Level AA throughout. Body text
+            (<code>--col-text</code> on <code>--col-navy</code>) achieves 12.4:1 —
+            well above the 4.5:1 minimum. Large text and UI components require 3:1.
+            Severity badge text uses <code>#0a1628</code> (dark) on the severity colour;
+            all severity colours meet the 3:1 threshold. Never render informational text
+            in <code>--col-muted</code> alone against a dark background — it does not
+            pass at small sizes. When in doubt, use a contrast checker before shipping.
+          </p>
+        </div>
+
+        <div class="card">
+          <span class="card-label">GOOGLE LIGHTHOUSE</span>
+          <p>
+            Google Lighthouse is an open-source automated auditing tool built into Chrome DevTools
+            that analyses web applications across accessibility, best practices, performance, and SEO.
+            It surfaces issues like missing alt text, poor contrast, absent ARIA labels, and
+            non-semantic markup before they reach users. The scores shown are actively
+            maintained — any drop is fixed before the next release.
+          </p>
+          <div class="lh-scores">
+            <div class="lh-score-item">
+              <div class="lh-ring" style="background: conic-gradient(#18e37e 345.6deg, #1a3a2a 345.6deg);">
+                <div class="lh-ring-inner">96</div>
+              </div>
+              <span class="lh-label">Accessibility</span>
+            </div>
+            <div class="lh-score-item">
+              <div class="lh-ring" style="background: conic-gradient(#18e37e 360deg, #1a3a2a 360deg);">
+                <div class="lh-ring-inner">100</div>
+              </div>
+              <span class="lh-label">Best Practices</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- WCAG full-width -->
+      <div class="card" style="margin-top: 0;">
+        <span class="card-label">WCAG 2.2 COMPLIANCE</span>
+        <p style="margin-bottom: 28px;">
+          PenFlow targets WCAG 2.2 Level AA. Each criterion below is mapped to a concrete
+          implementation in the frontend.
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;">
+
+          <div style="background: rgba(6,14,28,0.7); border: 1px solid var(--col-edge); border-radius: 10px; padding: 16px;">
+            <span style="font-family:'Bebas Neue',sans-serif; font-size:0.7rem; letter-spacing:0.15em; color:var(--col-cyan); display:block; margin-bottom:6px;">1.4.3 CONTRAST</span>
+            <p style="font-size:0.82rem; color:var(--col-text); margin-bottom:12px;">4.5:1 minimum for body text.</p>
+            <div style="background:var(--col-navy); border-radius:6px; padding:8px 12px; font-size:0.82rem; color:var(--col-text); font-family:'Rajdhani',sans-serif;">
+              <code style="font-size:0.75rem; color:var(--col-cyan);">--col-text</code> on <code style="font-size:0.75rem; color:var(--col-cyan);">--col-navy</code>
+              <div style="margin-top:4px; font-weight:700; color:var(--col-success);">12.4 : 1 ✓</div>
+            </div>
+          </div>
+
+          <div style="background: rgba(6,14,28,0.7); border: 1px solid var(--col-edge); border-radius: 10px; padding: 16px;">
+            <span style="font-family:'Bebas Neue',sans-serif; font-size:0.7rem; letter-spacing:0.15em; color:var(--col-cyan); display:block; margin-bottom:6px;">1.4.11 NON-TEXT</span>
+            <p style="font-size:0.82rem; color:var(--col-text); margin-bottom:12px;">3:1 for UI components and focus indicators.</p>
+            <div style="background:var(--col-navy); border-radius:6px; padding:8px 12px;">
+              <div style="border: 2px solid var(--col-cyan); border-radius:6px; padding:6px 10px; font-size:0.78rem; color:var(--col-text); font-family:'Rajdhani',sans-serif; box-shadow: 0 0 0 3px rgba(43,216,245,0.2);">
+                Focus ring on input
+              </div>
+            </div>
+          </div>
+
+          <div style="background: rgba(6,14,28,0.7); border: 1px solid var(--col-edge); border-radius: 10px; padding: 16px;">
+            <span style="font-family:'Bebas Neue',sans-serif; font-size:0.7rem; letter-spacing:0.15em; color:var(--col-cyan); display:block; margin-bottom:6px;">3.3.1 ERROR ID</span>
+            <p style="font-size:0.82rem; color:var(--col-text); margin-bottom:12px;">Errors name what failed and suggest a fix.</p>
+            <div style="background:var(--col-navy); border-radius:6px; padding:8px 12px; border-left:3px solid var(--col-alert);">
+              <span style="font-size:0.78rem; color:var(--col-alert); font-family:'Rajdhani',sans-serif; font-weight:600;">Invalid domain — check format and try again.</span>
+            </div>
+          </div>
+
+          <div style="background: rgba(6,14,28,0.7); border: 1px solid var(--col-edge); border-radius: 10px; padding: 16px;">
+            <span style="font-family:'Bebas Neue',sans-serif; font-size:0.7rem; letter-spacing:0.15em; color:var(--col-cyan); display:block; margin-bottom:6px;">3.3.2 LABELS</span>
+            <p style="font-size:0.82rem; color:var(--col-text); margin-bottom:12px;">Visible labels on all inputs — no placeholder-only fields.</p>
+            <div style="background:var(--col-navy); border-radius:6px; padding:8px 12px;">
+              <div style="font-family:'Bebas Neue',sans-serif; font-size:0.68rem; letter-spacing:0.15em; color:var(--col-muted); margin-bottom:4px;">TARGET DOMAIN</div>
+              <div style="border:1px solid var(--col-edge); border-radius:6px; padding:5px 10px; font-size:0.82rem; color:var(--col-muted); font-family:'Rajdhani',sans-serif;">example.com</div>
+            </div>
+          </div>
+
+          <div style="background: rgba(6,14,28,0.7); border: 1px solid var(--col-edge); border-radius: 10px; padding: 16px;">
+            <span style="font-family:'Bebas Neue',sans-serif; font-size:0.7rem; letter-spacing:0.15em; color:var(--col-cyan); display:block; margin-bottom:6px;">4.1.2 NAME ROLE</span>
+            <p style="font-size:0.82rem; color:var(--col-text); margin-bottom:12px;">Semantic elements with ARIA where needed.</p>
+            <div style="background:var(--col-navy); border-radius:6px; padding:8px 12px; font-family:monospace; font-size:0.72rem; color:var(--col-cyan); line-height:1.7;">
+              <span style="color:var(--col-muted)">&lt;</span>button<span style="color:var(--col-muted)">&gt;</span>Scan Now<span style="color:var(--col-muted)">&lt;/</span>button<span style="color:var(--col-muted)">&gt;</span><br>
+              aria-label=<span style="color:var(--col-success)">"Search"</span><br>
+              aria-hidden=<span style="color:var(--col-success)">"true"</span>
+            </div>
+          </div>
+
+          <div style="background: rgba(6,14,28,0.7); border: 1px solid var(--col-edge); border-radius: 10px; padding: 16px;">
+            <span style="font-family:'Bebas Neue',sans-serif; font-size:0.7rem; letter-spacing:0.15em; color:var(--col-cyan); display:block; margin-bottom:6px;">SEVERITY LABELS</span>
+            <p style="font-size:0.82rem; color:var(--col-text); margin-bottom:12px;">Colour never used alone — text badge always present.</p>
+            <div style="background:var(--col-navy); border-radius:6px; padding:8px 12px; display:flex; gap:6px; flex-wrap:wrap;">
+              <span style="background:#ff5f4e; color:#0a1628; padding:2px 9px; border-radius:4px; font-family:'Bebas Neue',sans-serif; font-size:0.68rem;">CRITICAL</span>
+              <span style="background:#f08030; color:#0a1628; padding:2px 9px; border-radius:4px; font-family:'Bebas Neue',sans-serif; font-size:0.68rem;">HIGH</span>
+              <span style="background:#f5c842; color:#0a1628; padding:2px 9px; border-radius:4px; font-family:'Bebas Neue',sans-serif; font-size:0.68rem;">MEDIUM</span>
+              <span style="background:#4ade80; color:#0a1628; padding:2px 9px; border-radius:4px; font-family:'Bebas Neue',sans-serif; font-size:0.68rem;">PASS</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </section>
+
+
+  </main>
+</div>
+
+<!-- ── Footer ── -->
+
+<script>
+  // ── Scroll reveal ────────────────────────────────────────────────────────
+  const revealEls = document.querySelectorAll(
+    '.card, .pour-card, .do-card, .dont-card, ' +
+    '.code-block, .type-scale, .swatch-row, ' +
+    '.section-title, .section-lead, .thread, ' +
+    '.motion-table, .space-scale, ' +
+    '.btn-group, .badge-row, .input-group, .type-row'
+  );
+
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-revealed');
+        revealObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -32px 0px' });
+
+  revealEls.forEach((el, i) => {
+    el.classList.add('will-reveal');
+    el.style.transitionDelay = `${(i % 4) * 90}ms`;
+    revealObserver.observe(el);
+  });
+
+  // ── Active sidebar link on scroll ────────────────────────────────────────
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks  = document.querySelectorAll('.sidebar nav a');
+
+  const sectionObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(a => a.classList.remove('active'));
+        const match = document.querySelector(`.sidebar nav a[href="#${entry.target.id}"]`);
+        if (match) match.classList.add('active');
+      }
+    });
+  }, { threshold: 0.35 });
+
+  sections.forEach(s => sectionObserver.observe(s));
+</script>
+</body>
+</html>
