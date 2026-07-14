@@ -187,3 +187,22 @@ async def test_initiate_scan_authenticated_user_attaches_user_id(
         assert kwargs["user_id"] == UUID("550e8400-e29b-41d4-a716-446655440000")
     finally:
         app.dependency_overrides.pop(get_current_user_optional,None)
+
+#scan status not found 200 
+@pytest.mark.asyncio 
+@patch("app.api.routes.scans.ScanRepository.get_scan_status",new_callable =AsyncMock)
+async def test_get_scan_status_found(mock_get_status,test_client):
+    mock_get_status.return_value = {
+        "scan_id": "550e8400-e29b-41d4-a716-446655440000",
+        "status": "running",
+        "progress": 42,
+        "source": [] ,
+        "report_status" : None, 
+    }
+
+    response = await test_client.get(
+        "/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/status"
+    )
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.json()["progress"] == 42
