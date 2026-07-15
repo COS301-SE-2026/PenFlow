@@ -17,6 +17,7 @@ celery_app = Celery(
         "app.tasks.hibp_tasks",
         "app.tasks.domain_verification_task",
         "app.tasks.target_resolution_task",
+        "app.tasks.nmap_task",
         "app.tasks.full_scan_tasks",
     ],
 )
