@@ -120,3 +120,21 @@ async def test_save_source_result_updates_existing_soruce(mock_get_scan):
 
     assert existing_source.status == ScanSourceStatus.FAILED 
     db.add.assert_not_called()
+
+#Test roll back
+@pytest.mark.asyncio
+@patch("app.repositories.scan_repo.ScanRepository.get_scan_by_id",
+new_callable = AsyncMock)
+async def test_save_source_result_roll_back_on_db_error(mock_get_scan):
+    db =_make_db()
+    fake_scan = SimpleNamespace(id = uuid4() , progress =0, status= ScanStatus.RUNNING)
+    mock_get_scan.return_value  =  fake_scan
+    source_result = MagicMock()
+    source_result.scalar_one_or_none.return_value = None # no scan source
+    db.execute = AsyncMock(return_value = source_result)
+    db.flush.side_effect = SQLAlchemyError("boom")
+
+    with pytest.raises(SQLAlchemyError):
+        await ScanRepository.save_source_result(db,fake_scan.id,"dns",{"status":"completed"})
+    db.rollback.assert_awaited_once()
+
