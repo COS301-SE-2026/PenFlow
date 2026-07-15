@@ -1,10 +1,10 @@
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status 
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,7 +27,7 @@ router = APIRouter(prefix="/scans", tags=["Scans"])
     status_code=status.HTTP_200_OK,
 )
 async def list_scans(
-    scan_status: str | None = Query(None, alias="status", description="Filter by scan status"),
+    scan_status: Optional[str] = Query(None, alias="status", description="Filter by scan status"),
     limit: int = Query(50, description="Limit results returned", le=100),
     db: AsyncSession = Depends(get_db)
 ) -> list[dict[str, Any]]:
