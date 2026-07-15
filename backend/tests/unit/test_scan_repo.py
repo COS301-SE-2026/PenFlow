@@ -61,3 +61,38 @@ async def test_save_source_result_raises_when_scan_missing(mock_get_scan):
 
     with pytest.raises(ValueError,match = "not found"):
         await ScanRepository.save_source_result(db,uuid4(),"dns",{"status":"completed"})
+
+#test save_source resource
+#test transition from running to  completed
+#update scan source ,asset ,finding
+# error handling when roll back
+
+@pytest.mark.asyncio
+@patch("app.repositories.scan_repo.ScanRepository.get_scan_by_id",
+new_callable = AsyncMock)
+async def test_save_source_result_creates_new_source_with_assets_and_findings(mock_get_scan):
+    db = _make_db()
+    fake_scan = SimpleNamespace(id = uuid4() , progress =0, status= ScanStatus.RUNNING)
+    mock_get_scan.return_value =fake_scan
+
+    source_result = MagicMock()
+    source_result.scalar_one_or_none.return_value = None # no scan source
+    count_result = MagicMock()
+    count_result.result.scalar.return_value = len(
+        __import__("app.repositories.scan_repo",fromlist =["TOTAL_SCAN_SOURCES"] ).TOTAL_SCAN_SOURCES
+    )
+    db.execute = AsyncMock(side_effect = [source_result,count_result])
+
+    payload = {
+        "status": "completed",
+        "raw_result" :{"ok":True},
+        "assets": [{"identifier":"sub.example.com","asset_type":"subdomain"}],
+        "findings": [{"severity":"high","title": "Exposed panel"}]
+    }
+
+    scan = await ScanRepository.save_source_result(db,fake_scan.id,"dns",payload)
+
+    assert scan.progress ==100
+    assert scan.status == Scanstatus.COMPLETED
+    assert db.add.call_count ==3 #scan source,asset ,finding too make the 3
+    db.commit.assert_awaited_once()
