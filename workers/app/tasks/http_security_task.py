@@ -14,7 +14,7 @@ JSONDict = dict[str, Any]
     bind=True,
     max_retries=2,
 )
-def run_http_security_scan\
+def run_http_security_scan_task\
 (
     self,
     scan_id: str,
@@ -58,12 +58,6 @@ def run_http_security_scan\
 
             checks = \
             {
-                "Strict-Transport-Security":
-                    headers.get\
-                    (
-                        "strict_transport_security",
-                    ),
-
                 "Content-Security-Policy":
                     headers.get\
                     (
@@ -94,7 +88,11 @@ def run_http_security_scan\
                         "x_content_type_options"
                     ),
             }
-
+            if target["protocol"] == "https":
+                checks["Strict-Transport-Security"] = \
+                    headers.get(
+                        "strict_transport_security"
+                    )
             for header_name, value in checks.items():
 
                 if value:

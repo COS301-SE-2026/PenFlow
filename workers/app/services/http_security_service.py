@@ -4,6 +4,13 @@ import requests
 
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
+#specifically known https ports
+HTTPS_PORTS = [
+    443,
+    8443,
+    9443,
+    10443,
+]
 
 def run_http_security_scan\
 (
@@ -33,21 +40,27 @@ def run_http_security_scan\
 
     for port in ports:
 
-        service = port.get("service")
+        service = (
+                port.get("service") or ""
+        ).lower()
 
-        if service not in \
-        [
-            "http",
-            "https",
-        ]:
+        #For this worker we only care about http relation
+        if (
+                port["port"] not in HTTPS_PORTS
+                and "http" not in service
+        ):
             continue
 
-        protocol = \
-        (
-            "https"
-            if service == "https"
-            else "http"
-        )
+        #http vs https
+        if (
+                port["port"] in HTTPS_PORTS
+                or "https" in service
+                or "ssl" in service
+                or "tls" in service
+        ):
+            protocol = "https"
+        else:
+            protocol = "http"
 
         url = \
         (
