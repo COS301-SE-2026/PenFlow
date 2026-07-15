@@ -22,7 +22,9 @@ class VerificationService:
             for rdata in answers:
                 txt_record = b"".join(rdata.strings).decode('utf-8')
 
-                if txt_record == expected_token:
+                clean_record = txt_record.strip("").strip()
+
+                if clean_record == expected_token:
                     return True
             return False
 
