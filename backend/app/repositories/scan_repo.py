@@ -109,7 +109,11 @@ class ScanRepository:
     #         raise
 
     @staticmethod
-    async def list_scans(db: AsyncSession) -> list[dict[str, Any]]:
+    async def list_scans(
+        db: AsyncSession,
+        status: str | None = None,
+        limit: int = 50
+    ) -> list[dict[str, Any]]:
         query = (
             select(
                 Scan,
@@ -126,6 +130,12 @@ class ScanRepository:
             .group_by(Scan.id)
             .order_by(Scan.created_at.desc())
         )
+
+        if status:
+            query = query.where(Scan.status == status)
+
+        query = query.limit(limit)
+        
         rows = (await db.execute(query)).all()
         return [
             {

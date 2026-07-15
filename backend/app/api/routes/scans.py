@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,9 +26,13 @@ router = APIRouter(prefix="/scans", tags=["Scans"])
     response_model=list[ScanHistoryItem],
     status_code=status.HTTP_200_OK,
 )
-async def list_scans(db: AsyncSession = Depends(get_db)) -> list[dict[str, Any]]:
+async def list_scans(
+    scan_status: str | None = Query(None, alias="status", description="Filter by scan status"),
+    limit: int = Query(50, description="Limit results returned", le=100),
+    db: AsyncSession = Depends(get_db)
+) -> list[dict[str, Any]]:
     try:
-        return await ScanRepository.list_scans(db)
+        return await ScanRepository.list_scans(db, status=scan_status, limit=limit)
     except Exception:
         logger.exception("Failed to list scans")
         raise HTTPException(
