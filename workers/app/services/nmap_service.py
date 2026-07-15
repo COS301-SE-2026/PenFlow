@@ -14,7 +14,7 @@ SCAN_PROFILES = \
         "-T4 "
         "--version-light "
         "-sV "
-        "--top-ports 200 "
+        "--top-ports 400 "
     ),
     #can add more profiles here later on
 }
