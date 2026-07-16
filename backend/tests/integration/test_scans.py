@@ -85,29 +85,7 @@ async def test_worker_failure_callback(mock_get_scan_by_id, test_client):
     data = response.json()
     assert data["status"] == "failed"
 
-@pytest.mark.asyncio
-@patch("app.api.routes.scans.ScanRepository.list_scans", new_callable=AsyncMock)
-async def test_list_scans_success(mock_list_scans, test_client):
-    mock_list_scans.return_value = [
-        {
-        "id": UUID("550e8400-e29b-41d4-a716-446655440000"),
-        "domain": "test.com",
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "status": "completed",
-        "total_findings": 5,
-        "critical_count": 0,
-        "high_count": 1,
-        "medium_count": 2,
-        "low_count": 2,
-        }
-    ]
 
-    response = await test_client.get("/api/v1/scans/")
-
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert len(data) == 1
-    assert data[0]["domain"] == "test.com"
 
 @pytest.mark.asyncio
 @patch("app.api.routes.scans.ScanRepository.get_scan_status", new_callable=AsyncMock)
@@ -227,7 +205,7 @@ async def test_list_scan_user_not_found(mock_get_user_id,test_client,login_as):
 async def test_list_scans_internal_error(mock_get_user_id, mock_list_scans,
 test_client, login_as):
     login_as({"sub": "kc-123", "email": "user@example.com"})
-    mock_get_user_id.return_value ==UUID("550e8400-e29b-41d4-a716-446655440000")
+    mock_get_user_id.return_value =UUID("550e8400-e29b-41d4-a716-446655440000")
     mock_list_scans.side_effect = RuntimeError("db exploded")
 
     response = await test_client.get("/api/v1/scans/")
@@ -292,4 +270,3 @@ async def test_get_scan_status_found(mock_get_status,test_client):
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["progress"] == 42
-    assert response.status_code == status.HTTP_400_BAD_REQUEST

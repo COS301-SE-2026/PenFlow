@@ -96,6 +96,9 @@ async def test_get_current_user_invalid_token_raises_401():
 
     with patch.object(auth_module, "_get_jwks", new=AsyncMock(return_value=fake_keys)), \
             patch.object(auth_module.jwt, "decode", side_effect=JWTError("bad signature")):
+            #sonarqube add isolated build request/credential mock before
+            request = _request()
+            credential = _credentials()
         with pytest.raises(HTTPException) as exc_info:
             await auth_module.get_current_user(request=_request(), credentials=_credentials())
 
@@ -108,6 +111,8 @@ async def test_get_current_user_jwks_unreachable_raises_503():
     with patch.object(
         auth_module, "_get_jwks", new=AsyncMock(side_effect=httpx.RequestError("timeout"))
     ):
+        request = _request()
+        credential = _credentials()
         with pytest.raises(HTTPException) as exc_info:
             await auth_module.get_current_user(request=_request(), credentials=_credentials())
 
@@ -118,6 +123,8 @@ async def test_get_current_user_jwks_unreachable_raises_503():
 async def test_get_current_user_unexpected_error_raises_500():
     #Test that unexpected errors raise a 500 Internal Server Error.
     with patch.object(auth_module, "_get_jwks", new=AsyncMock(side_effect=ValueError("boom"))):
+        request = _request()
+        credential = _credentials()
         with pytest.raises(HTTPException) as exc_info:
             await auth_module.get_current_user(request=_request(), credentials=_credentials())
 

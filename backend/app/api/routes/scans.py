@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -20,7 +20,10 @@ from app.utils.db import get_db
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/scans", tags=["Scans"])
-
+#Use annoted for dependency injection
+DbSession = Annotated[AsyncSession, Depends(get_db)]
+CurrentUser = Annotated[dict[str, Any], Depends(get_current_user)]
+CurrentUserOptional = Annotated[dict[str, Any] | None, Depends(get_current_user_optional)]
 
 @router.get(
     "/",
@@ -28,8 +31,8 @@ router = APIRouter(prefix="/scans", tags=["Scans"])
     status_code=status.HTTP_200_OK,
 )
 async def list_scans(
-    current_user: dict[str, Any] = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUser,
+    db: DbSession,
 ) -> list[dict[str, Any]]:
     user_id = await get_user_id_by_provider_id(db, current_user["sub"])
     if user_id is None:
@@ -52,8 +55,8 @@ async def list_scans(
 )
 async def initiate_ctem_scan(
     request: InitiateScanRequest,
-    current_user: dict[str, Any] | None = Depends(get_current_user_optional),
-    db: AsyncSession = Depends(get_db),
+    current_user: CurrentUserOptional,
+    db: DbSession,
 ) -> InitiateScanResponse:
     try:
         user_id = None
@@ -78,7 +81,7 @@ async def initiate_ctem_scan(
 @router.get("/{scan_id}/status")
 async def get_scan_status(
     scan_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: DbSession,
 ) -> dict[str, Any]:
     status_info = await ScanRepository.get_scan_status(
         db,
@@ -101,7 +104,7 @@ async def get_scan_status(
 )
 async def download_scan_pdf(
     scan_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: DbSession,
 ) -> FileResponse:
 
     report = await get_report_by_scan_id(db, str(scan_id))
@@ -144,7 +147,7 @@ async def download_scan_pdf(
 async def email_scan_report(
     scan_id: UUID,
     request: EmailReportRequest,
-    db: AsyncSession = Depends(get_db),
+    db: DbSession,
 ) -> dict[str, str]:
     scan = await ScanRepository.get_scan_by_id(db, scan_id)
 
