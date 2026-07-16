@@ -135,7 +135,7 @@ class ScanRepository:
             query = query.where(Scan.status == status)
 
         query = query.limit(limit)
-        
+
         rows = (await db.execute(query)).all()
         return [
             {
@@ -355,6 +355,8 @@ class ScanRepository:
 
         return {
             "scan_id": str(scan.id),
+            "domain": scan.domain,
+            "created_at": scan.created_at,
             "status": scan.status.value,
             "progress": scan.progress,
             "sources": [
