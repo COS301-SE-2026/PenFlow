@@ -143,13 +143,14 @@ async def test_save_source_result_roll_back_on_db_error(mock_get_scan):
 @pytest.mark.asyncio
 async def test_list_scans_maps_rows_to_dicts():
     db =_make_db()
-    fake_Scan = SimpleNamespace(id = uuid4() , 
+    #change naming convention following sonar
+    fake_scan = SimpleNamespace(id = uuid4() , 
     domain = "example.com",
     created_at = "2026-01-01",
     status= ScanStatus.COMPLETED)
 
     row = SimpleNamespace(
-        Scan =fake_Scan,
+        Scan =fake_scan,
         total_findings = 3,
         critical_count = 1,
         high_count =1,
@@ -163,7 +164,7 @@ async def test_list_scans_maps_rows_to_dicts():
     scans = await ScanRepository.list_scans(db,uuid4())
 
     assert scans == [{
-        "id":fake_Scan.id,
+        "id":fake_scan.id,
         "domain": "example.com",
         "created_at": "2026-01-01",
         "status": ScanStatus.COMPLETED,
