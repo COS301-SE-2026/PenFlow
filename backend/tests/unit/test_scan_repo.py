@@ -138,3 +138,35 @@ async def test_save_source_result_roll_back_on_db_error(mock_get_scan):
         await ScanRepository.save_source_result(db,fake_scan.id,"dns",{"status":"completed"})
     db.rollback.assert_awaited_once()
 
+#Test list scan method  
+@pytest.mark.asyncio
+async def test_list_scans_maps_rows_to_dicts():
+    db =_make_db()
+    fake_Scan = SimpleNamespace(id = uuid4() , domain = "example.com",created_at = "2026-01-01",status= ScanStatus.COMPLETED)
+
+    row = SimpleNamespace(
+        Scan =fake_Scan,
+        total_findings = 3,
+        critical_count = 1,
+        high_count =1,
+        medium_count=1,
+        low_count=0
+    )
+    result =MagicMock()
+    result.all.return_value = [row]
+    db.execute =AsyncMock(return_value =result)
+
+    scans = await ScanRepository.list_scans(db,uuid4())
+
+    assert scans == [{
+        "id":fake_Scan.id,
+        "domain": "example.com",
+        "created_at": "2026-01-01",
+        "status": ScanStatus.COMPLETED,
+        "total_findings": 3,
+        "critical_count": 1,
+        "high_count": 1,
+        "medium_count": 1,
+        "low_count": 0,
+
+    }]
