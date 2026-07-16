@@ -1,3 +1,4 @@
+#unit test for scan repo :db session is fully mocked
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4

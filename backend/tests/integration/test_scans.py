@@ -1,3 +1,6 @@
+#route contract test for scans endpoints : hit the real fastapi via test_client
+#(full request pipleine :auth ,validation ,status code) but mock scan repo itself
+
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID
 
