@@ -197,8 +197,9 @@ async def test_download_scan_pdf_uncompleted(mock_get_report, test_client):
 @pytest.mark.asyncio
 @patch("app.api.routes.scans.ScanRepository.list_scans",new_callable =AsyncMock)
 @patch("app.api.routes.scans.get_user_id_by_provider_id",new_callable =AsyncMock)
-async def test_list_scans_success(mock_get_user_id,mock_list_scans,test_client,
+async def test_list_scans_success_authenticated(mock_get_user_id,mock_list_scans,test_client,
 login_as):
+
     login_as ({"sub":"kc-123","email":"user@example.com"})
     mock_get_user_id.return_value = UUID("550e8400-e29b-41d4-a716-446655440000")
     mock_list_scans.return_value =[]
