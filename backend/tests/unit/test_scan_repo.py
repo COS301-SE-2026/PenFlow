@@ -170,3 +170,12 @@ async def test_list_scans_maps_rows_to_dicts():
         "low_count": 0,
 
     }]
+
+#Test scan status when no scan return
+@patch("app.repositories.scan_repo.ScanRepository.get_scan_by_id",new_callable =AsyncMock)
+async def test_get_scan_status_returns_none_when_scan_missing(mock_get_scan):
+    db = _make_db()
+    mock_get_scan.return_value =None 
+    result =await  ScanRepository.get_scan_status(db,uuid4())
+
+    assert result is None
