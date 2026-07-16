@@ -1,11 +1,11 @@
 from types import SimpleNamespace
-from unittest.mock import AsyncMock,MagicMock,patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.models.base import ScanStatus, Severity
+from app.models.base import ScanStatus
 from app.models.scan_source import ScanSourceStatus
 from app.repositories.scan_repo import ScanRepository
 
@@ -79,7 +79,8 @@ async def test_save_source_result_creates_new_source_with_assets_and_findings(mo
     source_result.scalar_one_or_none.return_value = None # no scan source
     count_result = MagicMock()
     count_result.scalar.return_value = len(
-        __import__("app.repositories.scan_repo",fromlist =["TOTAL_SCAN_SOURCES"] ).TOTAL_SCAN_SOURCES
+        __import__("app.repositories.scan_repo",fromlist =["TOTAL_SCAN_SOURCES"] 
+        ).TOTAL_SCAN_SOURCES
     )
     db.execute = AsyncMock(side_effect = [source_result,count_result])
 
@@ -142,7 +143,10 @@ async def test_save_source_result_roll_back_on_db_error(mock_get_scan):
 @pytest.mark.asyncio
 async def test_list_scans_maps_rows_to_dicts():
     db =_make_db()
-    fake_Scan = SimpleNamespace(id = uuid4() , domain = "example.com",created_at = "2026-01-01",status= ScanStatus.COMPLETED)
+    fake_Scan = SimpleNamespace(id = uuid4() , 
+    domain = "example.com",
+    created_at = "2026-01-01",
+    status= ScanStatus.COMPLETED)
 
     row = SimpleNamespace(
         Scan =fake_Scan,

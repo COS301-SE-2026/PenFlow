@@ -2,7 +2,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from app.repositories.user_repo import get_or_create_user ,get_user_id_by_provider_id
+from app.repositories.user_repo import get_or_create_user
 
 
 def _make_row(id_="550e8400-e29b-41d4-a716-446655440000", email="test@example.com", role="client"):
