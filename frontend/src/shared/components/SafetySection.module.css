@@ -1,12 +1,3 @@
-.safeSection {
-  background: var(--col-deep);
-  padding: clamp(48px, 7vw, 96px) clamp(16px, 4vw, 40px);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: clamp(24px, 4vw, 60px);
-  align-items: center;
-}
-
 .safeCopy {
   display: flex;
   flex-direction: column;
@@ -25,31 +16,4 @@
   line-height: 1.75;
   margin: 0;
   font-weight: 500;
-}
-
-.safeImageWrap {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.safeImage {
-  width: clamp(200px, 28vw, 380px);
-  height: auto;
-  border-radius: 20px;
-  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.55));
-}
-
-@media (max-width: 900px) {
-  .safeSection {
-    grid-template-columns: 1fr;
-  }
-
-  .safeImageWrap {
-    order: -1;
-  }
-
-  .safeImage {
-    width: clamp(180px, 55vw, 280px);
-  }
 }

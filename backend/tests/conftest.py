@@ -55,9 +55,13 @@ TestingSessionLocal = async_sessionmaker(
 
 @pytest_asyncio.fixture
 async def db_session():
-    # Provides a real async database session for integration tests
-    async with TestingSessionLocal() as session:
-        yield session
+    async with engine.connect() as connection:
+        transaction = await connection.begin()
+
+        async with TestingSessionLocal(bind=connection) as session:
+            yield session
+
+        await transaction.rollback()
 
 
 @pytest_asyncio.fixture
