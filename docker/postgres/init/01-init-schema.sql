@@ -59,6 +59,14 @@ CREATE TYPE scan_schedule_frequency AS ENUM (
     'yearly'
 );
 
+CREATE TYPE domain_verification_code AS ENUM (
+    'verified',
+    'record_not_found',
+    'token_mismatch',
+    'dns_timeout',
+    'dns_unavailable'
+);
+
 CREATE TABLE organisations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
@@ -90,6 +98,8 @@ CREATE TABLE verified_domains (
     verified_at TIMESTAMPTZ,
     expires_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_checked_at TIMESTAMPTZ,
+    last_verification_code domain_verification_code,
 
     UNIQUE (organisation_id, domain)
 );
