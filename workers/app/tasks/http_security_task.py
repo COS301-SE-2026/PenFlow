@@ -18,6 +18,7 @@ def run_http_security_scan_task\
 (
     self,
     scan_id: str,
+    hostname: str,
     ip_address: str,
     ports: list[JSONDict],
 ) -> JSONDict:
@@ -42,6 +43,7 @@ def run_http_security_scan_task\
 
         scan_data = (run_http_security_scan
         (
+            hostname=hostname,
             ip_address=ip_address,
             ports=ports,
         ))
@@ -56,14 +58,25 @@ def run_http_security_scan_task\
                 {},
             )
 
+            csp = headers.get("content_security_policy")
+            csp_report_only = headers.get("content_security_policy_report_only")
+
+            if not csp and not csp_report_only:
+                (findings.append
+                    (
+                    {
+                        "severity": "low",
+                        "title": "Missing Content-Security-Policy",
+                        "description":
+                            (
+                                "No CSP nor CSP-Report-Only header is present."
+                            ),
+                        "target": target["url"],
+                    }
+                ))
+
             checks = \
             {
-                "Content-Security-Policy":
-                    headers.get\
-                    (
-                        "content_security_policy"
-                    ),
-
                 "X-Frame-Options":
                     headers.get\
                     (

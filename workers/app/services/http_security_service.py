@@ -14,6 +14,7 @@ HTTPS_PORTS = [
 
 def run_http_security_scan\
 (
+    hostname: str,
     ip_address: str,
     ports: list[JSONDict],
     timeout: int = 5,
@@ -35,6 +36,7 @@ def run_http_security_scan\
     result: JSONDict = \
     {
         "ip": ip_address,
+        "hostname": hostname,
         "targets": [],
     }
 
@@ -52,20 +54,15 @@ def run_http_security_scan\
             continue
 
         #http vs https
-        if (
+        protocol = "https" if (
                 port["port"] in HTTPS_PORTS
                 or "https" in service
                 or "ssl" in service
                 or "tls" in service
-        ):
-            protocol = "https"
-        else:
-            protocol = "http"
-
-        url = \
-        (
-            f"{protocol}://{ip_address}:{port['port']}"
-        )
+        )else "http"
+        # USE HOSTNAME
+        port_suffix = f":{port['port']}" if port["port"] not in (80, 443) else ""
+        url = f"{protocol}://{hostname}{port_suffix}"
 
         try:
 
@@ -108,6 +105,12 @@ def run_http_security_scan\
                     (
                         "Content-Security-Policy"
                     ),
+
+                "content_security_policy_report_only":
+                    headers.get \
+                            (
+                            "Content-Security-Policy-Report-Only"
+                        ),
 
                 "x_frame_options":
                     headers.get\
