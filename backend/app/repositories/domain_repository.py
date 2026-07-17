@@ -3,9 +3,11 @@ from uuid import UUID
 
 from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from app.models.verified_domain import DomainVerificationStatus, VerifiedDomain
 
+from app.schemas.domain import DomainSortField, SortOrder
 
 class DomainRepository:
 
@@ -45,3 +47,25 @@ class DomainRepository:
         await db.refresh(domain_rec)
 
         return domain_rec
+    
+
+    @staticmethod
+    def sort_records(query: Select[Any], sort: DomainSortField, order: SortOrder) -> Select[Any]:
+        sort_cols: dict[DomainSortField, InstrumentedAttribute[Any]] = {
+            DomainSortField.DOMAIN: VerifiedDomain.domain,
+            DomainSortField.CREATED_AT: VerifiedDomain.created_at,
+            DomainSortField.STATUS: VerifiedDomain.status,
+        }
+
+        sort_col = sort_cols[sort]
+
+        if order == SortOrder.ASC:
+            return query.order_by(
+                sort_col.asc(),
+                VerifiedDomain.id.asc(),
+            )
+        
+        return query.order_by(
+            sort_col.desc(),
+            VerifiedDomain.id.desc(),
+        )
