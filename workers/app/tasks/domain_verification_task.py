@@ -12,7 +12,7 @@ JSONDict = dict[str, Any]
 
 
 @celery_app.task(name="scan.domain_verification")
-def run_domain_verification(
+def run_domain_verification_task(
         scan_id: str,
         domain: str,
         verification_token: str,
