@@ -30,6 +30,8 @@ class DomainItem(BaseModel):
     id: UUID
     domain: str
     status: DomainVerificationStatus
+    verification_method: str
+    verification_token: str
     created_at: datetime
     verified_at: datetime | None = None
     last_checked_at: datetime | None = None

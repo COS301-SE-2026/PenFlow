@@ -23,7 +23,7 @@ class DomainVerificationCode(str, enum.Enum):
 class VerifiedDomain(Base):
     __tablename__ = "verified_domains"
     __table_args__ = (
-        UniqueConstraint("organisation_id", "domain", name="uq_org_domain"),
+        UniqueConstraint("user_id", "domain", name="uq_org_domain"),
     )
 
     id = Column(
