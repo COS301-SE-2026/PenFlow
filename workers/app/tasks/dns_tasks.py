@@ -1,4 +1,6 @@
 from typing import Any
+import json
+import redis
 
 from app.queue.celery_app import celery_app
 from app.services.dns_service import (
@@ -10,6 +12,7 @@ from app.services.whois_service import collect_whois_raw_data
 from app.utils.callback import send_source_callback
 
 JSONDict = dict[str, Any]
+redis_client = redis.Redis(host="penflow-redis", port=6379, db=0)
 
 
 @celery_app.task(name="scan.dns")
@@ -36,6 +39,11 @@ def run_dns_scan(scan_id: str, domain: str) -> JSONDict:
             "assets": [],
         }
 
+        redis_client.publish(f"scan_stream_{scan_id}", json.dumps({
+            "scan_id": scan_id, "progress": 15, "status": status,
+            "source": "dns", "message": "DNS & WHOIS Enumeration completed"
+        }))
+
     except Exception as error:
         result = {
             "scan_id": scan_id,
@@ -46,6 +54,10 @@ def run_dns_scan(scan_id: str, domain: str) -> JSONDict:
             "assets": [],
             "error_message": str(error),
         }
+        redis_client.publish(f"scan_stream_{scan_id}", json.dumps({
+            "scan_id": scan_id, "progress": 15, "status": "failed",
+            "source": "dns", "message": f"DNS Enumeration failed: {str(error)}"
+        }))
 
     send_source_callback(
         scan_id=scan_id,
