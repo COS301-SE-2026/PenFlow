@@ -119,6 +119,7 @@ CREATE TABLE assets (
     scan_id UUID NOT NULL REFERENCES scans(id) ON DELETE CASCADE,
     identifier VARCHAR(255) NOT NULL,
     asset_type VARCHAR(50) NOT NULL,
+    asset_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     UNIQUE (scan_id, identifier, asset_type)
@@ -143,12 +144,12 @@ CREATE TABLE services (
     asset_id UUID REFERENCES assets(id) ON DELETE CASCADE,
     host VARCHAR(255) NOT NULL,
     port INTEGER NOT NULL,
-    protocol VARCHAR(20),
+    protocol VARCHAR(20) NOT NULL,
     service_name VARCHAR(100),
     product VARCHAR(255),
     version VARCHAR (255),
     banner TEXT,
-    tls_enabled BOOLEAN DEFAULT FALSE,
+    tls_enabled BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     UNIQUE (scan_id, host, port, protocol),
@@ -169,8 +170,10 @@ CREATE TABLE findings (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     recommendation TEXT,
-    evidence JSONB,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    evidence JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CHECK (cvss_score IS NULL or (cvss_score >= 0 AND cvss_score <= 10))
 );
 
 CREATE TABLE reports (
@@ -206,6 +209,24 @@ CREATE TABLE scan_differences (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE detected_technologies (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    scan_id UUID NOT NULL REFERENCES scans(id) ON DELETE CASCADE,
+    asset_id UUID REFERENCES assets(id) ON DELETE SET NULL,
+    service_id UUID REFERENCES services(id) ON DELETE SET NULL,
+    technology_type VARCHAR(50) NOT NULL,
+    product VARCHAR(255) NOT NULL,
+    version VARCHAR(255),
+    confidence NUMERIC(4,3),
+    detection_source VARCHAR(100),
+    evidence JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    UNIQUE NULLS NOT DISTINCT (scan_id, product, version, technology_type, asset_id, service_id),
+
+    CHECK (confidence is NULL OR (confidence >= 0 AND confidence <= 1))
+);
+
 CREATE INDEX idx_users_org_id ON users(organisation_id);
 
 CREATE INDEX idx_scans_org_id ON scans(organisation_id);
@@ -225,8 +246,6 @@ CREATE INDEX idx_findings_status ON findings(status);
 CREATE INDEX idx_findings_cve_id ON findings(cve_id);
 CREATE INDEX idx_findings_service_id ON findings(service_id);
 
-CREATE INDEX idx_reports_scan_id ON reports(scan_id);
-
 CREATE INDEX idx_verified_domains_org_id ON verified_domains(organisation_id);
 CREATE INDEX idx_verified_domains_domain ON verified_domains(domain);
 CREATE INDEX idx_verified_domains_status ON verified_domains(status);
@@ -244,3 +263,8 @@ CREATE INDEX idx_scan_schedules_is_active ON scan_schedules(is_active);
 
 CREATE INDEX idx_scan_differences_current_scan_id ON scan_differences(current_scan_id);
 CREATE INDEX idx_scan_differences_previous_scan_id ON scan_differences(previous_scan_id);
+
+CREATE INDEX idx_detected_tech_scan_id ON detected_technologies(scan_id);
+CREATE INDEX idx_detected_tech_asset_id ON detected_technologies(asset_id);
+CREATE INDEX idx_detected_tech_service_id ON detected_technologies(service_id);
+CREATE INDEX idx_detected_tech_product_ver ON detected_technologies(product, version);
