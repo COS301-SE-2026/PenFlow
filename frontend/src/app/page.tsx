@@ -1,10 +1,14 @@
 import NavBar from "@/components/NavBar";
 import Image from "next/image";
 import submarineImage from "@/app/images/images/submarine.png";
-import ScanConsoleSection from "@/app/scan/components/ScanConsoleSection";
+import DangerSection from "@/shared/components/DangerSection";
 import SonarSection from "@/shared/components/SonarSection";
 import SafetySection from "@/shared/components/SafetySection";
-import DangerSection from "@/shared/components/DangerSection";
+import ScanConsoleSection from "@/app/scan/components/ScanConsoleSection";
+import OsintPanel from "@/shared/components/sections/OsintPanel";
+import Phase2Content from "@/shared/components/sections/Phase2Content";
+import Phase3Content from "@/shared/components/sections/Phase3Content";
+import styles from "@/shared/components/page.module.css";
 
 export default function Home() {
   return (
@@ -15,8 +19,9 @@ export default function Home() {
         <div className="heroTextWrap">
           <h1>PENFLOW</h1>
           <p>
-            See what attackers already know about your domain before they turn
-            open-source signals into an attack path.
+            To level the playing field in cybersecurity — giving small and medium
+            businesses the same continuous threat visibility and testing capabilities
+            previously reserved for enterprise organisations.
           </p>
         </div>
 
@@ -41,10 +46,36 @@ export default function Home() {
           />
         </div>
       </section>
-      <DangerSection />
-      <SonarSection />
-      <SafetySection />
-      <ScanConsoleSection />
+
+      <div className={styles.pipeline}>
+        <div className={styles.pipelineHeadingWrap}>
+          <h2 className={styles.pipelineHeading}>THE PENFLOW PIPELINE</h2>
+        </div>
+
+        <div className={styles.phaseLabel} data-first="true">
+          <span className={styles.phaseNum}>PHASE 1</span>
+          <span className ={styles.phaseTitle}>DISCOVER</span>
+        </div>
+        <DangerSection />
+        <SonarSection />
+        <div className={styles.safetyOsintRow}>
+          <SafetySection/>
+          <OsintPanel/>
+        </div>
+        <ScanConsoleSection/>
+
+        <div className={styles.phaseLabel}>
+          <span className={styles.phaseNum}>PHASE 2</span>
+          <span className ={styles.phaseTitle}>ANALYSE</span>
+        </div>
+        <Phase2Content/>
+
+        <div className={styles.phaseLabel}>
+          <span className={styles.phaseNum}>PHASE 3</span>
+          <span className ={styles.phaseTitle}>REACT</span>
+        </div>
+        <Phase3Content/>
+      </div>
     </main>
   );
 }
