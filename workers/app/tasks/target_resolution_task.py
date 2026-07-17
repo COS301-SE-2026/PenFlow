@@ -14,7 +14,7 @@ JSONDict = dict[str, Any]
 )
 
 def run_target_resolution(
-    self,
+    self: Any,
     scan_id: str,
     domain: str,
 ) -> JSONDict:

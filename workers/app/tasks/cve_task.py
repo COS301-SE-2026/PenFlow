@@ -15,7 +15,7 @@ JSONDict = dict[str, Any]
 
 def run_cve_scan_task\
 (
-    self,
+    self: Any,
     scan_id: str,
     resolved_inventory: list[JSONDict],
 ) -> JSONDict:

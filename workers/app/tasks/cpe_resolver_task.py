@@ -16,7 +16,7 @@ JSONDict = dict[str, Any]
     max_retries=2,
 )
 def run_cpe_resolver_task(
-    self,
+    self: Any,
     scan_id: str,
     software_inventory: list[JSONDict],
 ) -> JSONDict:

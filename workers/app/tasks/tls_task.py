@@ -15,10 +15,10 @@ JSONDict = dict[str, Any]
 )
 def run_tls_scan_task\
 (
-    self,
-    scan_id,
-    ip_address,
-    ports,
+    self: Any,
+    scan_id: str,
+    ip_address: str,
+    ports: list[JSONDict],
     hostname: str | None = None,
 ) -> JSONDict:
     """

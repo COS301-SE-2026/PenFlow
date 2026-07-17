@@ -3,6 +3,7 @@ import logging
 from app.queue.celery_app import celery_app
 from app.services.fingerprinting_service import FingerprintingService
 from app.utils.callback import send_source_callback
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
@@ -16,11 +17,11 @@ JSONDict = dict[str, Any]
 )
 def run_fingerprinting_scan_task \
 (
-    self,
+    self: Any,
     scan_id: str,
     target_url: str,
-    nmap_data: JSONDict = None,
-    tls_data: JSONDict = None,
+    nmap_data: Optional[dict[str, Any]] = None,
+    tls_data: Optional[dict[str, Any]] = None,
 ) -> JSONDict:
 
     logger.info \

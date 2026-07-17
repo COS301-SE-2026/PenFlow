@@ -16,7 +16,7 @@ JSONDict = dict[str, Any]
 )
 def run_http_security_scan_task\
 (
-    self,
+    self: Any,
     scan_id: str,
     hostname: str,
     ip_address: str,

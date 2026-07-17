@@ -16,7 +16,7 @@ JSONDict = dict[str, Any]
 )
 def run_nmap_scan\
 (
-    self,
+    self: Any,
     scan_id: str,
     ip_address: str,
     profile: str = "standard",
