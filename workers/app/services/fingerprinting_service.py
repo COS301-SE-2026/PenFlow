@@ -5,6 +5,7 @@ from pathlib import Path
 import requests
 import urllib3
 from bs4 import BeautifulSoup
+from typing import Optional
 
 #best way to silence the warnings for unsafe connections
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -26,8 +27,8 @@ class FingerprintingService:
         (
             self,
             target_url: str,
-            nmap_data: JSONDict = None,
-            tls_data: JSONDict = None,
+            nmap_data: Optional[dict[str, Any]] = None,
+            tls_data: Optional[dict[str, Any]] = None,
         ):
         self.target_url = target_url
         self.nmap_data = nmap_data or {}
