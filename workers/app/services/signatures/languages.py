@@ -3,7 +3,6 @@ LANGUAGE_SIGNATURES = {
         "category": "language",
         "vendor": "php",
         "product": "php",
-        "cpe": "cpe:2.3:a:php:php",
         "headers": [("x-powered-by", "php", 70)],
         "cookies": [("phpsessid", "php", 90)],
         "version_extractors": [
@@ -18,7 +17,6 @@ LANGUAGE_SIGNATURES = {
         "category": "language",
         "vendor": "microsoft",
         "product": "asp.net",
-        "cpe": "cpe:2.3:a:microsoft:asp.net",
         "headers": [("x-aspnet-version", "asp.net", 90)],
         "cookies": [("asp.net_sessionid", "asp.net", 90)],
         "version_extractors": [
