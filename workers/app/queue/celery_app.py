@@ -20,6 +20,9 @@ celery_app = Celery(
         "app.tasks.nmap_task",
         "app.tasks.http_security_task",
         "app.tasks.tls_task",
+        "app.tasks.fingerprinting_task",
+        "app.tasks.cpe_resolver_task",
+        "app.tasks.cve_task",
         "app.tasks.full_scan_tasks",
     ],
 )
