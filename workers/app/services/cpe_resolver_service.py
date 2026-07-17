@@ -22,6 +22,10 @@ class CPEResolverService:
             product = software.get("product", "unknown")
             version = software.get("version") or "*"
 
+            # Fingerprinting sometimes reports Tomcat as 1.1. as it is the wrappers version not the underlying service, we ignore it for now till we implement better version probing later
+            if product == "tomcat" and version == "1.1":
+                version = "*"
+
             software["cpe"] = \
             (
                 f"cpe:2.3:a:{vendor}:{product}:{version}:*:*:*:*:*:*:*"
