@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 from typing import Any
 
-from celery.result import AsyncResult
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -115,64 +114,3 @@ async def queue_report_generation(db: AsyncSession, scan_id: str) -> dict[str, A
     except Exception as error:
         await mark_report_failed(db, scan_id, str(error))
         raise
-
-
-async def check_report_task_result(
-    db: AsyncSession,
-    scan_id: str,
-    task_id: str,
-) -> dict[str, Any]:
-    task = AsyncResult(task_id, app=celery_app)
-
-    if not task.ready():
-        return {
-            "status": "generating",
-            "scan_id": scan_id,
-            "task_id": task_id,
-        }
-
-    result = task.result
-
-    if task.failed():
-        report = await mark_report_failed(
-            db=db,
-            scan_id=scan_id,
-            error_message=str(result),
-        )
-        return {
-            "status": "failed",
-            "report": report,
-        }
-
-    if not isinstance(result, dict):
-        report = await mark_report_failed(
-            db=db,
-            scan_id=scan_id,
-            error_message=f"Unexpected task result: {result}",
-        )
-        return {
-            "status": "failed",
-            "report": report,
-        }
-
-    if result.get("status") == "failed":
-        report = await mark_report_failed(
-            db=db,
-            scan_id=scan_id,
-            error_message=result.get("error", "Report rendering failed"),
-        )
-        return {
-            "status": "failed",
-            "report": report,
-        }
-
-    report = await mark_report_completed(
-        db=db,
-        scan_id=scan_id,
-        pdf_path=result["pdf_path"],
-    )
-
-    return {
-        "status": "completed",
-        "report": report,
-    }
