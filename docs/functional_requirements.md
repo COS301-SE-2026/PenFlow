@@ -30,6 +30,10 @@
 * **FR-3.3:** The system shall restrict scan history access to the authenticated user who initiated the scans — users shall not be able to view other users' scan history.
 * **FR-3.4:** The system shall display scan history in reverse chronological order (most recent first).
 * **FR-3.5:** The system shall allow the user to navigate from a scan history entry directly to the corresponding scan report.
+* **FR-3.6:** The system shall display scan history across both Phase 1 (CTEM) and
+  Phase 2 (vulnerability) scans, with the scan type clearly indicated for each entry.
+* **FR-3.7:** The system shall allow the user to filter scan history by scan type
+  (Phase 1 / Phase 2) and by asset.
 
 #### FR-4: User Authentication
 * **FR-4.1:** The system shall allow users to register using an email address and password.
@@ -59,3 +63,77 @@
 * **FR-7.2:** The system shall log every report access event, recording the scan ID, timestamp, and whether the accessing user was authenticated or anonymous.
 * **FR-7.3:** The system shall log every report download event, recording the user ID (if authenticated), scan ID, report type (brief or detailed), and timestamp.
 * **FR-7.4:** The system shall store all audit logs in an append-only format. This shall be enforced by denying UPDATE and DELETE privileges on the `audit_logs` table at the database level.
+
+
+### Phase 2
+
+ #### FR-8: Domain Ownership Verification
+  * **FR-8.1:** The system shall require that an asset's domain ownership is verified before
+    a Phase 2 automated vulnerability scan can be initiated on that asset.
+  * **FR-8.2:** The system shall allow authenticated users to initiate a domain ownership
+    verification request for an asset registered to their organisation.
+  * **FR-8.3:** The system shall generate a unique cryptographic token for each verification
+    request and instruct the user to create a DNS TXT record at the root domain level
+    (host `@`) with the record value set to the provided token.
+  * **FR-8.4:** The system shall verify ownership by performing a DNS TXT record query
+    (e.g. via `dig`/`nslookup`-equivalent resolution) against the root of the target domain
+    and confirming that the issued token is present among the returned TXT values.
+  * **FR-8.5:** The system shall allow the user to trigger a verification check on demand,
+    and shall poll the DNS record on a limited retry schedule to accommodate DNS propagation
+    delay before marking the request as failed.
+  * **FR-8.6:** The system shall mark the asset as verified (`isVerified: true`, recording
+    `verifiedAt`) upon successful token confirmation via DNS TXT lookup.
+  * **FR-8.7:** The system shall record all verification attempts (pending, verified, failed,
+    expired) against the asset in the `DomainVerification` entity, including the method used
+    (`dns_txt`) and the issued token.
+  * **FR-8.8:** The system shall expire unconfirmed verification tokens after a fixed period
+    (e.g. 7 days), after which the user must request a new token.
+  * **FR-8.9:** The system shall log every verification attempt in the audit log, recording
+    the user ID, asset ID, method (`dns_txt`), outcome, and timestamp.
+
+#### FR-9: Automated External Vulnerability Scan
+ * **FR-9.1:** The system shall allow authenticated users to initiate a Phase 2 vulnerability
+    scan only against assets whose domain ownership has been verified (FR-8.6).
+* **FR-9.2:** The system shall restrict all Phase 2 scanning to the external perimeter only;
+  no internal network scanning, authenticated web application testing, or social engineering
+  simulation shall be performed.
+* **FR-9.3:** The system shall enumerate open ports and identify service banners on the
+  verified domain's external IP address.
+* **FR-9.4:** The system shall assess the TLS/SSL configuration of the target domain,
+  identifying weak cipher suites, expired certificates, and protocol downgrades.
+* **FR-9.5:** The system shall evaluate HTTP security headers on the target domain and flag
+  missing or misconfigured headers (e.g. HSTS, CSP, X-Frame-Options).
+* **FR-9.6:** The system shall match discovered service versions against CVE feeds to
+  identify known vulnerabilities, associating each match with its CVE ID and CVSS score.
+* **FR-9.7:** The system shall assign a CVSS-aligned severity level (Critical, High, Medium,
+  Low, Informational) to each finding produced by the Phase 2 scan.
+* **FR-9.8:** The system shall provide actionable remediation guidance for each finding,
+  including references to authoritative sources where applicable.
+* **FR-9.9:** The system shall execute each Phase 2 scan inside an isolated Docker container,
+    scoped to a single scan, to prevent cross-client data leakage and resource contention.
+* **FR-9.10:** The system shall display real-time scan progress to the authenticated user
+  who initiated the scan, updating without requiring a page reload.
+* **FR-9.11:** The system shall complete gracefully if individual scan sub-tasks fail,
+  returning partial results rather than failing the entire scan.
+
+#### FR-10: Phase 2 Scan Results
+* **FR-10.1:** The system shall display all Phase 2 findings grouped and filterable by
+  severity level (Critical, High, Medium, Low, Informational).
+* **FR-10.2:** The system shall generate a delta report for any Phase 2 scan where a
+  previous scan exists for the same asset, highlighting new findings and resolved findings.
+* **FR-10.3:** The system shall generate a downloadable PDF report for completed Phase 2
+  scans, accessible only to authenticated users belonging to the asset's organisation.
+* **FR-10.4:** The system shall display the CVE ID, CVSS score, description, and
+  remediation guidance for each vulnerability-linked finding.
+
+#### FR-11: Scan Scheduling
+* **FR-11.1:** The system shall allow authenticated users to configure a recurring scan
+  schedule for a verified asset, specifying a frequency (weekly or monthly).
+* **FR-11.2:** The system shall automatically trigger a new Phase 2 scan at the configured
+  interval without requiring manual user action.
+* **FR-11.3:** The system shall allow authenticated users to view, update, and cancel an
+  existing scan schedule for an asset they own.
+* **FR-11.4:** The system shall record the `nextRun` and `lastRun` timestamps for each
+  active schedule and update them after each triggered scan.
+* **FR-11.5:** The system shall notify the asset owner when a scheduled scan completes,
+  via an in-platform notification.
