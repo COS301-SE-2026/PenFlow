@@ -1,23 +1,67 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
 import brocodeLogo from "@/app/images/images/BroCode logo.png";
 import bluevisionLogo from "@/app/images/images/Bluevision logo.png";
 
+function isLoggedIn(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.cookie.split("; ").some((c) => c.startsWith("logged_in="));
+}
+
 export default function NavBar() {
+  const loggedIn = isLoggedIn();
+
   return (
     <nav className="topbar">
       <div className="logoPanel">
-        <Image src={bluevisionLogo} alt="Bluevision" width={80} height={48} style={{ width: "auto", height: 48 }} />
+        <Image
+          src={bluevisionLogo}
+          alt="Bluevision"
+          width={80}
+          height={48}
+          style={{ width: "auto", height: 48 }}
+        />
         <div className="logoDivider" />
-        <Image src={brocodeLogo} alt="BroCode" width={80} height={48} style={{ width: "auto", height: 48 }} />
+        <Image
+          src={brocodeLogo}
+          alt="BroCode"
+          width={80}
+          height={48}
+          style={{ width: "auto", height: 48 }}
+        />
       </div>
 
       <div className="topnav">
-        <Link href="/login" className="nav-link">LOGIN</Link>
-        <Link href="/" className="nav-link">HOME</Link>
-        <Link href="/#about" className="nav-link">ABOUT</Link>
-        <Link href="/#scan" className="nav-link">SCAN</Link>
-        <Link href="/history" className="nav-link">HISTORY</Link>
+        {!loggedIn && (
+          <Link href="/login" className="nav-link">
+            LOGIN
+          </Link>
+        )}
+        {loggedIn && (
+          <a href="/api/auth/logout" className="nav-link">
+            LOGOUT
+          </a>
+        )}
+        {!loggedIn && (
+          <Link href="/" className="nav-link">
+            HOME
+          </Link>
+        )}
+        {!loggedIn && (
+          <Link href="/#about" className="nav-link">
+            ABOUT
+          </Link>
+        )}
+        <Link href="/#scan" className="nav-link">
+          SCAN
+        </Link>
+        {loggedIn && (
+          <Link href="/history" className="nav-link">
+            HISTORY
+          </Link>
+        )}
       </div>
     </nav>
   );
