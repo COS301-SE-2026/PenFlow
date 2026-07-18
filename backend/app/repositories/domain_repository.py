@@ -144,3 +144,17 @@ class DomainRepository:
             counts[verification_status] = int(count)
 
         return counts
+    
+
+    @staticmethod
+    async def save_domain(db: AsyncSession, domain_record: VerifiedDomain) -> VerifiedDomain:
+        await db.commit()
+        await db.refresh(domain_record)
+
+        return domain_record
+    
+
+    @staticmethod
+    async def delete_domain(db: AsyncSession, domain_record: VerifiedDomain) -> None:
+        await db.delete(domain_record)
+        await db.commit()

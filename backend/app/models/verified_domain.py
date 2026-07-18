@@ -34,9 +34,9 @@ class VerifiedDomain(Base):
 
     organisation_id = Column(
         UUID(as_uuid=True), 
-        ForeignKey("organisations.id", ondelete="CASCADE"),
+        #ForeignKey("organisations.id", ondelete="CASCADE"),
         nullable=True,
-        index=True,
+        #index=True,
     )
 
     user_id = Column(
