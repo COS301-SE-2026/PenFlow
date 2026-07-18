@@ -1,9 +1,10 @@
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.verified_domain import DomainVerificationStatus, VerifiedDomain
+from app.models.verified_domain import DomainVerificationCode, DomainVerificationStatus, VerifiedDomain
 
 from app.repositories.domain_repository import DomainRepository
 
@@ -72,7 +73,7 @@ class DomainService:
         limit: int, 
         offset: int
         ) -> DomainList:
-        
+
         domains, total = await DomainRepository.list_domains(
             db,
             user_id = user_id,
@@ -110,3 +111,61 @@ class DomainService:
                 has_more = offset + len(items) < total,
             ),
         )
+    
+
+    @staticmethod
+    async def verify_domain(db: AsyncSession, domain_id: UUID, user_id: UUID) -> VerifiedDomain:
+
+        domain_rec = await DomainRepository.get_by_id(
+            db,
+            domain_id = domain_id,
+            user_id = user_id,
+        )
+
+        if domain_rec is None:
+            raise HTTPException(
+                status_code = status.HTTP_404_NOT_FOUND,
+                detail = "Domain record was not found",
+            )
+        
+        if domain_rec.status == DomainVerificationStatus.VERIFIED:
+            return domain_rec
+        
+        current_code = await VerificationService.verify_dns_txt(
+            str(domain_rec.domain),
+            str(domain_rec.verification_token),
+        )
+
+        domain_rec.last_checked_at = datetime.now(timezone.utc)
+        domain_rec.last_verification_code = current_code
+
+        if current_code == DomainVerificationCode.VERIFIED:
+            domain_rec.status = DomainVerificationStatus.VERIFIED
+            domain_rec.verified_at = datetime.now(timezone.utc)
+            domain_rec.expires_at = None
+
+            return await DomainRepository.save_domain(
+                db,
+                domain_rec,
+            )
+        
+        domain_rec.status = DomainVerificationStatus.PENDING
+
+        await DomainRepository.save_domain(
+            db, 
+            domain_rec,
+        )
+
+        errors = {
+            DomainVerificationCode.RECORD_NOT_FOUND: "The verification TXT record could not be found.",
+
+            DomainVerificationCode.TOKEN_MISMATCH: "A TXT record was found, but the verification token did not match.",
+            
+            DomainVerificationCode.LOOKUP_FAILED: "The DNS lookup could not be completed. Please try again later.",
+        }
+
+        raise HTTPException(
+            status_code = status.HTTP_400_BAD_REQUEST,
+            detail = errors[verification_code],
+        )
+    
