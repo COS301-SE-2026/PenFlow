@@ -1,15 +1,16 @@
-
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.middleware.auth import get_current_user, get_current_user_optional
 from app.repositories.report_repository import get_report_by_scan_id
 from app.repositories.scan_repo import ScanRepository
+from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.report import EmailReportRequest
 from app.schemas.scan import InitiateScanRequest, InitiateScanResponse, ScanHistoryItem
 from app.services.email_service import send_report_email
@@ -19,16 +20,26 @@ from app.utils.db import get_db
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/scans", tags=["Scans"])
-
+#Use annoted for dependency injection
+DbSession = Annotated[AsyncSession, Depends(get_db)]
+CurrentUser = Annotated[dict[str, Any], Depends(get_current_user)]
+CurrentUserOptional = Annotated[dict[str, Any] | None, Depends(get_current_user_optional)]
 
 @router.get(
     "/",
     response_model=list[ScanHistoryItem],
     status_code=status.HTTP_200_OK,
 )
-async def list_scans(db: AsyncSession = Depends(get_db)) -> list[dict[str, Any]]:
+async def list_scans(
+    current_user: CurrentUser,
+    db: DbSession,
+) -> list[dict[str, Any]]:
+    user_id = await get_user_id_by_provider_id(db, current_user["sub"])
+    if user_id is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
     try:
-        return await ScanRepository.list_scans(db)
+        return await ScanRepository.list_scans(db, user_id)
     except Exception:
         logger.exception("Failed to list scans")
         raise HTTPException(
@@ -36,18 +47,23 @@ async def list_scans(db: AsyncSession = Depends(get_db)) -> list[dict[str, Any]]
             detail="Failed to retrieve scan history",
         )
 
+
 @router.post(
     "/",
     response_model=InitiateScanResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
-
 async def initiate_ctem_scan(
     request: InitiateScanRequest,
-    db: AsyncSession = Depends(get_db)
+    current_user: CurrentUserOptional,
+    db: DbSession,
 ) -> InitiateScanResponse:
     try:
-        new_scan = await ScanService.start_scan(db, request)
+        user_id = None
+        if current_user is not None:
+            user_id = await get_user_id_by_provider_id(db, current_user["sub"])
+
+        new_scan = await ScanService.start_scan(db, request, user_id=user_id)
 
         return InitiateScanResponse(
             scan_id=new_scan.id,
@@ -65,7 +81,7 @@ async def initiate_ctem_scan(
 @router.get("/{scan_id}/status")
 async def get_scan_status(
     scan_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: DbSession,
 ) -> dict[str, Any]:
     status_info = await ScanRepository.get_scan_status(
         db,
@@ -88,7 +104,7 @@ async def get_scan_status(
 )
 async def download_scan_pdf(
     scan_id: UUID,
-    db: AsyncSession = Depends(get_db),
+    db: DbSession,
 ) -> FileResponse:
 
     report = await get_report_by_scan_id(db, str(scan_id))
@@ -120,7 +136,6 @@ async def download_scan_pdf(
     )
 
 
-
 @router.post(
     "/{scan_id}/email-report",
     status_code=status.HTTP_200_OK,
@@ -132,7 +147,7 @@ async def download_scan_pdf(
 async def email_scan_report(
     scan_id: UUID,
     request: EmailReportRequest,
-    db: AsyncSession = Depends(get_db),
+    db: DbSession,
 ) -> dict[str, str]:
     scan = await ScanRepository.get_scan_by_id(db, scan_id)
 

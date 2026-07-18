@@ -22,12 +22,18 @@ TOTAL_SCAN_SOURCES = ["dns", "urlscan", "wappalyzer", "crt.sh", "shodan", "hunte
 class ScanRepository:
 
     @staticmethod
-    async def create_scan(db: AsyncSession, domain: str, email: str | None = None) -> Scan:
+    async def create_scan(
+        db: AsyncSession,
+        domain: str,
+        email: str | None = None,
+        user_id: UUID | None = None,
+    ) -> Scan:
         """Creates a new pending scan record in the database."""
         try:
             new_scan = Scan(
                 domain=domain,
                 email=email,
+                user_id=user_id,
             )
             db.add(new_scan)
             await db.commit()
@@ -35,7 +41,7 @@ class ScanRepository:
             return new_scan
         except SQLAlchemyError:
             await db.rollback()
-            logger.exception("Failed to create scan for domain %s",domain)
+            logger.exception("Failed to create scan for domain %s", domain)
             raise
 
     @staticmethod
@@ -109,7 +115,7 @@ class ScanRepository:
     #         raise
 
     @staticmethod
-    async def list_scans(db: AsyncSession) -> list[dict[str, Any]]:
+    async def list_scans(db: AsyncSession, user_id: UUID) -> list[dict[str, Any]]:
         query = (
             select(
                 Scan,
@@ -123,6 +129,7 @@ class ScanRepository:
                 func.sum(case((Finding.severity == Severity.LOW, 1), else_=0)).label("low_count"),
             )
             .outerjoin(Finding, Finding.scan_id == Scan.id)
+            .where(Scan.user_id == user_id)
             .group_by(Scan.id)
             .order_by(Scan.created_at.desc())
         )
@@ -143,7 +150,7 @@ class ScanRepository:
         ]
 
     @staticmethod
-    async def mark_scan_failed(db: AsyncSession, scan_id: UUID, error_message: str, is_partial: bool = False) ->Scan: # noqa: E501
+    async def mark_scan_failed(db: AsyncSession, scan_id: UUID, error_message: str, is_partial: bool = False) -> Scan: # noqa: E501
         """
         Update scan's status to failed or partial and logs the exact error, for frontend display
         """

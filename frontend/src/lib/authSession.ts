@@ -25,6 +25,14 @@ export async function createAuthResponse(tokens: TokenResponse): Promise<NextRes
     path: "/",
   });
 
+  res.cookies.set("logged_in", "1", {
+    httpOnly: false,
+    secure: isProduction,
+    sameSite: "lax",
+    maxAge: tokens.expires_in,
+    path: "/",
+  });
+
   const provisionRes = await fetch(`${BACKEND_URL}/api/v1/users/me`, {
     headers: { Authorization: `Bearer ${tokens.access_token}` },
   }).catch((err: unknown) => {
