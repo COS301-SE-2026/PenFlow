@@ -120,3 +120,27 @@ class DomainRepository:
 
         return domains, total
     
+
+    @staticmethod
+    async def get_status_counts(db: AsyncSession, user_id: UUID,) -> dict[DomainVerificationStatus, int]:
+        query = (
+            select(
+                VerifiedDomain.status, 
+                func.count(VerifiedDomain.id))
+                .where(VerifiedDomain.user_id == user_id)
+                .group_by(VerifiedDomain.status)
+        )
+
+        result = await db.execute(query)
+
+        counts = {
+            DomainVerificationStatus.PENDING: 0,
+            DomainVerificationStatus.VERIFIED: 0,
+            DomainVerificationStatus.FAILED: 0,
+            DomainVerificationStatus.EXPIRED: 0,
+        }
+
+        for verification_status, count in result.all():
+            counts[verification_status] = int(count)
+
+        return counts
