@@ -1,16 +1,21 @@
-from typing import Any, Annotated
+from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user
 from app.models.verified_domain import DomainVerificationStatus
-from app.schemas.domain import AddDomainRequest, VerifiedDomainResponse, DomainList, DomainSortField, SortOrder
-from app.services.domain_service import DomainService
 from app.repositories.user_repo import get_user_id_by_provider_id
+from app.schemas.domain import (
+    AddDomainRequest,
+    DomainList,
+    DomainSortField,
+    SortOrder,
+    VerifiedDomainResponse,
+)
+from app.services.domain_service import DomainService
 from app.utils.db import get_db
-
 
 router =  APIRouter(prefix="/domains", tags=["Domain Verification"])
 
@@ -39,7 +44,10 @@ async def add_domain_for_verification(
     )
 
 
-@router.post("/{domain_id}/verify", response_model=VerifiedDomainResponse, status_code=status.HTTP_200_OK)
+@router.post(
+        "/{domain_id}/verify", 
+        response_model=VerifiedDomainResponse, 
+        status_code=status.HTTP_200_OK)
 async def verify_domain_ownership(
     domain_id: UUID,
     db: AsyncSession = Depends(get_db),

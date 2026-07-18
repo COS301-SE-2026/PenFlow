@@ -6,8 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from app.models.verified_domain import DomainVerificationStatus, VerifiedDomain
-
 from app.schemas.domain import DomainSortField, SortOrder
+
 
 class DomainRepository:
 
@@ -34,7 +34,13 @@ class DomainRepository:
     
 
     @staticmethod
-    async def create_rec(db: AsyncSession, domain: str, verification_token: str, user_id: UUID) -> VerifiedDomain:
+    async def create_rec(
+        db: AsyncSession, 
+        domain: str, 
+        verification_token: str, 
+        user_id: UUID
+    ) -> VerifiedDomain:
+        
         domain_rec = VerifiedDomain(
             domain = domain,
             user_id = user_id,
@@ -122,7 +128,11 @@ class DomainRepository:
     
 
     @staticmethod
-    async def get_status_counts(db: AsyncSession, user_id: UUID,) -> dict[DomainVerificationStatus, int]:
+    async def get_status_counts(
+        db: AsyncSession, 
+        user_id: UUID
+    ) -> dict[DomainVerificationStatus, int]:
+        
         query = (
             select(
                 VerifiedDomain.status, 

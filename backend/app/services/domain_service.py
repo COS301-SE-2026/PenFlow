@@ -4,12 +4,20 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.verified_domain import DomainVerificationCode, DomainVerificationStatus, VerifiedDomain
-
+from app.models.verified_domain import (
+    DomainVerificationCode,
+    DomainVerificationStatus,
+    VerifiedDomain,
+)
 from app.repositories.domain_repository import DomainRepository
-
-from app.schemas.domain import DomainCounts, DomainItem, DomainList, DomainPagination, DomainSortField, SortOrder
-
+from app.schemas.domain import (
+    DomainCounts,
+    DomainItem,
+    DomainList,
+    DomainPagination,
+    DomainSortField,
+    SortOrder,
+)
 from app.services.verification_service import VerificationService
 
 
@@ -157,16 +165,19 @@ class DomainService:
         )
 
         errors = {
-            DomainVerificationCode.RECORD_NOT_FOUND: "The verification TXT record could not be found.",
+            DomainVerificationCode.RECORD_NOT_FOUND: 
+            "The verification TXT record could not be found.",
 
-            DomainVerificationCode.TOKEN_MISMATCH: "A TXT record was found, but the verification token did not match.",
+            DomainVerificationCode.TOKEN_MISMATCH: 
+            "A TXT record was found, but the verification token did not match.",
             
-            DomainVerificationCode.LOOKUP_FAILED: "The DNS lookup could not be completed. Please try again later.",
+            DomainVerificationCode.LOOKUP_FAILED: 
+            "The DNS lookup could not be completed. Please try again later.",
         }
 
         raise HTTPException(
             status_code = status.HTTP_400_BAD_REQUEST,
-            detail = errors[verification_code],
+            detail = errors[current_code],
         )
 
 

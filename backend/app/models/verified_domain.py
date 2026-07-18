@@ -2,8 +2,9 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
 
@@ -26,34 +27,34 @@ class VerifiedDomain(Base):
         UniqueConstraint("user_id", "domain", name="uq_org_domain"),
     )
 
-    id = Column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), 
         primary_key=True, 
         default=uuid.uuid4,
     )
 
-    organisation_id = Column(
+    organisation_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), 
         #ForeignKey("organisations.id", ondelete="CASCADE"),
         nullable=True,
         #index=True,
     )
 
-    user_id = Column(
+    user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), 
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
 
-    domain = Column(
+    domain: Mapped[str] = mapped_column(
         String(255), 
         nullable=False, 
         index=True,
     )
 
 
-    status = Column(
+    status: Mapped[DomainVerificationStatus] = mapped_column(
         Enum(
             DomainVerificationStatus,
             values_callable=lambda e: [i.value for i in e],
@@ -64,32 +65,32 @@ class VerifiedDomain(Base):
         index=True,
     )
 
-    verification_method = Column(
+    verification_method: Mapped[str] = mapped_column(
         String(50), 
         nullable=False, 
         default="dns_txt",
     )
     
-    verification_token = Column(
+    verification_token: Mapped[str] = mapped_column(
         Text, 
         nullable=False,
     )
 
-    verified_at = Column(DateTime(timezone=True))
-    expires_at = Column(DateTime(timezone=True))
+    verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    created_at = Column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default=lambda: datetime.now(timezone.utc),
     )
 
-    last_checked_at = Column(
+    last_checked_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), 
         nullable=True,
     )
 
-    last_verification_code = Column(
+    last_verification_code: Mapped[DomainVerificationCode | None] = mapped_column(
         Enum(
             DomainVerificationCode, 
             values_callable=lambda e: [i.value for i in e],

@@ -3,7 +3,9 @@ from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
-from app.models.verified_domain import DomainVerificationStatus, DomainVerificationCode
+
+from app.models.verified_domain import DomainVerificationCode, DomainVerificationStatus
+
 
 class AddDomainRequest(BaseModel):
     domain: str = Field(..., min_length = 1, max_length = 255, description="The domain to verify")
