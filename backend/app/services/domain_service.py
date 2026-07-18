@@ -168,4 +168,25 @@ class DomainService:
             status_code = status.HTTP_400_BAD_REQUEST,
             detail = errors[verification_code],
         )
-    
+
+
+    @staticmethod
+    async def delete_domain(db: AsyncSession, domain_id: UUID, user_id: UUID) -> None:
+        
+        domain_rec = await DomainRepository.get_by_id(
+            db,
+            domain_id = domain_id,
+            user_id = user_id,
+        )
+
+        if domain_rec is None:
+            raise HTTPException(
+                status_code = status.HTTP_404_NOT_FOUND,
+                detail = "Domain record was not found",
+            )
+        
+        await DomainRepository.delete_domain(
+            db,
+            domain_rec,
+        )
+        
