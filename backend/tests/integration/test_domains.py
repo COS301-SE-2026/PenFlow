@@ -1,20 +1,40 @@
-from unittest.mock import patch
+from unittest.mock import patch, AsyncMock
 
 import pytest
+import pytest_asyncio
 from fastapi import status
 
+from uuid import UUID
+from app.models.user import User
 from app.api.middleware.auth import get_current_user
 from app.main import app
-from app.models.verified_domain import DomainVerificationStatus
+from app.models.verified_domain import DomainVerificationStatus, DomainVerificationCode
+
+@pytest_asyncio.fixture
+async def test_user(db_session):
+    user = User(
+        id = UUID("12345678-1234-5678-1234-567812345679"),
+        auth_provider = "keycloak",
+        auth_provider_id = "12345678-1234-5678-1234-567812345678",
+        email = "myemail@gmail.com",
+        full_name = "test user",
+        role = "client",
+    )
+
+    db_session.add(user)
+    await db_session.flush()
+    await db_session.refresh(user)
+
+    return user
 
 
 async def override_get_current_user():
-    return {"id": "12345678-1234-5678-1234-567812345678", "role": "client"}
+    return {"sub": "12345678-1234-5678-1234-567812345678", "role": "client"}
 
 app.dependency_overrides[get_current_user] = override_get_current_user
 
 @pytest.mark.asyncio
-async def test_add_domain_for_verification(test_client):
+async def test_add_domain_for_verification(test_client, test_user):
     payload = {"domain": "pen-flow.com"}
 
     response = await test_client.post("/api/v1/domains/", json=payload)
@@ -28,10 +48,10 @@ async def test_add_domain_for_verification(test_client):
     assert "id" in data
 
 @pytest.mark.asyncio
-@patch("app.api.routes.domains.VerificationService.verify_dns_txt")
-async def test_verify_domain_ownership_success(mock_verify_txt, test_client):
+@patch("app.services.domain_service.VerificationService.verify_dns_txt", new_callable=AsyncMock)
+async def test_verify_domain_ownership_success(mock_verify_txt, test_client, test_user):
     #force a true
-    mock_verify_txt.return_value = True
+    mock_verify_txt.return_value = DomainVerificationCode.VERIFIED
 
     app.dependency_overrides[get_current_user] = override_get_current_user
 
@@ -52,10 +72,10 @@ async def test_verify_domain_ownership_success(mock_verify_txt, test_client):
     assert data["verified_at"] is not None
 
 @pytest.mark.asyncio
-@patch("app.api.routes.domains.VerificationService.verify_dns_txt")
-async def test_verify_domain_ownership_fail(mock_verify_txt, test_client):
+@patch("app.services.domain_service.VerificationService.verify_dns_txt", new_callable=AsyncMock)
+async def test_verify_domain_ownership_fail(mock_verify_txt, test_client, test_user):
     #force a false
-    mock_verify_txt.return_value = False
+    mock_verify_txt.return_value = DomainVerificationCode.TOKEN_MISMATCH
 
     app.dependency_overrides[get_current_user] = override_get_current_user
 
@@ -70,11 +90,12 @@ async def test_verify_domain_ownership_fail(mock_verify_txt, test_client):
     verify_response = await test_client.post(f"/api/v1/domains/{domain_id}/verify")
 
     assert verify_response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "Verification failed" in verify_response.json()["detail"]
+    assert "A TXT record was found, but the verification token did not match." in verify_response.json()["detail"]
 
 @pytest.mark.asyncio
-async def test_verify_domain_not_found(test_client):
+async def test_verify_domain_not_found(test_client, test_user):
     #fake uuid
+    app.dependency_overrides[get_current_user] = override_get_current_user
     fake_id = "00000000-0000-0000-0000-000000000000"
 
     verify_response = await test_client.post(f"/api/v1/domains/{fake_id}/verify")
