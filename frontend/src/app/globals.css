@@ -320,8 +320,11 @@ h1, h2, h3 {
   --color-brand-cyan:  var(--col-cyan);
   --color-brand-blue:  var(--col-blue);
   --color-brand-muted: var(--col-muted);
-  --color-brand-text:  var(--col-text);
+  --color-brand-text: var(--col-text);
   --color-brand-alert: var(--col-alert);
+  --color-brand-success: var(--col-success);
+  --color-brand-yellow: var(--col-yellow);
+  --color-brand-orange: var(--col-orange);
 
   /* fonts */
   --font-heading: var(--font-display), Impact, "Arial Narrow", sans-serif;
