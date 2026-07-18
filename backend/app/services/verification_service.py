@@ -1,6 +1,6 @@
-import logging
 import secrets
 
+import dns.asyncresolver
 import dns.resolver
 import dns.exception
 
@@ -14,13 +14,13 @@ class VerificationService:
 
 
     @staticmethod
-    def verify_dns_txt(domain: str, expected_token: str) -> DomainVerificationCode:
+    async def verify_dns_txt(domain: str, expected_token: str) -> DomainVerificationCode:
         """
         Queries the domain's TXT records.
         Returns True if the expected token is found, otherwise False.
         """
         try:
-            answers = dns.resolver.resolve(domain, 'TXT')
+            answers = await dns.asyncresolver.resolve(domain, "TXT", lifetime=5.0)
 
             for rdata in answers:
 
