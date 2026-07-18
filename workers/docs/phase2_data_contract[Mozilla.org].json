@@ -1,0 +1,306 @@
+{
+    "scan_id": "example-phase2-scan",
+    "target": "mozilla.org",
+    "workers": {
+        "target_resolution": {
+            "scan_id": "example-phase2-scan",
+            "source_name": "target_resolution",
+            "status": "completed",
+            "raw_result": {
+                "ipv4": [
+                    "35.190.14.201"
+                ],
+                "ipv6": [
+                    "2600:1901:0:c197::"
+                ]
+            },
+            "findings": [],
+            "assets": [
+                {
+                    "type": "ipv4",
+                    "value": "35.190.14.201"
+                },
+                {
+                    "type": "ipv6",
+                    "value": "2600:1901:0:c197::"
+                }
+            ]
+        },
+        "nmap": {
+            "scan_id": "example-phase2-scan",
+            "source_name": "nmap",
+            "status": "completed",
+            "raw_result": {
+                "ip": "35.190.14.201",
+                "profile": "standard",
+                "status": "up",
+                "hostnames": [
+                    "201.14.190.35.bc.googleusercontent.com"
+                ],
+                "ports": [
+                    {
+                        "port": 80,
+                        "protocol": "tcp",
+                        "state": "open",
+                        "service": "http",
+                        "product": "",
+                        "version": "",
+                        "extra_info": ""
+                    },
+                    {
+                        "port": 443,
+                        "protocol": "tcp",
+                        "state": "open",
+                        "service": "https",
+                        "product": "",
+                        "version": "",
+                        "extra_info": ""
+                    }
+                ]
+            },
+            "findings": [],
+            "assets": [
+                {
+                    "type": "network_service",
+                    "value": "35.190.14.201:80",
+                    "metadata": {
+                        "protocol": "tcp",
+                        "service": "http",
+                        "product": "",
+                        "version": "",
+                        "state": "open"
+                    }
+                },
+                {
+                    "type": "network_service",
+                    "value": "35.190.14.201:443",
+                    "metadata": {
+                        "protocol": "tcp",
+                        "service": "https",
+                        "product": "",
+                        "version": "",
+                        "state": "open"
+                    }
+                }
+            ]
+        },
+        "http_security": {
+            "scan_id": "example-phase2-scan",
+            "source_name": "http_security",
+            "status": "completed",
+            "raw_result": {
+                "ip": "35.190.14.201",
+                "hostname": "mozilla.org",
+                "targets": [
+                    {
+                        "url": "http://mozilla.org",
+                        "port": 80,
+                        "protocol": "http",
+                        "status_code": 200,
+                        "security_headers": {
+                            "strict_transport_security": "max-age=31536000",
+                            "content_security_policy": "base-uri 'none'; object-src 'none'; frame-src 'self' accounts.firefox.com gtm.mozilla.org js.stripe.com www.google-analytics.com www.googletagmanager.com www.youtube.com; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.google-analytics.com *.googletagmanager.com cdn.transcend.io google-analytics.com googletagmanager.com js.stripe.com s.ytimg.com tagmanager.google.com transcend-cdn.com www.mozilla.org www.youtube.com; form-action 'self' https://abdri3ttkb.execute-api.us-east-2.amazonaws.com https://accounts.firefox.com/ https://basket.mozilla.org; frame-ancestors 'none'; img-src 'self' blog.mozilla.org data: images.ctfassets.net www.google-analytics.com www.googletagmanager.com www.mozilla.org; upgrade-insecure-requests; media-src 'self' assets.mozilla.net videos.cdn.mozilla.net www.mozilla.org; default-src 'self' *.mozilla.org; style-src 'self' 'unsafe-inline' cdn.transcend.io transcend-cdn.com www.mozilla.org; font-src 'self' www.mozilla.org; connect-src 'self' *.analytics.google.com *.google-analytics.com *.googletagmanager.com analytics.google.com cdn.transcend.io google-analytics.com googletagmanager.com gtm.mozilla.org https://abdri3ttkb.execute-api.us-east-2.amazonaws.com https://accounts.firefox.com/ https://basket.mozilla.org o1069899.ingest.sentry.io o1069899.sentry.io region1.google-analytics.com telemetry.transcend.io telemetry.us.transcend.io transcend-cdn.com www.mozilla.org/submit/bedrock/",
+                            "content_security_policy_report_only": "base-uri 'none'; object-src 'none'; frame-src 'self' accounts.firefox.com gtm.mozilla.org js.stripe.com www.google-analytics.com www.googletagmanager.com www.youtube.com; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.google-analytics.com *.googletagmanager.com cdn.transcend.io google-analytics.com googletagmanager.com js.stripe.com s.ytimg.com tagmanager.google.com transcend-cdn.com www.mozilla.org www.youtube.com; form-action 'self' https://abdri3ttkb.execute-api.us-east-2.amazonaws.com https://accounts.firefox.com/ https://basket.mozilla.org; frame-ancestors 'none'; img-src 'self' blog.mozilla.org data: images.ctfassets.net www.google-analytics.com www.googletagmanager.com www.mozilla.org; upgrade-insecure-requests; media-src 'self' assets.mozilla.net videos.cdn.mozilla.net www.mozilla.org; default-src 'self' *.mozilla.org; style-src 'self' 'unsafe-inline' cdn.transcend.io transcend-cdn.com www.mozilla.org; font-src 'self' www.mozilla.org; connect-src 'self' *.analytics.google.com *.google-analytics.com *.googletagmanager.com analytics.google.com cdn.transcend.io google-analytics.com googletagmanager.com gtm.mozilla.org https://abdri3ttkb.execute-api.us-east-2.amazonaws.com https://accounts.firefox.com/ https://basket.mozilla.org o1069899.ingest.sentry.io o1069899.sentry.io region1.google-analytics.com telemetry.transcend.io telemetry.us.transcend.io transcend-cdn.com www.mozilla.org/submit/bedrock/",
+                            "x_frame_options": "DENY",
+                            "referrer_policy": "strict-origin-when-cross-origin",
+                            "permissions_policy": null,
+                            "x_content_type_options": "nosniff"
+                        },
+                        "server": "granian",
+                        "powered_by": null,
+                        "headers": {
+                            "Connection": "keep-alive",
+                            "Content-Length": "8169",
+                            "strict-transport-security": "max-age=31536000",
+                            "server": "granian",
+                            "expires": "Fri, 17 Jul 2026 22:19:10 GMT",
+                            "content-security-policy-report-only": "base-uri 'none'; object-src 'none'; frame-src 'self' accounts.firefox.com gtm.mozilla.org js.stripe.com www.google-analytics.com www.googletagmanager.com www.youtube.com; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.google-analytics.com *.googletagmanager.com cdn.transcend.io google-analytics.com googletagmanager.com js.stripe.com s.ytimg.com tagmanager.google.com transcend-cdn.com www.mozilla.org www.youtube.com; form-action 'self' https://abdri3ttkb.execute-api.us-east-2.amazonaws.com https://accounts.firefox.com/ https://basket.mozilla.org; frame-ancestors 'none'; img-src 'self' blog.mozilla.org data: images.ctfassets.net www.google-analytics.com www.googletagmanager.com www.mozilla.org; upgrade-insecure-requests; media-src 'self' assets.mozilla.net videos.cdn.mozilla.net www.mozilla.org; default-src 'self' *.mozilla.org; style-src 'self' 'unsafe-inline' cdn.transcend.io transcend-cdn.com www.mozilla.org; font-src 'self' www.mozilla.org; connect-src 'self' *.analytics.google.com *.google-analytics.com *.googletagmanager.com analytics.google.com cdn.transcend.io google-analytics.com googletagmanager.com gtm.mozilla.org https://abdri3ttkb.execute-api.us-east-2.amazonaws.com https://accounts.firefox.com/ https://basket.mozilla.org o1069899.ingest.sentry.io o1069899.sentry.io region1.google-analytics.com telemetry.transcend.io telemetry.us.transcend.io transcend-cdn.com www.mozilla.org/submit/bedrock/",
+                            "content-security-policy": "base-uri 'none'; object-src 'none'; frame-src 'self' accounts.firefox.com gtm.mozilla.org js.stripe.com www.google-analytics.com www.googletagmanager.com www.youtube.com; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.google-analytics.com *.googletagmanager.com cdn.transcend.io google-analytics.com googletagmanager.com js.stripe.com s.ytimg.com tagmanager.google.com transcend-cdn.com www.mozilla.org www.youtube.com; form-action 'self' https://abdri3ttkb.execute-api.us-east-2.amazonaws.com https://accounts.firefox.com/ https://basket.mozilla.org; frame-ancestors 'none'; img-src 'self' blog.mozilla.org data: images.ctfassets.net www.google-analytics.com www.googletagmanager.com www.mozilla.org; upgrade-insecure-requests; media-src 'self' assets.mozilla.net videos.cdn.mozilla.net www.mozilla.org; default-src 'self' *.mozilla.org; style-src 'self' 'unsafe-inline' cdn.transcend.io transcend-cdn.com www.mozilla.org; font-src 'self' www.mozilla.org; connect-src 'self' *.analytics.google.com *.google-analytics.com *.googletagmanager.com analytics.google.com cdn.transcend.io google-analytics.com googletagmanager.com gtm.mozilla.org https://abdri3ttkb.execute-api.us-east-2.amazonaws.com https://accounts.firefox.com/ https://basket.mozilla.org o1069899.ingest.sentry.io o1069899.sentry.io region1.google-analytics.com telemetry.transcend.io telemetry.us.transcend.io transcend-cdn.com www.mozilla.org/submit/bedrock/",
+                            "x-content-type-options": "nosniff",
+                            "cache-control": "max-age=600",
+                            "x-clacks-overhead": "GNU Terry Pratchett",
+                            "x-frame-options": "DENY",
+                            "via": "1.1 google, 1.1 varnish, 1.1 varnish",
+                            "etag": "\"fdb3f60b49444932c9cc1e837ca622e6\"",
+                            "content-type": "text/html; charset=utf-8",
+                            "x-backend-server": "bedrock-6f6646f45b-wb48x.gcp-us-west1",
+                            "referrer-policy": "strict-origin-when-cross-origin",
+                            "cross-origin-opener-policy": "same-origin",
+                            "Content-Encoding": "br",
+                            "Accept-Ranges": "bytes",
+                            "Age": "0",
+                            "Date": "Fri, 17 Jul 2026 22:09:10 GMT",
+                            "X-Served-By": "cache-cpt13822-CPT, cache-cpt13822-CPT, cache-cpt13825-CPT",
+                            "X-Cache": "MISS, MISS",
+                            "X-Cache-Hits": "0, 0",
+                            "X-Timer": "S1784326150.631823,VS0,VE808",
+                            "Vary": "Accept-Language, Accept-Encoding"
+                        }
+                    },
+                    {
+                        "url": "https://mozilla.org",
+                        "port": 443,
+                        "protocol": "https",
+                        "status_code": 200,
+                        "security_headers": {
+                            "strict_transport_security": "max-age=31536000",
+                            "content_security_policy": "base-uri 'none'; object-src 'none'; frame-src 'self' accounts.firefox.com gtm.mozilla.org js.stripe.com www.google-analytics.com www.googletagmanager.com www.youtube.com; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.google-analytics.com *.googletagmanager.com cdn.transcend.io google-analytics.com googletagmanager.com js.stripe.com s.ytimg.com tagmanager.google.com transcend-cdn.com www.mozilla.org www.youtube.com; form-action 'self' https://abdri3ttkb.execute-api.us-east-2.amazonaws.com https://accounts.firefox.com/ https://basket.mozilla.org; frame-ancestors 'none'; img-src 'self' blog.mozilla.org data: images.ctfassets.net www.google-analytics.com www.googletagmanager.com www.mozilla.org; upgrade-insecure-requests; media-src 'self' assets.mozilla.net videos.cdn.mozilla.net www.mozilla.org; default-src 'self' *.mozilla.org; style-src 'self' 'unsafe-inline' cdn.transcend.io transcend-cdn.com www.mozilla.org; font-src 'self' www.mozilla.org; connect-src 'self' *.analytics.google.com *.google-analytics.com *.googletagmanager.com analytics.google.com cdn.transcend.io google-analytics.com googletagmanager.com gtm.mozilla.org https://abdri3ttkb.execute-api.us-east-2.amazonaws.com https://accounts.firefox.com/ https://basket.mozilla.org o1069899.ingest.sentry.io o1069899.sentry.io region1.google-analytics.com telemetry.transcend.io telemetry.us.transcend.io transcend-cdn.com www.mozilla.org/submit/bedrock/",
+                            "content_security_policy_report_only": "base-uri 'none'; object-src 'none'; frame-src 'self' accounts.firefox.com gtm.mozilla.org js.stripe.com www.google-analytics.com www.googletagmanager.com www.youtube.com; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.google-analytics.com *.googletagmanager.com cdn.transcend.io google-analytics.com googletagmanager.com js.stripe.com s.ytimg.com tagmanager.google.com transcend-cdn.com www.mozilla.org www.youtube.com; form-action 'self' https://abdri3ttkb.execute-api.us-east-2.amazonaws.com https://accounts.firefox.com/ https://basket.mozilla.org; frame-ancestors 'none'; img-src 'self' blog.mozilla.org data: images.ctfassets.net www.google-analytics.com www.googletagmanager.com www.mozilla.org; upgrade-insecure-requests; media-src 'self' assets.mozilla.net videos.cdn.mozilla.net www.mozilla.org; default-src 'self' *.mozilla.org; style-src 'self' 'unsafe-inline' cdn.transcend.io transcend-cdn.com www.mozilla.org; font-src 'self' www.mozilla.org; connect-src 'self' *.analytics.google.com *.google-analytics.com *.googletagmanager.com analytics.google.com cdn.transcend.io google-analytics.com googletagmanager.com gtm.mozilla.org https://abdri3ttkb.execute-api.us-east-2.amazonaws.com https://accounts.firefox.com/ https://basket.mozilla.org o1069899.ingest.sentry.io o1069899.sentry.io region1.google-analytics.com telemetry.transcend.io telemetry.us.transcend.io transcend-cdn.com www.mozilla.org/submit/bedrock/",
+                            "x_frame_options": "DENY",
+                            "referrer_policy": "strict-origin-when-cross-origin",
+                            "permissions_policy": null,
+                            "x_content_type_options": "nosniff"
+                        },
+                        "server": "granian",
+                        "powered_by": null,
+                        "headers": {
+                            "Connection": "keep-alive",
+                            "Content-Length": "8169",
+                            "strict-transport-security": "max-age=31536000",
+                            "server": "granian",
+                            "expires": "Fri, 17 Jul 2026 22:19:10 GMT",
+                            "content-security-policy-report-only": "base-uri 'none'; object-src 'none'; frame-src 'self' accounts.firefox.com gtm.mozilla.org js.stripe.com www.google-analytics.com www.googletagmanager.com www.youtube.com; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.google-analytics.com *.googletagmanager.com cdn.transcend.io google-analytics.com googletagmanager.com js.stripe.com s.ytimg.com tagmanager.google.com transcend-cdn.com www.mozilla.org www.youtube.com; form-action 'self' https://abdri3ttkb.execute-api.us-east-2.amazonaws.com https://accounts.firefox.com/ https://basket.mozilla.org; frame-ancestors 'none'; img-src 'self' blog.mozilla.org data: images.ctfassets.net www.google-analytics.com www.googletagmanager.com www.mozilla.org; upgrade-insecure-requests; media-src 'self' assets.mozilla.net videos.cdn.mozilla.net www.mozilla.org; default-src 'self' *.mozilla.org; style-src 'self' 'unsafe-inline' cdn.transcend.io transcend-cdn.com www.mozilla.org; font-src 'self' www.mozilla.org; connect-src 'self' *.analytics.google.com *.google-analytics.com *.googletagmanager.com analytics.google.com cdn.transcend.io google-analytics.com googletagmanager.com gtm.mozilla.org https://abdri3ttkb.execute-api.us-east-2.amazonaws.com https://accounts.firefox.com/ https://basket.mozilla.org o1069899.ingest.sentry.io o1069899.sentry.io region1.google-analytics.com telemetry.transcend.io telemetry.us.transcend.io transcend-cdn.com www.mozilla.org/submit/bedrock/",
+                            "content-security-policy": "base-uri 'none'; object-src 'none'; frame-src 'self' accounts.firefox.com gtm.mozilla.org js.stripe.com www.google-analytics.com www.googletagmanager.com www.youtube.com; script-src 'self' 'unsafe-eval' 'unsafe-inline' *.google-analytics.com *.googletagmanager.com cdn.transcend.io google-analytics.com googletagmanager.com js.stripe.com s.ytimg.com tagmanager.google.com transcend-cdn.com www.mozilla.org www.youtube.com; form-action 'self' https://abdri3ttkb.execute-api.us-east-2.amazonaws.com https://accounts.firefox.com/ https://basket.mozilla.org; frame-ancestors 'none'; img-src 'self' blog.mozilla.org data: images.ctfassets.net www.google-analytics.com www.googletagmanager.com www.mozilla.org; upgrade-insecure-requests; media-src 'self' assets.mozilla.net videos.cdn.mozilla.net www.mozilla.org; default-src 'self' *.mozilla.org; style-src 'self' 'unsafe-inline' cdn.transcend.io transcend-cdn.com www.mozilla.org; font-src 'self' www.mozilla.org; connect-src 'self' *.analytics.google.com *.google-analytics.com *.googletagmanager.com analytics.google.com cdn.transcend.io google-analytics.com googletagmanager.com gtm.mozilla.org https://abdri3ttkb.execute-api.us-east-2.amazonaws.com https://accounts.firefox.com/ https://basket.mozilla.org o1069899.ingest.sentry.io o1069899.sentry.io region1.google-analytics.com telemetry.transcend.io telemetry.us.transcend.io transcend-cdn.com www.mozilla.org/submit/bedrock/",
+                            "x-content-type-options": "nosniff",
+                            "cache-control": "max-age=600",
+                            "x-clacks-overhead": "GNU Terry Pratchett",
+                            "x-frame-options": "DENY",
+                            "via": "1.1 google, 1.1 varnish, 1.1 varnish",
+                            "etag": "\"fdb3f60b49444932c9cc1e837ca622e6\"",
+                            "content-type": "text/html; charset=utf-8",
+                            "x-backend-server": "bedrock-6f6646f45b-wb48x.gcp-us-west1",
+                            "referrer-policy": "strict-origin-when-cross-origin",
+                            "cross-origin-opener-policy": "same-origin",
+                            "Content-Encoding": "br",
+                            "Accept-Ranges": "bytes",
+                            "Date": "Fri, 17 Jul 2026 22:09:11 GMT",
+                            "Age": "2",
+                            "X-Served-By": "cache-cpt13822-CPT, cache-cpt13822-CPT, cache-cpt13825-CPT",
+                            "X-Cache": "MISS, HIT",
+                            "X-Cache-Hits": "0, 1",
+                            "X-Timer": "S1784326152.903093,VS0,VE1",
+                            "Vary": "Accept-Language, Accept-Encoding"
+                        }
+                    }
+                ]
+            },
+            "findings": [
+                {
+                    "severity": "low",
+                    "title": "Missing Permissions-Policy",
+                    "description": "Permissions-Policy header is not present.",
+                    "target": "http://mozilla.org"
+                },
+                {
+                    "severity": "low",
+                    "title": "Missing Permissions-Policy",
+                    "description": "Permissions-Policy header is not present.",
+                    "target": "https://mozilla.org"
+                }
+            ],
+            "assets": []
+        },
+        "tls": {
+            "scan_id": "example-phase2-scan",
+            "source_name": "tls",
+            "status": "completed",
+            "raw_result": {
+                "ip": "35.190.14.201",
+                "targets": [
+                    {
+                        "port": 443,
+                        "tls_version": "TLSv1.3",
+                        "cipher": [
+                            "TLS_AES_256_GCM_SHA384",
+                            "TLSv1.3",
+                            256
+                        ],
+                        "certificate": {
+                            "subject": {
+                                "commonName": "mozilla.org"
+                            },
+                            "issuer": {
+                                "countryName": "US",
+                                "organizationName": "Google Trust Services",
+                                "commonName": "WR3"
+                            },
+                            "valid_from": "May 29 22:38:02 2026 GMT",
+                            "valid_until": "Aug 27 23:31:15 2026 GMT",
+                            "expired": false,
+                            "self_signed": false
+                        }
+                    }
+                ]
+            },
+            "findings": [],
+            "assets": [
+                {
+                    "type": "tls_certificate",
+                    "value": "35.190.14.201:443",
+                    "metadata": {
+                        "subject": {
+                            "commonName": "mozilla.org"
+                        },
+                        "issuer": {
+                            "countryName": "US",
+                            "organizationName": "Google Trust Services",
+                            "commonName": "WR3"
+                        },
+                        "valid_from": "May 29 22:38:02 2026 GMT",
+                        "valid_until": "Aug 27 23:31:15 2026 GMT",
+                        "tls_version": "TLSv1.3",
+                        "cipher": [
+                            "TLS_AES_256_GCM_SHA384",
+                            "TLSv1.3",
+                            256
+                        ]
+                    }
+                }
+            ]
+        },
+        "fingerprint": {
+            "scan_id": "example-phase2-scan",
+            "source_name": "fingerprint",
+            "status": "completed",
+            "raw_result": {
+                "target": "https://mozilla.org",
+                "fingerprint": {
+                    "software": []
+                },
+                "telemetry": {
+                    "unknown_server_strings": [
+                        "granian"
+                    ],
+                    "unknown_powered_by": [],
+                    "unknown_generator": [],
+                    "unknown_headers": [],
+                    "unknown_cookies": [],
+                    "unknown_scripts": [],
+                    "unknown_meta": []
+                }
+            },
+            "findings": [],
+            "assets": []
+        },
+        "cpe_resolver": {
+            "scan_id": "example-phase2-scan",
+            "source_name": "cpe_resolver",
+            "status": "completed",
+            "raw_result": {
+                "resolved_inventory": []
+            },
+            "findings": [],
+            "assets": []
+        },
+        "cve": {
+            "scan_id": "example-phase2-scan",
+            "source_name": "cve",
+            "status": "completed",
+            "raw_result": {
+                "vulnerabilities": []
+            },
+            "findings": [],
+            "assets": []
+        }
+    }
+}
