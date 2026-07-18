@@ -197,7 +197,7 @@ async def test_update_scan_source_callback(mock_save_source_result):
 
     mock_save_source_result.return_value = scan
 
-    payload = ScanCallbackRequest(
+    payload = ScanSourceCallbackRequest(
         status = "completed",
         raw_result = {"Raw Result of some kind": True},
         assets = [],
@@ -219,6 +219,7 @@ async def test_update_scan_source_callback(mock_save_source_result):
         "source_name": "dns",
         "scan_status": "running",
         "progress": 37,
+        "report_status": None,
     }
 
 
