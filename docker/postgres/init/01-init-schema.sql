@@ -63,8 +63,7 @@ CREATE TYPE domain_verification_code AS ENUM (
     'verified',
     'record_not_found',
     'token_mismatch',
-    'dns_timeout',
-    'dns_unavailable'
+    'lookup_failed'
 );
 
 CREATE TABLE organisations (
@@ -90,7 +89,7 @@ CREATE TABLE users (
 CREATE TABLE verified_domains (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organisation_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     domain VARCHAR(255) NOT NULL,
     status domain_verification_status NOT NULL DEFAULT 'pending',
     verification_method VARCHAR(50) NOT NULL DEFAULT 'dns_txt',
@@ -101,7 +100,7 @@ CREATE TABLE verified_domains (
     last_checked_at TIMESTAMPTZ,
     last_verification_code domain_verification_code,
 
-    UNIQUE (organisation_id, domain)
+    UNIQUE (user_id, domain)
 );
 
 CREATE TABLE scans (
