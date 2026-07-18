@@ -1,5 +1,7 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
 from app.tasks.cve_task import run_cve_scan_task
+
 
 @patch("app.tasks.cve_task.send_source_callback")
 @patch("app.tasks.cve_task.run_cve_scan")

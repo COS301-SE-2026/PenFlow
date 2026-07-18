@@ -1,6 +1,6 @@
 import pytest
-from app.services.cpe_resolver_service import \
-(
+
+from app.services.cpe_resolver_service import (
     CPEResolverService,
     run_cpe_resolution,
 )

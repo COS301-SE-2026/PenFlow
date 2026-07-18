@@ -1,4 +1,5 @@
 from unittest.mock import patch
+
 from app.tasks.target_resolution_task import run_target_resolution
 
 #happy paths
@@ -11,7 +12,8 @@ def test_run_target_resolution_success(
     mock_callback,
 ):
     """
-    Returns a completed result when we have a domain that can be reached and both ipv4 and 6 address exist at the domain we are targeting.
+    Returns a completed result when we have a domain that can be
+    reached and both ipv4 and 6 address exist at the domain we are targeting.
     """
     mock_resolve.return_value = {
         "ipv4": ["104.26.12.5"],

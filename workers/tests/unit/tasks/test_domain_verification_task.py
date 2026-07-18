@@ -1,6 +1,6 @@
 from unittest.mock import patch
-from app.tasks.domain_verification_task import run_domain_verification
 
+from app.tasks.domain_verification_task import run_domain_verification
 
 # happy path [Verification successful] [Token not found]
 

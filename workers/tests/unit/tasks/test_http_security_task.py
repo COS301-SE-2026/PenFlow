@@ -1,5 +1,7 @@
 from unittest.mock import patch
+
 from app.tasks.http_security_task import run_http_security_scan_task
+
 
 ##Happy Paths [Successful Scan]
 @patch("app.tasks.http_security_task.send_source_callback")

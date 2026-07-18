@@ -1,10 +1,13 @@
-import pytest
 from unittest.mock import MagicMock, patch
-from app.services.cve_service import \
-(
+
+import pytest
+
+from app.services.cve_service import (
     CVEService,
     run_cve_scan,
 )
+
+
 #mock architecture we find in fingerprint and cpe resolver
 @pytest.fixture
 def resolved_inventory():

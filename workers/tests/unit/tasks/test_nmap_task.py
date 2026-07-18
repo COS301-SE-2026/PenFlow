@@ -1,5 +1,7 @@
 from unittest.mock import patch
+
 from app.tasks.nmap_task import run_nmap_scan
+
 
 #Happy Path 1
 #Successful scan with callback

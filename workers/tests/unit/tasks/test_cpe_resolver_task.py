@@ -1,5 +1,7 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
+
 from app.tasks.cpe_resolver_task import run_cpe_resolver_task
+
 
 @patch("app.tasks.cpe_resolver_task.send_source_callback")
 @patch("app.tasks.cpe_resolver_task.run_cpe_resolution")

@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock, patch
+
 import requests
 
 from app.services.http_security_service import run_http_security_scan

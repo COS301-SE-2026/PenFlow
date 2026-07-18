@@ -1,7 +1,10 @@
 from unittest.mock import MagicMock, patch
+
 import nmap
 import pytest
+
 from app.services.nmap_service import run_live_nmap_scan
+
 
 #Happy Path 1
 #Valid target with multiple open ports should return data

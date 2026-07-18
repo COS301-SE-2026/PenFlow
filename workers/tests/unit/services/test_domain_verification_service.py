@@ -1,7 +1,10 @@
 from unittest.mock import MagicMock, patch
+
 import dns.exception
 import dns.resolver
+
 from app.services.domain_verification_service import verify_txt_record
+
 
 def create_mock_dns_answer(txt_records: list[str]) -> MagicMock:
     """

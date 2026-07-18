@@ -1,7 +1,10 @@
 from unittest.mock import MagicMock, patch
+
 import dns.exception
 import dns.resolver
+
 from app.services.target_resolution_service import resolve_target_ips
+
 
 def create_mock_dns_answer(ip_records: list[str]) -> MagicMock:
     """
@@ -91,7 +94,8 @@ def test_resolve_target_ips_ipv4_only(mock_resolve):
 @patch("app.services.target_resolution_service.dns.resolver.Resolver.resolve")
 def test_resolve_target_ips_domain_not_found(mock_resolve):
     """
-    Returns a fully empty list beacuse the domain doesnt exist and thus we cannot resolve ips from it.
+    Returns a fully empty list beacuse the domain doesnt exist and thus we
+    cannot resolve ips from it.
     """
 
     mock_resolve.side_effect = dns.resolver.NXDOMAIN
@@ -109,7 +113,8 @@ def test_resolve_target_ips_domain_not_found(mock_resolve):
 @patch("app.services.target_resolution_service.dns.resolver.Resolver.resolve")
 def test_resolve_target_ips_timeout(mock_resolve):
     """
-    Returns an empty list when we have a dns timeout issue from the polling taking to long to give us the desired result
+    Returns an empty list when we have a dns timeout issue from the polling
+    taking to long to give us the desired result
     """
 
     mock_resolve.side_effect = dns.exception.Timeout

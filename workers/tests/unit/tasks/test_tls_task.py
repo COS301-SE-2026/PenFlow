@@ -1,5 +1,7 @@
 from unittest.mock import patch
+
 from app.tasks.tls_task import run_tls_scan_task
+
 
 ##Happy Paths [Successful Scan]
 @patch("app.tasks.tls_task.send_source_callback")

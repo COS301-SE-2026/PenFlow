@@ -1,5 +1,7 @@
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 from app.tasks.fingerprinting_task import run_fingerprinting_scan_task
+
 
 @patch("app.tasks.fingerprinting_task.send_source_callback")
 @patch("app.tasks.fingerprinting_task.FingerprintingService")

@@ -1,9 +1,12 @@
-from unittest.mock import MagicMock, patch
 import socket
 import ssl
+from unittest.mock import MagicMock, patch
+
 from app.services.tls_service import run_tls_scan
 
-#in tls worker we get byte certificate and then we save that in a file and then the file is decoded, here we just mock that end part
+
+#in tls worker we get byte certificate and then we save that in a file
+#and then the file is decoded, here we just mock that end part
 def create_mock_certificate():
     """
     Creates a fake decoded certificate
