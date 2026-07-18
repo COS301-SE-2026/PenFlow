@@ -1,8 +1,10 @@
-from typing import Any
 import logging
+from typing import Any
+
 from app.queue.celery_app import celery_app
 from app.services.target_resolution_service import resolve_target_ips
 from app.utils.callback import send_source_callback
+
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 

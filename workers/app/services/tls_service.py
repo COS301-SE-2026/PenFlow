@@ -1,10 +1,10 @@
-from typing import Any
 import logging
 import os
 import socket
 import ssl
 import tempfile
-from datetime import datetime, UTC
+from datetime import UTC, datetime
+from typing import Any
 
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
@@ -110,7 +110,9 @@ def run_tls_scan\
                         binary_certificate
                     )
 
-                    #python needs a filename for the standard library decoder so we save the readable cert in a file and provide the file
+                    #python needs a filename for the standard library
+                    # decoder so we save the readable cert in a file
+                    # and provide the file
                     with tempfile.NamedTemporaryFile\
                     (
                         delete=False,

@@ -1,4 +1,5 @@
 import logging
+
 import dns.exception
 import dns.resolver
 

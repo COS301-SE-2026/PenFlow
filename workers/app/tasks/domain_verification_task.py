@@ -1,5 +1,5 @@
-from typing import Any
 import logging
+from typing import Any
 
 from app.queue.celery_app import celery_app
 from app.services.domain_verification_service import verify_txt_record
@@ -30,7 +30,8 @@ def run_domain_verification_task(
     try:
         verified = verify_txt_record(domain, verification_token)
         # If we want to do retry logic we can add it here later:
-        # We can implement exponential backoff retry logic but that would fail if the user doesnt add the token as instructed.
+        # We can implement exponential backoff retry logic but that would fail if the user
+        # doesnt add the token as instructed.
 
         result = {
             "scan_id": scan_id,

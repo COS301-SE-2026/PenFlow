@@ -1,22 +1,22 @@
 import logging
 import re
-from typing import Any
 from pathlib import Path
+from typing import Any, Optional
+
 import requests
 import urllib3
 from bs4 import BeautifulSoup
-from typing import Optional
+
+from app.services.signatures.cdn import CDN_SIGNATURES
+from app.services.signatures.cms import CMS_SIGNATURES
+from app.services.signatures.databases import DATABASE_SIGNATURES
+from app.services.signatures.frameworks import FRAMEWORK_SIGNATURES
+from app.services.signatures.languages import LANGUAGE_SIGNATURES
+from app.services.signatures.load_balancers import LOAD_BALANCER_SIGNATURES
+from app.services.signatures.servers import SERVER_SIGNATURES
 
 #best way to silence the warnings for unsafe connections
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-
-from app.services.signatures.cms import CMS_SIGNATURES
-from app.services.signatures.frameworks import FRAMEWORK_SIGNATURES
-from app.services.signatures.servers import SERVER_SIGNATURES
-from app.services.signatures.cdn import CDN_SIGNATURES
-from app.services.signatures.languages import LANGUAGE_SIGNATURES
-from app.services.signatures.databases import DATABASE_SIGNATURES
-from app.services.signatures.load_balancers import LOAD_BALANCER_SIGNATURES
 
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
@@ -117,9 +117,16 @@ class FingerprintingService:
                 headers[key.lower()] = str(value).lower()
             self.cache["headers"] = headers
 
-            cookies = {}
-            for key, value in response.cookies.get_dict().items():
-                cookies[key.lower()] = str(value).lower()
+            cookies: dict[str, str] = {}
+            cookie_dict = response.cookies.get_dict()
+            for cookie_name, cookie_value in cookie_dict.items():
+                if cookie_name is None:
+                    continue
+
+                cookies[cookie_name.lower()] = \
+                (
+                    "" if cookie_value is None else str(cookie_value).lower()
+                )
             self.cache["cookies"] = cookies
 
             self.cache["html_text"] = response.text.lower()
@@ -130,7 +137,7 @@ class FingerprintingService:
         "html.parser",
             )
 
-            if soup.title:
+            if soup.title and soup.title.string:
                 self.cache["title"] = soup.title.string.lower()
 
             self.cache["meta_tags"] = soup.find_all("meta")
@@ -139,14 +146,14 @@ class FingerprintingService:
             for script in soup.find_all("script"):
                 source = script.get("src")
                 if source:
-                    scripts.append(source.lower())
+                    scripts.append(str(source).lower())
             self.cache["scripts"] = scripts
 
             links = []
             for link in soup.find_all("link"):
                 href = link.get("href")
                 if href:
-                    links.append(href.lower())
+                    links.append(str(href).lower())
             self.cache["links"] = links
 
         except Exception as error:
@@ -234,7 +241,7 @@ class FingerprintingService:
 
                 for tag in self.cache["meta_tags"]:
 
-                    tag_content = tag.get("content", "").lower()
+                    tag_content = str(tag.get("content", "")).lower()
 
                     if expected_value.lower() in tag_content:
                         self._add_software \
@@ -294,8 +301,7 @@ class FingerprintingService:
 
                 for tag in self.cache["meta_tags"]:
 
-                    tag_name = \
-                    (
+                    tag_name = str(
                             tag.get("name")
                             or tag.get("property")
                             or ""
@@ -303,7 +309,7 @@ class FingerprintingService:
 
                     if tag_name == target:
 
-                        tag_content = tag.get("content", "")
+                        tag_content = str(tag.get("content", ""))
 
                         match = re.search \
                         (
@@ -422,7 +428,8 @@ class FingerprintingService:
                 "sources": [source],
             }
 
-    #logs servers that are not in the signature folders so we can use that info to improve our signature db
+    #logs servers that are not in the signature folders so we can use that info
+    # to improve our signature db
     def _log_unmatched_tech(self) -> None:
 
         server_header = self.cache["headers"].get("server")

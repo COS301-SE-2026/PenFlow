@@ -1,7 +1,9 @@
-from typing import Any
 import logging
+from typing import Any
+
 import dns.exception
 import dns.resolver
+
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
@@ -31,8 +33,10 @@ def resolve_target_ips(domain: str) -> JSONDict:
         records = resolver.resolve(domain, "A")
         result["ipv4"] = [record.to_text() for record in records]
 
-        logger.info(
-            f"[Target Resolution] Found {len(result['ipv4'])} IPv4 address's for the domain: {domain}"
+        logger.info\
+        (
+            f"[Target Resolution] Found {len(result['ipv4'])} "
+            f"IPv4 address's for the domain: {domain}"
         )
 
     except (
@@ -50,8 +54,10 @@ def resolve_target_ips(domain: str) -> JSONDict:
         records = resolver.resolve(domain, "AAAA")
         result["ipv6"] = [record.to_text() for record in records]
 
-        logger.info(
-            f"[Target Resolution] Found {len(result['ipv6'])} IPv6 address's for the domain: {domain}"
+        logger.info\
+        (
+            f"[Target Resolution] Found {len(result['ipv6'])} "
+            f"IPv6 address's for the domain: {domain}"
         )
 
     except (

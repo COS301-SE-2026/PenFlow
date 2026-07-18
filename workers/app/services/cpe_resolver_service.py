@@ -1,5 +1,6 @@
 import logging
 from typing import Any
+
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
@@ -22,7 +23,9 @@ class CPEResolverService:
             product = software.get("product", "unknown")
             version = software.get("version") or "*"
 
-            # Fingerprinting sometimes reports Tomcat as 1.1. as it is the wrappers version not the underlying service, we ignore it for now till we implement better version probing later
+            # Fingerprinting sometimes reports Tomcat as 1.1. as it is the wrappers version
+            # not the underlying service, we ignore it for now till we
+            # implement better version probing later
             if product == "tomcat" and version == "1.1":
                 version = "*"
 

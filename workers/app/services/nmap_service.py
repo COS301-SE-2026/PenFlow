@@ -1,5 +1,5 @@
-from typing import Any
 import logging
+from typing import Any
 
 import nmap
 
@@ -104,11 +104,6 @@ def run_live_nmap_scan\
 
                 if port_data.get("state") != "open":
                     continue
-
-                scripts = port_data.get(
-                    "script",
-                    {},
-                )
 
                 parsed_port = {
                     "port": port_number,

@@ -1,5 +1,6 @@
-from typing import Any
 import logging
+from typing import Any
+
 from app.queue.celery_app import celery_app
 from app.services.http_security_service import run_http_security_scan
 from app.utils.callback import send_source_callback
