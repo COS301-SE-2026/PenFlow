@@ -1,7 +1,7 @@
 from typing import Any, Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status, HTTPException, Query
+from fastapi import APIRouter, Depends, status, HTTPException, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user
@@ -97,3 +97,30 @@ async def get_domains(
         limit = limit,
         offset = offset,
     )
+
+
+@router.delete("/{domain_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_domain(
+    domain_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> Response:
+    
+    user_id = await get_user_id_by_provider_id(
+        db,
+        current_user["sub"],
+    )
+    
+    if user_id is None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "User not present.",
+        )
+    
+    await DomainService.delete_domain(
+        db, 
+        domain_id = domain_id,
+        user_id = user_id,
+    )
+
+    return Response(status_code = status.HTTP_204_NO_CONTENT)
