@@ -69,3 +69,54 @@ class DomainRepository:
             sort_col.desc(),
             VerifiedDomain.id.desc(),
         )
+
+
+    @staticmethod
+    async def list_domains(
+        db: AsyncSession, 
+        user_id: UUID, 
+        verification_status: DomainVerificationStatus | None, 
+        search: str | None, 
+        sort: DomainSortField, 
+        order: SortOrder, 
+        limit: int, 
+        offset: int
+    ) -> tuple[list[VerifiedDomain], int]:
+        
+        query = select(VerifiedDomain).where(
+            VerifiedDomain.user_id == user_id,
+        )
+
+        count_query = select(func.count(VerifiedDomain.id)
+        ).where(VerifiedDomain.user_id == user_id)
+
+        if verification_status is not None:
+            query = query.where(
+                VerifiedDomain.status == verification_status
+            )
+
+            count_query = count_query.where(
+                VerifiedDomain.status == verification_status
+            )
+
+        stripped_search = search.strip() if search else None
+
+        if stripped_search:
+            filter = VerifiedDomain.domain.ilike(f"%{stripped_search}%")
+            query = query.where(filter)
+            count_query = count_query.where(filter)
+
+        query = DomainRepository.sort_records(
+            query,
+            sort = sort,
+            order = order,
+        )
+        query = query.limit(limit).offset(offset)
+
+        result = await db.execute(query)
+        domains = list(result.scalars().all())
+
+        total = int(await db.scalar(count_query) or 0)
+
+        return domains, total
+    
