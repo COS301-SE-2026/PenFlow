@@ -1,15 +1,12 @@
-from datetime import datetime, timezone
 from typing import Any
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-#from app.api.middleware.auth import get_current_user
-from app.models.verified_domain import DomainVerificationStatus, VerifiedDomain
+from app.api.middleware.auth import get_current_user
 from app.schemas.domain import AddDomainRequest, VerifiedDomainResponse
-from app.services.verification_service import VerificationService
+from app.services.domain_service import DomainService
+from app.repositories.user_repo import get_user_id_by_provider_id
 from app.utils.db import get_db
 
 router =  APIRouter(prefix="/domains", tags=["Domain Verification"])
@@ -18,24 +15,26 @@ router =  APIRouter(prefix="/domains", tags=["Domain Verification"])
 async def add_domain_for_verification(
     request: AddDomainRequest,
     db: AsyncSession = Depends(get_db),
-    #current_user = Depends(get_current_user)
+    current_user: dict[str, Any] = Depends(get_current_user),
 ) -> Any:
-   #Generate token
-   token = VerificationService.generate_txt_token()
 
-   #save db
-   new_domain = VerifiedDomain(
-        domain=request.domain,
-        verification_token=token,
-        status=DomainVerificationStatus.PENDING,
-        #organisation_id=current_user.get("org_id")
-   )
+    user_id = await get_user_id_by_provider_id(
+        db,
+        current_user["sub"],
+    )
+    
+    if user_id is None:
+        raise HTTPException(
+            status_code = status.HTTP_401_UNAUTHORIZED,
+            detail = "User not present.",
+        )
+    
+    return await DomainService.add_domain(
+        db,
+        domain = request.domain,
+        user_id = user_id,
+    )
 
-   db.add(new_domain)
-   await db.commit()
-   await db.refresh(new_domain)
-
-   return new_domain
 
 @router.post(
     "/{domain_id}/verify",
