@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from app.tasks.domain_verification_task import run_domain_verification
+from app.tasks.domain_verification_task import run_domain_verification_task
 
 # happy path [Verification successful] [Token not found]
 
@@ -16,7 +16,7 @@ def test_domain_verification_success(
     """
 
     mock_verify.return_value = True
-    result = run_domain_verification(
+    result = run_domain_verification_task(
         "scan-123",
         "hackerone.com",
         "penflow-verify=abc123",
@@ -66,7 +66,7 @@ def test_domain_verification_token_not_found(
 
     mock_verify.return_value = False
 
-    result = run_domain_verification(
+    result = run_domain_verification_task(
         "scan-123",
         "hackerone.com",
         "penflow-verify=abc123",
@@ -92,7 +92,7 @@ def test_domain_verification_service_exception(
     """
 
     mock_verify.side_effect = Exception("DNS lookup exploded")
-    result = run_domain_verification(
+    result = run_domain_verification_task(
         "scan-123",
         "hackerone.com",
         "penflow-verify=abc123",
