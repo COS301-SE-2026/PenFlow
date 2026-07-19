@@ -25,6 +25,11 @@
   --col-edge:       rgba(43, 180, 220, 0.18);
   --col-edge-hot:   rgba(43, 216, 245, 0.38);
 
+  /* Dark panels (cards, dropdowns, copy fields) */
+  --col-panel-border: #243047;
+  --col-panel:        #101827;
+  --col-panel-deep:   #0b1424;
+
   --sh-sm:        0 4px 14px rgba(0, 8, 24, 0.5);
   --sh-glow-cyan: 0 0 28px rgba(43, 216, 245, 0.2);
 
@@ -325,6 +330,9 @@ h1, h2, h3 {
   --color-brand-success: var(--col-success);
   --color-brand-yellow: var(--col-yellow);
   --color-brand-orange: var(--col-orange);
+  --color-brand-panel-border: var(--col-panel-border);
+  --color-brand-panel: var(--col-panel);
+  --color-brand-panel-deep :var(--col-panel-deep);
 
   /* fonts */
   --font-heading: var(--font-display), Impact, "Arial Narrow", sans-serif;
