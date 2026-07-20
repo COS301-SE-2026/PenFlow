@@ -1,10 +1,6 @@
 import logging
 from pathlib import Path
-<<<<<<< HEAD
-from typing import Any, Optional
-=======
 from typing import Annotated, Any
->>>>>>> dev
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status 
@@ -177,7 +173,8 @@ async def email_scan_report(
 )
 async def initiate_active_scan(
     scan_id: UUID,
-    db: AsyncSession = Depends(get_db)
+    current_user: CurrentUser,
+    db: DbSession
 ) ->  dict[str, str]
     """
     Initaite our Phase 2.
@@ -198,11 +195,17 @@ async def initiate_active_scan(
         )
 
     # Triggering the phase 2 Celery workers
-    celery_app.send_task("scan.phase2_full", args=[str(scan_id), scan.domain])
-
-    await ScanRepository.update_scan_status(db, scan_id, "running")
+    try:
+        celery_app.send_task("scan.phase2_target_resolution", args=[str(scan_id), scan.domain])
+        await ScanRepository.update_scan_status(db, scan_id, ScanStatus.RUNNING)
+    except Exception:
+        logger.exception("Failed to dispatch Phase 2 task for %s", scan_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to include Phase 2 active scan",
+        )
 
     return {
-        "message": "Phase 2 active scan initiated"
-        "scan_id": str(scan_id)
+        "message": "Phase 2 active scan initiated successfully",
+        "scan_id": str(scan_id),
     }
