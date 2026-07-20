@@ -73,7 +73,13 @@ async def test_save_source_result_raises_when_scan_missing(mock_get_scan):
 new_callable = AsyncMock)
 async def test_save_source_result_creates_new_source_with_assets_and_findings(mock_get_scan):
     db = _make_db()
-    fake_scan = SimpleNamespace(id = uuid4() , progress =0, status= ScanStatus.RUNNING, error_message=None)
+    fake_scan = SimpleNamespace(
+        id = uuid4(), 
+        progress =0, 
+        status= ScanStatus.RUNNING, 
+        error_message=None
+    )
+    
     mock_get_scan.return_value =fake_scan
 
     source_result = MagicMock()

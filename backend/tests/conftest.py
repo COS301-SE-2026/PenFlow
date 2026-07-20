@@ -23,9 +23,6 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT_DIR))
 
 
-from app.models.organisation import Organisation
-from app.models.user import User
-from app.models.verified_domain import VerifiedDomain
 from app.api.middleware.auth import get_current_user  # noqa: E402
 from app.main import app  # noqa: E402
 from app.utils.db import get_db  # noqa: E402

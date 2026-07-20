@@ -1,14 +1,15 @@
-from unittest.mock import patch, AsyncMock
+from unittest.mock import AsyncMock, patch
+from uuid import UUID
 
 import pytest
 import pytest_asyncio
 from fastapi import status
 
-from uuid import UUID
-from app.models.user import User
 from app.api.middleware.auth import get_current_user
 from app.main import app
-from app.models.verified_domain import DomainVerificationStatus, DomainVerificationCode
+from app.models.user import User
+from app.models.verified_domain import DomainVerificationCode, DomainVerificationStatus
+
 
 @pytest_asyncio.fixture
 async def test_user(db_session):
@@ -90,7 +91,8 @@ async def test_verify_domain_ownership_fail(mock_verify_txt, test_client, test_u
     verify_response = await test_client.post(f"/api/v1/domains/{domain_id}/verify")
 
     assert verify_response.status_code == status.HTTP_400_BAD_REQUEST
-    assert "A TXT record was found, but the verification token did not match." in verify_response.json()["detail"]
+    assert "A TXT record was found, "
+    "but the verification token did not match." in verify_response.json()["detail"]
 
 @pytest.mark.asyncio
 async def test_verify_domain_not_found(test_client, test_user):
