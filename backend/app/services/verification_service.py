@@ -1,7 +1,10 @@
 import secrets
 
+import dns.asyncresolver
+import dns.exception
 import dns.resolver
-from fastapi import HTTPException, status
+
+from app.models.verified_domain import DomainVerificationCode
 
 
 class VerificationService:
@@ -10,31 +13,30 @@ class VerificationService:
         """Generates a secure, random token for DNS TXT verification."""
         return f"penflow-verification={secrets.token_hex(32)}"
 
+
     @staticmethod
-    def verify_dns_txt(domain: str, expected_token: str) -> bool:
+    async def verify_dns_txt(domain: str, expected_token: str) -> DomainVerificationCode:
         """
         Queries the domain's TXT records.
         Returns True if the expected token is found, otherwise False.
         """
         try:
-            answers = dns.resolver.resolve(domain, 'TXT')
+            answers = await dns.asyncresolver.resolve(domain, "TXT", lifetime=5.0)
 
             for rdata in answers:
+
                 txt_record = b"".join(rdata.strings).decode('utf-8')
 
                 if txt_record == expected_token:
-                    return True
-            return False
+                    return DomainVerificationCode.VERIFIED
+                
+            return DomainVerificationCode.TOKEN_MISMATCH
 
-        except dns.resolver.NXDOMAIN:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Domain does not exist."
-            )
-        except (dns.resolver.NoAnswer, dns.resolver.NoNameservers):
-            return False
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"DNS lookup failed: {str(e)}"
-            )
+        except(dns.resolver.NXDOMAIN, dns.resolver.NoAnswer):
+            return DomainVerificationCode.RECORD_NOT_FOUND
+        
+        except(dns.resolver.NoNameservers, dns.exception.Timeout):
+            return DomainVerificationCode.LOOKUP_FAILED
+        
+        except Exception:
+            return DomainVerificationCode.LOOKUP_FAILED

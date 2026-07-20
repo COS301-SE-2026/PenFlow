@@ -73,16 +73,19 @@ async def test_save_source_result_raises_when_scan_missing(mock_get_scan):
 new_callable = AsyncMock)
 async def test_save_source_result_creates_new_source_with_assets_and_findings(mock_get_scan):
     db = _make_db()
-    fake_scan = SimpleNamespace(id = uuid4() , progress =0, status= ScanStatus.RUNNING)
+    fake_scan = SimpleNamespace(
+        id = uuid4(), 
+        progress =0, 
+        status= ScanStatus.RUNNING, 
+        error_message=None
+    )
+    
     mock_get_scan.return_value =fake_scan
 
     source_result = MagicMock()
     source_result.scalar_one_or_none.return_value = None # no scan source
     count_result = MagicMock()
-    count_result.scalar.return_value = len(
-        __import__("app.repositories.scan_repo",fromlist =["TOTAL_SCAN_SOURCES"] 
-        ).TOTAL_SCAN_SOURCES
-    )
+    count_result.all.return_value = [("dns", ScanSourceStatus.COMPLETED)]
     db.execute = AsyncMock(side_effect = [source_result,count_result])
 
     payload = {
@@ -94,10 +97,12 @@ async def test_save_source_result_creates_new_source_with_assets_and_findings(mo
 
     scan = await ScanRepository.save_source_result(db,fake_scan.id,"dns",payload)
 
-    assert scan.progress ==100
-    assert scan.status == ScanStatus.COMPLETED
+    assert scan.progress == 14
+    assert scan.status == ScanStatus.RUNNING
     assert db.add.call_count ==3 #scan source,asset ,finding too make the 3
+    db.flush.assert_awaited_once()
     db.commit.assert_awaited_once()
+    db.refresh.assert_awaited_once_with(fake_scan)
 
 
 
