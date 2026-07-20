@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      workers:
+        specifier: ^0.0.1
+        version: 0.0.1
     devDependencies:
       concurrently:
         specifier: ^9.2.1
@@ -4116,6 +4120,9 @@ packages:
   node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
 
+  node-logr@0.5.2:
+    resolution: {integrity: sha512-roPNxvG+OsefMyfVa5HeO24kRtxA7UB8CtvsR8CfSxaESw+1FTsMf8gkDluG5vppzXrXVCI146PQR2KMaszWig==}
+
   node-releases@2.0.44:
     resolution: {integrity: sha512-5WUyunoPMsvvEhS8AxHtRzP+oA8UCkJ7YRxatWKjngndhDGLiqEVAQKWjFAiAiuL8zMRGzGSJxFnLetoa43qGQ==}
 
@@ -5205,6 +5212,9 @@ packages:
   word-wrap@1.2.5:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
     engines: {node: '>=0.10.0'}
+
+  workers@0.0.1:
+    resolution: {integrity: sha512-cp2HU5tdKyxOiHg7l8p67R2F07vLT1Hd/h3Xi3dXtoO5NlXml4nkJ48O0EmEkOMtWqEZMWAoNLZfctT3qiP3IA==}
 
   wrap-ansi@7.0.0:
     resolution: {integrity: sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==}
@@ -9805,6 +9815,8 @@ snapshots:
 
   node-int64@0.4.0: {}
 
+  node-logr@0.5.2: {}
+
   node-releases@2.0.44: {}
 
   normalize-path@3.0.0: {}
@@ -11043,6 +11055,10 @@ snapshots:
       isexe: 3.1.5
 
   word-wrap@1.2.5: {}
+
+  workers@0.0.1:
+    dependencies:
+      node-logr: 0.5.2
 
   wrap-ansi@7.0.0:
     dependencies:

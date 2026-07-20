@@ -24,11 +24,11 @@ const SOURCE_MAPPINGS: Record<string, string> = {
 export default function ScanConsoleSection() {
   const [domain, setDomain] = useState("");
   const [status, setStatus] = useState("Ready to scan");
-  const [stepsDone, setStepsDone] = useState<boolean[]>(Array(SOURCES.length).fill(false));
   const [reportReady, setReportReady] = useState(false);
   const [scanId, setScanId] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [sweeping, setSweeping] = useState(false);
+  const [stepsDone, setStepsDone] = useState<boolean[]>(Array(SOURCES.length).fill(false));
   const router = useRouter();
 
   const canScan = domain.trim().length > 2;
@@ -151,8 +151,8 @@ export default function ScanConsoleSection() {
             </div>
           </div>
 
-          <div className={styles.processPanel}>
-            <div className={styles.processCols}>
+        <div className={styles.processPanel}>
+          <div className={styles.processCols}>
               <div className={styles.processCol}>
                 {LEFT_SOURCES.map((source, i) => (
                   <span key={source} className={styles.processLabel} data-done={stepsDone[i]}>
@@ -171,6 +171,7 @@ export default function ScanConsoleSection() {
                 </span>
               </div>
             </div>
+
             <Button
               type="button"
               variant="ghost"
@@ -180,8 +181,9 @@ export default function ScanConsoleSection() {
             >
               VIEW REPORT
             </Button>
+            </div>
           </div>
-        </div>
+
 
         <form className={styles.consoleBottom} onSubmit={onSubmit}>
           <div className={styles.domainForm}>
