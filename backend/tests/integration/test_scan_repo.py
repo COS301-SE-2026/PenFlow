@@ -1,3 +1,4 @@
+#intergrations  for scan repo run agaisnt real postgress session(db session fixutre)
 from uuid import UUID
 
 import pytest

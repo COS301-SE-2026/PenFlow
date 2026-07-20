@@ -1,8 +1,8 @@
 -- NOSONAR
 
-INSERT INTO organisations (id, name, primary_domain)
+INSERT INTO organisations (id, name)
 VALUES
-('11111111-1111-1111-1111-111111111111', 'Acme Security Ltd', 'acme-security.example')
+('11111111-1111-1111-1111-111111111111', 'Acme Security Ltd')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO users (id, organisation_id, auth_provider, auth_provider_id, email, full_name, role)

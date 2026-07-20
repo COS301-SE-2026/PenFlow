@@ -1,7 +1,9 @@
 #!/bin/sh
 set -e
 
-docker compose up -d postgres-test rabbitmq redis
+docker compose up -d postgres-test rabbitmq
+
+docker compose build workers-test
 
 docker compose run --rm workers-test pytest tests/integration
 

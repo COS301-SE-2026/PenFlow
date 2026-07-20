@@ -11,14 +11,19 @@ logger = logging.getLogger(__name__)
 
 class ScanService:
     @staticmethod
-    async def start_scan(db: AsyncSession, scan_data: InitiateScanRequest) -> Any:
+    async def start_scan(
+        db: AsyncSession,
+        scan_data: InitiateScanRequest,
+        user_id: Any | None = None,
+    ) -> Any:
         logger.info("Initiating CTEM scan for domain: %s", scan_data.domain)
 
         #repo creates a new record in the db
         scan_record = await ScanRepository.create_scan(
             db=db,
             domain=scan_data.domain,
-            email=scan_data.email
+            email=scan_data.email,
+            user_id=user_id,
         )
 
         #fire off Celery task to the RabbitMQ queue

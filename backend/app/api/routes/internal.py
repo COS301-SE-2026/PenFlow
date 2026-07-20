@@ -9,8 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.asset import Asset
 from app.models.base import ScanStatus, Severity
 from app.models.finding import Finding
+from app.models.report_status import ReportStatus
 from app.models.scan_source import ScanSource, ScanSourceStatus
-from app.repositories.report_repository import mark_report_completed, mark_report_failed
+from app.repositories.report_repository import (
+    get_report_by_scan_id,
+    mark_report_completed,
+    mark_report_failed,
+)
 from app.repositories.scan_repo import ScanRepository
 from app.schemas.report import ReportCallbackRequest
 from app.schemas.scan import ScanCallbackRequest, ScanSourceCallbackRequest
@@ -175,11 +180,20 @@ async def update_scan_source_callback(
             payload=payload.model_dump(),
         )
 
+        report_queued = None
+        if scan.status in [ScanStatus.COMPLETED, ScanStatus.PARTIAL]:
+            report = await get_report_by_scan_id(db, str(scan_id))
+            if report is None or report.status not in [
+                ReportStatus.GENERATING,
+                ReportStatus.COMPLETED,
+            ]:
+                report_queued = await queue_report_generation(db, str(scan_id))
         return {
             "scan_id": str(scan.id),
             "source_name": source_name,
             "scan_status": scan.status.value,
             "progress": scan.progress,
+            "report_status": report_queued["status"] if report_queued else None,
         }
     
     except ValueError as error:

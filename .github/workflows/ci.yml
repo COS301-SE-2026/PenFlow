@@ -106,7 +106,6 @@ jobs:
         env:
           DATABASE_URL: postgresql+asyncpg://${{ secrets.CI_POSTGRES_USER }}:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/penflow_test
           RABBITMQ_URL: amqp://guest:guest@localhost:5672//
-          REDIS_URL: redis://localhost:6379/0
         run: |
           PYTHONPATH=. pytest tests/unit --cov=app --cov-report=xml
 
@@ -157,7 +156,6 @@ jobs:
         env:
           DATABASE_URL: postgresql+asyncpg://${{ secrets.CI_POSTGRES_USER }}:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/penflow_test
           RABBITMQ_URL: amqp://guest:guest@localhost:5672//
-          REDIS_URL: redis://localhost:6379/0
         run: |
           PYTHONPATH=. pytest tests/unit --cov=app --cov-report=xml
 
@@ -200,7 +198,6 @@ jobs:
           docker compose --profile test up -d \
             postgres-test \
             rabbitmq \
-            redis \
             workers-test
 
       - name: RabbitMQ Health Check
@@ -247,7 +244,7 @@ jobs:
       - name: Check Backend Health
         run: |
           for i in {1..20}; do
-            curl -f http://localhost:3001/health && exit 0
+            curl -f http://localhost:3001/api/v1/health && exit 0
             sleep 3
           done
 
