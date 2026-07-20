@@ -155,3 +155,39 @@ async def email_scan_report(
     )
 
     return {"message": "Report emailed successfully"}
+
+@router.post(
+    "/{scan_id}/active",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def initiate_active_scan(
+    scan_id: UUID,
+    db: AsyncSession = Depends(get_db)
+) ->  dict[str, str]
+    """
+    Initaite our Phase 2.
+    Designed to be called after the use of Phase 1 assets/
+    """
+    scan = await ScanRepository.get_scan_by_id(db, scan_id)
+
+    if scan is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            details="Scan not found",
+        )
+
+    if scan.status.value not in ["completed", "partial"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Phase 1 before initiating Phase 2."
+        )
+
+    # Triggering the phase 2 Celery workers
+    celery_app.send_task("scan.phase2_full", args=[str(scan_id), scan.domain])
+
+    await ScanRepository.update_scan_status(db, scan_id, "running")
+
+    return {
+        "message": "Phase 2 active scan initiated"
+        "scan_id": str(scan_id)
+    }
