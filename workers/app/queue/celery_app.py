@@ -5,6 +5,7 @@ from celery import Celery
 
 def build_broker_url() -> str:
 
+    protocol = os.getenv("RABBITMQ_PROTOCOL", "amqps")
     host = os.getenv("RABBITMQ_HOST")
     port = os.getenv("RABBITMQ_PORT", "5671")
     username = os.getenv("RABBITMQ_USERNAME")
@@ -14,7 +15,7 @@ def build_broker_url() -> str:
         raise RuntimeError("RabbitMQ environment variables are missing")
 
     return (
-        f"amqps://{quote(username, safe='')}:"
+        f"{protocol}://{quote(username, safe='')}:"
         f"{quote(password, safe='')}@"
         f"{host}:{port}//"
     )
