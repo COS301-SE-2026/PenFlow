@@ -22,6 +22,13 @@ class Scan(Base):
     )
     domain = Column(String(255), nullable=False, index=True)
     email = Column(String(255))
+    scan_type = Column(String(50), nullable=False, defaults="passive_ctem", index=True)
+    verified_domain_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("verified_domains.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
     status = Column(
         Enum(ScanStatus, values_callable=lambda enum: [item.value for item in enum],
              name="scan_status"),

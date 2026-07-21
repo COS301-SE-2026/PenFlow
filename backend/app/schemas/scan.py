@@ -1,15 +1,21 @@
-#I am just going to implement a rought draft so long until we get the worker logic figured out
 from datetime import datetime
 from typing import Any
 from uuid import UUID
+from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.base import ScanStatus
 
+class ScanTypeEnum(str, Enum):
+    PASSIVE_CTEM = "passive_ctem"
+    ACTIVE_VULNERABILITY = "active_vulnerability"
+
 
 class InitiateScanRequest(BaseModel):
     domain: str = Field(...,description="The target domain to scan", json_schema_extra={"example": "exmpl.com"}) # noqa: E501
+    scan_type: ScanTypeEnum = Field(default=ScanTypeEnum.PASSIVE_CTEM, description="Type of scan to perform")
+    verified_domain_id: UUID | None = Field(default=None, description="Required for active scans")
     email: EmailStr | None = Field(None,description="email to send the report to")
 
 class InitiateScanResponse(BaseModel):
