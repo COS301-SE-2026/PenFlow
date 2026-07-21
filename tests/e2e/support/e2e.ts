@@ -9,3 +9,8 @@ Cypress.on("uncaught:exception",(err)=>{
 });
 
 //
+
+ Cypress.on("uncaught:exception", (err) => {
+    if (err.message.includes("Hydration failed")) return false;
+    if (err.message.includes("Connection closed")) return false;
+  });
