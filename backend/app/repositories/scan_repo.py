@@ -348,3 +348,34 @@ class ScanRepository:
             }
             for row in rows
         ]
+
+    @staticmethod
+    async def get_asset_by_scan(
+        db: AsyncSession,
+        scan_id: UUID,
+        limit: int = 10,
+        offset: int = 0
+    ) -> list[dict[str, Any]]:
+        query = (
+            select(
+                Asset,
+                func.count(Finding.id).label("findings_count")
+            )
+            .outerjoin(Finding, Finding.asset_id == Asset.id)
+            .where(Asset.scan_id == scan_id)
+            .group_by(Asset.id)
+            .order_by(func.count(Finding.id).desc())
+            .limit(limit)
+            .offset(offset)
+        )
+
+        rows = (await db.execute(query)).all()
+        return [
+            {
+                "id": str(row.Asset.id),
+                "identifier": row.Asset.identifier,
+                "asset_type": row.Asset.asset_type,
+                "findings_count": row.finding_count,
+            }
+            for row in 
+        ]
