@@ -222,13 +222,6 @@
     }
 }
 
-@media (max-width: 900px) {
-    .dashboard-main {
-        margin-left: 0;
-        padding-top: 80px;
-    }
-}
-
 @media (max-width: 700px) {
     .dashboard-main {
         padding: 80px 20px 20px;
@@ -237,5 +230,12 @@
     .dashboard-quick-actions,
     .dashboard-summary-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .dashboard-main {
+        margin-left: 0;
+        padding-top: 80px;
     }
 }
