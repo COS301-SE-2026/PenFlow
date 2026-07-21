@@ -12,7 +12,7 @@ from app.repositories.report_repository import get_report_by_scan_id
 from app.repositories.scan_repo import ScanRepository
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.report import EmailReportRequest
-from app.schemas.scan import InitiateScanRequest, InitiateScanResponse, ScanHistoryItem
+from app.schemas.scan import InitiateScanRequest, InitiateScanResponse, ScanHistoryItem, MetricResponse, DashboardFindingItem, DashboardAssetItem, RiskHistory
 from app.services.email_service import send_report_email
 from app.services.scan_service import ScanService
 from app.utils.db import get_db
@@ -169,6 +169,7 @@ async def email_scan_report(
 
 @router.get(
     "/{scan_id}/metrics",
+    response_model=MetricsResponse,
     status_code=status.HTTP_200_OK,
 )
 async def get_scan_metrics(
@@ -186,6 +187,7 @@ async def get_scan_metrics(
 
 @router.get(
     "/{scan_id}/findings",
+    response_model=list[DashboardFindingItem],
     status_code=status.HTTP_200_OK,
 )
 async def get_scan_findings(
@@ -204,6 +206,7 @@ async def get_scan_findings(
 
 @router.get(
     "/{scan_id}/assets",
+    response_model=list[DashboardAssetItem],
     status_code=status.HTTP_200_OK,
 )
 async def get_scan_assets(
@@ -219,6 +222,7 @@ async def get_scan_assets(
 
 @router.get(
     "/{scan_id}/risk-history",
+    response_model=list[RiskHistoryItem],
     status_code=status.HTTP_200_OK,
 )
 async def get_scan_risk_history(
