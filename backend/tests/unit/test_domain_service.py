@@ -220,3 +220,52 @@ async def test_list_domains(mock_list_domains, mock_status_counts, mock_model_va
     assert result.pagination.limit == 2
     assert result.pagination.offset == 0
     assert result.pagination.has_more is True
+
+
+@pytest.mark.asyncio
+@patch.object(DomainItem, "model_validate")
+@patch("app.services.domain_service.DomainRepository.get_status_counts", new_callable=AsyncMock)
+@patch("app.services.domain_service.DomainRepository.list_domains", new_callable=AsyncMock)
+async def test_list_domains_final_page(mock_list_domains, mock_status_counts, mock_model_validate):
+    db = AsyncMock()
+    user_id = uuid4()
+
+    domain = SimpleNamespace(
+        id = uuid4(),
+        domain = "test.com",
+        status = DomainVerificationStatus.PENDING,
+    )
+
+
+    item = DomainItem.model_construct(
+        id = domain.id,
+        domain = domain.domain,
+        status = domain.status,
+    )
+
+    mock_list_domains.return_value = ([domain], 5)
+
+    mock_status_counts.return_value = {
+        DomainVerificationStatus.PENDING: 5,
+        DomainVerificationStatus.VERIFIED: 0,
+        DomainVerificationStatus.FAILED: 0,
+        DomainVerificationStatus.EXPIRED: 0,
+    }
+
+    mock_model_validate.return_value = item
+
+    result = await DomainService.list_domains(
+        db,
+        user_id = user_id,
+        verification_status = None,
+        search = None,
+        sort = DomainSortField.CREATED_AT,
+        order = SortOrder.DESC,
+        limit = 2,
+        offset = 4,
+    )
+
+    assert result.pagination.total == 5
+    assert result.pagination.limit == 2
+    assert result.pagination.offset == 4
+    assert result.pagination.has_more is False
