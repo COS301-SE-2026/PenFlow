@@ -259,3 +259,16 @@ async def get_scan_assets(
     Retrieves discovered assets along with their associated finding counts.
     """
     return await ScanRepository.get_assets_by_scan(db=db, scan_id=scan_id, limit=limit, offset=offset)
+
+@router.get(
+    "/{scan_id}/risk-history",
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_risk_history(
+    scan_id: UUID,
+    db: DbSession,
+) -> list[dict[str, Any]]:
+    """
+    Retrieves historical risk scores for the domain to render the risk over time graph.
+    """
+    return await ScanRepository.get_domain_risk_history(db=db, scan_id=scan_id)
