@@ -6,6 +6,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.models.verified_domain import DomainVerificationStatus
+from app.schemas.domain import DomainItem, DomainSortField, SortOrder
 from app.services.domain_service import DomainService
 
 
@@ -125,3 +126,97 @@ async def test_add_domain_duplicate(mock_get_domain, mock_gen_token, mock_create
 
     mock_gen_token.assert_not_called()
     mock_create_domain.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@patch.object(DomainItem, "model_validate")
+@patch("app.services.domain_service.DomainRepository.get_status_counts", new_callable=AsyncMock)
+@patch("app.services.domain_service.DomainRepository.list_domains", new_callable=AsyncMock)
+async def test_list_domains(mock_list_domains, mock_status_counts, mock_model_validate):
+    db = AsyncMock()
+    user_id = uuid4()
+
+    domain_one = SimpleNamespace(
+        id = uuid4(),
+        domain = "one.test.com",
+        status = DomainVerificationStatus.VERIFIED,
+    )
+
+    domain_two = SimpleNamespace(
+        id = uuid4(),
+        domain = "two.test.com",
+        status = DomainVerificationStatus.PENDING,
+    )
+
+    first_item = DomainItem.model_construct(
+        id = domain_one.id,
+        domain = domain_one.domain,
+        status = domain_one.status,
+    )
+
+    second_item = DomainItem.model_construct(
+        id = domain_two.id,
+        domain = domain_two.domain,
+        status = domain_two.status,
+    )
+
+    mock_list_domains.return_value = ([domain_one, domain_two], 5)
+
+    mock_status_counts.return_value = {
+        DomainVerificationStatus.PENDING: 2,
+        DomainVerificationStatus.VERIFIED: 3,
+        DomainVerificationStatus.FAILED: 1,
+        DomainVerificationStatus.EXPIRED: 1,
+    }
+
+    mock_model_validate.side_effect = [
+        first_item,
+        second_item,
+    ]
+
+    result = await DomainService.list_domains(
+        db,
+        user_id = user_id,
+        verification_status = DomainVerificationStatus.VERIFIED,
+        search = "test",
+        sort = DomainSortField.CREATED_AT,
+        order = SortOrder.DESC,
+        limit = 2,
+        offset = 0,
+    )
+
+    mock_list_domains.assert_awaited_once_with(
+        db,
+        user_id = user_id,
+        verification_status = DomainVerificationStatus.VERIFIED,
+        search = "test",
+        sort = DomainSortField.CREATED_AT,
+        order = SortOrder.DESC,
+        limit = 2,
+        offset = 0,
+    )
+
+    mock_status_counts.assert_awaited_once_with(
+        db,
+        user_id = user_id,
+    )
+
+    assert mock_model_validate.call_count == 2
+    mock_model_validate.assert_any_call(domain_one)
+    mock_model_validate.assert_any_call(domain_two)
+
+    assert result.items == [
+        first_item,
+        second_item,
+    ]
+
+    assert result.counts.all == 7
+    assert result.counts.pending == 2
+    assert result.counts.verified == 3
+    assert result.counts.failed == 1
+    assert result.counts.expired == 1
+
+    assert result.pagination.total == 5
+    assert result.pagination.limit == 2
+    assert result.pagination.offset == 0
+    assert result.pagination.has_more is True
