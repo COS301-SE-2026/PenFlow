@@ -1,4 +1,5 @@
 import os
+import ssl
 from urllib.parse import quote
 
 from celery import Celery
@@ -24,3 +25,16 @@ celery_app = Celery(
     "penflow_backend",
     broker=build_broker_url(),
 )
+
+celery_app.conf.update(
+    task_default_queue="celery",
+    task_default_queue_type="quorum",
+    broker_transport_options={
+        "confirm_publish": True,
+    },
+)
+
+if os.getenv("RABBITMQ_PROTOCOL", "amqps") == "amqps":
+    celery_app.conf.broker_use_ssl = {
+        "cert_reqs": ssl.CERT_REQUIRED,
+    }

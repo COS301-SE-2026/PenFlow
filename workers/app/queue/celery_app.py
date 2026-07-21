@@ -1,4 +1,5 @@
 import os
+import ssl
 from urllib.parse import quote
 
 from celery import Celery
@@ -44,6 +45,20 @@ celery_app = Celery(
         "app.tasks.full_scan_tasks",
     ],
 )
+
+celery_app.conf.update(
+    task_default_queue="celery",
+    task_default_queue_type="quorum",
+    worker_detect_quorum_queues=True,
+    broker_transport_options={
+        "confirm_publish": True,
+    },
+)
+
+if os.getenv("RABBITMQ_PROTOCOL", "amqps") == "amqps":
+    celery_app.conf.broker_use_ssl = {
+        "cert_reqs": ssl.CERT_REQUIRED,
+    }
 
 @celery_app.task(name="health_check")
 def health_check() -> str:
