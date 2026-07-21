@@ -88,3 +88,40 @@ async def test_add_domain(mock_get_domain, mock_gen_token, mock_create_domain):
     )
 
     assert result == created_domain
+
+
+@pytest.mark.asyncio
+@patch("app.services.domain_service.DomainRepository.create_rec", new_callable=AsyncMock)
+@patch("app.services.domain_service.VerificationService.generate_txt_token")
+@patch("app.services.domain_service.DomainRepository.get_by_domain", new_callable=AsyncMock)
+async def test_add_domain_duplicate(mock_get_domain, mock_gen_token, mock_create_domain):
+    db = AsyncMock()
+    user_id = uuid4()
+
+    existing_domain = SimpleNamespace(
+        id = uuid4(),
+        domain = "test.com",
+        user_id = user_id,
+        status = DomainVerificationStatus.PENDING,
+    )
+
+    mock_get_domain.return_value = existing_domain
+
+    with pytest.raises(HTTPException) as excep:
+        await DomainService.add_domain(
+            db,
+            domain = "https://test.com",
+            user_id = user_id,
+        )
+
+    assert excep.value.status_code == 409
+    assert excep.value.detail == "This domain has already been added"
+
+    mock_get_domain.assert_awaited_once_with(
+        db,
+        domain = "test.com",
+        user_id = user_id,
+    )
+
+    mock_gen_token.assert_not_called()
+    mock_create_domain.assert_not_awaited()
