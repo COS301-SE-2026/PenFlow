@@ -244,3 +244,18 @@ async def get_scan_findings(
     return await ScanRepository.get_findings_by_scan(
         db=db, scan_id=scan_id, severity=severity, limit=limit, offset=offset
     )
+
+@router.get(
+    "/{scan_id}/assets",
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_assets(
+    scan_id: UUID,
+    db: DbSession,
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> list[dict[str, Any]]:
+    """
+    Retrieves discovered assets along with their associated finding counts.
+    """
+    return await ScanRepository.get_assets_by_scan(db=db, scan_id=scan_id, limit=limit, offset=offset)
