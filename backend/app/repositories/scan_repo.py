@@ -27,15 +27,19 @@ class ScanRepository:
     async def create_scan(
         db: AsyncSession,
         domain: str,
+        scan_type: str = "passive_ctem",
         email: str | None = None,
         user_id: UUID | None = None,
+        verified_domain_id: UUID | None = None,
     ) -> Scan:
         """Creates a new pending scan record in the database."""
         try:
             new_scan = Scan(
                 domain=domain,
+                scan_type=scan_type,
                 email=email,
                 user_id=user_id,
+                verified_domain_id=verified_domain_id,
             )
             db.add(new_scan)
             await db.commit()
