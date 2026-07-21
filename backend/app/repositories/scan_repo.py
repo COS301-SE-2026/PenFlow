@@ -8,11 +8,13 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
-from app.models.base import ScanStatus, Severity
+from app.models.base import ScanStatus, Severity, Base
 from app.models.finding import Finding
 from app.models.report import Report
 from app.models.scan import Scan
 from app.models.scan_source import ScanSource, ScanSourceStatus
+from app.models.service import Service
+from app.models.detected_technology import DetectedTechnology
 
 logger = logging.getLogger(__name__)
 
@@ -298,6 +300,18 @@ class ScanRepository:
             assets_breakdown[a_type] = count
             assets_breakdown["total"] += count
 
+        services_stmt = (
+            select(func.count(Service.id))
+            .where(Service.scan_id == scan_id)
+        )
+        total_services = await db.scalar(services_stmt) or 0
+
+        tech_stmt = (
+            select(func.count(Detectedtechnology.id))
+            .where(DetectedTechnology.scan_id == scan_id)
+        )
+        total_tech = await db.scalar(tech_stmt) or 0
+
         weighted_score = (
             (findings_breakdown["critical"] * 25) +
             (findings_breakdown["high"] * 15) +
@@ -311,6 +325,8 @@ class ScanRepository:
             "risk_level": "HIGH RISK" if risk_score >= 70 else ("MEDIUM RISK" if risk_score >= 40 else "LOW RISK"),
             "findings": findings_breakdown,
             "assets": assets_breakdown,
+            "services": {"total": total_services},
+            "technologies": {"total": total_tech}
         }
 
     @staticmethod
