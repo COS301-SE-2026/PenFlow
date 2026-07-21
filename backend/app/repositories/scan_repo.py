@@ -379,3 +379,28 @@ class ScanRepository:
             }
             for row in 
         ]
+
+    @staticmethod
+    async def get_domain_risk_history(db: AsyncSession, scan_id: UUID) -> list[dict[str, Any]]:
+        scan = await ScanRepository.get_scan_by_id(db, scan_id)
+        if not scan:
+            return []
+
+        query = (
+            select(Scan.id, Scan.created_at)
+            .where(Scan.domain == scan.domain, Scan.status == ScanStatus.COMPLETED)
+            .order_by(Scan.created_at.asc())
+            .limit(10)
+        )
+        historical_scans = (await db.execute(query)).all()
+
+        history []
+        for h_scan_id, h_created_at in historical_scans:
+            metrics = await ScanRepository.get_scan_metrics(db, h_scan_id)
+            if metrics:
+                history.append({
+                    "date": h_created_at.strftime("%b %d"),
+                    "risk_score": metrics["risk_score"],
+                    "total_findings": metrics["findings"]["total"]
+                })
+        return history
