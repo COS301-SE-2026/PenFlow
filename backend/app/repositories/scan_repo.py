@@ -268,4 +268,47 @@ class ScanRepository:
             scan.status = status
             await db.commit()
 
-    
+    @staticmethod
+    async def get_scan_metrics(db: AsyncSession, scan_id: UUID) -> dict[str, Any] | None:
+        scan = await ScanRepository.get_scan_by_id(db, scan_id)
+        if not scan:
+            return None
+
+        findings_stmt = (
+            select(Findings.severity, func.count(Finding.id))
+            .where(Finding.scan_id == scan_id)
+            .group_by(Finding.severity)
+        )
+        f_rows = (await db.execute(findings_stmt)).all()
+        findings_breakdown = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0, "total": 0}
+        for sev, count in f_rows:
+            key = sev.value.lower() if hasattr(sev, "value") else str(sev).lower()
+            if key in findings_breakdown:
+                findings_breakdown[key] = count
+                findings_breakdown["total"] += count
+
+        assets_stmt = (
+            select(Asset.asset_type, func.count(Asset.id))
+            .where(Asset.scan_id == scan_id)
+            .group_by(Asset.asset_type)
+        )
+        a_rows = (await db.execute(assets_stmt)).all()
+        assets_breakdown = {"total": 0}
+        for a_type, count in a_rows:
+            assets_breakdown[a_type] = count
+            assets_breakdown["total"] += count
+
+        weighted_score = (
+            (findings_breakdown["critical"] * 25) +
+            (findings_breakdown["high"] * 15) +
+            (findings_breakdown["medium"] * 5) +
+            (findings_breakdown["low"] * 1)
+        )
+        risk_score = builtins.min(100, weighted_score)
+
+        return {
+            "risk_score": risk_score,
+            "risk_level": "HIGH RISK" if risk_score >= 70 else ("MEDIUM RISK" if risk_score >= 40 else "LOW RISK"),
+            "findings": findings_breakdown,
+            "assets": assets_breakdown,
+        }
