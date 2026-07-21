@@ -1,4 +1,5 @@
 //set up
+import "./command"
 
 //avoid HMR/Dev server websocket drop
 Cypress.on("uncaught:exception",(err)=>{
