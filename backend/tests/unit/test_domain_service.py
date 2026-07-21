@@ -269,3 +269,32 @@ async def test_list_domains_final_page(mock_list_domains, mock_status_counts, mo
     assert result.pagination.limit == 2
     assert result.pagination.offset == 4
     assert result.pagination.has_more is False
+
+
+@pytest.mark.asyncio
+@patch("app.services.domain_service.VerificationService.verify_dns_txt", new_callable=AsyncMock)
+@patch("app.services.domain_service.DomainRepository.get_by_id", new_callable=AsyncMock)
+async def test_verify_domain_not_found(mock_get_domain, mock_verify_dns):
+    db = AsyncMock()
+    domain_id = uuid4()
+    user_id = uuid4()
+
+    mock_get_domain.return_value = None
+
+    with pytest.raises(HTTPException) as excep:
+        await DomainService.verify_domain(
+            db,
+            domain_id = domain_id,
+            user_id = user_id,
+        )
+
+    assert excep.value.status_code == 404
+    assert excep.value.detail == "Domain record was not found"
+
+    mock_get_domain.assert_awaited_once_with(
+        db,
+        domain_id = domain_id,
+        user_id = user_id,
+    )
+
+    mock_verify_dns.assert_not_awaited()
