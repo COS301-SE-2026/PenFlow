@@ -90,7 +90,7 @@ h1, h2, h3 {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding-left: 130px;
+  padding-left: 220px;
 }
 
 /* header */
@@ -99,7 +99,7 @@ h1, h2, h3 {
   left: 0;
   top: 0;
   z-index: 50;
-  width: 130px;
+  width: 220px;
   height: 100vh;
   background: rgba(6, 14, 28, 0.97);
   border-right: 1px solid var(--col-edge);
@@ -141,22 +141,48 @@ h1, h2, h3 {
   gap: 2px;
 }
 
+.topnav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 20px 16px;
+  list-style: none;
+}
+
 .nav-link {
   font-family: var(--font-display), Impact, sans-serif;
   color: var(--col-muted);
-  font-size: 1.37rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  letter-spacing: 0.1em;
-  transition: color 180ms ease, background 180ms ease, border-color 180ms ease;
-  padding: 12px 20px;
-  border-left: 3px solid transparent;
+  letter-spacing: 0.06em;
+  transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
   display: block;
 }
 
 .nav-link:hover {
-  color: var(--col-cyan);
-  background: rgba(43, 216, 245, 0.06);
-  border-left-color: var(--col-cyan);
+  color: #ffffff;
+  background: #111c2d;
+}
+
+.nav-link-active {
+  border-color: #155da1;
+  color: #ffffff;
+  background: #0c3c63;
+}
+
+.nav-link-disabled {
+  color: #4a5568;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.nav-link-disabled:hover {
+  color: #4a5568;
+  background: none;
 }
 
 
@@ -238,7 +264,7 @@ h1, h2, h3 {
     flex-shrink: 0;
   }
 
-  .topnav {
+  .topnav, .topnav-list {
     flex-direction: row;
     flex-wrap: wrap;
     padding: 0 12px;
@@ -247,9 +273,10 @@ h1, h2, h3 {
   }
 
   .nav-link {
-    padding: 4px 0;
+    padding: 4px 8px;
     border-left: none;
     border-bottom: 2px solid transparent;
+    border-radius: 0;
     font-size: 0.78rem;
   }
 
@@ -257,6 +284,13 @@ h1, h2, h3 {
     background: none;
     border-left-color: transparent;
     border-bottom-color: var(--col-cyan);
+  }
+  
+  .nav-link-active {
+    background: none;
+    border-color: transparent;
+    border-bottom-color: var(--col-cyan);
+    color: #ffffff;
   }
 
   .hero {
