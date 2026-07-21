@@ -298,3 +298,34 @@ async def test_verify_domain_not_found(mock_get_domain, mock_verify_dns):
     )
 
     mock_verify_dns.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@patch("app.services.domain_service.DomainRepository.save_domain", new_callable=AsyncMock)
+@patch("app.services.domain_service.VerificationService.verify_dns_txt", new_callable=AsyncMock)
+@patch("app.services.domain_service.DomainRepository.get_by_id", new_callable=AsyncMock)
+async def test_verify_domain_already_verified(mock_get_domain, mock_verify_dns, mock_save_domain):
+    db = AsyncMock()
+    domain_id = uuid4()
+    user_id = uuid4()
+
+    domain = SimpleNamespace(
+        id = domain_id,
+        domain = "test.com",
+        user_id = user_id,
+        verification_token = "penflow-verification=test-token",
+        status = DomainVerificationStatus.VERIFIED,
+    )
+
+    mock_get_domain.return_value = domain
+
+    result = await DomainService.verify_domain(
+        db,
+        domain_id = domain_id,
+        user_id = user_id,
+    )
+
+    mock_verify_dns.assert_not_awaited()
+    mock_save_domain.assert_not_awaited()
+
+    assert result == domain
