@@ -46,3 +46,41 @@ class ScanSourceCallbackRequest(BaseModel):
     findings: list[dict[str, Any]] = []
     assets: list[dict[str, Any]] = []
     error_message: str | None = None
+
+class FindingsCount(BaseModel):
+    critical: int
+    high: int
+    medium: int
+    low: int
+    info: int
+    total: int
+
+class MetricsResponse(BaseModel):
+    risk_score: int
+    risk_level: str
+    findings: FindingsCount
+    assets: dict[str, int]
+    services: dict[str, int]
+    technologies: dict[str, int]
+
+class DashboardFindingItem(BaseModel):
+    id: UUID
+    title: str
+    cve_id: str | None = None
+    severity: str
+    cvss_score: float | None = None
+    source: str
+    asset_identifier: str | None = None
+    description: str | None = None
+    recommendation: str | None = None
+
+class DashboardAssetItem(BaseModel):
+    id: UUID
+    identifier: str
+    asset_type: str
+    findings_count: int
+
+class RiskHistoryItem(BaseModel):
+    date: str
+    risk_score: int
+    total_findings: int
