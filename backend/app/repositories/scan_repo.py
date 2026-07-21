@@ -260,3 +260,12 @@ class ScanRepository:
                 "pdf_path": report.pdf_path,
             } if report else None,
         }
+
+    @staticmethod
+    async def update_scan_status(db: AsyncSession, scan_id: UUID, status: ScanStatus) -> None:
+        scan = await ScanRepository.get_scan_by_id(db, scan_id)
+        if scan:
+            scan.status = status
+            await db.commit()
+
+    
