@@ -209,3 +209,20 @@ async def initiate_active_scan(
         "message": "Phase 2 active scan initiated successfully",
         "scan_id": str(scan_id),
     }
+
+@router.get(
+    "/{scan_id}/metrics",
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_metrics(
+    scan_id: UUID,
+    db: DbSession,
+) -> dict[str, Any]:
+    """
+    Returns aggregated metrics for Risk Score, Findings,
+    Assets, Services, Technologies).
+    """
+    metrics = await ScanRepository.get_scan_metrics(db, scan_id)
+    if metrics is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found")
+    return metrics
