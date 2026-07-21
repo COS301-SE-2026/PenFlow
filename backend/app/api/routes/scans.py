@@ -226,3 +226,21 @@ async def get_scan_metrics(
     if metrics is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found")
     return metrics
+
+@router.get(
+    "/{scan_id}/findings",
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_findings(
+    scan_id: UUID,
+    db: DbSession,
+    severity: Optional[str] = Query(None, description="Filter by severity"),
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> list[dict[str, Any]]:
+    """
+    Retrieves detailed findings for a scan, ordered by highest risk.
+    """
+    return await ScanRepository.get_findings_by_scan(
+        db=db, scan_id=scan_id, severity=severity, limit=limit, offset=offset
+    )
