@@ -25,7 +25,6 @@ class Scan(Base):
     )
     domain = Column(String(255), nullable=False, index=True)
     email = Column(String(255))
-<<<<<<< HEAD
     scan_type = Column(Enum(ScanType), nullable=False, default=ScanType.PASSIVE_CTEM, index=True)
 =======
     scan_type = Column(String(50), nullable=False, defaults="passive_ctem", index=True)
