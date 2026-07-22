@@ -18,10 +18,10 @@ class Finding(Base):
     service_id = Column(UUID(as_uuid=True), ForeignKey("services.id", ondelete="SET NULL"), index=True)
     source = Column(String(100), nullable=False) #expl HaveIBeenPwned
     status = Column(
-        Enum(Findingstatus, values_callable=lambda enum: [item.value for item in enum],
+        Enum(FindingStatus, values_callable=lambda enum: [item.value for item in enum],
              name="finding_status"),
         nullable=False,
-        default=Findingstatus.OPEN,
+        default=FindingStatus.OPEN,
     )
     cvss_score = Column(Numeric(3, 1))
     cve_id = Column(String(50))

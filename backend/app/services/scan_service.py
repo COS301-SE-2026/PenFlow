@@ -18,7 +18,7 @@ class ScanService:
         scan_data: InitiateScanRequest,
         user_id: Any | None = None,
     ) -> Any:
-        logger.info("Initiating CTEM scan for domain: %s", scan_data.scan_type.value, scan_data.domain)
+        logger.info("Initiating %s scan for domain: %s", scan_data.scan_type.value, scan_data.domain)
 
         if scan_data.scan_type == ScanTypeEnum.ACTIVE_VULNERABILITY:
             if not scan_data.verified_domain_id:

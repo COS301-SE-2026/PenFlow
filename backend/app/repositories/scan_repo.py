@@ -257,8 +257,8 @@ class ScanRepository:
                      else str(scan.scan_type))
 
         expected_sources = SCAN_SOURCES_BY_TYPE.get(scan_type)
-        if expected_sources is None: raise 
-        ValueError(f"Unsupported scan type: {scan_type}")
+        if expected_sources is None:
+            raise ValueError(f"Unsupported scan type: {scan_type}")
 
         source_results = await db.execute(
             select(ScanSource).where(ScanSource.scan_id == scan_id,
@@ -391,9 +391,9 @@ class ScanRepository:
             {
                 "id": str(row.Finding.id),
                 "title": row.Finding.title,
-                "cve_id": None,
+                "cve_id": row.Finding.cve_id,
                 "severity": row.Finding.severity.value,
-                "cvss_score": None,
+                "cvss_score": float(row.Finding.cvss_score) if row.Finding.cvss_score else None,
                 "source": row.Finding.source,
                 "asset_identifier": row.asset_name,
                 "description": row.Finding.description,
@@ -403,7 +403,7 @@ class ScanRepository:
         ]
 
     @staticmethod
-    async def get_asset_by_scan(
+    async def get_assets_by_scan(
         db: AsyncSession,
         scan_id: UUID,
         limit: int = 10,
