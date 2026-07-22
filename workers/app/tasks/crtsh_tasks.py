@@ -1,4 +1,5 @@
 from typing import Any
+import json
 
 from app.queue.celery_app import celery_app
 from app.services.crt_sh_service import (
@@ -9,7 +10,6 @@ from app.services.crt_sh_service import (
 from app.utils.callback import send_source_callback
 
 JSONDict = dict[str, Any]
-
 
 @celery_app.task(name="scan.crt_sh")
 def run_crt_sh(scan_id: str, domain: str) -> JSONDict:

@@ -8,16 +8,40 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
-from app.models.base import ScanStatus, Severity
+from app.models.base import ScanStatus, Severity, Base
 from app.models.finding import Finding
 from app.models.report import Report
 from app.models.scan import Scan
 from app.models.scan_source import ScanSource, ScanSourceStatus
+from app.models.service import Service
+from app.models.detected_technology import DetectedTechnology
 
 logger = logging.getLogger(__name__)
 
 # This could easily change
-TOTAL_SCAN_SOURCES = ["dns", "urlscan", "wappalyzer", "crt.sh", "shodan", "hunter.io", "hibp"]
+PASSIVE_SCAN_SOURCES = (
+    "dns",
+    "urlscan",
+    "wappalyzer",
+    "crt.sh",
+    "shodan",
+    "hunter.io",
+    "hibp",
+)
+
+ACTIVE_SCAN_SOURCES = (
+    "target_resolution",
+    "nmap",
+    "http_headers",
+    "tls",
+    "technology_detection",
+    "cve_matching",
+)
+
+SCAN_SOURCES_BY_TYPE: dict[str, tuple[str, ...]] = {
+    "passive_ctem": PASSIVE_SCAN_SOURCES,
+    "active_vulnerability": ACTIVE_SCAN_SOURCES,
+}
 
 class ScanRepository:
 
@@ -25,15 +49,19 @@ class ScanRepository:
     async def create_scan(
         db: AsyncSession,
         domain: str,
+        scan_type: str = "passive_ctem",
         email: str | None = None,
         user_id: UUID | None = None,
+        verified_domain_id: UUID | None = None,
     ) -> Scan:
         """Creates a new pending scan record in the database."""
         try:
             new_scan = Scan(
                 domain=domain,
+                scan_type=scan_type,
                 email=email,
                 user_id=user_id,
+                verified_domain_id=verified_domain_id,
             )
             db.add(new_scan)
             await db.commit()
@@ -71,6 +99,12 @@ class ScanRepository:
             .group_by(Scan.id)
             .order_by(Scan.created_at.desc())
         )
+
+        if status:
+            query = query.where(Scan.status == status)
+
+        query = query.limit(limit)
+
         rows = (await db.execute(query)).all()
         return [
             {
@@ -166,13 +200,15 @@ class ScanRepository:
             
             await db.flush()
 
+            expected_sources = SCAN_SOURCES_BY_TYPE[scan.scan_type.value]
+
             source_status_results = await db.execute(
                 select(ScanSource.source_name, 
-                       ScanSource.status).where(ScanSource.scan_id == scan.id)
+                       ScanSource.status).where(ScanSource.scan_id == scan.id, ScanSource.source_name.in_(expected_sources))
             )
 
             source_statuses = source_status_results.all()
-            total_sources = len(TOTAL_SCAN_SOURCES)
+            total_sources = len(expected_sources)
 
             finished_statuses = [
                 ScanSourceStatus.COMPLETED,
@@ -219,16 +255,35 @@ class ScanRepository:
 
 
     @staticmethod
-    async def get_scan_status(db: AsyncSession, scan_id: UUID) -> dict[str, Any] | None:
+    async def get_scan_status(db: AsyncSession, scan_id: UUID, user_id: UUID | None) -> dict[str, Any] | None:
         scan = await ScanRepository.get_scan_by_id(db, scan_id)
 
         if not scan:
             return None
         
+        if scan.user_id is not None and scan.user_id != user_id:
+            return None
+        
+        scan_type = (
+            scan.scan_type.value
+            if hasattr(scan.scan_type, "value")
+            else str(scan.scan_type)
+        )
+
+        expected_sources = SCAN_SOURCES_BY_TYPE.get(scan_type)
+
+        if expected_sources is None:
+            raise ValueError(f"Unsupported scan type: {scan_type}")
+
         source_results = await db.execute(
-            select(ScanSource).where(ScanSource.scan_id == scan_id)
+            select(ScanSource).where(ScanSource.scan_id == scan_id, ScanSource.source_name.in_(expected_sources))
         )
         sources = source_results.scalars().all()
+
+        source_names = {
+            source.source_name: source
+            for source in sources
+        }
 
         report_result = await db.execute(
             select(Report).where(Report.scan_id == scan_id)
@@ -237,18 +292,187 @@ class ScanRepository:
 
         return {
             "scan_id": str(scan.id),
+            "domain": scan.domain,
+            "created_at": scan.created_at,
+            "scan_type": scan_type,
             "status": scan.status.value,
             "progress": scan.progress,
             "sources": [
                 {
-                    "source_name": source.source_name,
-                    "status": source.status.value,
-                    "error_message": source.error_message,
+                    "source_name": source,
+                    "status": (
+                        source_names[source].status.value
+                        if source in source_names
+                        else ScanSourceStatus.PENDING.value
+                    ),
+                    "error_message": (
+                        source_names[source].error_message
+                        if source in source_names
+                        else None
+                    ),
                 }
-                for source in sources
+                for source in expected_sources
             ],
             "report_status": {
                 "status": report.status.value,
                 "pdf_path": report.pdf_path,
             } if report else None,
         }
+
+    @staticmethod
+    async def update_scan_status(db: AsyncSession, scan_id: UUID, status: ScanStatus) -> None:
+        scan = await ScanRepository.get_scan_by_id(db, scan_id)
+        if scan:
+            scan.status = status
+            await db.commit()
+
+    @staticmethod
+    async def get_scan_metrics(db: AsyncSession, scan_id: UUID) -> dict[str, Any] | None:
+        scan = await ScanRepository.get_scan_by_id(db, scan_id)
+        if not scan:
+            return None
+
+        findings_stmt = (
+            select(Findings.severity, func.count(Finding.id))
+            .where(Finding.scan_id == scan_id)
+            .group_by(Finding.severity)
+        )
+        f_rows = (await db.execute(findings_stmt)).all()
+        findings_breakdown = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0, "total": 0}
+        for sev, count in f_rows:
+            key = sev.value.lower() if hasattr(sev, "value") else str(sev).lower()
+            if key in findings_breakdown:
+                findings_breakdown[key] = count
+                findings_breakdown["total"] += count
+
+        assets_stmt = (
+            select(Asset.asset_type, func.count(Asset.id))
+            .where(Asset.scan_id == scan_id)
+            .group_by(Asset.asset_type)
+        )
+        a_rows = (await db.execute(assets_stmt)).all()
+        assets_breakdown = {"total": 0}
+        for a_type, count in a_rows:
+            assets_breakdown[a_type] = count
+            assets_breakdown["total"] += count
+
+        services_stmt = (
+            select(func.count(Service.id))
+            .where(Service.scan_id == scan_id)
+        )
+        total_services = await db.scalar(services_stmt) or 0
+
+        tech_stmt = (
+            select(func.count(Detectedtechnology.id))
+            .where(DetectedTechnology.scan_id == scan_id)
+        )
+        total_tech = await db.scalar(tech_stmt) or 0
+
+        weighted_score = (
+            (findings_breakdown["critical"] * 25) +
+            (findings_breakdown["high"] * 15) +
+            (findings_breakdown["medium"] * 5) +
+            (findings_breakdown["low"] * 1)
+        )
+        risk_score = builtins.min(100, weighted_score)
+
+        return {
+            "risk_score": risk_score,
+            "risk_level": "HIGH RISK" if risk_score >= 70 else ("MEDIUM RISK" if risk_score >= 40 else "LOW RISK"),
+            "findings": findings_breakdown,
+            "assets": assets_breakdown,
+            "services": {"total": total_services},
+            "technologies": {"total": total_tech}
+        }
+
+    @staticmethod
+    async def get_findings_by_scan(
+        db: AsyncSession,
+        scan_id: UUID,
+        severity: str | None = None,
+        limit: int = 10,
+        offset: int = 0
+    ) -> list[dict[str, Any]]:
+        query = (
+            select(Finding, Asset.identifier.label("asset_name"))
+            .outerjoin(Asset, Finding.asset_id == Asset.id)
+            .where(Finding.scan_id == scan_id)
+        )
+
+        if severity:
+            query = query.where(Finding.severity == Severity(severity.lower()))
+
+        query = query.order_by(Finding.cvss_score.desc().nulls_last(), Finding.created_at.desc())
+        query = query.limit(limit).offset(offset)
+
+        rows = (await db.execute(query)).all()
+        return [
+            {
+                "id": str(row.Finding.id),
+                "title": row.Finding.title,
+                "cve_id": row.Finding.cve_id,
+                "severity": row.Finding.severity.value,
+                "cvss_score": float(row.Finding.cvss_score) if row.Finding.cvss_score else None,
+                "source": row.Finding.source,
+                "asset_identifier": row.asset_name,
+                "description": row.Finding.description,
+                "recommendation": row.Finding.recommendation,
+            }
+            for row in rows
+        ]
+
+    @staticmethod
+    async def get_asset_by_scan(
+        db: AsyncSession,
+        scan_id: UUID,
+        limit: int = 10,
+        offset: int = 0
+    ) -> list[dict[str, Any]]:
+        query = (
+            select(
+                Asset,
+                func.count(Finding.id).label("findings_count")
+            )
+            .outerjoin(Finding, Finding.asset_id == Asset.id)
+            .where(Asset.scan_id == scan_id)
+            .group_by(Asset.id)
+            .order_by(func.count(Finding.id).desc())
+            .limit(limit)
+            .offset(offset)
+        )
+
+        rows = (await db.execute(query)).all()
+        return [
+            {
+                "id": str(row.Asset.id),
+                "identifier": row.Asset.identifier,
+                "asset_type": row.Asset.asset_type,
+                "findings_count": row.finding_count,
+            }
+            for row in rows
+        ]
+
+    @staticmethod
+    async def get_domain_risk_history(db: AsyncSession, scan_id: UUID) -> list[dict[str, Any]]:
+        scan = await ScanRepository.get_scan_by_id(db, scan_id)
+        if not scan:
+            return []
+
+        query = (
+            select(Scan.id, Scan.created_at)
+            .where(Scan.domain == scan.domain, Scan.status == ScanStatus.COMPLETED)
+            .order_by(Scan.created_at.asc())
+            .limit(10)
+        )
+        historical_scans = (await db.execute(query)).all()
+
+        history = []
+        for h_scan_id, h_created_at in historical_scans:
+            metrics = await ScanRepository.get_scan_metrics(db, h_scan_id)
+            if metrics:
+                history.append({
+                    "date": h_created_at.strftime("%b %d"),
+                    "risk_score": metrics["risk_score"],
+                    "total_findings": metrics["findings"]["total"]
+                })
+        return history

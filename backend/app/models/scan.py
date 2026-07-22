@@ -1,12 +1,15 @@
 import uuid
 from datetime import datetime, timezone
-
+import enum
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base, ScanStatus
 
+class ScanType(enum.Enum):
+    PASSIVE_CTEM = "passive_ctem"
+    ACTIVE_VULNERABILITY = "active_vulnerability"
 
 class Scan(Base):
     __tablename__ = "scans"
@@ -22,6 +25,20 @@ class Scan(Base):
     )
     domain = Column(String(255), nullable=False, index=True)
     email = Column(String(255))
+    scan_type = Column(Enum(
+        ScanType, name = "scan_type", 
+        create_type = False,
+        values_callable = lambda enum_class: [
+            member.value for member in enum_class
+        ],
+    ), 
+    nullable=False, default=ScanType.PASSIVE_CTEM, index=True)
+    verified_domain_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("verified_domains.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
     status = Column(
         Enum(ScanStatus, values_callable=lambda enum: [item.value for item in enum],
              name="scan_status"),
