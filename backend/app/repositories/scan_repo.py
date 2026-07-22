@@ -30,12 +30,16 @@ PASSIVE_SCAN_SOURCES = (
 )
 
 ACTIVE_SCAN_SOURCES = (
+    "dns",
+    "crt.sh",
+    "shodan",
+    "hibp",
     "target_resolution",
     "nmap",
-    "http_headers",
+    "http_security",
     "tls",
-    "technology_detection",
-    "cve_matching",
+    "fingerprint",
+    "cve",
 )
 
 SCAN_SOURCES_BY_TYPE: dict[str, tuple[str, ...]] = {
