@@ -31,6 +31,8 @@ class ScanHistoryItem(BaseModel):
     domain: str
     created_at: datetime
     status: ScanStatus
+    scan_type: ScanTypeEnum
+    progress: int
     total_findings: int
     critical_count: int
     high_count: int

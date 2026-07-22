@@ -10,7 +10,6 @@ from app.models.verified_domain import DomainVerificationCode
 class VerificationService:
     @staticmethod
     def generate_txt_token() -> str:
-        """Generates a secure, random token for DNS TXT verification."""
         return f"penflow-verification={secrets.token_hex(32)}"
 
 

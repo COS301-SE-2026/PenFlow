@@ -12,7 +12,7 @@ from app.repositories.report_repository import get_report_by_scan_id
 from app.repositories.scan_repo import ScanRepository
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.report import EmailReportRequest
-from app.schemas.scan import InitiateScanRequest, InitiateScanResponse, ScanHistoryItem, MetricResponse, DashboardFindingItem, DashboardAssetItem, RiskHistory
+from app.schemas.scan import InitiateScanRequest, InitiateScanResponse, ScanHistoryItem, MetricResponse, DashboardFindingItem, DashboardAssetItem, RiskHistoryItem
 from app.services.email_service import send_report_email
 from app.services.scan_service import ScanService
 from app.utils.db import get_db
@@ -178,7 +178,7 @@ async def get_scan_metrics(
 ) -> dict[str, Any]:
     """
     Returns aggregated metrics for Risk Score, Findings,
-    Assets, Services, Technologies).
+    Assets, Services, Technologies.
     """
     metrics = await ScanRepository.get_scan_metrics(db, scan_id)
     if metrics is None:

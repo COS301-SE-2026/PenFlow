@@ -19,3 +19,10 @@ class Severity(str,enum.Enum):
     MEDIUM = 'medium'
     HIGH = 'high'
     CRITICAL = 'critical'
+
+class FindingStatus(str, enum.Enum):
+    OPEN = 'open'
+    IN_PROGRESS = 'in_progress'
+    RESOLVED = 'resolved'
+    ACCEPTED_RISK = 'accepted_risk'
+    FALSE_POSITIVE = 'false_positive'
