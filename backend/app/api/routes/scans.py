@@ -81,11 +81,24 @@ async def initiate_ctem_scan(
 @router.get("/{scan_id}/status")
 async def get_scan_status(
     scan_id: UUID,
+    current_user: CurrentUserOptional,
     db: DbSession,
 ) -> dict[str, Any]:
+    
+    user_id = None
+    if current_user is not None:
+        user_id = await get_user_id_by_provider_id(db, current_user["sub"])
+
+        if user_id is None:
+            raise HTTPException(
+                status_code = status.HTTP_404_NOT_FOUND,
+                detail = "User not found",
+            )
+        
     status_info = await ScanRepository.get_scan_status(
         db,
         scan_id,
+        user_id = user_id,
     )
 
     if not status_info:

@@ -17,7 +17,29 @@ from app.models.scan_source import ScanSource, ScanSourceStatus
 logger = logging.getLogger(__name__)
 
 # This could easily change
-TOTAL_SCAN_SOURCES = ["dns", "urlscan", "wappalyzer", "crt.sh", "shodan", "hunter.io", "hibp"]
+PASSIVE_SCAN_SOURCES = (
+    "dns",
+    "urlscan",
+    "wappalyzer",
+    "crt.sh",
+    "shodan",
+    "hunter.io",
+    "hibp",
+)
+
+ACTIVE_SCAN_SOURCES = (
+    "target_resolution",
+    "nmap",
+    "http_headers",
+    "tls",
+    "technology_detection",
+    "cve_matching",
+)
+
+SCAN_SOURCES_BY_TYPE: dict[str, tuple[str, ...]] = {
+    "passive_ctem": PASSIVE_SCAN_SOURCES,
+    "active_vulnerability": ACTIVE_SCAN_SOURCES,
+}
 
 class ScanRepository:
 
@@ -219,16 +241,35 @@ class ScanRepository:
 
 
     @staticmethod
-    async def get_scan_status(db: AsyncSession, scan_id: UUID) -> dict[str, Any] | None:
+    async def get_scan_status(db: AsyncSession, scan_id: UUID, user_id: UUID | None) -> dict[str, Any] | None:
         scan = await ScanRepository.get_scan_by_id(db, scan_id)
 
         if not scan:
             return None
         
+        if scan.user_id is not None and scan.user_id != user_id:
+            return None
+        
+        scan_type = (
+            scan.scan_type.value
+            if hasattr(scan.scan_type, "value")
+            else str(scan.scan_type)
+        )
+
+        expected_sources = SCAN_SOURCES_BY_TYPE.get(scan_type)
+
+        if expected_sources is None:
+            raise ValueError(f"Unsupported scan type: {scan_type}")
+
         source_results = await db.execute(
-            select(ScanSource).where(ScanSource.scan_id == scan_id)
+            select(ScanSource).where(ScanSource.scan_id == scan_id, ScanSource.source_name.in_(expected_sources))
         )
         sources = source_results.scalars().all()
+
+        source_names = {
+            source.source_name: source
+            for source in sources
+        }
 
         report_result = await db.execute(
             select(Report).where(Report.scan_id == scan_id)
@@ -237,15 +278,26 @@ class ScanRepository:
 
         return {
             "scan_id": str(scan.id),
+            "domain": scan.domain,
+            "created_at": scan.created_at,
+            "scan_type": scan_type,
             "status": scan.status.value,
             "progress": scan.progress,
             "sources": [
                 {
-                    "source_name": source.source_name,
-                    "status": source.status.value,
-                    "error_message": source.error_message,
+                    "source_name": source,
+                    "status": (
+                        source_names[source].status.value
+                        if source in source_names
+                        else ScanSourceStatus.PENDING.value
+                    ),
+                    "error_message": (
+                        source_names[source].error_message
+                        if source in source_names
+                        else None
+                    ),
                 }
-                for source in sources
+                for source in expected_sources
             ],
             "report_status": {
                 "status": report.status.value,
