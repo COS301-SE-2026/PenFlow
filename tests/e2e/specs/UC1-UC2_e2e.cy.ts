@@ -1,4 +1,4 @@
-//user initate the the scan by entering a domain ,and view a breif hisotry
+//user initate the the scan by entering a domain ,and view a breif report
 describe("Initiate scan and view report",() => {
     it("submits a domain, waits for the scan, and views the report",()=> {
         cy.visit("/");
