@@ -477,3 +477,26 @@ async def test_delete_domain(mock_get_domain, mock_delete_domain):
     )
 
     assert result is None
+
+
+@pytest.mark.asyncio
+@patch("app.services.domain_service.DomainRepository.delete_domain", new_callable=AsyncMock)
+@patch("app.services.domain_service.DomainRepository.get_by_id", new_callable=AsyncMock)
+async def test_delete_domain_not_found(mock_get_domain, mock_delete_domain):
+    db = AsyncMock()
+    domain_id = uuid4()
+    user_id = uuid4()
+
+    mock_get_domain.return_value = None
+
+    with pytest.raises(HTTPException) as excep:
+        await DomainService.delete_domain(
+            db,
+            domain_id = domain_id,
+            user_id = user_id,
+        )
+
+    assert excep.value.status_code == 404
+    assert excep.value.detail == "Domain record was not found"
+
+    mock_delete_domain.assert_not_awaited()
