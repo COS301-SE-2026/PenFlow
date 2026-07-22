@@ -441,3 +441,39 @@ async def test_verify_domain_unsuccessful(mock_get_domain, mock_verify_dns, mock
         db,
         domain,
     )
+
+
+@pytest.mark.asyncio
+@patch("app.services.domain_service.DomainRepository.delete_domain", new_callable=AsyncMock)
+@patch("app.services.domain_service.DomainRepository.get_by_id", new_callable=AsyncMock)
+async def test_delete_domain(mock_get_domain, mock_delete_domain):
+    db = AsyncMock()
+    domain_id = uuid4()
+    user_id = uuid4()
+
+    domain = SimpleNamespace(
+        id = domain_id,
+        domain = "test.com",
+        user_id = user_id,
+    )
+
+    mock_get_domain.return_value = domain
+
+    result = await DomainService.delete_domain(
+        db,
+        domain_id = domain_id,
+        user_id = user_id,
+    )
+
+    mock_get_domain.assert_awaited_once_with(
+        db,
+        domain_id = domain_id,
+        user_id = user_id,
+    )
+
+    mock_delete_domain.assert_awaited_once_with(
+        db, 
+        domain,
+    )
+
+    assert result is None
