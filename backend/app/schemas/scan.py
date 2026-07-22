@@ -1,11 +1,12 @@
 from datetime import datetime
+from enum import Enum
 from typing import Any
 from uuid import UUID
-from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.base import ScanStatus
+
 
 class ScanTypeEnum(str, Enum):
     PASSIVE_CTEM = "passive_ctem"
@@ -13,8 +14,17 @@ class ScanTypeEnum(str, Enum):
 
 
 class InitiateScanRequest(BaseModel):
-    domain: str = Field(...,description="The target domain to scan", json_schema_extra={"example": "exmpl.com"}) # noqa: E501
-    scan_type: ScanTypeEnum = Field(default=ScanTypeEnum.PASSIVE_CTEM, description="Type of scan to perform")
+    domain: str = Field(
+        ...,
+        description="The target domain to scan", 
+        json_schema_extra={"example": "exmpl.com"}
+    )
+
+    scan_type: ScanTypeEnum = Field(
+        default=ScanTypeEnum.PASSIVE_CTEM, 
+        description="Type of scan to perform",
+    )
+    
     verified_domain_id: UUID | None = Field(default=None, description="Required for active scans")
     email: EmailStr | None = Field(None,description="email to send the report to")
 

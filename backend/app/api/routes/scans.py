@@ -1,9 +1,9 @@
 import logging
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Optional
 from uuid import UUID
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status 
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +12,15 @@ from app.repositories.report_repository import get_report_by_scan_id
 from app.repositories.scan_repo import ScanRepository
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.report import EmailReportRequest
-from app.schemas.scan import InitiateScanRequest, InitiateScanResponse, ScanHistoryItem, MetricsResponse, DashboardFindingItem, DashboardAssetItem, RiskHistoryItem
+from app.schemas.scan import (
+    DashboardAssetItem,
+    DashboardFindingItem,
+    InitiateScanRequest,
+    InitiateScanResponse,
+    MetricsResponse,
+    RiskHistoryItem,
+    ScanHistoryItem,
+)
 from app.services.email_service import send_report_email
 from app.services.scan_service import ScanService
 from app.utils.db import get_db
@@ -231,7 +239,9 @@ async def get_scan_assets(
     """
     Retrieves discovered assets along with their associated finding counts.
     """
-    return await ScanRepository.get_assets_by_scan(db=db, scan_id=scan_id, limit=limit, offset=offset)
+    return await ScanRepository.get_assets_by_scan(
+        db=db, scan_id=scan_id, limit=limit, offset=offset
+    )
 
 @router.get(
     "/{scan_id}/risk-history",

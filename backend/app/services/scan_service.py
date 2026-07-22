@@ -5,8 +5,8 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.queue.celery_app import celery_app
-from app.repositories.scan_repo import ScanRepository
 from app.repositories.domain_repository import DomainRepository
+from app.repositories.scan_repo import ScanRepository
 from app.schemas.scan import InitiateScanRequest, ScanTypeEnum
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,11 @@ class ScanService:
         scan_data: InitiateScanRequest,
         user_id: Any | None = None,
     ) -> Any:
-        logger.info("Initiating CTEM scan for domain: %s", scan_data.scan_type.value, scan_data.domain)
+        logger.info(
+            "Initiating CTEM scan for domain: %s", 
+            scan_data.scan_type.value, 
+            scan_data.domain,
+        )
 
         if scan_data.scan_type == ScanTypeEnum.ACTIVE_VULNERABILITY:
             if not scan_data.verified_domain_id:
@@ -32,7 +36,12 @@ class ScanService:
                     detail="Authentication required for active scans."
                 )
 
-            verified_domain = await DomainRepository.get_by_id(db, scan_data.verified_domain_id, user_id)
+            verified_domain = await DomainRepository.get_by_id(
+                db, 
+                scan_data.verified_domain_id, 
+                user_id,
+            )
+
             if not verified_domain or verified_domain.status.value != "verified":
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
@@ -62,7 +71,11 @@ class ScanService:
                     "scan.phase2_full",
                     args=[str(scan_record.id), scan_data.domain]
                 )
-                logger.info("Queued Active Phase 2 workflow %s for scan %s", task.id, scan_record.id)
+                logger.info(
+                    "Queued Active Phase 2 workflow %s for scan %s", 
+                    task.id, 
+                    scan_record.id,
+                )
             else:
                 task = celery_app.send_task(
                     "scan.full",

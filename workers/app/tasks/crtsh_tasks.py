@@ -1,5 +1,4 @@
 from typing import Any
-import json
 
 from app.queue.celery_app import celery_app
 from app.services.crt_sh_service import (

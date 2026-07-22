@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
-from app.models.verified_domain import DomainVerificationStatus, DomainVerificationCode
+from app.models.verified_domain import DomainVerificationCode, DomainVerificationStatus
 from app.schemas.domain import DomainItem, DomainSortField, SortOrder
 from app.services.domain_service import DomainService
 
@@ -401,7 +401,14 @@ async def test_verify_domain_success(mock_get_domain, mock_verify_dns, mock_save
 @patch("app.services.domain_service.DomainRepository.save_domain", new_callable=AsyncMock)
 @patch("app.services.domain_service.VerificationService.verify_dns_txt", new_callable=AsyncMock)
 @patch("app.services.domain_service.DomainRepository.get_by_id", new_callable=AsyncMock)
-async def test_verify_domain_unsuccessful(mock_get_domain, mock_verify_dns, mock_save_domain, code, detail):
+async def test_verify_domain_unsuccessful(
+    mock_get_domain,
+    mock_verify_dns,
+    mock_save_domain,
+    code,
+    detail,
+):
+    
     db = AsyncMock()
     domain_id = uuid4()
     user_id = uuid4()
