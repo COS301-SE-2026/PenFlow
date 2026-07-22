@@ -200,13 +200,15 @@ class ScanRepository:
             
             await db.flush()
 
+            expected_sources = SCAN_SOURCES_BY_TYPE[scan.scan_type.value]
+
             source_status_results = await db.execute(
                 select(ScanSource.source_name, 
-                       ScanSource.status).where(ScanSource.scan_id == scan.id)
+                       ScanSource.status).where(ScanSource.scan_id == scan.id, ScanSource.source_name.in_(expected_sources))
             )
 
             source_statuses = source_status_results.all()
-            total_sources = len(TOTAL_SCAN_SOURCES)
+            total_sources = len(expected_sources)
 
             finished_statuses = [
                 ScanSourceStatus.COMPLETED,
@@ -411,10 +413,10 @@ class ScanRepository:
                 "cve_id": row.Finding.cve_id,
                 "severity": row.Finding.severity.value,
                 "cvss_score": float(row.Finding.cvss_score) if row.Finding.cvss_score else None,
-                "source": row.Finding.source
+                "source": row.Finding.source,
                 "asset_identifier": row.asset_name,
                 "description": row.Finding.description,
-                "recommedation": row.Finding.recommendation,
+                "recommendation": row.Finding.recommendation,
             }
             for row in rows
         ]
@@ -447,7 +449,7 @@ class ScanRepository:
                 "asset_type": row.Asset.asset_type,
                 "findings_count": row.finding_count,
             }
-            for row in 
+            for row in rows
         ]
 
     @staticmethod
@@ -464,7 +466,7 @@ class ScanRepository:
         )
         historical_scans = (await db.execute(query)).all()
 
-        history []
+        history = []
         for h_scan_id, h_created_at in historical_scans:
             metrics = await ScanRepository.get_scan_metrics(db, h_scan_id)
             if metrics:
