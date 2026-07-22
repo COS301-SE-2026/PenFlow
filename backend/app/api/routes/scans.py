@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status 
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +12,7 @@ from app.repositories.report_repository import get_report_by_scan_id
 from app.repositories.scan_repo import ScanRepository
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.report import EmailReportRequest
-from app.schemas.scan import InitiateScanRequest, InitiateScanResponse, ScanHistoryItem
+from app.schemas.scan import InitiateScanRequest, InitiateScanResponse, ScanHistoryItem, MetricResponse, DashboardFindingItem, DashboardAssetItem, RiskHistory
 from app.services.email_service import send_report_email
 from app.services.scan_service import ScanService
 from app.utils.db import get_db
@@ -179,3 +179,70 @@ async def email_scan_report(
     )
 
     return {"message": "Report emailed successfully"}
+
+@router.get(
+    "/{scan_id}/metrics",
+    response_model=MetricsResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_metrics(
+    scan_id: UUID,
+    db: DbSession,
+) -> dict[str, Any]:
+    """
+    Returns aggregated metrics for Risk Score, Findings,
+    Assets, Services, Technologies).
+    """
+    metrics = await ScanRepository.get_scan_metrics(db, scan_id)
+    if metrics is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found")
+    return metrics
+
+@router.get(
+    "/{scan_id}/findings",
+    response_model=list[DashboardFindingItem],
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_findings(
+    scan_id: UUID,
+    db: DbSession,
+    severity: Optional[str] = Query(None, description="Filter by severity"),
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> list[dict[str, Any]]:
+    """
+    Retrieves detailed findings for a scan, ordered by highest risk.
+    """
+    return await ScanRepository.get_findings_by_scan(
+        db=db, scan_id=scan_id, severity=severity, limit=limit, offset=offset
+    )
+
+@router.get(
+    "/{scan_id}/assets",
+    response_model=list[DashboardAssetItem],
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_assets(
+    scan_id: UUID,
+    db: DbSession,
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> list[dict[str, Any]]:
+    """
+    Retrieves discovered assets along with their associated finding counts.
+    """
+    return await ScanRepository.get_assets_by_scan(db=db, scan_id=scan_id, limit=limit, offset=offset)
+
+@router.get(
+    "/{scan_id}/risk-history",
+    response_model=list[RiskHistoryItem],
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_risk_history(
+    scan_id: UUID,
+    db: DbSession,
+) -> list[dict[str, Any]]:
+    """
+    Retrieves historical risk scores for the domain to render the risk over time graph.
+    """
+    return await ScanRepository.get_domain_risk_history(db=db, scan_id=scan_id)

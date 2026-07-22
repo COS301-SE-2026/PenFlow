@@ -25,7 +25,11 @@ class Scan(Base):
     )
     domain = Column(String(255), nullable=False, index=True)
     email = Column(String(255))
+<<<<<<< HEAD
     scan_type = Column(Enum(ScanType), nullable=False, default=ScanType.PASSIVE_CTEM, index=True)
+=======
+    scan_type = Column(String(50), nullable=False, defaults="passive_ctem", index=True)
+>>>>>>> 8e34c05d7db4c0584fb919e60f4a1e8ce1f00087
     verified_domain_id = Column(
         UUID(as_uuid=True),
         ForeignKey("verified_domains.id", ondelete="SET NULL"),
