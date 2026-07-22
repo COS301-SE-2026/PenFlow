@@ -1,5 +1,5 @@
 //send scan report via email
-//don't really send to hit an email ,input  and example and the system will display sent after send.
+//don't  send to hit an email ,input  and example and the system will display sent after send.
 describe("send scan report to inputted email",()=>{
     beforeEach(()=>{
         cy.login("1234","1234");

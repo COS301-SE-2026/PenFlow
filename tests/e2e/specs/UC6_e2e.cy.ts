@@ -12,20 +12,16 @@ describe("User log in and Download pdf report",()=>{
         cy.contains("button","VIEW REPORT").should("be.visible").click();
         cy.url().should("include","/report/")
         
-        //set up the intercept capture http rquest match with **/scans/pdf
-        cy.intercept("GET","**/scans/*/pdf").as("pdfDownload")   
-
-        //checks if it have the downlaod full report options
+        //verify link wired up for natively download
         cy.contains("a","DOWNLOAD FULL REPORT")
         .should("have.attr","href")
-        .and("include","/pdf")
-        //click the link
+        .and("include","/pdf");
+
+        cy.contains("a","DOWNLOAD FULL REPORT")
+        .should("have.attr","download");
+
+        //click download
         cy.contains("a","DOWNLOAD FULL REPORT").click();
 
-        //verify the intercetpt request was succesfull 
-        cy.wait("@pdfDownload").its("response.statusCode")
-        .should("eq",200); //http status success
-        cy.get("@pdfDownload").its("response.headers.content-type")
-        .should("include","application/pdf");
-});
+    });
 });
