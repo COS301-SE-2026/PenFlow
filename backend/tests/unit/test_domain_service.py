@@ -378,3 +378,66 @@ async def test_verify_domain_success(mock_get_domain, mock_verify_dns, mock_save
     assert domain.last_verification_code == DomainVerificationCode.VERIFIED
     assert domain.verified_at is not None
     assert domain.expires_at is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("code", "detail"),
+    [
+        (
+            DomainVerificationCode.RECORD_NOT_FOUND,
+            "The verification TXT record could not be found.",
+        ),
+        (
+            DomainVerificationCode.TOKEN_MISMATCH,
+            "A TXT record was found, but the verification token did not match.",
+        ),
+        (
+            DomainVerificationCode.LOOKUP_FAILED,
+            "The DNS lookup could not be completed. Please try again later.",
+        ),
+    ],
+)
+@patch("app.services.domain_service.DomainRepository.save_domain", new_callable=AsyncMock)
+@patch("app.services.domain_service.VerificationService.verify_dns_txt", new_callable=AsyncMock)
+@patch("app.services.domain_service.DomainRepository.get_by_id", new_callable=AsyncMock)
+async def test_verify_domain_unsuccessful(mock_get_domain, mock_verify_dns, mock_save_domain, code, detail):
+    db = AsyncMock()
+    domain_id = uuid4()
+    user_id = uuid4()
+
+    domain = SimpleNamespace(
+        id = domain_id,
+        domain = "test.com",
+        user_id = user_id,
+        verification_token = "penflow-verification=test-token",
+        status = DomainVerificationStatus.PENDING,
+        last_checked_at = None,
+        last_verification_code = None,
+        verified_at = None,
+        expires_at = None,
+    )
+
+    mock_get_domain.return_value = domain
+    mock_verify_dns.return_value = code
+    mock_save_domain.return_value = domain
+
+    with pytest.raises(HTTPException) as excep:
+        await DomainService.verify_domain(
+            db,
+            domain_id = domain_id,
+            user_id = user_id,
+        )
+
+    assert excep.value.status_code == 400
+    assert excep.value.detail == detail
+
+    assert domain.status == DomainVerificationStatus.PENDING
+    assert domain.last_checked_at is not None
+    assert domain.last_verification_code == code
+    assert domain.verified_at is None
+
+    mock_save_domain.assert_awaited_once_with(
+        db,
+        domain,
+    )
