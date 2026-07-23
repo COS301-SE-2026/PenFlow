@@ -60,4 +60,4 @@ RUN adduser --disabled-password --gecos "" appuser && \
 
 USER appuser
 
-CMD ["celery", "-A", "app.queue.celery_app:celery_app", "worker", "--loglevel=info", "--concurrency=4"]
+CMD ["celery", "-A", "app.queue.celery_app:celery_app", "worker", "--loglevel=info", "--concurrency=2"]

@@ -2,6 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+import os
 import app.models  # noqa: F401 — registers all SQLAlchemy mappers before any query runs
 from app.api.routes import domains, health, internal, scans, summary, users
 from app.realtime import stream
