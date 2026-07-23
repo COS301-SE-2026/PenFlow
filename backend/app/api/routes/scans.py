@@ -266,3 +266,35 @@ async def get_scan_findings_page(
         "counts": counts,
         "items": items,
     }
+
+@router.get(
+    "/{scan_id}/services-page",
+    response_model=ServiceListResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_services_page(
+    scan_id: UUID,
+    db: DbSession,
+    protocol: Optional[str] = Query(None, description="Filter by protocol, TCP/UDP"),
+    search: Optional[str] = Query(None, description="Search query string"),
+    sort_by: str = Query("open", description="Sort criteria"),
+    limit: int = Query(15, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> dict[str, Any]:
+    """
+    Provides full table data and summary cards for the Services tab.
+    """
+    items, counts = await ScanRepository.get_services_page(
+        db=db,
+        scan_id=scan_id,
+        protocol=protocol,
+        search=search,
+        sort_by=sort_by,
+        limit=limit,
+        offset=offset,
+    )
+    return {
+        "total": counts["total"],
+        "counts": counts,
+        "items": items,
+    }
