@@ -457,3 +457,91 @@ class ScanRepository:
                     "total_findings": metrics["findings"]["total"]
                 })
         return history
+
+    @staticmethod
+    async def get_findings_page(
+        db: AsyncSession,
+        scan_id: UUID,
+        severity: str | None = None,
+        search: str | None = None,
+        sort_by: str = "severity",
+        limit: int = 12,
+        offset: int = 0,
+    ) -> tuple[list[dict[str, Any]], dict[str, int]]:
+        """
+        Retrieves paginated, filtered and sorted findings for the Findings tab,
+        along with overall severity counts for the top cards.
+        """
+
+        base_query = select(Finding).where(Finding.scan_id == scan_id)
+
+        counts_stmt = select(Finding.severity, func.count(Finding.id)).where(Finding.scan_id == scan_id).group_by(Finding.severity)
+        c_rows = (await db.execute(counts_stmt)).all()
+
+        counts = {"critical":0, "high": 0, "medium":0, "low_info": 0, "total": 0}
+        for sev, count in c_rows:
+            key = sev.value.lower() if hasattr(sev, "value") else str(sev).lower()
+            if key in counts:
+                counts[key] = count
+            elif key in ["low", "info"]:
+                counts["low_info"] += count
+            counts["total"] += count
+
+        query = (
+            select(Finding, Asset.identifier.label("asset_name"), Asset.asset_type.label("asset_type"))
+            .outerjoin(Asset, Finding.asset_id == Asset.id)
+            .where(Finding.scan_id == scan_id)
+        )
+
+        if severity and severity.lower() != "all":
+            if severity.lower() == "low_info":
+                query = query.where(Finding.severity.in_([Severity.LOW, Severity.INFO]))
+            else:
+                query = query.where(Finding.severity == Severity(severity.lower()))
+
+        if search:
+            search_term = f"{search.strip()}%"
+            query = query.where(
+                (Finding.title.ilike(search_term)) |
+                (Finding.description.ilike(search_term)) |
+                (Asset.identifier.ilike(search_term))
+            )
+
+        if sort_by == "severity":
+            severity_case = case(
+                (Finding.severity == Severity.CRITICAL, 5),
+                (Finding.severity == Severity.HIGH, 4),
+                (Finding.severity == Severity.MEDIUM, 3),
+                (Finding.severity == Severity.LOW, 2),
+                else_=1
+            ).label("sev_rank")
+            query = query.order_by(severity_case.desc(), Finding.cvss_score.desc().nulls_last())
+        elif sort_by == "cvss":
+            query = query.order_by(Finding.cvss_score.desc().nulls_last())
+        else:
+            query = query.order_by(Finding.created_at.desc())
+
+        query = query.limit(limit).offset(offset)
+        rows = (await db.execute(query)).all()
+
+        items= []
+        for row in rows:
+            f = row.Finding
+            items.append({
+                "id": str(f.id),
+                "title": f.title,
+                "severity": f.severity.value,
+                "cvss_score": float(f.cvss_score) if f.cvss_score else None,
+                "cve_id": f.cve_id,
+                "source": f.source,
+                "status": f.status.value if hasattr(f.status, "value") else str(f.status),
+                "description": f.description,
+                "recommendation": f.recommendation,
+                "asset_identifier": row.asset_name,
+                "asset_type": row.asset_type,
+                "evidence": f.evidence,
+                "created_at": f.created_at,
+            })
+
+        return items, counts
+            
