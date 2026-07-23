@@ -121,3 +121,8 @@ class ServiceListItem(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class ServiceListResponse(BaseModel):
+    total: int
+    counts: ServiceSummaryCounts
+    items: list[dict[str, Any]]
