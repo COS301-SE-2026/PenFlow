@@ -93,3 +93,8 @@ class FindingSeverityCounts(BaseModel):
     medium: int
     low_info: int
     total: int
+
+class FindingListResponse(BaseModel):
+    total: int
+    counts: FindingSeverityCounts
+    items: list[dict[str, Any]]
