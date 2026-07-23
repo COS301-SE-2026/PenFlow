@@ -98,3 +98,10 @@ class FindingListResponse(BaseModel):
     total: int
     counts: FindingSeverityCounts
     items: list[dict[str, Any]]
+
+class ServiceSummaryCounts(BaseModel):
+    total: int
+    tcp: int
+    udp: int
+    open: int
+    filtered: int

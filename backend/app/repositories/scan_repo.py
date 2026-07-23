@@ -500,7 +500,7 @@ class ScanRepository:
                 query = query.where(Finding.severity == Severity(severity.lower()))
 
         if search:
-            search_term = f"{search.strip()}%"
+            search_term = f"%{search.strip()}%"
             query = query.where(
                 (Finding.title.ilike(search_term)) |
                 (Finding.description.ilike(search_term)) |
