@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.report import Report
-from app.models.report_status import ReportStatus
+from app.models.base import ReportStatus
 from app.models.scan import Scan
 
 

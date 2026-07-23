@@ -7,9 +7,8 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
-from app.models.base import ScanStatus, Severity
+from app.models.base import ScanStatus, Severity, ReportStatus
 from app.models.finding import Finding
-from app.models.report_status import ReportStatus
 from app.models.scan_source import ScanSource, ScanSourceStatus
 from app.repositories.report_repository import (
     get_report_by_scan_id,
