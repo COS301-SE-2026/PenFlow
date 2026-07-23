@@ -233,3 +233,36 @@ async def get_scan_risk_history(
     Retrieves historical risk scores for the domain to render the risk over time graph.
     """
     return await ScanRepository.get_domain_risk_history(db=db, scan_id=scan_id)
+
+@router.get(
+    "/{scan_id}/findings-page",
+    response_model=FindingListResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_findings_page(
+    scan_id: UUID,
+    db: DbSession,
+    severity: Optional[str] = Query(None, description="Filter by severity category"),
+    search: Optional[str] = Query(None, description="Search query string"),
+    sort_by: str = Query("severity", description="Sort criteria (severity, cvss, newest)"),
+    limit: int = Query(12, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> dict[str, Any]:
+    """
+    Provides full card grid data for the Findings tab, including top metric counts
+    and side drawer attributes.
+    """
+    items, counts = await ScanRepository.get_findings_page(
+        db=db,
+        scan_id=scan_id,
+        severity=severity,
+        search=search,
+        sort_by=sort_by,
+        limit=limit,
+        offset=offset,
+    )
+    return {
+        "total": counts["total"],
+        "counts": counts,
+        "items": items,
+    }
