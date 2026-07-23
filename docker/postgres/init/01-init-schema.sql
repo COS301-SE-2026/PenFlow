@@ -55,8 +55,7 @@ CREATE TYPE finding_status AS ENUM (
 CREATE TYPE scan_schedule_frequency AS ENUM (
     'daily',
     'weekly',
-    'monthly',
-    'yearly'
+    'monthly'
 );
 
 CREATE TYPE domain_verification_code AS ENUM (
@@ -198,13 +197,24 @@ CREATE TABLE reports (
 CREATE TABLE scan_schedules (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organisation_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    scan_type scan_type NOT NULL DEFAULT 'active_vulnerability',
     verified_domain_id UUID NOT NULL REFERENCES verified_domains(id) ON DELETE CASCADE,
     frequency scan_schedule_frequency NOT NULL,
+    run_time TIME NOT NULL,
+    day_of_week SMALLINT,
+    day_of_month SMALLINT,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     next_run_at TIMESTAMPTZ NOT NULL,
     last_run_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    timezone VARCHAR(64) NOT NULL DEFAULT 'Africa/Johannesburg',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CHECK (day_of_week IS NULL OR day_of_week BETWEEN 0 AND 6),
+    CHECK (day_of_month IS NULL OR day_of_month BETWEEN 1 AND 28),
+
+    UNIQUE (verified_domain_id, scan_type)
 );
 
 CREATE TABLE scan_differences (
@@ -235,6 +245,11 @@ CREATE TABLE detected_technologies (
     CHECK (confidence is NULL OR (confidence >= 0 AND confidence <= 1))
 );
 
+
+ALTER TABLE scans ADD COLUMN schedule_id UUID REFERENCES scan_schedules(id) ON DELETE SET NULL DEFAULT NULL;
+ALTER TABLE scans ADD COLUMN scheduled_for TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE scans ADD CONSTRAINT uq_scans_schedule_occurrence UNIQUE (schedule_id, scheduled_for);
+
 CREATE INDEX idx_users_org_id ON users(organisation_id);
 
 CREATE INDEX idx_scans_org_id ON scans(organisation_id);
@@ -260,13 +275,15 @@ CREATE INDEX idx_verified_domains_status ON verified_domains(status);
 
 CREATE INDEX idx_scans_type ON scans(scan_type);
 CREATE INDEX idx_scans_verified_domain_id ON scans(verified_domain_id);
+CREATE INDEX idx_scans_schedule_id ON scans(schedule_id);
 
 CREATE INDEX idx_services_scan_id ON services(scan_id);
 CREATE INDEX idx_services_asset_id ON services(asset_id);
 CREATE INDEX idx_services_host_port ON services(host, port);
 
 CREATE INDEX idx_scan_schedule_verified_domain_id ON scan_schedules(verified_domain_id);
-CREATE INDEX idx_scan_schedules_next_run_at ON scan_schedules(next_run_at);
+CREATE INDEX idx_scan_schedules_next_run_at ON scan_schedules(next_run_at) WHERE is_active = TRUE;
+CREATE INDEX idx_scan_schedules_user_id ON scan_schedules(user_id);
 CREATE INDEX idx_scan_schedules_is_active ON scan_schedules(is_active);
 
 CREATE INDEX idx_scan_differences_current_scan_id ON scan_differences(current_scan_id);
