@@ -105,3 +105,19 @@ class ServiceSummaryCounts(BaseModel):
     udp: int
     open: int
     filtered: int
+
+class ServiceListItem(BaseModel):
+    id:UUID
+    service_name: str | None = None
+    host: str
+    port: int
+    protocol: str
+    product: str | None = None
+    version: str | None = None
+    state: str = "open"
+    risk_level: str = "Medium"
+    asset_count: int = 0
+    banner: str | None = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
