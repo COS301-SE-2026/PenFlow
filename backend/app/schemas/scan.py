@@ -86,3 +86,10 @@ class RiskHistoryItem(BaseModel):
     date: str
     risk_score: int
     total_findings: int
+
+class FindingSeverityCounts(BaseModel):
+    critical: int
+    high:int
+    medium: int
+    low_info: int
+    total: int
