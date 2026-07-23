@@ -544,4 +544,79 @@ class ScanRepository:
             })
 
         return items, counts
+
+    @staticmethod
+    async def get_services_page(
+        db: AsyncSession,
+        scan_id: UUID,
+        protocol: str | None = None,
+        search: str | None = None,
+        sort_by: str = "open",
+        limit: int = 15,
+        offset: int = 0,
+    ) -> tuple[list[dict[str, Any]], dict[str, int]]:
+        """
+        Retrieves paginated, filtered and sorted services for the services tab
+        along with summary counter metrics.
+        """
+
+        all_services_stmt = select(Service).where(Service.scan_id == scan_id)
+        all_rows = (await db.execute(all_services_stmt)).scalars().all()
+
+        counts = {"total": len(all_rows), "tcp": 0, "udp": 0, "open": 0, "filtered": 0}
+        for s in all_rows:
+            proto = (s.protocol or "").upper()
+            if proto == "TCP":
+                counts["tcp"] += 1
+            elif proto == "UDP":
+                counts["udp"] += 1
+
+            counts["open"] += 1
+
+        query = select(Service).where(Service.scan_id == scan_id)
+
+        if protocol and protocol.upper() != "ALL":
+            query = query.where(func.upper(Service.protocol) == protocol.upper())
+
+        if search:
+            search_term = f"%{search.strip()}%"
+            query = query.where(
+                (Service.service_name.ilike(search_term)) |
+                (Service.product.ilike(search_term)) |
+                (Service.host.ilike(search_term)) |
+                (func.cast(Service.port, String).ilike(search_term))
+            )
+
+        if sort_by == "port":
+            query = query.order_by(Service.port.asc())
+        else:
+            query = query.order_by(Service.created_at.desc())
+
+        query = query.limit(limit).offset(offset)
+        rows = (await db.execute(query)).scalars().all()
+
+        items = []
+        for s in rows:
+            asset_count_stmt = select(func.count(Asset.id)).where(
+                Asset.scan_id == scan_id,
+                Asset.identifier == s.host
+            )
+            a_count = await db.scalar(asset_count_stmt) or 1
+
+            items.append({
+                "id": str(s.id),
+                "service_name": s.service_name or s.product or "Unknown Service",
+                "host": s.host,
+                "port": s.port,
+                "protocol": s.protocol.upper(),
+                "product": s.product,
+                "version": s.version,
+                "state": "Open",
+                "risk_level": "Medium",
+                "assets_count": a_count,
+                "banner": s.banner,
+                "created_at": s.created_at,
+            })
+
+        return items, counts 
             
