@@ -21,6 +21,7 @@ from app.schemas.scan import (
     RiskHistoryItem,
     ScanHistoryItem,
 )
+from app.models.base import ScanStatus
 from app.services.email_service import send_report_email
 from app.services.scan_service import ScanService
 from app.utils.db import get_db
@@ -41,13 +42,17 @@ CurrentUserOptional = Annotated[dict[str, Any] | None, Depends(get_current_user_
 async def list_scans(
     current_user: CurrentUser,
     db: DbSession,
+    status: ScanStatus | None = Query(None),
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
 ) -> list[dict[str, Any]]:
+    
     user_id = await get_user_id_by_provider_id(db, current_user["sub"])
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     try:
-        return await ScanRepository.list_scans(db, user_id)
+        return await ScanRepository.list_scans(db, user_id, limit, offset)
     except Exception:
         logger.exception("Failed to list scans")
         raise HTTPException(

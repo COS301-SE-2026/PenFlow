@@ -8,7 +8,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
-from app.models.base import ScanStatus, Severity, Base
+from app.models.base import ScanStatus, Severity
+from app.models.detected_technology import DetectedTechnology
 from app.models.finding import Finding
 from app.models.report import Report
 from app.models.scan import Scan
@@ -85,7 +86,13 @@ class ScanRepository:
 
 
     @staticmethod
-    async def list_scans(db: AsyncSession, user_id: UUID) -> list[dict[str, Any]]:
+    async def list_scans(
+        db: AsyncSession, 
+        user_id: UUID,
+        status: ScanStatus | None = None,
+        limit: int = 20,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
         query = (
             select(
                 Scan,
@@ -107,8 +114,7 @@ class ScanRepository:
         if status:
             query = query.where(Scan.status == status)
 
-        query = query.limit(limit)
-
+        query = query.limit(limit).offset(offset)
         rows = (await db.execute(query)).all()
         return [
             {
@@ -208,7 +214,10 @@ class ScanRepository:
 
             source_status_results = await db.execute(
                 select(ScanSource.source_name, 
-                       ScanSource.status).where(ScanSource.scan_id == scan.id, ScanSource.source_name.in_(expected_sources))
+                       ScanSource.status).where(
+                           ScanSource.scan_id == scan.id, 
+                           ScanSource.source_name.in_(expected_sources)
+                        )
             )
 
             source_statuses = source_status_results.all()
@@ -259,7 +268,12 @@ class ScanRepository:
 
 
     @staticmethod
-    async def get_scan_status(db: AsyncSession, scan_id: UUID, user_id: UUID | None) -> dict[str, Any] | None:
+    async def get_scan_status(
+        db: AsyncSession, 
+        scan_id: UUID, 
+        user_id: UUID | None
+    ) -> dict[str, Any] | None:
+        
         scan = await ScanRepository.get_scan_by_id(db, scan_id)
 
         if not scan:
@@ -280,7 +294,10 @@ class ScanRepository:
             raise ValueError(f"Unsupported scan type: {scan_type}")
 
         source_results = await db.execute(
-            select(ScanSource).where(ScanSource.scan_id == scan_id, ScanSource.source_name.in_(expected_sources))
+            select(ScanSource).where(
+                ScanSource.scan_id == scan_id, 
+                ScanSource.source_name.in_(expected_sources),
+            )
         )
         sources = source_results.scalars().all()
 
@@ -337,12 +354,14 @@ class ScanRepository:
             return None
 
         findings_stmt = (
-            select(Findings.severity, func.count(Finding.id))
+            select(Finding.severity, func.count(Finding.id))
             .where(Finding.scan_id == scan_id)
             .group_by(Finding.severity)
         )
         f_rows = (await db.execute(findings_stmt)).all()
-        findings_breakdown = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0, "total": 0}
+        findings_breakdown = {
+            "critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0, "total": 0
+        }
         for sev, count in f_rows:
             key = sev.value.lower() if hasattr(sev, "value") else str(sev).lower()
             if key in findings_breakdown:
@@ -367,7 +386,7 @@ class ScanRepository:
         total_services = await db.scalar(services_stmt) or 0
 
         tech_stmt = (
-            select(func.count(Detectedtechnology.id))
+            select(func.count(DetectedTechnology.id))
             .where(DetectedTechnology.scan_id == scan_id)
         )
         total_tech = await db.scalar(tech_stmt) or 0
@@ -382,7 +401,9 @@ class ScanRepository:
 
         return {
             "risk_score": risk_score,
-            "risk_level": "HIGH RISK" if risk_score >= 70 else ("MEDIUM RISK" if risk_score >= 40 else "LOW RISK"),
+            "risk_level": "HIGH RISK" if risk_score >= 70 else (
+                "MEDIUM RISK" if risk_score >= 40 else "LOW RISK"
+            ),
             "findings": findings_breakdown,
             "assets": assets_breakdown,
             "services": {"total": total_services},
