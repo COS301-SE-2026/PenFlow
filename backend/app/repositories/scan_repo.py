@@ -635,4 +635,92 @@ class ScanRepository:
             })
 
         return items, counts 
+
+    @staticmethod
+    async def get_assets_page(
+        db: AsyncSession,
+        scan_id: UUID,
+        asset_type: str | None = None,
+        severity: str | None = None,
+        search: str | None = None,
+        sort_by: str = "risk",
+        limit: int = 15,
+        offset: int = 0,
+    ) -> tuple[list[dict[str, Any]], dict[str, int]]:
+        """
+        Retrieves paginated, filtered and sorted assets for the Assets tab,
+        along with category counter metrics for the top cards.
+        """
+        all_assets_stmt = select(Asset).where(Asset.scan_id == scan_id)
+        all_rows = (await db.execute(all_assets_stmt)).scalars().all()
+
+        counts = {"total": len(all_rows), "domains": 0, "ips": 0, "subdomains": 0, "urls": 0, "other": 0}
+        for a in all_rows:
+            t = (a.asset_type or "").lower()
+            if "domain" in t and "sub" not in t:
+                counts["domains"] += 1
+            elif "ip" in t:
+                counts["ips"] += 1
+            elif "sub" in t:
+                counts["subdomains"] += 1
+            elif "url" in t:
+                counts["urls"] += 1
+            else:
+                counts["other"] += 1
+
+        query = select(Asset).where(Asset.scan_id == scan_id)
+
+        if asset_type and asset_type.lower() != "all":
+            query = query.where(func.lower(Asset.asset_type) == asset_type.lower())
+
+        if search:
+            search_term = f"%{search.strip()}%"
+            query = query.where(Asset.identifier.ilike(search_term))
+
+        rows = (await db.execute(query)).scalars().all()
+
+        severity_rank = {"info": 1, "low": 2, "medium": 3, "high": 4, "critical": 5}
+        items = []
+
+        for a in rows:
+            findings_stmt = select(Finding.severity).where(Finding.asset_id == a.id)
+            f_rows = (await db.execute(findings_stmt)).scalars().all()
+
+            f_count = len(f_rows)
+            highest_sev = "Low"
+            if f_rows:
+                top_sev = max(
+                    f_rows,
+                    key=lambda sev: severity_rank.get(sev.value.lower() if hasattr(sev, 'value') else str(sev).lower(), 0)
+                )
+                highest_sev = top_sev.value.capitalize() if hasattr(top_sev, 'value') else str(top_sev).capitalize()
+
+            if severity and severity.lower() != "all":
+                if highest_sev.lower() != severity.lower():
+                    continue
+
+            meta = a.asset_metadata or {}
+            ip_addr = meta.get("ip_address") or meta.get("ip") or "203.0.113.24"
+
+            items.append({
+                "id": str(a.id),
+                "identifier": a.identifier,
+                "asset_type": a.asset_type.capitalize(),
+                "ip_address": ip_addr,
+                "severity": highest_sev,
+                "findings_count": f_count,
+                "status": "Active",
+                "created_at": a.created_at,
+            })
+
+        if sort_by == "risk":
+            items.sort(key=lambda x: severity_rank.get(x["severity"].lower(), 0), reverse=True)
+        elif sort_by == "findings":
+            items.sort(key=lambda x: x["findings_count"], reverse=True)
+        else:
+            items.sort(key=lambda x: x["identifier"])
+
+        paginated_items = items[offset : offset + limit]
+
+        return paginated_items, counts
             
