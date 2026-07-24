@@ -298,3 +298,37 @@ async def get_scan_services_page(
         "counts": counts,
         "items": items,
     }
+
+@router.get(
+    "/{scan_id}/assets-page",
+    response_model=AssetListResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_assets_page(
+    scan_id: UUID,
+    db: DbSession,
+    asset_type: Optional[str] = Query(None, description="Filter by asset type (Domain, subdomain, ip)"),
+    severity: Optional[str] = Query(None, description="Filter by highest severity"),
+    search: Optional[str] = Query(None, description="Search by query string"),
+    sort_by: str = Query("risk", description="Sort criteria (risk, findings, identifier)"),
+    limit: int = Query(15, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> dict[str, Any]:
+    """
+    Provides full table data and summary category cards for the assets tab.
+    """
+    items, counts = await ScanRepository.get_assets_page(
+        db=db,
+        scan_id=scan_id,
+        asset_type=asset_type,
+        severity=severity,
+        search=search,
+        sort_by=sort_by,
+        limit=limit,
+        offset=offset,
+    )
+    return {
+        "total": counts["total"],
+        "counts": counts,
+        "items": items
+    }
