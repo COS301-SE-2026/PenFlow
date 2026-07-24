@@ -126,3 +126,12 @@ class ServiceListResponse(BaseModel):
     total: int
     counts: ServiceSummaryCounts
     items: list[dict[str, Any]]
+
+class AssetSummaryCounts(BaseModel):
+    total: int = 0
+    domains: int = 0
+    ips: int = 0
+    subdomains: int = 0
+    urls: int = 0
+    other: int = 0
+
