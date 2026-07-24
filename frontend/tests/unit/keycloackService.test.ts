@@ -3,14 +3,14 @@
 
 import {
     loginWithPassword,
-    refreshAccessToken,
-    logoutSession,
-    registerUser,
+    // refreshAccessToken,
+    // logoutSession,
+    // registerUser,
 } from "@/lib/keycloakService";
 
 //keycloak endpoints used in the test:
-const Token_URL = "http://localhost:8080/realms/penflow/protocol/openid-connect/token";
-const LOGOUT_URL = "http://localhost:8080/realms/penflow/protocol/openid-connect/logout";
+// const Token_URL = "http://localhost:8080/realms/penflow/protocol/openid-connect/token";
+// const LOGOUT_URL = "http://localhost:8080/realms/penflow/protocol/openid-connect/logout";
 
 //helper simplife mocking fetch reponse with custom status and body
 
