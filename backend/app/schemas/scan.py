@@ -135,3 +135,14 @@ class AssetSummaryCounts(BaseModel):
     urls: int = 0
     other: int = 0
 
+class AssetListItem(BaseModel):
+    id: UUID
+    identifier: str
+    asset_type: str
+    ip_address: str | None = None
+    severity: str = "Low"
+    findings_count: int = 0
+    status: str = "Active"
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
