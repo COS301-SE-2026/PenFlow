@@ -595,6 +595,8 @@ class ScanRepository:
         query = query.limit(limit).offset(offset)
         rows = (await db.execute(query)).scalars().all()
 
+        severity_rank = {"info": 1, "low": 2, "medium": 3, "high": 4, "critical": 5}
+
         items = []
         for s in rows:
             asset_count_stmt = select(func.count(Asset.id)).where(
@@ -602,6 +604,20 @@ class ScanRepository:
                 Asset.identifier == s.host
             )
             a_count = await db.scalar(asset_count_stmt) or 1
+
+            finding_stmt = select(Finding.severity).where(
+                Finding.scan_id == scan_id,
+                Finding.asset_id == s.asset_id
+            )
+            finding_rows = (await db.execute(finding_stmt)).scalars().all()
+
+            highest_sev = "Low"
+            if finding_rows:
+                top_sev = max(
+                    finding_rows,
+                    key=lambda sev: severity_rank.get(sev.value.lower() if hasattr(sev, 'value') else str(sev).lower(), 0)
+                )
+                highest_sev = top_sev.value.capitalize() if hasattr(top_sev, 'value') else str(top_sev).capitalize()
 
             items.append({
                 "id": str(s.id),
@@ -611,8 +627,8 @@ class ScanRepository:
                 "protocol": s.protocol.upper(),
                 "product": s.product,
                 "version": s.version,
-                "state": "Open",
-                "risk_level": "Medium",
+                "state": s.state.capitalize() if hasattr(s, 'state') and s.state else "Open",
+                "risk_level": highest_sev,
                 "assets_count": a_count,
                 "banner": s.banner,
                 "created_at": s.created_at,

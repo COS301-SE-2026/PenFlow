@@ -22,6 +22,7 @@ class Service(Base):
     product = Column(String(255))
     version = Column(String(255))
     banner = Column(Text)
+    state = Column(String(50), nullable=False, default="open")
     tls_enabled = Column(Boolean, nullable=False, default=False)
     created_at = Column(
         DateTime(timezone=True),
