@@ -10,7 +10,7 @@ export default function DashboardLayout({
 }: DashboardLayoutProperty) {
     return (
         <div className = "dashboard-layout">
-            <Navbar />
+            <NavBar />
 
             <main className = "dashboard-main">
                 {children}

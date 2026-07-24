@@ -67,6 +67,16 @@ export default function NavBar() {
               );
             }
 
+            if(item.kind === "disabled") {
+              return (
+                <li key={item.label}>
+                  <span className="nav-link nav-link-disabled" aria-disabled="true">
+                    {item.label}
+                  </span>
+                </li>
+              );
+            }
+
             const isActive = pathName === item.href || (item.href !== "/" && pathName.startsWith(`${item.href}/`));
 
             return ( 
