@@ -146,3 +146,8 @@ class AssetListItem(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class AssetListResponse(BaseModel):
+    total: int
+    counts: AssetSummaryCounts
+    items: list[dict[str, Any]]
