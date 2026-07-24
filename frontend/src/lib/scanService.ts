@@ -178,6 +178,25 @@ export async function fetchScanStatus(scanId: string): Promise<RealTimeScanStatu
   return response.json();
 }
 
+export interface FindingsCount {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  info: number;
+  total: number;
+}
+
+export interface ScanMetrics {
+  risk_score: number;
+  risk_level: string;
+  findings: FindingsCount;
+  assets: Record<string, number>;
+  services: Record<string, number>;
+  technologies: Record<string, number>;
+}
+
+export async
 
 export async function sendReportEmail(scanId: string, email: string): Promise<void> {
   const response = await fetch(`${API_BASE}/scans/${scanId}/email-report`, {
