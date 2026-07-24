@@ -23,7 +23,7 @@ app.add_middleware(
 
 API_V1_PREFIX = "/api/v1"
 
-app.include_router(health.router)
+app.include_router(health.router, prefix=API_V1_PREFIX)
 app.include_router(scans.router, prefix=API_V1_PREFIX)
 app.include_router(stream.router, prefix=API_V1_PREFIX)
 app.include_router(internal.router, prefix=API_V1_PREFIX)
