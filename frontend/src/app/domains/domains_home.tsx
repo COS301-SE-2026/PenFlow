@@ -22,6 +22,7 @@ import { add_domain, delete_domain, fetch_domain, verify_domain, verification_co
     type domain_verification_status,
     type sort_order,
  } from "@/lib/domainService";
+import { Button } from "@/shared/components/ui/button";
 
  const PAGE_SIZE = 20;
  const sort_options = { value: string; label: string; sort: domain_sort_field; order: sort_order }[] = [
@@ -44,5 +45,52 @@ import { add_domain, delete_domain, fetch_domain, verify_domain, verification_co
     pending: {label: "Pending", className: "border-brand-yellow text-brand-yellow bg-brand-yellow/10", icon: Clock },
     failed: {label: "Failed", className: "border-brand-alert text-brand-alert bg-brand-alert/10", icon: XCircle },
     expired: {label: "Expired", className: "border-brand-orange text-brand-orange bg-brand-orange/10", icon: AlertTriangle },
- }
+ };
  
+ function format_timestamp(iso: string): string {
+   return new Date(iso).toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+   });
+ }
+
+ function StatusBadge({ status }: {status: domain_verification_status}) {
+   const { label, className, icon:Icon} = status_config[status];
+   return (
+      <Badge variant = "outline" className={cn("gap-1 uppercase tracking-wide", className)}>
+         <Icon className = "size-3" />
+         {label}
+      </Badge>
+   );
+ }
+
+ function CopyField({label, value}:{label: string; value: string }) { 
+   const [copied, set_copied] = useState(false);
+
+   async function handle_copy() {
+      try {
+         await navigator.clipboard.writeText(value);
+         set_copied(true);
+         setTimeout(() => set_copied(false), 1500);
+      } catch {}
+   }
+
+   return (
+      <div className = "flex flex-col gap-1">
+         <span className = "text-xs text-muted-foreground">{label}</span>
+         <div className = "flex items-center gap-2 rounded-lg border border-brand-panel-border bg-brand-panel-deep px-3 py-2">
+            <code className = "min-w-0 flex-1 truncate font-mono text-sm text-foreground">{value}</code>
+            <button
+               type = "button"
+               onClick={handle_copy}
+               aria-label = {`Copy ${label}`}
+               className = "shrink-0 text-muted-foreground transition-colors hover:text-brand-cyan">
+                  {copied ? <Check className = "size-4 text-brand-success" /> : <Copy className = "size-4" />}
+               </button>
+         </div>
+      </div>
+   );
+ }
