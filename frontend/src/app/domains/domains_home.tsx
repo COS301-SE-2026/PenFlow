@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { add_domain, delete_domain, fetch_domain, verify_domain, verification_code_Message,
+import { add_domain, delete_domain, fetch_domain, verify_domain, verification_code_message,
     type domain_counts,
     type domain_item,
     type domain_pagination,
@@ -93,4 +93,33 @@ import { Button } from "@/shared/components/ui/button";
          </div>
       </div>
    );
+ }
+
+ function VerificationStep ({ index, title, children }: {index: number; title: string; children: React.ReactNode}) {
+   return (
+      <div className = "flex gap-3">
+         <span className = "flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-cyan/15 text-xs font-semibold text-brand-cyan">
+            {index}
+         </span>
+         <div className = "flex min-w-0 flex-1 flex-col gap-2">
+            <p className = " text-sm font-medium text-foreground"> {title} </p> {children}
+         </div>
+      </div>
+   );
+ }
+
+ function DomainDetailPanel ({
+   domain, on_close, on_verify, on_delete, verifying
+ }: {
+   domain:domain_item;
+   on_close: () => void;
+   on_verify: (id: string) => void;
+   on_delete: (id:string) => void;
+   verifying: boolean;
+ }) {
+   const { label, className, icon: Icon } = status_config[domain.status];
+   const status_message = domain.last_verification_code ? verification_code_message[domian.last_verification_code]
+   : "This domain has not been checked yet.";
+
+   
  }
