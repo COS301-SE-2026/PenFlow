@@ -153,13 +153,65 @@ import { Button } from "@/shared/components/ui/button";
                <div className = "grid grid-cols-2 gap-x-4 gap-y-3">
                   <div>
                      <p className ="text-xs text-muted-foreground"> Added on</p>
-                     <p className ="text-sm text-foreground">{format_timestamp(domain,created_at)}</p>
+                     <p className ="text-sm text-foreground">{format_timestamp(domain.created_at)}</p>
                   </div>
                   <div>
-                     
+                     <p className ="text-xs text-muted-foreground"> Last checked</p>
+                     <p className ="text-sm text-foreground">{format_timestamp(domain.last_checked_at) : "Never"}</p>
                   </div>
                </div>
             </div>
+
+            {domain.status !== "verified" && (
+               <>
+                  <Separator className = "bg-brand-panel-border"/>
+                  <div className = "flex flex-col gap-4">
+                     <div>
+                        <h3 className = "text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                           Verify ownership
+                        </h3>
+                        <p className ="mt-1 text-sm text-muted-foreground">
+                           To enable active scans, add the following DNS TXT record to your domain &apos;s root.
+                           </p>
+                     </div>
+
+                     <VerificationStep index = {1} title = "add this DNS TXT record">
+                        <CopyField label = "TXT Record Value" value={domain.verification_token} />
+                     </VerificationStep>
+
+                     <VerificationStep index = {2} title = "Wait for DNS propagation">
+                        <p className ="mt-1 text-sm text-muted-foreground">
+                           DNS changes can take up to 24 hours to propagate worldwide.
+                           </p>
+                     </VerificationStep>
+
+                     <VerificationStep index = {3} title = "Verify ownership">
+                        <p className ="mt-1 text-sm text-muted-foreground">
+                           We will check for the record and confirm your ownership.
+                           </p>
+                     </VerificationStep>
+                  </div>
+
+                  <div className = " flex flex-col gap-3">
+                     <h3 className = "text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        Current status
+                     </h3>
+                     <div className = "flex gap-3 rounded-lg border border-brand-alert/25 bg-brand-alert/5 p-3">
+                     <AlertTriangle className = "size-4 shrink-0 text-brand-alert" />
+                     <div>
+                        <p className ="text-sm font-medium text-foreground"> {status_message}</p>
+                        <p className ="mt-0.5 text-xs text-muted-foreground">
+                           {domain.last_checked_at
+                              ? `Last checked ${format_timestamp(domain.last_checked_at)}.`
+                              : "this domain hasn't been checked yet."
+                           }
+                        </p>
+                     </div>
+                  </div>
+               </>
+               <Button
+                  
+            )}
          </CardContent>
       </Card>
    )
