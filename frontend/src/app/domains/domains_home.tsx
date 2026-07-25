@@ -121,5 +121,48 @@ import { Button } from "@/shared/components/ui/button";
    const status_message = domain.last_verification_code ? verification_code_message[domian.last_verification_code]
    : "This domain has not been checked yet.";
 
-   
+   return (
+      <Card className = "border border-brand-panel-border bg-brand-panel ring-0">
+         <CardContent className = "flex flex-col gap-5">
+            <div className = "flex items-start justify-between gap-3">
+               <div className = "flex items-center gap-2.5">
+                  <Globe className = "size-5 text-brand-cyan" />
+                  <h2 className = "truncate text-lg font-semibold text-foreground">{domain.domain}</h2>
+               </div>
+               <button
+                  type = "button"
+                  onClick = {on_close}
+                  aria-label = "Close domain details"
+                  className = "shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+                  >
+                     <X className = "size-5"/>
+                  </button>
+            </div>
+
+            <Badge variant "outline" className={cn ("w-fit gap-1 uppercase tracking-wide", className)}>
+               <Icon className = "size-3" />
+               {label} verification 
+            </Badge>
+
+            <Separator className = "bg-brand-panel-border" />
+
+            <div>
+               <h3 className = "mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Domain details
+               </h3>
+               <div className = "grid grid-cols-2 gap-x-4 gap-y-3">
+                  <div>
+                     <p className ="text-xs text-muted-foreground"> Added on</p>
+                     <p className ="text-sm text-foreground">{format_timestamp(domain,created_at)}</p>
+                  </div>
+                  <div>
+                     
+                  </div>
+               </div>
+            </div>
+         </CardContent>
+      </Card>
+   )
+
+
  }
