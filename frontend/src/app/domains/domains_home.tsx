@@ -23,6 +23,7 @@ import { add_domain, delete_domain, fetch_domain, verify_domain, verification_co
     type sort_order,
  } from "@/lib/domainService";
 import { Button } from "@/shared/components/ui/button";
+import { Separator } from "@/shared/components/ui/separator";
 
  const PAGE_SIZE = 20;
  const sort_options = { value: string; label: string; sort: domain_sort_field; order: sort_order }[] = [
@@ -208,13 +209,81 @@ import { Button } from "@/shared/components/ui/button";
                         </p>
                      </div>
                   </div>
-               </>
                <Button
-                  
-            )}
-         </CardContent>
-      </Card>
-   )
+                  variant = "outline"
+                  className ="border-brand-yellow text-brand-yellow hover:bg-brand-yellow/10"
+                  disabled = {verifying}
+                  onClick={() => on_verify(domain.id)}
+               >
+                  {verifying ? "Verifying..." : "Verify now"}
+               </Button>
+            </div>
+         </>
+      )}
+
+      <Separator className = "bg-brand-panel-border" />
+      <div className = "flex flex-col gap-1">
+         <h3 className = "mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            More actions
+         </h3>
+         <button
+            type = "button"
+            onClick={() => on_delete(domain.id)}
+            className = "flex items-center gap-2 rounded-md px-1 py-2 text-left text-sm text-brand-alert transition-colors hover:text-brand-alert/80">
+            <Trash2 className = "size-4" />
+            Remove domain
+         </button>
+      </div>
+   </CardContent>
+</Card>
+);}
 
 
- }
+function AddDomainForm({
+   on_cancel,
+   on_added,
+}: {
+   on_cancel: () => void;
+   on_added: () => void;
+}) {
+const [domain_name, set_domain_name] = useState("");
+const [submiting, set_submitting] = useState(false);
+const [form_error, set_form_error] = useState<string | null>(null);
+const can_add = domain_name.trim() !== "" && !submitting
+
+async function handle_add() {
+   if (!can_add) return;
+   set_submitting(true);
+   set_form_error(null);
+   try {
+      await add_domain(domain_name.trim());
+      on_added();
+   } catch (err) {
+      set_form_error(err instanceof Error ? err.message : "Failed to add domain");
+   } finally {
+      set_submitting(false);
+   }
+}
+
+return (
+   <Card className = "border border-brand-cyan/30 bg-gradient-to-br from-brand-panel to-brand-panel-deep ring-0">
+      <CardContent className = "flex flex-col gap-4">
+         <div className = "flex items-center gap-2.5">
+            <span className = "flex size-8 items-center justify-center rounded-lg border border-brand-cyan/30 bg-brand-cyan/10 text-brand-cyan">
+               <Globe className = "size-4"/>
+            </span>
+            <div>
+               <h2 className = "text-sm font-semibold uppercase tracking-wide text-foreground">Add Domain</h2>
+               <p className = "text-xs text-muted-foreground">
+                  Start passive monitoring immediately - active scans available once domain is verified.
+               </p>
+            </div>
+         </div>
+
+         <Separator className = "bg-brand-panel-border"/>
+
+         
+      </CardContent>
+   </Card>
+)
+}
