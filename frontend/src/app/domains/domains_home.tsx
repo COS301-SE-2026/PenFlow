@@ -281,9 +281,38 @@ return (
          </div>
 
          <Separator className = "bg-brand-panel-border"/>
+         <div className = "flex flex-col gap-1.5">
+            <Label htmlFor="new-domain">Domain</Label>
+            <div className = "relative">
+               <Glove className = "absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"/>
+               <Input
+                  id = "new-domain"
+                  placeholder="example.com"
+                  value={domain_name}
+                  onChange = {(e) => set_domain_name(e.target.value)}
+                  onKeyDown = {(e) => {
+                     if (e.key === "Enter") void handle_add();
+                  }}
+                  className = "h-10 border-brand-cyan/60 pl-6 focus-visible:border-brand-cyan focus-bisible:ring-brand-cyan/25"
+                  autoFocus
+               />
+            </div>
+            {form_error && <p className = "text-sx text-brand-alert">{form_error}</p>}
+            <p className = "text-xs text-muted-foreground">
+               You will need to verify ownership via a DNS TXT record before active scans are available for this domain.
+            </p>
+         </div>
 
-         
+         <div className = "flex justify-end gap-2">
+            <Button variant = "outline" onClick={on_cancel} disable={submiting}>
+               Cancel
+            </Button>
+            <Button disabled={!can_add} onClick={() => void handle_add()}>
+               {submitting ? "Adding" : "Add Domain"}
+               </Button> 
+         </div>
       </CardContent>
    </Card>
-)
-}
+);}
+
+
