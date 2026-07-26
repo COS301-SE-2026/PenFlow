@@ -149,3 +149,35 @@ def build_findings_context(
             }
         )
     return result
+
+
+def build_assets_context(
+        assets: list[JSONObject] | None,
+        findings: list[JSONObject] | None,
+) -> list[JSONDict]:
+    result: list[JSONDict] = []
+
+    for asset in assets or []:
+        asset_id = get_val(asset, "id")
+
+        asset_findings = [
+            finding for finding in findings or []
+            if get_val(finding, "asset_id") == asset_id
+        ]
+
+        severity_counts = calc_severity_counts(asset_findings)
+
+        result.append(
+            {
+                "identifier": get_val(asset, "identifier", "Unknown"),
+                "asset_type": get_val(asset, "asset_type", "Unknown"),
+                "findings_count": len(asset_findings),
+                "critical_count": severity_counts["critical"],
+                "high_count": severity_counts["high"],
+                "medium_count": severity_counts["medium"],
+                "low_count": severity_counts["low"],
+                "info_count": severity_counts["info"],
+            }
+        )
+        
+    return result
