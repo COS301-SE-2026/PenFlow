@@ -53,3 +53,34 @@ export interface ListDomainsParams {
     limit?: number;
     offset?: number;
 }
+
+async function parseError(response: Response, fallback: string): Promise<Error> {
+    const body = await response.json().catch(() => ({ detail: fallback}));
+    return new Error(body.detail ?? fallback);
+}
+
+export async function fetch_domains(params: ListDomainsParams = {}): Promise<DomainList> {
+    const query = new URLSearchParams;
+    if (params.status) query.set("status", params.status);
+    if (params.search) query.set("search", params.search);
+    if (params.sort) query.set("sort", params.sort);
+    if (params.order) query.set("order", params.order);
+    if (params.limit !== undefined) query.set("limit", String(params.limit));
+    if (params.offset !== undefined) query.set("offset", String(params.offset));
+
+    const qs = query.toString();
+    const response = await fetch(`${API_BASE}${qs ? `?${qs}` : ""}`);
+    if(!response.ok) throw await parseError(response, "Failed to load domains");
+    return response.json();
+}
+
+export async function add_domain(domain: string): Promise<VerifiedDomain> {
+    const response = await fetch(API_BASE, {
+        method: "POST",
+        headers: {"Content-Type" : "application/json"},
+        body: JSON.stringify({domain}),
+    });
+    if(!response.ok) throw await parseError(response, "Failed to add domain");
+    return response.json();
+
+}
