@@ -484,9 +484,60 @@ export default function DomainsHome() {
                         </span>
                      </button>
                   ))}
-
-                  
                </div>
+               <div className = "flex flex-wrap items-center justify-between gap-3">
+                  <div className = "relative w-full max-w-xs">
+                     <Search className = "absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                     <Input
+                        placeholder = "Search domains..."
+                        value = {search}
+                        onChange = {(e) => set_search(e.target.value)}
+                        className = "h-9 pl-9"
+                     />
+                  </div>
+                  <Select value={sort_value} onValueChange = {set_sort_value}>
+                     <SelectTrigger className = "w-auto min-w-40">
+                        <SelectValue />
+                     </SelectTrigger>
+                     <SelectContent>
+                        {sort_options.map((opt) => (
+                           <SelectItem key = {opt.value} value={opt.value}>
+                              {opt.value}
+                           </SelectItem>
+                        ))}
+                     </SelectContent>
+                  </Select>
+               </div>
+
+               {error && (
+                  <div className = "rounded-lg border border-brand-alert/30 bg-brand-alert/5 px-4 py-3 text-sm text-brand-alert">
+                     {error}
+                  </div>
+               )}
+
+               <Card className = "border border-brand-panel-border bg-brand-panel ring-0">
+                  <CardContent className = "overflow-x-auto px-0 py-0">
+                     <table className = "w-full border-collapse text-left">
+                        <thread>
+                           <tr className = "border-b border-brand-panel-border text-xs whitespace-nowrap text-muted-foreground uppercase tracking-wide">
+                              <th className = "px-3 py-2.5 font-medium">Domain</th>
+                              <th className = "px-3 py-2.5 font-medium">Status</th>
+                              <th className = "px-3 py-2.5 font-medium">
+                                 <span className = "inline-flex items-center gap-1">
+                                    Added
+                                    <ChevronDown className = "size-3"/>
+                                 </span>
+                              </th>
+                              <th className = "px-3 py-2.5 font-medium">Checked</th>
+                              <th className = "px-3 py-2.5 font-medium">Action</th>
+                           </tr>
+                        </thread>
+                        <tbody>
+                           
+                        </tbody>
+                     </table>
+                  </CardContent>
+               </Card>
             </div>
          </div>
 
