@@ -50,6 +50,8 @@ def send_source_callback(
         raw_result: dict | None = None,
         findings: list[dict] | None = None,
         assets: list[dict] | None = None,
+        services: list[dict] | None = None,
+        technologies: list[dict] | None = None,
         error_message: str | None = None,
 ) -> None:
     url = f"{BACKEND_API_URL}/internal/scans/{scan_id}/sources/{source_name}"
@@ -57,8 +59,10 @@ def send_source_callback(
     payload = {
         "status": status,
         "raw_result": raw_result,
-        "findings": findings or [],
         "assets": assets or [],
+        "services": services or [],
+        "technologies": technologies or [],
+        "findings": findings or [],
         "error_message": error_message,
     }
 
