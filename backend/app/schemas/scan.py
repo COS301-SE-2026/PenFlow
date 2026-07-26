@@ -114,7 +114,7 @@ class ServiceListItem(BaseModel):
     protocol: str
     product: str | None = None
     version: str | None = None
-    state: str = str
+    state: str 
     risk_level: str 
     asset_count: int = 0
     banner: str | None = None
