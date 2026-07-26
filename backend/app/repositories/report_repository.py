@@ -92,6 +92,9 @@ async def load_report_data(db: AsyncSession, scan_id: str) -> dict[str, Any]:
         .options(
             selectinload(Scan.findings),
             selectinload(Scan.sources),
+            selectinload(Scan.assets),
+            selectinload(Scan.services),
+            selectinload(Scan.detected_technologies),
         )
         .where(Scan.id == UUID(scan_id))
     )
@@ -105,5 +108,8 @@ async def load_report_data(db: AsyncSession, scan_id: str) -> dict[str, Any]:
         "scan": scan,
         "findings": scan.findings,
         "scan_sources": scan.sources,
+        "assets": scan.assets,
+        "services": scan.services,
+        "technologies": scan.detected_technologies,
         "report": await get_or_create_report(db, scan_id),
     }
