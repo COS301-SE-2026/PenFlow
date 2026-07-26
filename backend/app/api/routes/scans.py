@@ -1,9 +1,9 @@
 import logging
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, Optional 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status 
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +12,7 @@ from app.repositories.report_repository import get_report_by_scan_id
 from app.repositories.scan_repo import ScanRepository
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.report import EmailReportRequest
-from app.schemas.scan import InitiateScanRequest, InitiateScanResponse, ScanHistoryItem
+from app.schemas.scan import InitiateScanRequest, InitiateScanResponse, ScanHistoryItem, MetricsResponse, DashboardFindingItem, DashboardAssetItem, RiskHistoryItem, ServiceListResponse
 from app.services.email_service import send_report_email
 from app.services.scan_service import ScanService
 from app.utils.db import get_db
@@ -166,3 +166,169 @@ async def email_scan_report(
     )
 
     return {"message": "Report emailed successfully"}
+
+@router.get(
+    "/{scan_id}/metrics",
+    response_model=MetricsResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_metrics(
+    scan_id: UUID,
+    db: DbSession,
+) -> dict[str, Any]:
+    """
+    Returns aggregated metrics for Risk Score, Findings,
+    Assets, Services, Technologies.
+    """
+    metrics = await ScanRepository.get_scan_metrics(db, scan_id)
+    if metrics is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found")
+    return metrics
+
+@router.get(
+    "/{scan_id}/findings",
+    response_model=list[DashboardFindingItem],
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_findings(
+    scan_id: UUID,
+    db: DbSession,
+    severity: Optional[str] = Query(None, description="Filter by severity"),
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> list[dict[str, Any]]:
+    """
+    Retrieves detailed findings for a scan, ordered by highest risk.
+    """
+    return await ScanRepository.get_findings_by_scan(
+        db=db, scan_id=scan_id, severity=severity, limit=limit, offset=offset
+    )
+
+@router.get(
+    "/{scan_id}/assets",
+    response_model=list[DashboardAssetItem],
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_assets(
+    scan_id: UUID,
+    db: DbSession,
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> list[dict[str, Any]]:
+    """
+    Retrieves discovered assets along with their associated finding counts.
+    """
+    return await ScanRepository.get_assets_by_scan(db=db, scan_id=scan_id, limit=limit, offset=offset)
+
+@router.get(
+    "/{scan_id}/risk-history",
+    response_model=list[RiskHistoryItem],
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_risk_history(
+    scan_id: UUID,
+    db: DbSession,
+) -> list[dict[str, Any]]:
+    """
+    Retrieves historical risk scores for the domain to render the risk over time graph.
+    """
+    return await ScanRepository.get_domain_risk_history(db=db, scan_id=scan_id)
+
+@router.get(
+    "/{scan_id}/findings-page",
+    response_model=FindingListResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_findings_page(
+    scan_id: UUID,
+    db: DbSession,
+    severity: Optional[str] = Query(None, description="Filter by severity category"),
+    search: Optional[str] = Query(None, description="Search query string"),
+    sort_by: str = Query("severity", description="Sort criteria (severity, cvss, newest)"),
+    limit: int = Query(12, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> dict[str, Any]:
+    """
+    Provides full card grid data for the Findings tab, including top metric counts
+    and side drawer attributes.
+    """
+    items, counts = await ScanRepository.get_findings_page(
+        db=db,
+        scan_id=scan_id,
+        severity=severity,
+        search=search,
+        sort_by=sort_by,
+        limit=limit,
+        offset=offset,
+    )
+    return {
+        "total": counts["total"],
+        "counts": counts,
+        "items": items,
+    }
+
+@router.get(
+    "/{scan_id}/services-page",
+    response_model=ServiceListResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_services_page(
+    scan_id: UUID,
+    db: DbSession,
+    protocol: Optional[str] = Query(None, description="Filter by protocol, TCP/UDP"),
+    search: Optional[str] = Query(None, description="Search query string"),
+    sort_by: str = Query("open", description="Sort criteria"),
+    limit: int = Query(15, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> dict[str, Any]:
+    """
+    Provides full table data and summary cards for the Services tab.
+    """
+    items, counts = await ScanRepository.get_services_page(
+        db=db,
+        scan_id=scan_id,
+        protocol=protocol,
+        search=search,
+        sort_by=sort_by,
+        limit=limit,
+        offset=offset,
+    )
+    return {
+        "total": counts["total"],
+        "counts": counts,
+        "items": items,
+    }
+
+@router.get(
+    "/{scan_id}/assets-page",
+    response_model=AssetListResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def get_scan_assets_page(
+    scan_id: UUID,
+    db: DbSession,
+    asset_type: Optional[str] = Query(None, description="Filter by asset type (Domain, subdomain, ip)"),
+    severity: Optional[str] = Query(None, description="Filter by highest severity"),
+    search: Optional[str] = Query(None, description="Search by query string"),
+    sort_by: str = Query("risk", description="Sort criteria (risk, findings, identifier)"),
+    limit: int = Query(15, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+) -> dict[str, Any]:
+    """
+    Provides full table data and summary category cards for the assets tab.
+    """
+    items, counts = await ScanRepository.get_assets_page(
+        db=db,
+        scan_id=scan_id,
+        asset_type=asset_type,
+        severity=severity,
+        search=search,
+        sort_by=sort_by,
+        limit=limit,
+        offset=offset,
+    )
+    return {
+        "total": counts["total"],
+        "counts": counts,
+        "items": items
+    }

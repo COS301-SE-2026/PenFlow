@@ -20,6 +20,7 @@ class Scan(Base):
         nullable=True,
         index=True,
     )
+    task_id = Column(String(255))
     domain = Column(String(255), nullable=False, index=True)
 
     verified_domain_id = Column(
@@ -54,6 +55,13 @@ class Scan(Base):
 
     #Don't think this is truly needed
     email = Column(String(255))
+    scan_type = Column(String(50), nullable=False, default="passive_ctem", index=True)
+    verified_domain_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("verified_domains.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
     status = Column(
         Enum(ScanStatus, values_callable=lambda enum: [item.value for item in enum],
              name="scan_status"),
