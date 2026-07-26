@@ -6,6 +6,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base, ScanStatus
+from app.schemas.scan import ScanTypeEnum
 
 class ScanType(enum.Enum):
     PASSIVE_CTEM = "passive_ctem"
@@ -23,34 +24,38 @@ class Scan(Base):
         nullable=True,
         index=True,
     )
+    task_id = Column(String(255))
     domain = Column(String(255), nullable=False, index=True)
     email = Column(String(255))
-    scan_type = Column(Enum(
-        ScanType, name = "scan_type", 
-        create_type = False,
-        values_callable = lambda enum_class: [
-            member.value for member in enum_class
-        ],
-    ), 
-    nullable=False, default=ScanType.PASSIVE_CTEM, index=True)
+    scan_type = Column(
+        Enum(
+            ScanTypeEnum,
+            values_callable=lambda enum: [item.value for item in enum],
+            name="scan_type",
+        ),
+        nullable=False,
+        default=ScanTypeEnum.PASSIVE_CTEM,
+        index=True,
+    )
     verified_domain_id = Column(
         UUID(as_uuid=True),
         ForeignKey("verified_domains.id", ondelete="SET NULL"),
         nullable=True,
-        index=True
+        index=True,
     )
     status = Column(
-        Enum(ScanStatus, values_callable=lambda enum: [item.value for item in enum],
-             name="scan_status"),
+        Enum(
+            ScanStatus,
+            values_callable=lambda enum: [item.value for item in enum],
+            name="scan_status",
+        ),
         nullable=False,
         default=ScanStatus.QUEUED,
         index=True,
     )
     progress = Column(Integer, nullable=False, default=0)
     created_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
     )
     started_at = Column(DateTime(timezone=True))
     completed_at = Column(DateTime(timezone=True))

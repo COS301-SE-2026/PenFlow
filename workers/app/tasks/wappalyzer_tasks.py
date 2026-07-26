@@ -10,7 +10,6 @@ from app.utils.callback import send_source_callback
 
 JSONDict = dict[str, Any]
 
-
 @celery_app.task(name="scan.wappalyzer")
 def run_wappalyzer(scan_id: str, domain: str) -> JSONDict:
     try:
@@ -28,7 +27,7 @@ def run_wappalyzer(scan_id: str, domain: str) -> JSONDict:
             "findings": findings,
             "assets": assets,
         }
-    
+
     except Exception as error:
         result = {
             "scan_id": scan_id,

@@ -28,7 +28,7 @@ def run_hunter(scan_id: str, domain: str) -> JSONDict:
             "findings": findings,
             "assets": assets,
         }
-    
+
     except Exception as error:
         result = {
             "scan_id": scan_id,
@@ -38,7 +38,7 @@ def run_hunter(scan_id: str, domain: str) -> JSONDict:
             "findings": [],
             "assets": [],
             "error_message": str(error),
-        }   
+        }
 
     send_source_callback(
         scan_id=scan_id,

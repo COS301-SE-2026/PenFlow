@@ -16,9 +16,7 @@ def verify_txt_record(domain: str, verification_token: str) -> bool:
         False if it's not found nor not matching what we may expect.
     """
 
-    logger.info(
-        f"[Domain Verification] Checking TXT records for the domain: {domain}"
-    )
+    logger.info(f"[Domain Verification] Checking TXT records for the domain: {domain}")
 
     try:
         answers = dns.resolver.resolve(domain, "TXT")
@@ -32,9 +30,7 @@ def verify_txt_record(domain: str, verification_token: str) -> bool:
                 )
                 return True
 
-        logger.info(
-            f"[Domain Verification] Verification token not found for the domain: {domain}"
-        )
+        logger.info(f"[Domain Verification] Verification token not found for the domain: {domain}")
         return False
 
     except (
@@ -43,10 +39,7 @@ def verify_txt_record(domain: str, verification_token: str) -> bool:
         dns.resolver.NoNameservers,
         dns.exception.Timeout,
     ) as excep:
-
-        logger.warning(
-            f"[Domain Verification] DNS lookup failed for the domain: {domain}: {excep}"
-        )
+        logger.warning(f"[Domain Verification] DNS lookup failed for the domain: {domain}: {excep}")
         return False
 
     except Exception:

@@ -10,8 +10,7 @@ class CPEResolverService:
         self.software_inventory = software_inventory
 
     def run(self) -> list[JSONDict]:
-        logger.info\
-        (
+        logger.info(
             "[CPE_Resolver] Resolving %s software objects.",
             len(self.software_inventory),
         )
@@ -29,18 +28,14 @@ class CPEResolverService:
             if product == "tomcat" and version == "1.1":
                 version = "*"
 
-            software["cpe"] = \
-            (
-                f"cpe:2.3:a:{vendor}:{product}:{version}:*:*:*:*:*:*:*"
-            )
+            software["cpe"] = f"cpe:2.3:a:{vendor}:{product}:{version}:*:*:*:*:*:*:*"
 
             resolved_inventory.append(software)
 
         return resolved_inventory
 
 
-def run_cpe_resolution\
-(
+def run_cpe_resolution(
     software_inventory: list[JSONDict],
 ) -> list[JSONDict]:
     return CPEResolverService(software_inventory).run()

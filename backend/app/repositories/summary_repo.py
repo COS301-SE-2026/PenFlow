@@ -21,6 +21,7 @@ async def get_scan_summary(db: AsyncSession, scan_id: UUID) -> Scan | None:
     result = await db.execute(query)
     return result.scalar_one_or_none()
 
+
 async def get_risk_snapshot(db: AsyncSession, scan_id: UUID) -> dict[str, Any]:
     """
     Fetches a risk snapshot for the given scan_id.
@@ -40,27 +41,26 @@ async def get_risk_snapshot(db: AsyncSession, scan_id: UUID) -> dict[str, Any]:
         "high_count": 0,
         "medium_count": 0,
         "low_count": 0,
-        "info_count": 0
+        "info_count": 0,
     }
 
     for severity, count in counts:
-
         sev_str = severity.value if hasattr(severity, "value") else str(severity).lower()
 
         key = f"{sev_str}_count"
-        
+
         if key in snapshot:
             snapshot[key] = count
             snapshot["total_findings"] += count
 
     return snapshot
 
-async def get_top_findings_preview(
-    db: AsyncSession, 
-    scan_id: UUID, 
-    limit: int = 5,
-    ) -> list[dict[str, Any]]:
 
+async def get_top_findings_preview(
+    db: AsyncSession,
+    scan_id: UUID,
+    limit: int = 5,
+) -> list[dict[str, Any]]:
     """
     Fetches highest severity findings, join resolved assets
     as well as truncates long test fields for a UI preview.
@@ -78,39 +78,36 @@ async def get_top_findings_preview(
     previews = []
     for finding, asset in rows:
         desc_snippet = finding.description
-        if desc_snippet and len(desc_snippet) >  120:
+        if desc_snippet and len(desc_snippet) > 120:
             desc_snippet = desc_snippet[:120] + "..."
 
         recc_snippet = finding.recommendation
-        if recc_snippet and len(recc_snippet) >  120:
+        if recc_snippet and len(recc_snippet) > 120:
             recc_snippet = recc_snippet[:120] + "..."
 
-        
-
-        previews.append({
-            "id": finding.id,
-            "severity": finding.severity,
-            "title": finding.title,
-            "description": desc_snippet,
-            "recommendation": recc_snippet,
-            "source": finding.source,
-            "asset_identifier": asset.identifier if asset else None,
-            "asset_type": asset.asset_type if asset else None,
-            "created_at": finding.created_at
-        })
+        previews.append(
+            {
+                "id": finding.id,
+                "severity": finding.severity,
+                "title": finding.title,
+                "description": desc_snippet,
+                "recommendation": recc_snippet,
+                "source": finding.source,
+                "asset_identifier": asset.identifier if asset else None,
+                "asset_type": asset.asset_type if asset else None,
+                "created_at": finding.created_at,
+            }
+        )
 
     return previews
+
 
 async def get_asset_impact_summary(db: AsyncSession, scan_id: UUID) -> dict[str, Any]:
     """
     Fetches an impact summary for the given scan_id.
     This aggregates asset-related information to give a quick overview of the scan's impact.
     """
-    query = (
-        select(Asset)
-        .options(selectinload(Asset.findings))
-        .where(Asset.scan_id == scan_id)
-    )
+    query = select(Asset).options(selectinload(Asset.findings)).where(Asset.scan_id == scan_id)
     result = await db.execute(query)
     assets = result.scalars().all()
 
@@ -130,11 +127,7 @@ async def get_asset_impact_summary(db: AsyncSession, scan_id: UUID) -> dict[str,
 
         a_type = asset.asset_type
         if a_type not in breakdown_dict:
-            breakdown_dict[a_type] = {
-                "asset_type": a_type,
-                "total_assets": 0,
-                "affected_assets": 0
-            }
+            breakdown_dict[a_type] = {"asset_type": a_type, "total_assets": 0, "affected_assets": 0}
         breakdown_dict[a_type]["total_assets"] += 1
         if is_affected:
             breakdown_dict[a_type]["affected_assets"] += 1
@@ -143,34 +136,38 @@ async def get_asset_impact_summary(db: AsyncSession, scan_id: UUID) -> dict[str,
             highest_finding = max(
                 asset.findings,
                 key=lambda f: severity_rank.get(
-                    f.severity.value if hasattr(f.severity, 'value')
-                    else str(f.severity).lower(), 0
-                )
+                    f.severity.value if hasattr(f.severity, "value") else str(f.severity).lower(), 0
+                ),
             )
-            top_assets.append({
-                "identifier": asset.identifier,
-                "asset_type": asset.asset_type,
-                "finding_count": finding_count,
-                "highest_severity": highest_finding.severity
-            })
+            top_assets.append(
+                {
+                    "identifier": asset.identifier,
+                    "asset_type": asset.asset_type,
+                    "finding_count": finding_count,
+                    "highest_severity": highest_finding.severity,
+                }
+            )
 
     top_assets.sort(
         key=lambda x: (
             severity_rank.get(
-                x["highest_severity"].value if hasattr(x["highest_severity"], 'value')
-                else str(x["highest_severity"]).lower(), 0
+                x["highest_severity"].value
+                if hasattr(x["highest_severity"], "value")
+                else str(x["highest_severity"]).lower(),
+                0,
             ),
-            x["finding_count"]
+            x["finding_count"],
         ),
-        reverse=True
+        reverse=True,
     )
 
     return {
         "total_assets_scanned": total_assets,
         "affected_assets_count": affected_assets,
         "asset_type_breakdown": list(breakdown_dict.values()),
-        "top_affected_assets": top_assets[:5]
+        "top_affected_assets": top_assets[:5],
     }
+
 
 async def get_source_coverage(db: AsyncSession, scan_id: UUID) -> dict[str, Any]:
     """
@@ -178,7 +175,7 @@ async def get_source_coverage(db: AsyncSession, scan_id: UUID) -> dict[str, Any]
     completion statuses
     """
     query = select(ScanSource).where(ScanSource.scan_id == scan_id)
-    result =await db.execute(query)
+    result = await db.execute(query)
     sources = result.scalars().all()
 
     aggregate = {
@@ -186,7 +183,7 @@ async def get_source_coverage(db: AsyncSession, scan_id: UUID) -> dict[str, Any]
         "sources_completed": 0,
         "sources_failed": 0,
         "sources_partial": 0,
-        "sources_skipped": 0    
+        "sources_skipped": 0,
     }
 
     for source in sources:
@@ -202,11 +199,9 @@ async def get_source_coverage(db: AsyncSession, scan_id: UUID) -> dict[str, Any]
         elif status_str == "skipped":
             aggregate["sources_skipped"] += 1
 
-    return {
-        "aggregate": aggregate,
-        "sources": sources
-    }            
-    
+    return {"aggregate": aggregate, "sources": sources}
+
+
 async def get_report_status(db: AsyncSession, scan_id: UUID) -> Report | None:
     """
     Fetches the current async pdf generation status for a scan

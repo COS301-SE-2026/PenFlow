@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname} from "next/navigation";
 import brocodeLogo from "@/app/images/images/BroCode logo.png";
 import bluevisionLogo from "@/app/images/images/Bluevision logo.png";
+import { useEffect, useState } from "react";
 
 function isLoggedIn(): boolean {
   if (typeof document === "undefined") return false;
@@ -31,9 +32,12 @@ type NavItem =
   ];
 
 export default function NavBar() {
-  const loggedIn = isLoggedIn();
-  const pathName = usePathname();
+  //fix hydation error for login
+  const [loggedIn,setLoggedIn] = useState(false);
 
+  useEffect( ()=>{
+    setLoggedIn(isLoggedIn());
+  },[]);
   return (
     <nav className = "topbar">
       <div className = "logoPanel">

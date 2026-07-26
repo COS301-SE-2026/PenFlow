@@ -8,7 +8,8 @@ from app.models.verified_domain import DomainVerificationCode, DomainVerificatio
 
 
 class AddDomainRequest(BaseModel):
-    domain: str = Field(..., min_length = 1, max_length = 255, description="The domain to verify")
+    domain: str = Field(..., min_length=1, max_length=255, description="The domain to verify")
+
 
 class VerifiedDomainResponse(BaseModel):
     id: UUID
@@ -19,14 +20,17 @@ class VerifiedDomainResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class DomainSortField(str, enum.Enum):
     DOMAIN = "domain"
     CREATED_AT = "created_at"
     STATUS = "status"
 
-class SortOrder (str, enum.Enum):
+
+class SortOrder(str, enum.Enum):
     ASC = "asc"
     DESC = "desc"
+
 
 class DomainItem(BaseModel):
     id: UUID
@@ -40,6 +44,7 @@ class DomainItem(BaseModel):
     last_verification_code: DomainVerificationCode | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class DomainCounts(BaseModel):
     all: int
