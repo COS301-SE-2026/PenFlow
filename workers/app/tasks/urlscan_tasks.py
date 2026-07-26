@@ -1,8 +1,6 @@
 import json
 from typing import Any
 
-import redis
-
 from app.queue.celery_app import celery_app
 from app.services.urlscan_service import (
     collect_raw_data,
@@ -12,8 +10,6 @@ from app.services.urlscan_service import (
 from app.utils.callback import send_source_callback
 
 JSONDict = dict[str, Any]
-redis_client = redis.Redis(host="penflow-redis", port=6379, db=0)
-
 
 @celery_app.task(name="scan.urlscan")
 def run_urlscan(scan_id: str, domain: str) -> JSONDict:
@@ -41,19 +37,6 @@ def run_urlscan(scan_id: str, domain: str) -> JSONDict:
             "assets": [],
         }
 
-        redis_client.publish(
-            f"scan_stream_{scan_id}",
-            json.dumps(
-                {
-                    "scan_id": scan_id,
-                    "progress": 60,
-                    "status": status,
-                    "source": "urlscan",
-                    "message": "Domain Reputation Scan completed",
-                }
-            ),
-        )
-
     except Exception as error:
         result = {
             "scan_id": scan_id,
@@ -64,18 +47,6 @@ def run_urlscan(scan_id: str, domain: str) -> JSONDict:
             "assets": [],
             "error_message": str(error),
         }
-        redis_client.publish(
-            f"scan_stream_{scan_id}",
-            json.dumps(
-                {
-                    "scan_id": scan_id,
-                    "progress": 60,
-                    "status": "failed",
-                    "source": "urlscan",
-                    "message": f"Domain Reputation Scan failed: {str(error)}",
-                }
-            ),
-        )
 
     send_source_callback(
         scan_id=scan_id,

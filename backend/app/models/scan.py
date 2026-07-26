@@ -5,6 +5,7 @@ from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
+from app.schemas.scan import ScanTypeEnum
 from app.models.base import Base, ScanStatus
 
 
@@ -23,7 +24,16 @@ class Scan(Base):
     task_id = Column(String(255))
     domain = Column(String(255), nullable=False, index=True)
     email = Column(String(255))
-    scan_type = Column(String(50), nullable=False, default="passive_ctem", index=True)
+    scan_type = Column(
+        Enum(
+            ScanTypeEnum,
+            values_callable=lambda enum: [item.value for item in enum],
+            name="scan_type",
+        ),
+        nullable=False,
+        default=ScanTypeEnum.PASSIVE_CTEM,
+        index=True,
+    )
     verified_domain_id = Column(
         UUID(as_uuid=True),
         ForeignKey("verified_domains.id", ondelete="SET NULL"),
