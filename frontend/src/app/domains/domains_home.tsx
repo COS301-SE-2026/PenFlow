@@ -367,7 +367,59 @@ function useDomains() {
       [active_tab, debounced_search, sort_value]
    );
 
+   const refetch = useCallback (() => load_domains({offset:0, append: false}), [load_domains]);
 
+   useEffect(() => {
+      void refetch();
+   }, [refetch]);
+
+   function handle_load_more() {
+      if (!pagination?.has_more || loading) return;
+      void load_domains ({ offset: domains.length, append: true});
+   }
+
+   async function verify(domain_id: string) {
+      set_verifying_id(domain_id);
+      try { 
+         await verify_domain(domain_id);
+      } catch {
+
+      } finally {
+         set_verifying_id(null);
+         void refetch();
+      }
+   }
+
+   async function remove(domain_id: string): Promise<boolean> {
+      try {
+         await delete_domain(domain_id);
+         void refetch();
+         return true;
+      } catch(err) {
+         set_error(err instanceof Error ? err.message: "Failed to remove domain");
+         return false;
+      }
+   }
+
+   return{ domains, counts, pagination, loading, error, active_tab, set_active_tab, search, set_search, sort_value, set_sort_value, verifying_id, refetch, handle_load_more, verify, remove,};
 }
 
+export default function DomainsHome() {
+   const {
+      domains, counts, pagination, loading, error, active_tab, set_active_tab, search, set_search, sort_value, set_sort_value, verifying_id, refetch, handle_load_more, verify, remove,
+   } = useDomains();
 
+   const [selected_id, set_selected_id] = useState<string | null>(null);
+   const [show_add_domain, set_show_add_domain] = useState(false);
+
+   async function handle_delete(domain_id: string) {
+      const deleted = await remove(domain_id);
+      if(deleted) set_selected_id((prev) => (prev === domain_id ? null : prev));
+   }
+
+   const selected_domain = domains.find((d) => d.id === selected_id ?? null);
+
+   return(
+      
+   )
+}
