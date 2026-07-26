@@ -533,7 +533,82 @@ export default function DomainsHome() {
                            </tr>
                         </thread>
                         <tbody>
-                           
+                           {domains.length === 0 && (
+                              <tr>
+                                 <td colSpan={5} className = "px-3 py-8 text-center text-sm text-muted-foreground">
+                                    {loading ? "Loading domains..." : "No domains found."}
+                                 </td>
+                              </tr>
+                           )}
+                           {domains.map((item) => (
+                              <tr
+                                 key={item.id}
+                                 onClick={() => set_selected_id(item.id)}
+                                 className = {cn(
+                                    "cursor-pointer border-b border-brand-panel-border text-sm transition-colors last:border-b-0 hover:bg-white/[0.03]",
+                                    selected_id === item.id && "bg-brand-cyan/[0.05]"
+                                 )}
+                              >
+                                 <td className = "px-3 py-2.5">
+                                    <span
+                                       className = "flex max-w-[160px] items-center gap-1.5 truncate font-medium text-foreground"
+                                       title={item.domian}
+                                    >
+                                       <GLove className = "size-3.5 shrink-0 text-muted-foreground"/>
+                                       <span className = "truncate">{item.domain}</span>
+                                    </span>
+                                 </td>
+                                 <td className = "px-3 py-2.5">
+                                    <StatusBadge status={item.status} />
+                                 </td>
+                                 <td className = "px-3 py-2.5 whitespace-nowrap text-muted-foreground">
+                                    {formate_timestamp(item.created_at)}
+                                 </td>
+                                 <td className = "px-3 py-2.5 whitespace-nowrap text-muted-foreground">
+                                    {item.last_checked_at ? (
+                                       <span className="inline-flex items-center gap-1.5">
+                                          <span className = "size-1.5 rounded-full bg-brand-success" />
+                                          {format_timestamp(item.last_checked_at)}
+                                       </span>
+                                    ): (
+                                       <span className = "text-muted-foreground">Never</span>
+                                    )}
+                                 </td>
+                                 <td className = "px-3 py-2.5">
+                                    <div className = "flex items-center gap-0.5 whitespace-nowrap">
+                                       {item.status === "verified" ? (
+                                          <Button 
+                                             size = "xs"
+                                             variant = "outline"
+                                             onClick = {(e) => {
+                                                e.stopPropagation();
+                                                set_selected_id(item.id);
+                                             }}
+                                          >  View
+                                          </Button>
+                                       ) : (
+                                          <Button 
+                                             size = "xs"
+                                             variant = "outline"
+                                             className = {cn(
+                                                item.status === "pending" && "border-brand-yellow text-brand-yellow hover:bg-brand-yellow/10",
+                                                (item.status === "failed" || item.status === "expired") && 
+                                                "border-brand-alert text-brand-alert hover:bg-brand-alert/10"
+                                             )}
+                                             disabled = {verifying_id === item.id}
+                                             onClick={(e) => {
+                                                e.stopPropagation();
+                                                void verify(item.id);
+                                             }}
+                                          >
+                                             {verifying_id === item.id ? "Verifying...": item.status === "pending" ? "Verify" : "Retry"}
+                                          </Button>
+                                       )}
+                                       
+                                    </div>
+                                 </td>
+                              </tr>
+                           ))}
                         </tbody>
                      </table>
                   </CardContent>
