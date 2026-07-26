@@ -66,13 +66,26 @@ def run_http_security_scan_task\
                 (findings.append
                     (
                     {
+                        "source": "http_security",
                         "severity": "low",
                         "title": "Missing Content-Security-Policy",
                         "description":
-                            (
-                                "No CSP nor CSP-Report-Only header is present."
-                            ),
-                        "target": target["url"],
+                        (
+                            "No CSP nor CSP-Report-Only header is present."
+                        ),
+                        "recommendation": 
+                        (
+                            "Configure an appropriate Content-Security-Policy header for the application."
+                        ),
+                        "host": ip_address,
+                        "port": target["port"],
+                        "protocol": "tcp",
+                        "evidence": {
+                            "url": target["url"],
+                            "status_code": target["status_code"],
+                            "header": "Content-Security-Policy",
+                            "observed_value": None,
+                        },
                     }
                 ))
 
@@ -102,7 +115,7 @@ def run_http_security_scan_task\
                         "x_content_type_options"
                     ),
             }
-            if target["protocol"] == "https":
+            if target["scheme"] == "https":
                 checks["Strict-Transport-Security"] = \
                     headers.get(
                         "strict_transport_security"
@@ -116,24 +129,38 @@ def run_http_security_scan_task\
                 (
                     {
                         #if we have no header for now we will default to a low severity
+                        "source": "http_security",
                         "severity": "low",
                         "title": f"Missing {header_name}",
                         "description":
                         (
                             f"{header_name} header is not present."
                         ),
-                        "target": target["url"],
+                        "recommendation": 
+                        (
+                            f"Configure the {header_name} security header where appropriate."
+                        ),
+                        "host": ip_address,
+                        "port": target["port"],
+                        "protocol": "tcp",
+                        "evidence": {
+                            "url": target["url"],
+                            "status_code": target["status_code"],
+                            "header": header_name,
+                            "observed_value": None,
+                        },
                     }
                 ))
 
-        result = \
-        {
+        result = {
             "scan_id": scan_id,
             "source_name": "http_security",
             "status": "completed",
             "raw_result": scan_data,
-            "findings": findings,
             "assets": [],
+            "services": [],
+            "technologies": [],
+            "findings": findings,
         }
 
         (logger.info
@@ -149,8 +176,7 @@ def run_http_security_scan_task\
             f"[HTTP_Task] Failed while scanning {ip_address}: {error}"
         ))
 
-        result = \
-        {
+        result = {
             "scan_id": scan_id,
             "source_name": "http_security",
             "status": "failed",
@@ -159,20 +185,23 @@ def run_http_security_scan_task\
                 "ip": ip_address,
                 "error": str(error),
             },
-            "findings": [],
             "assets": [],
+            "services": [],
+            "technologies": [],
+            "findings": [],
             "error_message": str(error),
         }
 
-    (send_source_callback
-    (
+    send_source_callback(
         scan_id=result["scan_id"],
         source_name=result["source_name"],
         status=result["status"],
         raw_result=result["raw_result"],
-        findings=result["findings"],
         assets=result["assets"],
+        services=result["services"],
+        technologies=result["technologies"],
+        findings=result["findings"],
         error_message=result.get("error_message"),
-    ))
+    )
 
     return result

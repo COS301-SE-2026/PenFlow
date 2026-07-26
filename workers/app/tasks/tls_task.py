@@ -39,7 +39,6 @@ def run_tls_scan_task\
         )
 
         findings: list[JSONDict] = []
-        assets: list[JSONDict] = []
 
         for target in tls_data["targets"]:
 
@@ -48,55 +47,26 @@ def run_tls_scan_task\
 
                 findings.append(
                     {
-                        "title":
-                            "TLS Handshake Failed",
-
-                        "description":
-                            target["error"],
-
-                        "severity":
-                            "low",
-
-                        "target":
-                            f"{ip_address}:{target['port']}",
+                        "source": "tls",
+                        "title": "TLS Handshake Failed",
+                        "description": target["error"],
+                        "recommendation": (
+                            "Review the TLS configuration for this service and ensure "
+                            "the endpoint supports a valid TLS handshake."
+                        ),
+                        "severity": "low",
+                        "host": ip_address,
+                        "port": target["port"],
+                        "protocol": "tcp",
+                        "evidence": {
+                            "error": target["error"],
+                        },
                     }
                 )
 
                 continue
 
             certificate = target["certificate"]
-            #assets
-            assets.append\
-            (
-                {
-                    "type":
-                        "tls_certificate",
-
-                    "value":
-                        f"{ip_address}:{target['port']}",
-
-                    "metadata":
-                    {
-                        "subject":
-                            certificate["subject"],
-
-                        "issuer":
-                            certificate["issuer"],
-
-                        "valid_from":
-                            certificate["valid_from"],
-
-                        "valid_until":
-                            certificate["valid_until"],
-
-                        "tls_version":
-                            target["tls_version"],
-
-                        "cipher":
-                            target["cipher"],
-                    },
-                }
-            )
 
             #Findings
             if certificate["expired"]:
@@ -104,17 +74,45 @@ def run_tls_scan_task\
                 findings.append\
                 (
                     {
-                        "title":
-                            "Expired TLS Certificate",
+                        "source": "tls",
+                        "title": "Expired TLS Certificate",
+                        "description": "The TLS certificate has expired.",
+                        "recommendation": (
+                            "Renew or replace the TLS certificate with a valid certificate."
+                        ),
+                        "severity": "high",
+                        "host": ip_address,
+                        "port": target["port"],
+                        "protocol": "tcp",
+                        "evidence": {
+                            "subject": certificate["subject"],
+                            "issuer": certificate["issuer"],
+                            "valid_from": certificate["valid_from"],
+                            "valid_until": certificate["valid_until"],
+                            "tls_version": target["tls_version"],
+                            "cipher": target["cipher"],
+                        },
+                    }
+                )
 
-                        "description":
-                            "The TLS certificate has expired.",
-
-                        "severity":
-                            "high",
-
-                        "target":
-                            f"{ip_address}:{target['port']}",
+            if certificate["self_signed"]:
+                findings.append(
+                    {
+                        "source": "tls",
+                        "title": "Self-Signed TLS Certificate",
+                        "description": "The TLS endpoint is using a self-signed certificate.",
+                        "recommendation": (
+                            "Use a certificate issued by a trusted certificate authority "
+                            "for publicly exposed services."
+                        ),
+                        "severity": "medium",
+                        "host": ip_address,
+                        "port": target["port"],
+                        "protocol": "tcp",
+                        "evidence": {
+                            "subject": certificate["subject"],
+                            "issuer": certificate["issuer"],
+                        },
                     }
                 )
 
@@ -125,8 +123,10 @@ def run_tls_scan_task\
             "source_name": "tls",
             "status": "completed",
             "raw_result": tls_data,
+            "assets": [],
+            "services": [],
+            "technologies": [],
             "findings": findings,
-            "assets": assets,
         }
 
     except Exception as error:
@@ -148,8 +148,10 @@ def run_tls_scan_task\
                 "ip": ip_address,
                 "error": str(error),
             },
-            "findings": [],
             "assets": [],
+            "services": [],
+            "technologies": [],
+            "findings": [],
             "error_message": str(error),
         }
 
@@ -159,8 +161,10 @@ def run_tls_scan_task\
         source_name=result["source_name"],
         status=result["status"],
         raw_result=result["raw_result"],
-        findings=result["findings"],
         assets=result["assets"],
+        services=result["services"],
+        technologies=result["technologies"],
+        findings=result["findings"],
         error_message=result.get("error_message"),
     )
 

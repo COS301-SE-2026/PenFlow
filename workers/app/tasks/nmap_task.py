@@ -20,6 +20,7 @@ def run_nmap_scan\
     self: Any,
     scan_id: str,
     ip_address: str,
+    domain: str,
     profile: str = "standard",
 ) -> JSONDict:
     """
@@ -40,31 +41,33 @@ def run_nmap_scan\
             profile=profile,
         ))
 
-        assets = []
+        services = []
 
         for port in scan_data.get("ports", []):
-            (assets.append
-            (
+            services.append(
                 {
-                "type": "network_service",
-                "value": f"{scan_data['ip']}:{port['port']}",
-                "metadata":{
+                    "host": scan_data["ip"],
+                    "port": port["port"],
                     "protocol": port["protocol"],
-                    "service": port["service"],
+                    "service_name": port["service"],
                     "product": port["product"],
                     "version": port["version"],
+                    "banner": port.get("extra_info"),
                     "state": port["state"],
+                    "tls_enabled": False,
                 }
-                }))
+            )
 
-        result = \
-        {
+        result = {
             "scan_id": scan_id,
             "source_name": "nmap",
             "status": "completed",
             "raw_result": scan_data,
+            "assets": [],
+            "services": services,
+            "technologies": [],
             "findings": [],
-            "assets": assets,
+            
         }
 
         (logger.info
@@ -79,8 +82,7 @@ def run_nmap_scan\
             f"[NMAP_Task] Failed while scanning {ip_address}: {error}"
         ))
 
-        result = \
-        {
+        result = {
             "scan_id": scan_id,
             "source_name": "nmap",
             "status": "failed",
@@ -90,20 +92,41 @@ def run_nmap_scan\
                 "ip": ip_address,
                 "error": str(error),
             },
-            "findings": [],
             "assets": [],
+            "services": [],
+            "technologies": [],
+            "findings": [],
             "error_message": str(error),
         }
 
-    (send_source_callback
-    (
+    send_source_callback(
         scan_id=result["scan_id"],
         source_name=result["source_name"],
         status=result["status"],
         raw_result=result["raw_result"],
-        findings=result["findings"],
         assets=result["assets"],
+        services=result["services"],
+        technologies=result["technologies"],
+        findings=result["findings"],
         error_message=result.get("error_message"),
-    ))
+    )
+
+    if result["status"] == "completed":
+        ports = result["raw_result"].get("ports", [])
+
+        celery_app.send_task(
+            "scan.phase2_tls",
+            args=[scan_id, ip_address, ports, domain],
+        )
+
+        celery_app.send_task(
+            "scan.phase2_http_security",
+            args=[scan_id, domain, ip_address, ports],
+        )
+
+        celery_app.send_task(
+            "scan.phase2_fingerprint",
+            args=[scan_id, f"https://{domain}", result["raw_result"], None]
+        )
 
     return result

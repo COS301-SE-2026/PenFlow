@@ -75,6 +75,7 @@ async def queue_report_generation(db: AsyncSession, scan_id: str) -> dict[str, A
                 assets=report_data["assets"],
                 services=report_data["services"],
                 technologies=report_data["technologies"],
+                scan_sources=report_data["scan_sources"],
             )
 
         else:

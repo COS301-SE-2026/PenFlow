@@ -93,7 +93,7 @@ class CVEService:
 
         params = \
         {
-            "MatchString": cpe,
+            "virtualMatchString": cpe,
         }
 
         try:
