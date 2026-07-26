@@ -12,9 +12,7 @@ from app.models.scan import Scan
 
 
 async def get_report_by_scan_id(db: AsyncSession, scan_id: str) -> Report | None:
-    result = await db.execute(
-        select(Report).where(Report.scan_id == UUID(scan_id))
-    )
+    result = await db.execute(select(Report).where(Report.scan_id == UUID(scan_id)))
     return result.scalar_one_or_none()
 
 

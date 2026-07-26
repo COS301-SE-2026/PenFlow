@@ -19,6 +19,7 @@ class ScanSummary(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class RiskSnapshot(BaseModel):
     total_findings: int = 0
     critical_count: int = 0
@@ -26,6 +27,7 @@ class RiskSnapshot(BaseModel):
     medium_count: int = 0
     low_count: int = 0
     info_count: int = 0
+
 
 class TopFindingPreview(BaseModel):
     id: UUID
@@ -40,10 +42,12 @@ class TopFindingPreview(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class AssetTypeBreakdown(BaseModel):
     asset_type: str
     total_assets: int
     affected_assets: int
+
 
 class TopAffectedAsset(BaseModel):
     identifier: str
@@ -51,11 +55,13 @@ class TopAffectedAsset(BaseModel):
     finding_count: int
     highest_severity: Severity
 
+
 class AssetImpactSummary(BaseModel):
     total_assets_scanned: int
     affected_assets_count: int
     asset_type_breakdown: list[AssetTypeBreakdown]
     top_affected_assets: list[TopAffectedAsset]
+
 
 class SourceCoverageItem(BaseModel):
     source_name: str
@@ -66,6 +72,7 @@ class SourceCoverageItem(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class SourceCoverageAggregate(BaseModel):
     sources_total: int = 0
     sources_completed: int = 0
@@ -73,9 +80,11 @@ class SourceCoverageAggregate(BaseModel):
     sources_partial: int = 0
     sources_skipped: int = 0
 
+
 class SourceCoverageSummary(BaseModel):
     aggregate: SourceCoverageAggregate
     sources: list[SourceCoverageItem]
+
 
 class Report(BaseModel):
     status: str
@@ -85,6 +94,7 @@ class Report(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class ExecutiveSummary(BaseModel):
     scan_summary: ScanSummary
     risk_snapshot: RiskSnapshot
@@ -92,5 +102,3 @@ class ExecutiveSummary(BaseModel):
     asset_impact: AssetImpactSummary
     source_coverage: SourceCoverageSummary
     report_status: Optional[Report] = None
-
- 

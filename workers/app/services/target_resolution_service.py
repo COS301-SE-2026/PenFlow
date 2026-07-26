@@ -15,9 +15,7 @@ def resolve_target_ips(domain: str) -> JSONDict:
     Gives us Live IPV4 and IPV6 we can use
     """
 
-    logger.info(
-        f"[Target Resolution] Resolving live IP address's for the domain: {domain}"
-    )
+    logger.info(f"[Target Resolution] Resolving live IP address's for the domain: {domain}")
 
     result = {
         "ipv4": [],
@@ -33,8 +31,7 @@ def resolve_target_ips(domain: str) -> JSONDict:
         records = resolver.resolve(domain, "A")
         result["ipv4"] = [record.to_text() for record in records]
 
-        logger.info\
-        (
+        logger.info(
             f"[Target Resolution] Found {len(result['ipv4'])} "
             f"IPv4 address's for the domain: {domain}"
         )
@@ -54,8 +51,7 @@ def resolve_target_ips(domain: str) -> JSONDict:
         records = resolver.resolve(domain, "AAAA")
         result["ipv6"] = [record.to_text() for record in records]
 
-        logger.info\
-        (
+        logger.info(
             f"[Target Resolution] Found {len(result['ipv6'])} "
             f"IPv6 address's for the domain: {domain}"
         )

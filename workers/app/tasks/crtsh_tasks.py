@@ -50,4 +50,3 @@ def run_crt_sh(scan_id: str, domain: str) -> JSONDict:
     )
 
     return result
-

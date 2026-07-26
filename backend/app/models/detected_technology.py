@@ -34,7 +34,5 @@ class DetectedTechnology(Base):
     detection_source = Column(String(100))
     evidence = Column(JSONB, nullable=False, default=dict)
     created_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
     )
