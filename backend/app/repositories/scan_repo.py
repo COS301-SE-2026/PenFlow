@@ -6,6 +6,7 @@ from uuid import UUID
 from sqlalchemy import case, func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.dialects.postgresql import insert as psg_insert
 
 from app.models.asset import Asset
 from app.models.base import ScanStatus, Severity, ScanSourceStatus, FindingStatus
@@ -142,26 +143,28 @@ class ScanRepository:
         
         try:
             source_status = payload["status"]
-            source_query = select(ScanSource).where(
-                ScanSource.scan_id == scan.id,
-                ScanSource.source_name == source_name,
-            )
-            source_result = await db.execute(source_query)
-            scan_source = source_result.scalar_one_or_none()
 
-            if scan_source:
-                scan_source.status = ScanSourceStatus(source_status)
-                scan_source.raw_result = payload.get("raw_result")
-                scan_source.error_message = payload.get("error_message")
-            else:
-                scan_source = ScanSource(
+            query = (
+                psg_insert(ScanSource).values(
                     scan_id=scan.id,
                     source_name=source_name,
                     status=ScanSourceStatus(source_status),
                     raw_result=payload.get("raw_result"),
                     error_message=payload.get("error_message"),
+                ).on_conflict_do_update(
+                    index_elements = [
+                        "scan_id",
+                        "source_name",
+                    ],
+                    set_ = {
+                        "status": ScanSourceStatus(source_status),
+                        "raw_result": payload.get("raw_result"),
+                        "error_message": payload.get("error_message"),
+                    },
                 )
-                db.add(scan_source)
+            )
+
+            await db.execute(query)
 
             asset_cache: dict[str, Asset] = {}
 
@@ -172,27 +175,31 @@ class ScanRepository:
                 if not identifier:
                     continue
 
-                asset_query = select(Asset).where(
-                    Asset.scan_id == scan.id,
-                    Asset.identifier == identifier,
-                    Asset.asset_type == asset_type,
+                query = (
+                    psg_insert(Asset).values(
+                        scan_id=scan.id,
+                        identifier=identifier,
+                        asset_type=asset_type,
+                        asset_metadata=asset_data.get("asset_metadata", {}),
+                    ).on_conflict_do_nothing(
+                        index_elements = [
+                            "scan_id",
+                            "identifier",
+                            "asset_type",
+                        ]
+                    )
                 )
 
-                asset_result = await db.execute(asset_query)
-                asset = asset_result.scalar_one_or_none()
+                await db.execute(query)
 
-                if asset is None:
-                    asset = Asset(
-                        scan_id = scan.id,
-                        identifier = identifier,
-                        asset_type = asset_type,
-                        asset_metadata = asset_data.get(
-                            "asset_metadata",
-                            {},
-                        ),
+                asset_result = await db.execute(
+                    select(Asset).where(
+                        Asset.scan_id == scan.id,
+                        Asset.identifier == identifier,
+                        Asset.asset_type == asset_type,
                     )
-                    db.add(asset)
-                    await db.flush()
+                )
+                asset = asset_result.scalar_one_or_none()
 
                 asset_cache[identifier] = asset
 
@@ -217,68 +224,62 @@ class ScanRepository:
                     asset_result = await db.execute(asset_query)
                     asset = asset_result.scalar_one_or_none()
 
-                service_query = select(Service).where(
-                    Service.scan_id == scan.id,
-                    Service.host == host,
-                    Service.port == port,
-                    Service.protocol == protocol,
+
+                query = (
+                    psg_insert(Service).values(
+                        scan_id=scan.id,
+                        asset_id=asset.id if asset else None,
+                        host=host,
+                        port=port,
+                        protocol=protocol,
+                        service_name=service_data.get("service_name"),
+                        product=service_data.get("product"),
+                        version=service_data.get("version"),
+                        banner=service_data.get("banner"),
+                        state=service_data.get("state", "open"),
+                        tls_enabled=service_data.get("tls_enabled", False),
+                    ).on_conflict_do_nothing(
+                        index_elements = [
+                            "scan_id",
+                            "host",
+                            "port",
+                            "protocol",
+                        ]
+                    )
                 )
 
-                service_result = await db.execute(service_query)
+                await db.execute(query)
+
+                service_result = await db.execute(
+                    select(Service).where(
+                        Service.scan_id == scan.id,
+                        Service.host == host,
+                        Service.port == port,
+                        Service.protocol == protocol,
+                    )
+                )
                 service = service_result.scalar_one_or_none()
 
-                if service is None:
-                    service = Service(
-                        scan_id = scan.id,
-                        asset_id = asset.id if asset else None,
-                        host = host,
-                        port = port,
-                        protocol = protocol,
-                        service_name = service_data.get("service_name"),
-                        product = service_data.get("product"),
-                        version = service_data.get("version"),
-                        banner = service_data.get("banner"),
-                        state = service_data.get("state", "open"),
-                        tls_enabled = service_data.get(
-                            "tls_enabled",
-                            False,
-                        ),
-                    )
+                if asset and service.asset_id is None:
+                    service.asset_id = asset.id
 
-                    db.add(service)
-                    await db.flush()
+                if service_data.get("service_name"):
+                    service.service_name = service_data["service_name"]
 
-                else:
-                    service.asset_id = (
-                        asset.id
-                        if asset
-                        else service.asset_id
-                    )
+                if service_data.get("product"):
+                    service.product = service_data["product"]
 
-                    service.service_name = (
-                        service_data.get("service_name")
-                        or service.service_name
-                    )
+                if service_data.get("version"):
+                    service.version = service_data["version"]
 
-                    service.product = (
-                        service_data.get("product")
-                        or service.product
-                    )
+                if service_data.get("banner"):
+                    service.banner = service_data["banner"]
 
-                    service.version = (
-                        service_data.get("version")
-                        or service.version
-                    )
+                if service_data.get("state"):
+                    service.state = service_data["state"]
 
-                    service.banner = (
-                        service_data.get("banner")
-                        or service.banner
-                    )
-
-                    service.state = service_data.get("state", service.state)
-
-                    if service_data.get("tls_enabled"):
-                        service.tls_enabled = True
+                if service_data.get("tls_enabled"):
+                    service.tls_enabled = True
 
                 service_cache[host, port, protocol] = service
 
