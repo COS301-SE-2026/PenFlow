@@ -54,6 +54,7 @@ class ScanScheduleFrequency(str, enum.Enum):
     DAILY = "daily"
     WEEKLY = "weekly"
     MONTHLY = "monthly"
+    
 class FindingStatus(str, enum.Enum):
     OPEN = 'open'
     IN_PROGRESS = 'in_progress'

@@ -64,8 +64,11 @@ class CVEService:
         for vulnerability in self.vulnerabilities:
             identifier = \
             (
-                f"{vulnerability['cve_id']}_"
-                f"{vulnerability['affected_software']}"
+                vulnerability.get("cve_id"),
+                vulnerability.get("host"),
+                vulnerability.get("port"),
+                vulnerability.get("protocol"),
+                vulnerability.get("affected_software"),
             )
 
             if identifier in seen:
@@ -187,7 +190,15 @@ class CVEService:
                             "severity": str(severity).upper(),
                             "cvss_score": score,
                             "description": cve["descriptions"][0]["value"],
-                            "affected_software": cpe,
+                            "affected_software": software.get(
+                                "product",
+                                "unknown",
+                            ),
+                            "affected_version": software.get("version"),
+                            "cpe": cpe,
+                            "host": software.get("host"),
+                            "port": software.get("port"),
+                            "protocol": software.get("protocol"),
                             "remediation": "Check NVD reference links for patches.",
                         }
                     )

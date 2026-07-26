@@ -94,11 +94,14 @@ def collect_raw_data(domain: str) -> dict:
         #poll for results every 10 seconds, up to 6 attempts. 1 min total
         result_url = f"https://urlscan.io/api/v1/result/{uuid}/"
         raw_result = {}
-        
-        for attempt in range(6):
-            time.sleep(10)
+
+        poll_attempts = 4
+        poll_interval_seconds = 7
+
+        for attempt in range(poll_attempts):
+            time.sleep(poll_interval_seconds)
             logger.info(f"[URLScan] Polling for results (Attempt {attempt + 1}/6)...")
-            res = client.get(result_url,headers=headers, timeout=15.0)
+            res = client.get(result_url,headers=headers, timeout=10.0)
             
             if res.status_code == 200:
                 raw_result = res.json()

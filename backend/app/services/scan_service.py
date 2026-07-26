@@ -59,7 +59,7 @@ class ScanService:
         try:
             if scan_data.scan_type == ScanTypeEnum.ACTIVE_VULNERABILITY:
                 task = celery_app.send_task(
-                    "scan.phase2_target_resolution",
+                    "scan.phase2_full",
                     args=[str(scan_record.id), scan_data.domain]
                 )
                 logger.info("Queued Active Phase 2 workflow %s for scan %s", task.id, scan_record.id)

@@ -90,7 +90,7 @@ def run_http_security_scan\
         {
             "url": url,
             "port": port["port"],
-            "protocol": protocol,
+            "scheme": protocol,
             "status_code": response.status_code,
 
             "security_headers":
