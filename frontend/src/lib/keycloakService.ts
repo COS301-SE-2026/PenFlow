@@ -39,6 +39,28 @@ export async function loginWithPassword(
   return res.json() as Promise<TokenResponse>;
 }
 
+//added refresh toekn  allow user don't have to reenter a possword in certain time
+export async function refreshAccessToken(refreshToken:string):Promise<TokenResponse>
+{
+  const res = await fetch(TOKEN_URL,{
+    method: "POST",
+    headers: {"Content-Type":"application/x-www-form-urlencoded"},
+    body:new URLSearchParams({
+      grant_type: "refresh_token",
+      client_id: CLIENT_ID,
+      client_secret:CLIENT_SECRET,
+      refresh_token:refreshToken
+    }),
+  });
+  if(!res.ok){
+    const err =await res.json().catch(()=>({})) as  Record<string,string>;
+    throw new Error(err.error_description ?? "Failed to refresh session");
+  }
+  return res.json() as Promise<TokenResponse>;
+}
+
+
+
 export async function logoutSession(refreshToken: string): Promise<void> {
   await fetch(LOGOUT_URL, {
     method: "POST",
