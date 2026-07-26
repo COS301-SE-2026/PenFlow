@@ -7,12 +7,8 @@ CMS_SIGNATURES = {
         "scripts": [("wp-content", 20), ("wp-includes", 20)],
         "headers": [("link", 10)],
         "version_extractors": [
-            {
-                "type": "meta",
-                "target": "generator",
-                "regex": r"WordPress\s+([\d\.]+)"
-            }
-        ]
+            {"type": "meta", "target": "generator", "regex": r"WordPress\s+([\d\.]+)"}
+        ],
     },
     "Drupal": {
         "category": "cms",
@@ -22,16 +18,8 @@ CMS_SIGNATURES = {
         "scripts": [("drupal.js", 30)],
         "headers": [("x-generator", 50)],
         "version_extractors": [
-            {
-                "type": "header",
-                "target": "x-generator",
-                "regex": r"Drupal\s+([\d\.]+)"
-            },
-            {
-                "type": "meta",
-                "target": "generator",
-                "regex": r"Drupal\s+([\d\.]+)"
-            }
-        ]
-    }
+            {"type": "header", "target": "x-generator", "regex": r"Drupal\s+([\d\.]+)"},
+            {"type": "meta", "target": "generator", "regex": r"Drupal\s+([\d\.]+)"},
+        ],
+    },
 }

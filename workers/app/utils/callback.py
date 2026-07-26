@@ -7,9 +7,7 @@ logger = logging.getLogger(__name__)
 BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:3001/api/v1")
 
 
-def send_scan_callback(
-    scan_id: str, status: str, error_message: str | None = None
-) -> None:
+def send_scan_callback(scan_id: str, status: str, error_message: str | None = None) -> None:
     url = f"{BACKEND_API_URL}/internal/scans/{scan_id}/status"
     payload = {
         "status": status,
@@ -44,13 +42,13 @@ def send_report_callback(
 
 
 def send_source_callback(
-        scan_id: str,
-        source_name: str,
-        status: str,
-        raw_result: dict | None = None,
-        findings: list[dict] | None = None,
-        assets: list[dict] | None = None,
-        error_message: str | None = None,
+    scan_id: str,
+    source_name: str,
+    status: str,
+    raw_result: dict | None = None,
+    findings: list[dict] | None = None,
+    assets: list[dict] | None = None,
+    error_message: str | None = None,
 ) -> None:
     url = f"{BACKEND_API_URL}/internal/scans/{scan_id}/sources/{source_name}"
 

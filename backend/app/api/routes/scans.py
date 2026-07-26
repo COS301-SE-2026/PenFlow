@@ -1,9 +1,9 @@
 import logging
 from pathlib import Path
-from typing import Annotated, Any, Optional 
+from typing import Annotated, Any, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status 
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +12,18 @@ from app.repositories.report_repository import get_report_by_scan_id
 from app.repositories.scan_repo import ScanRepository
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.report import EmailReportRequest
-from app.schemas.scan import InitiateScanRequest, InitiateScanResponse, ScanHistoryItem, MetricsResponse, DashboardFindingItem, DashboardAssetItem, RiskHistoryItem, ServiceListResponse, FindingListResponse, AssetListResponse
+from app.schemas.scan import (
+    AssetListResponse,
+    DashboardAssetItem,
+    DashboardFindingItem,
+    FindingListResponse,
+    InitiateScanRequest,
+    InitiateScanResponse,
+    MetricsResponse,
+    RiskHistoryItem,
+    ScanHistoryItem,
+    ServiceListResponse,
+)
 from app.services.email_service import send_report_email
 from app.services.scan_service import ScanService
 from app.utils.db import get_db
@@ -20,10 +31,11 @@ from app.utils.db import get_db
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/scans", tags=["Scans"])
-#Use annoted for dependency injection
+# Use annoted for dependency injection
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 CurrentUser = Annotated[dict[str, Any], Depends(get_current_user)]
 CurrentUserOptional = Annotated[dict[str, Any] | None, Depends(get_current_user_optional)]
+
 
 @router.get(
     "/",
@@ -65,10 +77,7 @@ async def initiate_ctem_scan(
 
         new_scan = await ScanService.start_scan(db, request, user_id=user_id)
 
-        return InitiateScanResponse(
-            scan_id=new_scan.id,
-            status=new_scan.status
-        )
+        return InitiateScanResponse(scan_id=new_scan.id, status=new_scan.status)
 
     except Exception:
         logger.exception("Failed to initiate scan for domain %s", request.domain)
@@ -82,10 +91,17 @@ async def initiate_ctem_scan(
 async def get_scan_status(
     scan_id: UUID,
     db: DbSession,
+    current_user: CurrentUserOptional,
 ) -> dict[str, Any]:
+
+    user_id = None
+    if current_user is not None:
+        user_id = await get_user_id_by_provider_id(db, current_user["sub"])
+
     status_info = await ScanRepository.get_scan_status(
         db,
         scan_id,
+        user_id,
     )
 
     if not status_info:
@@ -93,7 +109,7 @@ async def get_scan_status(
             status_code=404,
             detail="Scan not found",
         )
-    
+
     return status_info
 
 
@@ -167,6 +183,7 @@ async def email_scan_report(
 
     return {"message": "Report emailed successfully"}
 
+
 @router.get(
     "/{scan_id}/metrics",
     response_model=MetricsResponse,
@@ -184,6 +201,7 @@ async def get_scan_metrics(
     if metrics is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found")
     return metrics
+
 
 @router.get(
     "/{scan_id}/findings",
@@ -204,6 +222,7 @@ async def get_scan_findings(
         db=db, scan_id=scan_id, severity=severity, limit=limit, offset=offset
     )
 
+
 @router.get(
     "/{scan_id}/assets",
     response_model=list[DashboardAssetItem],
@@ -218,7 +237,10 @@ async def get_scan_assets(
     """
     Retrieves discovered assets along with their associated finding counts.
     """
-    return await ScanRepository.get_assets_by_scan(db=db, scan_id=scan_id, limit=limit, offset=offset)
+    return await ScanRepository.get_assets_by_scan(
+        db=db, scan_id=scan_id, limit=limit, offset=offset
+    )
+
 
 @router.get(
     "/{scan_id}/risk-history",
@@ -233,6 +255,7 @@ async def get_scan_risk_history(
     Retrieves historical risk scores for the domain to render the risk over time graph.
     """
     return await ScanRepository.get_domain_risk_history(db=db, scan_id=scan_id)
+
 
 @router.get(
     "/{scan_id}/findings-page",
@@ -267,6 +290,7 @@ async def get_scan_findings_page(
         "items": items,
     }
 
+
 @router.get(
     "/{scan_id}/services-page",
     response_model=ServiceListResponse,
@@ -299,6 +323,7 @@ async def get_scan_services_page(
         "items": items,
     }
 
+
 @router.get(
     "/{scan_id}/assets-page",
     response_model=AssetListResponse,
@@ -307,7 +332,9 @@ async def get_scan_services_page(
 async def get_scan_assets_page(
     scan_id: UUID,
     db: DbSession,
-    asset_type: Optional[str] = Query(None, description="Filter by asset type (Domain, subdomain, ip)"),
+    asset_type: Optional[str] = Query(
+        None, description="Filter by asset type (Domain, subdomain, ip)"
+    ),
     severity: Optional[str] = Query(None, description="Filter by highest severity"),
     search: Optional[str] = Query(None, description="Search by query string"),
     sort_by: str = Query("risk", description="Sort criteria (risk, findings, identifier)"),
@@ -327,8 +354,4 @@ async def get_scan_assets_page(
         limit=limit,
         offset=offset,
     )
-    return {
-        "total": counts["total"],
-        "counts": counts,
-        "items": items
-    }
+    return {"total": counts["total"], "counts": counts, "items": items}

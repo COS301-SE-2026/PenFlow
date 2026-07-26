@@ -1,5 +1,6 @@
-from typing import Any
 import json
+from typing import Any
+
 import redis
 
 from app.queue.celery_app import celery_app
@@ -39,10 +40,18 @@ def run_dns_scan(scan_id: str, domain: str) -> JSONDict:
             "assets": [],
         }
 
-        redis_client.publish(f"scan_stream_{scan_id}", json.dumps({
-            "scan_id": scan_id, "progress": 15, "status": status,
-            "source": "dns", "message": "DNS & WHOIS Enumeration completed"
-        }))
+        redis_client.publish(
+            f"scan_stream_{scan_id}",
+            json.dumps(
+                {
+                    "scan_id": scan_id,
+                    "progress": 15,
+                    "status": status,
+                    "source": "dns",
+                    "message": "DNS & WHOIS Enumeration completed",
+                }
+            ),
+        )
 
     except Exception as error:
         result = {
@@ -54,10 +63,18 @@ def run_dns_scan(scan_id: str, domain: str) -> JSONDict:
             "assets": [],
             "error_message": str(error),
         }
-        redis_client.publish(f"scan_stream_{scan_id}", json.dumps({
-            "scan_id": scan_id, "progress": 15, "status": "failed",
-            "source": "dns", "message": f"DNS Enumeration failed: {str(error)}"
-        }))
+        redis_client.publish(
+            f"scan_stream_{scan_id}",
+            json.dumps(
+                {
+                    "scan_id": scan_id,
+                    "progress": 15,
+                    "status": "failed",
+                    "source": "dns",
+                    "message": f"DNS Enumeration failed: {str(error)}",
+                }
+            ),
+        )
 
     send_source_callback(
         scan_id=scan_id,

@@ -13,11 +13,13 @@ class SeverityEnum(str, Enum):
     LOW = "Low"
     INFORMATIONAL = "Informational"
 
+
 class FindingSchema(BaseModel):
     id: UUID
     title: str
     severity: SeverityEnum
     model_config = ConfigDict(from_attributes=True)
+
 
 class AssetSchema(BaseModel):
     id: UUID
@@ -25,6 +27,7 @@ class AssetSchema(BaseModel):
     asset_type: str
     findings: List[FindingSchema] = []
     model_config = ConfigDict(from_attributes=True)
+
 
 class ScanReportResponse(BaseModel):
     scan_id: UUID
@@ -37,10 +40,12 @@ class ScanReportResponse(BaseModel):
     critical_count: int
     high_count: int
 
+
 class ReportCallbackRequest(BaseModel):
     status: str
     pdf_path: str | None = None
     error_message: str | None = None
+
 
 class EmailReportRequest(BaseModel):
     email: EmailStr
