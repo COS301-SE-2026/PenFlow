@@ -4,8 +4,7 @@ import { type TokenResponse } from "@/lib/keycloakService";
 
 const BACKEND_URL = process.env.API_URL ?? "http://localhost:3001";
 
-export async function createAuthResponse(tokens: TokenResponse): Promise<NextResponse> {
-  const res = NextResponse.json({ success: true });
+export function setAuthCookies(res: NextResponse, tokens: TokenResponse): void {
 
   const isProduction = process.env.NODE_ENV === "production";
 
@@ -24,15 +23,20 @@ export async function createAuthResponse(tokens: TokenResponse): Promise<NextRes
     maxAge: tokens.refresh_expires_in,
     path: "/",
   });
-
+   // Tied to the refresh session not the access token so the navbar does not log out user when time reach
   res.cookies.set("logged_in", "1", {
     httpOnly: false,
     secure: isProduction,
     sameSite: "lax",
-    maxAge: tokens.expires_in,
+    maxAge: tokens.refresh_expires_in,
     path: "/",
   });
 
+}
+
+export async function createAuthResponse(tokens: TokenResponse): Promise<NextResponse> {
+  const res = NextResponse.json({ success: true });
+  setAuthCookies(res, tokens);
   const provisionRes = await fetch(`${BACKEND_URL}/api/v1/users/me`, {
     headers: { Authorization: `Bearer ${tokens.access_token}` },
   }).catch((err: unknown) => {
