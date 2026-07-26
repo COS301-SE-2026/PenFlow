@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-import nmap 
+import nmap
 
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
