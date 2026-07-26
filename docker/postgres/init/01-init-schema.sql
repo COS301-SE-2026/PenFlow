@@ -152,6 +152,7 @@ CREATE TABLE services (
     host VARCHAR(255) NOT NULL,
     port INTEGER NOT NULL,
     protocol VARCHAR(20) NOT NULL,
+    state VARCHAR(50) NOT NULL DEFAULT 'open',
     service_name VARCHAR(100),
     product VARCHAR(255),
     version VARCHAR (255),
