@@ -82,5 +82,24 @@ export async function add_domain(domain: string): Promise<VerifiedDomain> {
     });
     if(!response.ok) throw await parseError(response, "Failed to add domain");
     return response.json();
-
 }
+
+export async function verify_domain(domainId: string): Promise<VerifiedDomain> {
+    const response = await fetch(`${API_BASE}/${domainId}/verify`, {method: "POST" });
+    if(!response.ok) throw await parseError(response, "Verification failed");
+    return response.json();
+}
+
+export async function delete_domain(domainId: string): Promise<void> {
+    const response = await fetch(`${API_BASE}/${domainId}/verify`, {method: "DELETE" });
+    if(!response.ok && response.status !== 204) {
+        throw await parseError(response, "Failed to remove domain");
+    }
+}
+
+export const verification_code_message : Record<DomainVerificationCode, string> = {
+    verified: "Verified successfully.",
+    record_not_found: "We could not find the verification TXT record.",
+    token_mismatch: "A TXT record was found, but the token did not match",
+    lookup_failed: "The DNS lookup could not be completed. Please try again later",
+};
