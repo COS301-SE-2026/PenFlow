@@ -118,7 +118,7 @@ it("refresh token grant and return a new token pair",async() =>{
 
 //test logout
 describe("Logout session",() =>{
-  it("posts the refresh token to Keycloak's logout endpoint"),async()=>{
+  it("posts the refresh token to Keycloak's logout endpoint",async()=>{
     const fetchSpy = jest
     .spyOn(global, "fetch")
     .mockResolvedValue(jsonResponse({}));
@@ -134,10 +134,9 @@ describe("Logout session",() =>{
     //verify logout is included in the request body
     const body = (fetchSpy.mock.calls[0][1]?.body as URLSearchParams).toString();
     expect(body).toContain("refresh_token=someRefreshToken");
-  }
+  });
 
-}
-)
+});
 
 //test register 
 describe("register User",() =>{
