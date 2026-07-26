@@ -1,4 +1,3 @@
-import json
 from typing import Any
 
 from app.queue.celery_app import celery_app
