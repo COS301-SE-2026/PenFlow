@@ -24,6 +24,7 @@ import { add_domain, delete_domain, fetch_domain, verify_domain, verification_co
  } from "@/lib/domainService";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
+import nextConfig from "next.config";
 
  const PAGE_SIZE = 20;
  const sort_options = { value: string; label: string; sort: domain_sort_field; order: sort_order }[] = [
@@ -314,5 +315,59 @@ return (
       </CardContent>
    </Card>
 );}
+
+function useDomains() {
+   const [domains, set_domains] = useState<domain_item[]>([]);
+   const [counts, set_counts] = useState<domain_counts | null>(null);
+   const [pagination, set_pagination] = useState<domain_pagination| null>(null);
+   const [loading, set_loading] = useState(false);
+   const [error, set_error] = useState<string | null>(null);
+
+   const [active_tab, set_active_tab] = useState<"all" | domain_verification_status>("all");
+   const [search, set_search] = useState("");
+   const [debounced_search, set_debounced_search] = useState("");
+   const [sort_value, set_sort_value] = useState("recent");
+   const [verifying_id, set_verifying_id] = useState<string | null>(null);
+
+   const request_id_ref = useRef(0);
+
+   useEffect(()=>{
+      const handle = setTimeout (() => set_debounced_search(search.trim()), 350);
+      return () => clearTimeout(handle);
+   }, [search]);
+
+   const load_domains = useCallback(
+      async (params: { offset: number; append: boolean}) => {
+         const request_id = ++request_id_ref.current;
+         set_loading(true);
+         set_error(null);
+         const option = sort_options.find((o) => o.value === sort_value) ?? sort_options[0];
+         try{
+            const result = await fetch_domains({
+               status: active_tab === "all" ?undefined : active_tab,
+               search: debounced_search || undefined,
+               sort: option.sort,
+               order: option.order,
+               limit: PAGE_SIZE,
+               offset: params.offset,
+            });
+            if (request_id_ref.current !== request_id) return;
+            set_domains((prev) => (params.append ? [...prev, ...result.items] : result.items));
+            set_counts(result.counts);
+            set_pagination(result.pagination);
+         }
+         catch (err) {
+            if (request_id_ref.current !== request_id) return;
+            set_error(err instanceof Error ? err.message : "Failed to load domains");
+         }
+         finally {
+            if (request_id_ref.current === request_id) set_loading(false);
+         }
+      },
+      [active_tab, debounced_search, sort_value]
+   );
+
+
+}
 
 
