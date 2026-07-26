@@ -604,7 +604,14 @@ export default function DomainsHome() {
                                              {verifying_id === item.id ? "Verifying...": item.status === "pending" ? "Verify" : "Retry"}
                                           </Button>
                                        )}
-                                       
+                                       <Button
+                                          size="icon-xs"
+                                          variant = "ghost"
+                                          aria-label = "More options"
+                                          onClick = {(e) => e.stopPropagation()}
+                                       >
+                                          <MoreVertical className = "size-3.5" />
+                                       </Button>
                                     </div>
                                  </td>
                               </tr>
@@ -613,9 +620,38 @@ export default function DomainsHome() {
                      </table>
                   </CardContent>
                </Card>
-            </div>
-         </div>
 
+               <div className = "flex flex-wrap items-center justify-between gap-3">
+                  <p className = "text-sm text-muted-foreground">
+                     Showing {domains.length} of {pagination?.total ?? 0} domains
+                  </p>
+                  {pagination?.has_more && (
+                     <Button
+                        variant = "outline"
+                        size="sm"
+                        className = "gap-1.5"
+                        onClick={handle_load_more}
+                        disable={loading}
+                     >
+                        {loading ? "Loading" : "Load more"}
+                        <ChevronDown className = "size-3.5" />
+                     </Button>
+                  )}
+               </div>
+            </div>
+
+            {selected_domain && (
+               <div className = "w-full lg:w-[380px] lg:shrink-0">
+                  <DomainDetailPanel
+                     domain={selected_domain}
+                     on_close={() => set_selected_id(null)}
+                     on_verify={(id) => void verify(id)}
+                     on_delete={(id) => void handle_delete(id)}
+                     verifying={verifying_id === selected_domain.id}
+                  />
+               </div>
+            )}
+         </div>
       </div>
-   )
+   );
 }
