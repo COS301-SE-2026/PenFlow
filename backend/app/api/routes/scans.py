@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user, get_current_user_optional
+from app.models.base import ScanStatus
 from app.repositories.report_repository import get_report_by_scan_id
 from app.repositories.scan_repo import ScanRepository
 from app.repositories.user_repo import get_user_id_by_provider_id
@@ -22,8 +23,8 @@ from app.schemas.scan import (
     MetricsResponse,
     RiskHistoryItem,
     ScanHistoryItem,
+    ServiceListResponse,
 )
-from app.models.base import ScanStatus, ServiceListResponse
 from app.services.email_service import send_report_email
 from app.services.scan_service import ScanService
 from app.utils.db import get_db
@@ -45,7 +46,7 @@ CurrentUserOptional = Annotated[dict[str, Any] | None, Depends(get_current_user_
 async def list_scans(
     current_user: CurrentUser,
     db: DbSession,
-    status: ScanStatus | None = Query(None),
+    scan_status: ScanStatus | None = Query(None),
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ) -> list[dict[str, Any]]:
@@ -55,7 +56,7 @@ async def list_scans(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     try:
-        return await ScanRepository.list_scans(db, user_id, limit, offset)
+        return await ScanRepository.list_scans(db, user_id, scan_status, limit, offset)
     except Exception:
         logger.exception("Failed to list scans")
         raise HTTPException(
@@ -94,20 +95,13 @@ async def initiate_ctem_scan(
 @router.get("/{scan_id}/status")
 async def get_scan_status(
     scan_id: UUID,
-    current_user: CurrentUserOptional,
     db: DbSession,
     current_user: CurrentUserOptional,
 ) -> dict[str, Any]:
-<<<<<<< HEAD
-    
-=======
-
->>>>>>> e56260324e88c167fecc5e6e6f966d712ec07564
     user_id = None
     if current_user is not None:
         user_id = await get_user_id_by_provider_id(db, current_user["sub"])
 
-<<<<<<< HEAD
         if user_id is None:
             raise HTTPException(
                 status_code = status.HTTP_404_NOT_FOUND,
@@ -118,12 +112,6 @@ async def get_scan_status(
         db,
         scan_id,
         user_id = user_id,
-=======
-    status_info = await ScanRepository.get_scan_status(
-        db,
-        scan_id,
-        user_id,
->>>>>>> e56260324e88c167fecc5e6e6f966d712ec07564
     )
 
     if not status_info:
@@ -262,10 +250,7 @@ async def get_scan_assets(
     return await ScanRepository.get_assets_by_scan(
         db=db, scan_id=scan_id, limit=limit, offset=offset
     )
-<<<<<<< HEAD
-=======
 
->>>>>>> e56260324e88c167fecc5e6e6f966d712ec07564
 
 @router.get(
     "/{scan_id}/risk-history",
