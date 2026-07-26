@@ -8,9 +8,7 @@ import {
     registerUser,
     // registerUser,
 } from "@/lib/keycloakService";
-import { promises } from "dns";
-import { headers } from "next/headers";
-import { exp } from "node_modules/animejs/dist/modules/core/helpers";
+
 
 //keycloak endpoints used in the test:
 const TOKEN_URL = "http://localhost:8080/realms/penflow/protocol/openid-connect/token";
@@ -87,7 +85,7 @@ it("refresh token grant and return a new token pair",async() =>{
     .mockResolvedValue(jsonResponse(tokens));
 
       //execute refresh
-    const result = await refreshAccessToken("Old refresh token")
+    const result = await refreshAccessToken("OldRefreshToken")
 
     //verify request sent to correct token endpoint
         expect(fetchSpy).toHaveBeenCalledWith(
@@ -98,7 +96,7 @@ it("refresh token grant and return a new token pair",async() =>{
 
     const body =(fetchSpy.mock.calls[0][1]?.body as URLSearchParams).toString();
     expect(body).toContain("grant_type=refresh_token");
-    expect(body).toContain("refresh_token=oldRefreshToken");
+    expect(body).toContain("refresh_token=OldRefreshToken");
     expect(result).toEqual(tokens);
     expect(result).toEqual(tokens);
 });
@@ -141,11 +139,12 @@ describe("Logout session",() =>{
 //test register 
 describe("register User",() =>{
 it("gets admin key ,create user,set their password",async ()=>{
-  const fetchSpy =jest.spyOn(global ,"fetch")//get amin token
-  .mockImplementation(()=>
+  const fetchSpy =jest
+  .spyOn(global ,"fetch")
+  .mockImplementationOnce(()=>
   Promise.resolve(jsonResponse({access_token : "adminToken"}))
-  )
-  //create user
+  )//1. get admin key
+
     .mockImplementationOnce(()=>
      Promise.resolve({
           ok: true,
@@ -155,7 +154,10 @@ it("gets admin key ,create user,set their password",async ()=>{
           }),
           json: () => Promise.resolve({}),  
         } as unknown as Response)
-      )
+      )//2.create user
+        .mockImplementationOnce(() =>
+        Promise.resolve(jsonResponse({}))
+      );//set password
 
       await registerUser("newuser","new@example.com","pw123","New","User");
       expect(fetchSpy).toHaveBeenCalledTimes(3);
