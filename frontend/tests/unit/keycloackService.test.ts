@@ -3,15 +3,14 @@
 
 import {
     loginWithPassword,
+    logoutSession,
     refreshAccessToken,
-    // refreshAccessToken,
-    // logoutSession,
     // registerUser,
 } from "@/lib/keycloakService";
 
 //keycloak endpoints used in the test:
 const TOKEN_URL = "http://localhost:8080/realms/penflow/protocol/openid-connect/token";
-// const LOGOUT_URL = "http://localhost:8080/realms/penflow/protocol/openid-connect/logout";
+const LOGOUT_URL = "http://localhost:8080/realms/penflow/protocol/openid-connect/logout";
 
 //helper simplife mocking fetch reponse with custom status and body
 
@@ -47,7 +46,7 @@ describe("LoginWithPassword",()=>{
 
     //verify request body 
     const body = (fetchSpy.mock.calls[0][1]?.body as URLSearchParams).toString();
-    expect(body).toContain("grant_type=password")
+    expect(body).toContain("grant_type=password");
     expect(body).toContain("username=1234");
     expect(body).toContain("password=1234");
       // Verify returned tokens match expected
@@ -83,7 +82,7 @@ it("refresh token grant and return a new token pair",async() =>{
     .spyOn(global, "fetch")
     .mockResolvedValue(jsonResponse(tokens));
 
-      //execute nrefresh
+      //execute refresh
     const result = await refreshAccessToken("Old refresh token")
 
     //verify request sent to correct token endpoint
@@ -99,6 +98,7 @@ it("refresh token grant and return a new token pair",async() =>{
     expect(result).toEqual(tokens);
     expect(result).toEqual(tokens);
 });
+//error when token expires
   it("throws when the refresh token is expired/invalid", async () => {
     jest.spyOn(global, "fetch").mockResolvedValue(
       jsonResponse({ error_description: "Token is not active" }, false, 400)
@@ -111,4 +111,27 @@ it("refresh token grant and return a new token pair",async() =>{
 
 
 });
+
+//test logout
+describe("Logout session",() =>{
+  it("posts the refresh token to Keycloak's logout endpoint"),async()=>{
+    const fetchSpy = jest
+    .spyOn(global, "fetch")
+    .mockResolvedValue(jsonResponse({}));
+
+    await logoutSession("someRefreshToken")
+
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+    LOGOUT_URL,
+    expect.objectContaining({ method: "POST" })
+    );
+
+    //verify logout is included in the request body
+    const body = (fetchSpy.mock.calls[0][1]?.body as URLSearchParams).toString();
+    expect(body).toContain("refresh_token=someRefreshToken");
+  }
+}
+
+)
 
