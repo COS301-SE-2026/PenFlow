@@ -420,6 +420,76 @@ export default function DomainsHome() {
    const selected_domain = domains.find((d) => d.id === selected_id ?? null);
 
    return(
-      
+      <div className = "flex flex-col gap-6">
+         <nav aria-label = "Breadcrumb" className = "flex items-center gap-1 text-sm text-muted-foreground">
+            <Link href = "/dashboard" className = "hover:text-foreground hover:underline">
+               Home
+            </Link>
+            <ChevronRight className = "size-4"/>
+            <span className = "text-foreground">Domains</span>
+         </nav>
+
+         <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+               <h1 className="text-2xl font-semibold text-foreground">Domains</h1>
+               <p className="mt-1 text-sm text-muted-foreground">
+                  Manage verified domains and control which domains can recieve active scans.
+               </p>
+            </div>
+            <Button
+               onClick={() => set_show_add_domain((prev) => !prev)}
+               aria-pressed={show_add_domain}
+               className="gap-1.5 trasition-all duration-200 hover:-translate-y-0.5
+                          hover:bg-primary/85 hover:shadow-[0_0_20px_rgba(43.216.245.0.45)]"
+            >
+               <Plus className="size-4"/>
+               Add Domain
+            </Button>
+         </div>
+
+         {show_add_domain && (
+            <AddDomainForm
+               on_cancel={() => set_show_add_domain(false)}
+               on_added={() => {
+                  set_show_add_domain(false);
+                  void refetch();
+               }}
+            />
+         )}
+         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
+            <div className = "flex min-w-0 flex-col gap-4 lg:flex-1">
+               <div className="flex flex-wrap items-center gap-2 border-b border-brand-panel-border">
+                  {tab_defs.map((tab) => (
+                     <button
+                        key={tab.key}
+                        type="button"
+                        onClick = {() => set_active_tab(tab.key)}
+                        className = {cn (
+                           "flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
+                           active_tab === tab.key
+                              ? "border-brand-cyan text-foreground"
+                              : "border-transparent text-muted-foreground hover:text-foreground"
+                        )}
+                     >
+                        {tab.label}
+                        <span
+                           className={cn(
+                              "flex size-5 items-center justify-center rounded-full text-xs",
+                              active_tab === tab.key 
+                                 ? "bg-brand-cyan/15 text-brand-cyan"
+                                 : "bg-muted text-muted-foreground"
+                           )}
+                        >
+                           {counts?.[tab.key] ?? 0}
+                        </span>
+                     </button>
+                  ))}
+
+                  
+               </div>
+            </div>
+         </div>
+
+      </div>
    )
 }
