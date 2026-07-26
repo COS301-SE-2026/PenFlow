@@ -3,9 +3,10 @@ from unittest.mock import patch
 from app.tasks.cpe_resolver_task import run_cpe_resolver_task
 
 
+@patch("app.tasks.cpe_resolver_task.celery_app.send_task")
 @patch("app.tasks.cpe_resolver_task.send_source_callback")
 @patch("app.tasks.cpe_resolver_task.run_cpe_resolution")
-def test_run_cpe_resolver_task_success(mock_run, mock_callback):
+def test_run_cpe_resolver_task_success(mock_run, mock_callback, mock_send_task):
     resolved_inventory = \
     [
         {
@@ -33,11 +34,16 @@ def test_run_cpe_resolver_task_success(mock_run, mock_callback):
     assert asset["value"] == resolved_inventory[0]["cpe"]
 
     mock_callback.assert_called_once()
+    mock_send_task.assert_called_once_with(
+        "scan.phase2_cve",
+        args=["scan-123", resolved_inventory],
+    )
 
 
+@patch("app.tasks.cpe_resolver_task.celery_app.send_task")
 @patch("app.tasks.cpe_resolver_task.send_source_callback")
 @patch("app.tasks.cpe_resolver_task.run_cpe_resolution")
-def test_run_cpe_resolver_task_empty(mock_run, mock_callback):
+def test_run_cpe_resolver_task_empty(mock_run, mock_callback, mock_send_task):
     mock_run.return_value = []
 
     result = run_cpe_resolver_task.run\
@@ -50,6 +56,10 @@ def test_run_cpe_resolver_task_empty(mock_run, mock_callback):
     assert result["assets"] == []
 
     mock_callback.assert_called_once()
+    mock_send_task.assert_called_once_with(
+        "scan.phase2_cve",
+        args=["scan-123", []],
+    )
 
 
 @patch("app.tasks.cpe_resolver_task.send_source_callback")

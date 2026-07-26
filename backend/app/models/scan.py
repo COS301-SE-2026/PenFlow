@@ -1,3 +1,4 @@
+import enum
 import uuid
 from datetime import datetime, timezone
 
@@ -8,6 +9,10 @@ from sqlalchemy.orm import relationship
 from app.models.base import Base, ScanStatus
 from app.schemas.scan import ScanTypeEnum
 
+
+class ScanType(enum.Enum):
+    PASSIVE_CTEM = "passive_ctem"
+    ACTIVE_VULNERABILITY = "active_vulnerability"
 
 class Scan(Base):
     __tablename__ = "scans"

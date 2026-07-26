@@ -18,7 +18,16 @@ from app.models.service import Service
 
 logger = logging.getLogger(__name__)
 
-PASSIVE_SCAN_SOURCES = ("dns", "urlscan", "wappalyzer", "crt.sh", "shodan", "hunter.io", "hibp")
+# This could easily change
+PASSIVE_SCAN_SOURCES = (
+    "dns",
+    "urlscan",
+    "wappalyzer",
+    "crt.sh",
+    "shodan",
+    "hunter.io",
+    "hibp",
+)
 
 ACTIVE_SCAN_SOURCES = (
     "dns",
@@ -37,7 +46,6 @@ SCAN_SOURCES_BY_TYPE: dict[str, tuple[str, ...]] = {
     "passive_ctem": PASSIVE_SCAN_SOURCES,
     "active_vulnerability": ACTIVE_SCAN_SOURCES,
 }
-
 
 class ScanRepository:
     @staticmethod
@@ -76,10 +84,11 @@ class ScanRepository:
 
     @staticmethod
     async def list_scans(
-        db: AsyncSession,
+        db: AsyncSession, 
         user_id: UUID,
         status: ScanStatus | None = None,
         limit: int = 20,
+        offset: int = 0,
     ) -> list[dict[str, Any]]:
         query = (
             select(
@@ -103,8 +112,7 @@ class ScanRepository:
         if status:
             query = query.where(Scan.status == status)
 
-        query = query.limit(limit)
-
+        query = query.limit(limit).offset(offset)
         rows = (await db.execute(query)).all()
         return [
             {

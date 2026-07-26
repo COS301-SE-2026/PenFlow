@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user, get_current_user_optional
+from app.models.base import ScanStatus
 from app.repositories.report_repository import get_report_by_scan_id
 from app.repositories.scan_repo import ScanRepository
 from app.repositories.user_repo import get_user_id_by_provider_id
@@ -45,13 +46,17 @@ CurrentUserOptional = Annotated[dict[str, Any] | None, Depends(get_current_user_
 async def list_scans(
     current_user: CurrentUser,
     db: DbSession,
+    scan_status: ScanStatus | None = Query(None),
+    limit: int = Query(10, ge=1, le=100),
+    offset: int = Query(0, ge=0),
 ) -> list[dict[str, Any]]:
+    
     user_id = await get_user_id_by_provider_id(db, current_user["sub"])
     if user_id is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     try:
-        return await ScanRepository.list_scans(db, user_id)
+        return await ScanRepository.list_scans(db, user_id, scan_status, limit, offset)
     except Exception:
         logger.exception("Failed to list scans")
         raise HTTPException(
@@ -93,15 +98,20 @@ async def get_scan_status(
     db: DbSession,
     current_user: CurrentUserOptional,
 ) -> dict[str, Any]:
-
     user_id = None
     if current_user is not None:
         user_id = await get_user_id_by_provider_id(db, current_user["sub"])
 
+        if user_id is None:
+            raise HTTPException(
+                status_code = status.HTTP_404_NOT_FOUND,
+                detail = "User not found",
+            )
+        
     status_info = await ScanRepository.get_scan_status(
         db,
         scan_id,
-        user_id,
+        user_id = user_id,
     )
 
     if not status_info:

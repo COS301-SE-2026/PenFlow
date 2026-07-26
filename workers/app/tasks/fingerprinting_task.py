@@ -92,4 +92,12 @@ def run_fingerprinting_scan_task(
         error_message=result.get("error_message"),
     )
 
+    if result["status"] == "completed":
+        software_inventory = result["raw_result"].get("fingerprint", {}).get("software", [])
+
+        celery_app.send_task(
+            "scan.phase2_cpe_resolver",
+            args=[scan_id, software_inventory],
+        )
+
     return result
