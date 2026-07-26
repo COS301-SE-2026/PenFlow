@@ -5,8 +5,12 @@ import {
     loginWithPassword,
     logoutSession,
     refreshAccessToken,
+    registerUser,
     // registerUser,
 } from "@/lib/keycloakService";
+import { promises } from "dns";
+import { headers } from "next/headers";
+import { exp } from "node_modules/animejs/dist/modules/core/helpers";
 
 //keycloak endpoints used in the test:
 const TOKEN_URL = "http://localhost:8080/realms/penflow/protocol/openid-connect/token";
@@ -131,7 +135,51 @@ describe("Logout session",() =>{
     const body = (fetchSpy.mock.calls[0][1]?.body as URLSearchParams).toString();
     expect(body).toContain("refresh_token=someRefreshToken");
   }
-}
 
+}
 )
+
+//test register 
+describe("register User",() =>{
+it("gets admin key ,create user,set their password",async ()=>{
+  const fetchSpy =jest.spyOn(global ,"fetch")//get amin token
+  .mockImplementation(()=>
+  Promise.resolve(jsonResponse({access_token : "adminToken"}))
+  )
+  //create user
+    .mockImplementationOnce(()=>
+     Promise.resolve({
+          ok: true,
+          status: 201,
+          headers: new Headers({
+            Location: "http://localhost:8080/admin/realms/penflow/users/new-user-id",
+          }),
+          json: () => Promise.resolve({}),  
+        } as unknown as Response)
+      )
+
+      await registerUser("newuser","new@example.com","pw123","New","User");
+      expect(fetchSpy).toHaveBeenCalledTimes(3);
+    expect(fetchSpy.mock.calls[1][0]).toBe(
+      "http://localhost:8080/admin/realms/penflow/users"
+    );
+    expect(fetchSpy.mock.calls[2][0]).toBe(
+      "http://localhost:8080/admin/realms/penflow/users/new-user-id/reset-password"
+    );
+  });
+
+  it("throws a friendly error when the username/email already exists", async () => {
+    jest
+      .spyOn(global, "fetch")
+      .mockImplementationOnce(() =>
+        Promise.resolve(jsonResponse({ access_token: "adminToken" }))
+      )
+      .mockImplementationOnce(() => Promise.resolve(jsonResponse({}, false, 409)));
+
+    await expect(
+      registerUser("dupe", "dupe@example.com", "pw123", "Dup", "User")
+    ).rejects.toThrow("Username or email already exists");
+
+});
+});
 
