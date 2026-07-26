@@ -19,9 +19,7 @@ from app.utils.report_context import build_report_context
 BASE_DIR = Path(__file__).resolve().parents[1]
 TEMPLATE_DIR = BASE_DIR / "templates"
 
-REPORT_OUTPUT_DIR = Path(
-    os.getenv("REPORT_OUTPUT_DIR", str(BASE_DIR.parent / "generated_reports"))
-)
+REPORT_OUTPUT_DIR = Path(os.getenv("REPORT_OUTPUT_DIR", str(BASE_DIR.parent / "generated_reports")))
 
 REPORT_TEMPLATE_NAME = "report_template.html"
 

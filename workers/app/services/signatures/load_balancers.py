@@ -3,9 +3,9 @@ LOAD_BALANCER_SIGNATURES = {
         "category": "load_balancer",
         "vendor": "haproxy",
         "product": "haproxy",
-        "cookies": [("haproxy", "",90)],
+        "cookies": [("haproxy", "", 90)],
         "headers": [("via", "haproxy", 80)],
-        "version_extractors": []
+        "version_extractors": [],
     },
     "AWS ELB": {
         "category": "load_balancer",
@@ -13,14 +13,14 @@ LOAD_BALANCER_SIGNATURES = {
         "product": "elastic_load_balancing",
         "cookies": [("awselb", "", 100)],
         "headers": [("x-amz-cf-id", "amazon", 80)],
-        "version_extractors": []
+        "version_extractors": [],
     },
     "F5 BIG-IP": {
         "category": "load_balancer",
         "vendor": "f5",
         "product": "big-ip",
-        "cookies": [("bigipserver", "",100)],
+        "cookies": [("bigipserver", "", 100)],
         "headers": [("x-cnection", "close", 40)],
-        "version_extractors": []
-    }
+        "version_extractors": [],
+    },
 }

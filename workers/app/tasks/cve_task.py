@@ -8,15 +8,13 @@ from app.utils.callback import send_source_callback
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
-@celery_app.task\
-(
+
+@celery_app.task(
     name="scan.phase2_cve",
     bind=True,
     max_retries=2,
 )
-
-def run_cve_scan_task\
-(
+def run_cve_scan_task(
     self: Any,
     scan_id: str,
     resolved_inventory: list[JSONDict],
@@ -35,54 +33,38 @@ def run_cve_scan_task\
         vulnerabilities = run_cve_scan(resolved_inventory)
         findings = []
         for vulnerability in vulnerabilities:
-            findings.append\
-            (
+            findings.append(
                 {
                     "severity": vulnerability.get("severity", "medium"),
-                    "title":
-                    (
+                    "title": (
                         f"{vulnerability.get('cve_id')} detected in "
                         f"{vulnerability.get('affected_software')}"
                     ),
-                    "description":
-                    (
+                    "description": (
                         vulnerability.get(
                             "description",
                             "No description provided.",
                         )
                     ),
-                    "remediation":
-                    (
+                    "remediation": (
                         vulnerability.get(
                             "remediation",
                             "Update to the latest patched version.",
                         )
                     ),
-                    "target":
-                    (
-                        vulnerability.get("affected_software")
-                    ),
-                    "metadata":
-                    {
-                        "cve_id":
-                        (
-                            vulnerability.get("cve_id")
-                        ),
-                        "cvss_score":
-                        (
-                            vulnerability.get("cvss_score")
-                        ),
+                    "target": (vulnerability.get("affected_software")),
+                    "metadata": {
+                        "cve_id": (vulnerability.get("cve_id")),
+                        "cvss_score": (vulnerability.get("cvss_score")),
                     },
                 }
             )
 
-        result = \
-        {
+        result = {
             "scan_id": scan_id,
             "source_name": "cve",
             "status": "completed",
-            "raw_result":
-            {
+            "raw_result": {
                 "vulnerabilities": vulnerabilities,
             },
             "findings": findings,
@@ -90,18 +72,13 @@ def run_cve_scan_task\
         }
 
     except Exception as error:
-        logger.exception\
-        (
-            f"[CVE_Task] Pipeline failed: {error}"
-        )
+        logger.exception(f"[CVE_Task] Pipeline failed: {error}")
 
-        result = \
-        {
+        result = {
             "scan_id": scan_id,
             "source_name": "cve",
             "status": "failed",
-            "raw_result":
-            {
+            "raw_result": {
                 "error": str(error),
             },
             "findings": [],
@@ -109,8 +86,7 @@ def run_cve_scan_task\
             "error_message": str(error),
         }
 
-    send_source_callback\
-    (
+    send_source_callback(
         scan_id=result["scan_id"],
         source_name=result["source_name"],
         status=result["status"],

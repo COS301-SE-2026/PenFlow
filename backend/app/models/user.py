@@ -1,4 +1,4 @@
-#type: ignore
+# type: ignore
 import uuid
 from datetime import datetime, timezone
 
@@ -14,7 +14,7 @@ class User(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     organisation_id = Column(
         UUID(as_uuid=True),
-        #ForeignKey("organisations.id", ondelete="SET NULL"),
+        # ForeignKey("organisations.id", ondelete="SET NULL"),
         nullable=True,
     )
     auth_provider = Column(String(50), nullable=False)

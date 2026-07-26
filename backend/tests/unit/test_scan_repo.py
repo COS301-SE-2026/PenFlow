@@ -77,7 +77,8 @@ async def test_save_source_result_creates_new_source_with_assets_and_findings(mo
         id = uuid4(), 
         progress =0, 
         status= ScanStatus.RUNNING, 
-        error_message=None
+        error_message=None,
+        scan_type=SimpleNamespace(value="passive_ctem")
     )
     
     mock_get_scan.return_value =fake_scan
@@ -112,7 +113,11 @@ async def test_save_source_result_creates_new_source_with_assets_and_findings(mo
 new_callable = AsyncMock)
 async def test_save_source_result_updates_existing_soruce(mock_get_scan):
     db = _make_db()
-    fake_scan = SimpleNamespace(id = uuid4() , progress =0, status= ScanStatus.RUNNING)
+    fake_scan = SimpleNamespace(id = uuid4(), 
+                                progress =0, 
+                                status= ScanStatus.RUNNING,
+                                scan_type=SimpleNamespace(value="passive_ctem")
+    )
     mock_get_scan.return_value =fake_scan
 
     existing_source =SimpleNamespace(status=None,raw_result=None,error_message=None)
@@ -134,7 +139,12 @@ async def test_save_source_result_updates_existing_soruce(mock_get_scan):
 new_callable = AsyncMock)
 async def test_save_source_result_roll_back_on_db_error(mock_get_scan):
     db =_make_db()
-    fake_scan = SimpleNamespace(id = uuid4() , progress =0, status= ScanStatus.RUNNING)
+    fake_scan = SimpleNamespace(id = uuid4(),
+                                progress =0, 
+                                status= ScanStatus.RUNNING,
+                                error_message=None,
+                                scan_type=SimpleNamespace(value="passive_ctem")
+    )
     mock_get_scan.return_value  =  fake_scan
     source_result = MagicMock()
     source_result.scalar_one_or_none.return_value = None # no scan source
@@ -153,7 +163,10 @@ async def test_list_scans_maps_rows_to_dicts():
     fake_scan = SimpleNamespace(id = uuid4() , 
     domain = "example.com",
     created_at = "2026-01-01",
-    status= ScanStatus.COMPLETED)
+    status= ScanStatus.COMPLETED,
+    scan_type="passive_ctem",
+    progress=100
+    )
 
     row = SimpleNamespace(
         Scan =fake_scan,
@@ -174,6 +187,8 @@ async def test_list_scans_maps_rows_to_dicts():
         "domain": "example.com",
         "created_at": "2026-01-01",
         "status": ScanStatus.COMPLETED,
+        "scan_type": "passive_ctem",
+        "progress": 100,
         "total_findings": 3,
         "critical_count": 1,
         "high_count": 1,
@@ -187,6 +202,7 @@ async def test_list_scans_maps_rows_to_dicts():
 async def test_get_scan_status_returns_none_when_scan_missing(mock_get_scan):
     db = _make_db()
     mock_get_scan.return_value =None 
-    result =await  ScanRepository.get_scan_status(db,uuid4())
+    result =await  ScanRepository.get_scan_status(db,uuid4(),
+                                                  None)
 
     assert result is None

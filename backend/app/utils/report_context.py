@@ -56,7 +56,8 @@ def format_generated_at(value: datetime | str | None = None) -> str:
     return value.strftime("%d %B %Y")
 
 
-#Look into reworking this function if there can be multiple ip addresses which I think there can be.
+# Look into reworking this function if there can be multiple ip addresses 
+# which I think there can be.
 def build_infrastructure_context(scan_sources: list[JSONObject] | None) -> JSONDict:
     raw = get_raw_result(scan_sources, "shodan")
     infrastructure = raw.get("infrastructure", raw)
@@ -84,10 +85,9 @@ def build_tech_stack_context(scan_sources: list[JSONObject] | None) -> list[JSON
     for category_items in tech_stack.values():
         if isinstance(category_items, list):
             for item in category_items:
-                technologies_used.append({
-                    "name": item.get("name", "Unknown"),
-                    "version": item.get("version", "Unknown")
-                })
+                technologies_used.append(
+                    {"name": item.get("name", "Unknown"), "version": item.get("version", "Unknown")}
+                )
 
     return technologies_used
 
@@ -97,7 +97,7 @@ def build_subdomains_context(scan_sources: list[JSONObject] | None) -> JSONDict:
     subdomains = raw.get("subdomains", raw)
 
     discovered_names = subdomains.get("discovered_names", [])
-    
+
     return {
         "total_found": len(discovered_names),
         "discovered_names": discovered_names,
@@ -151,7 +151,7 @@ def build_domain_security_context(scan_sources: list[JSONObject] | None) -> JSON
         "detected_services": domain_security.get("detected_services", []),
         "whois": domain_security.get("whois", {}),
     }
-    
+
 
 def build_recommendations(findings: list[JSONObject] | None) -> list[str]:
     recommendations = []
@@ -175,10 +175,10 @@ def build_recommendations(findings: list[JSONObject] | None) -> list[str]:
 
 
 def build_report_context(
-    scan: JSONObject, 
-    findings: list[JSONObject] | None, 
+    scan: JSONObject,
+    findings: list[JSONObject] | None,
     scan_sources: list[JSONObject] | None,
-    ) -> JSONDict:
+) -> JSONDict:
 
     scan_id = str(get_value(scan, "id", "mock-scan-id"))
 
