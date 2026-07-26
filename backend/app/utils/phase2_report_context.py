@@ -42,11 +42,7 @@ def calc_severity_counts(findings: list[JSONObject] | None) -> dict[str, int]:
 
     for finding in findings or []:
         severity = get_enum_val(
-            get_val(
-                finding,
-                "severity",
-                "info",
-            )
+            get_val(finding, "severity", "info")
         )
 
         severity = str(severity).lower()
@@ -63,10 +59,7 @@ def calc_avg_cvss(findings: list[JSONObject] | None) -> float | None:
     scores: list[float] = []
 
     for finding in findings or []:
-        score = get_val(
-            finding,
-            "cvss_score",
-        )
+        score = get_val(finding, "cvss_score")
 
         if score is None:
             continue
@@ -102,3 +95,57 @@ def build_summary_context(
         "technology_count": len(technologies or []),
         "average_cvss": calc_avg_cvss(findings),
     }
+
+
+def build_findings_context(
+        findings: list[JSONObject] | None,
+        assets: list[JSONObject] | None,
+        services: list[JSONObject] | None,
+) -> list[JSONDict]:
+    asset_map = {
+        get_val(asset, "id"): asset for asset in assets or []
+    }
+
+    service_map = {
+        get_val(service, "id"): service for service in services or []
+    }
+
+    result: list[JSONDict] = []
+
+    for finding in findings or []:
+        asset_id = get_val(finding, "asset_id")
+
+        service_id = get_val(finding, "service_id")
+
+        asset = asset_map.get(asset_id)
+        service = service_map.get(service_id)
+
+        cvss_score = get_val(finding, "cvss_score")
+
+        if isinstance(cvss_score, Decimal):
+            cvss_score = float(cvss_score)
+
+        result.append(
+            {
+                "id": str(get_val(finding, "id", "")),
+                "title": get_val(finding, "title", "Unknown Finding"),
+                "severity": str(get_enum_val(get_val(finding, "severity", "info"))).lower(),
+                "status": str(get_enum_val(get_val(finding, "status", "open"))).lower(),
+                "source": get_val(finding, "source", "Unknwon"),
+                "cve_id": get_val(finding, "cve_id"),
+                "cvss_score": cvss_score,
+                "description": get_val(finding, "description"),
+                "recommendation": get_val(finding, "recommendation"),
+                "evidence": get_val(finding, "evidence", {}) or {},
+                "asset": (get_val(asset, "identifier") if asset else None),
+                "service": (
+                    {
+                        "host": get_val(service, "host"),
+                        "port": get_val(service, "port"),
+                        "protocol": get_val(service, "protocol"),
+                        "service_name": get_val(service, "service_name")
+                    } if service else None
+                ),
+            }
+        )
+    return result
