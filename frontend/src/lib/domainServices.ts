@@ -91,7 +91,7 @@ export async function verify_domain(domainId: string): Promise<VerifiedDomain> {
 }
 
 export async function delete_domain(domainId: string): Promise<void> {
-    const response = await fetch(`${API_BASE}\${domainId}`,{method: "DELETE"});
+    const response = await fetch(`${API_BASE}/${domainId}`,{method: "DELETE"});
     if(!response.ok && response.status !== 204) {
         throw await parseError(response, "Failed to remove domain");
     }

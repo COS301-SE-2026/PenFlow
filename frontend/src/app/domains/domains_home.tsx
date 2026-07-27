@@ -265,7 +265,7 @@ async function handle_add() {
    set_submitting(true);
    set_form_error(null);
    try {
-      await add_domain(domain_name.trim());
+      await add_domain(result.domain);
       on_added();
    } catch (err) {
       set_form_error(err instanceof Error ? err.message : "Failed to add domain");
@@ -441,7 +441,7 @@ export default function DomainsHome() {
             <div>
                <h1 className="text-2xl font-semibold text-foreground">Domains</h1>
                <p className="mt-1 text-sm text-muted-foreground">
-                  Manage verified domains and control which domains can recieve active scans.
+                  Manage verified domains and control which domains can receive active scans.
                </p>
             </div>
             <Button
