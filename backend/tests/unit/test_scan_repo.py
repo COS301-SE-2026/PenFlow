@@ -242,7 +242,7 @@ async def test_save_source_result_marks_scan_completed_when_all_sources_succeed(
     db.execute = AsyncMock(side_effect = [ source_result, count_result])
 
     #update source result (hibp)
-    scan = await ScanRepository.save_source_result(db,fake_scan.id,"hibp",{"status":"Completed"})
+    scan = await ScanRepository.save_source_result(db,fake_scan.id,"hibp",{"status":"completed"})
 
     #assert
     assert scan.status == ScanStatus.COMPLETED
