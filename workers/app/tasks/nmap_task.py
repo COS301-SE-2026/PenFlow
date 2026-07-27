@@ -99,4 +99,22 @@ def run_nmap_scan(
         )
     )
 
+    if result["status"] == "completed":
+        ports = result["raw_result"].get("ports", [])
+
+        celery_app.send_task(
+            "scan.phase2_tls",
+            args=[scan_id, ip_address, ports, domain],
+        )
+
+        celery_app.send_task(
+            "scan.phase2_http_security",
+            args=[scan_id, domain, ip_address, ports],
+        )
+
+        celery_app.send_task(
+            "scan.phase2_fingerprint",
+            args=[scan_id, f"https://{domain}", result["raw_result"], None]
+        )
+
     return result

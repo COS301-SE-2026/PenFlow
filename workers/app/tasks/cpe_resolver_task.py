@@ -25,6 +25,8 @@ def run_cpe_resolver_task(
         len(software_inventory),
     )
 
+    resolved_data: list[JSONDict] = []
+    
     try:
         resolved_data = run_cpe_resolution(software_inventory)
 
@@ -76,11 +78,10 @@ def run_cpe_resolver_task(
     )
 
     if result["status"] == "completed":
-        resolved_inventory = result["raw_result"]["resolved_inventory"]
 
         celery_app.send_task(
             "scan.phase2_cve",
-            args=[scan_id, resolved_inventory]
+            args=[scan_id, resolved_data]
         )
 
     return result

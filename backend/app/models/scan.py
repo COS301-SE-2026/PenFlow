@@ -1,12 +1,14 @@
+import enum
 import uuid
 from datetime import datetime, timezone
-import enum
+
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base, ScanStatus
 from app.schemas.scan import ScanTypeEnum
+
 
 class ScanType(enum.Enum):
     PASSIVE_CTEM = "passive_ctem"

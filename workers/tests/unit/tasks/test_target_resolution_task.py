@@ -5,11 +5,13 @@ from app.tasks.target_resolution_task import run_target_resolution
 #happy paths
 
 # Happy Path 1 [IPv4 and IPv6]
+@patch("app.tasks.target_resolution_task.celery_app.send_task")
 @patch("app.tasks.target_resolution_task.send_source_callback")
 @patch("app.tasks.target_resolution_task.resolve_target_ips")
 def test_run_target_resolution_success(
     mock_resolve,
     mock_callback,
+    mock_send_task,
 ):
     """
     Returns a completed result when we have a domain that can be
@@ -63,13 +65,20 @@ def test_run_target_resolution_success(
         error_message=None,
     )
 
+    mock_send_task.assert_called_once_with(
+        "scan.phase2_nmap",
+        args=["scan-123", "104.26.12.5", "hackerone.com"]
+    )
+
 
 # Happy Path 2 [IPv4 only]
+@patch("app.tasks.target_resolution_task.celery_app.send_task")
 @patch("app.tasks.target_resolution_task.send_source_callback")
 @patch("app.tasks.target_resolution_task.resolve_target_ips")
 def test_run_target_resolution_ipv4_only(
     mock_resolve,
     mock_callback,
+    mock_send_task,
 ):
     """
     Returning only the ipv4 results cause either ipv6 doesnt exist or fails
@@ -105,14 +114,21 @@ def test_run_target_resolution_ipv4_only(
 
     mock_callback.assert_called_once()
 
+    mock_send_task.assert_called_once_with(
+        "scan.phase2_nmap",
+        args=["scan-123", "104.26.12.5", "hackerone.com"]
+    )
+
 
 # Happy Path 3 [IPv6 only]
 
+@patch("app.tasks.target_resolution_task.celery_app.send_task")
 @patch("app.tasks.target_resolution_task.send_source_callback")
 @patch("app.tasks.target_resolution_task.resolve_target_ips")
 def test_run_target_resolution_ipv6_only(
     mock_resolve,
     mock_callback,
+    mock_send_task,
 ):
     """
     Returning only the ipv6 results cause either ipv4 doesnt exist or fails
@@ -148,16 +164,19 @@ def test_run_target_resolution_ipv6_only(
 
     mock_callback.assert_called_once()
 
+    mock_send_task.assert_not_called()
+
 
 #Sad paths
 
 # Sad Path 1 [No IP addresses]
-
+@patch("app.tasks.target_resolution_task.celery_app.send_task")
 @patch("app.tasks.target_resolution_task.send_source_callback")
 @patch("app.tasks.target_resolution_task.resolve_target_ips")
 def test_run_target_resolution_no_ips(
     mock_resolve,
     mock_callback,
+    mock_send_task,
 ):
     """
     Returning empty results because no ipv4 or 6 address's can bve found at the target domain
@@ -199,14 +218,17 @@ def test_run_target_resolution_no_ips(
         error_message="No IPv4 or IPv6 addresses were resolved.",
     )
 
+    mock_send_task.assert_not_called()
+
 
 # Sad Path 2 [Service Exception]
-
+@patch("app.tasks.target_resolution_task.celery_app.send_task")
 @patch("app.tasks.target_resolution_task.send_source_callback")
 @patch("app.tasks.target_resolution_task.resolve_target_ips")
 def test_run_target_resolution_exception(
     mock_resolve,
     mock_callback,
+    mock_send_task,
 ):
     """
     Returns this when an unexpected from the norm exception arrises
@@ -242,3 +264,4 @@ def test_run_target_resolution_exception(
         assets=[],
         error_message="DNS exploded",
     )
+    mock_send_task.assert_not_called()

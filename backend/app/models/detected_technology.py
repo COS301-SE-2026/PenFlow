@@ -11,13 +11,22 @@ class DetectedTechnology(Base):
     __tablename__ = "detected_technologies"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
     scan_id = Column(
-        UUID(as_uuid=True), ForeignKey("scans.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True), 
+        ForeignKey("scans.id", ondelete="CASCADE"), 
+        nullable=False, 
+        index=True
     )
+
     asset_id = Column(UUID(as_uuid=True), ForeignKey("assets.id", ondelete="SET NULL"), index=True)
+
     service_id = Column(
-        UUID(as_uuid=True), ForeignKey("services.id", ondelete="SET NULL"), index=True
+        UUID(as_uuid=True), 
+        ForeignKey("services.id", ondelete="SET NULL"), 
+        index=True
     )
+    
     technology_type = Column(String(50), nullable=False)
     product = Column(String(255), nullable=False)
     version = Column(String(255))

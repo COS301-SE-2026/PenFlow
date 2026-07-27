@@ -27,7 +27,7 @@ def run_wappalyzer(scan_id: str, domain: str) -> JSONDict:
             "findings": findings,
             "assets": assets,
         }
-
+    
     except Exception as error:
         result = {
             "scan_id": scan_id,
