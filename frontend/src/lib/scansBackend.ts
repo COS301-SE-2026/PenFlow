@@ -4,11 +4,11 @@ import {NextResponse} from "next/server";
 const BACKEND_URL = process.env.API_URL ?? "http://localhost:3001";
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function isValidDomainId(value: string): boolean {
+export function isValidScanId(value: string): boolean {
     return UUID_PATTERN.test(value);
 }
 
-export async function proxyToDomainsApi(path: string, init:RequestInit = {}): Promise<NextResponse> {
+export async function proxyToScansApi(path: string, init:RequestInit = {}): Promise<NextResponse> {
     const accessToken = (await cookies()).get("access_token")?.value;
     const response = await fetch(`${BACKEND_URL}/api/v1/scans${path}`, {
         ...init,
