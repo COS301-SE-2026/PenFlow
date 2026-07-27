@@ -4,6 +4,7 @@ from typing import Any
 
 from app.queue.celery_app import celery_app
 from app.services.pdf_render_service import generate_pdf_from_html
+from app.services.report_storage_service import ReportStorageService
 from app.utils.callback import send_report_callback
 
 JSONDict = dict[str, Any]
@@ -24,17 +25,22 @@ def render_report_pdf_task(scan_id: str, html_content: str, output_path: str) ->
             scan_id,
             pdf_path,
         )
+        
+        storage_reference = ReportStorageService.store_report(
+            local_path=pdf_path,
+            scan_id=scan_id,
+        )
 
         send_report_callback(
             scan_id=scan_id,
             status="completed",
-            pdf_path=str(pdf_path),
+            pdf_path=storage_reference,
         )
 
         return {
             "status": "completed",
             "scan_id": scan_id,
-            "pdf_path": str(pdf_path),
+            "pdf_path": storage_reference,
         }
 
     except Exception as error:
