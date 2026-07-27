@@ -85,7 +85,6 @@ export async function postScanRequest(params: StartScanParams ): Promise<ScanSta
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(params),
   });
-}
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({ detail: "Scan request failed" }));
@@ -196,7 +195,15 @@ export interface ScanMetrics {
   technologies: Record<string, number>;
 }
 
-export async
+export async function fetchScanMetrics(scanId: string): Promise<ScanMetrics> {
+  const response = await fetch(`/api/scans/${scanId}/metrics`);
+  
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({detail: "Failed to load scan metrics"}));
+    throw new Error(err.detail ?? "Failed to load scan metrics");
+  }
+  return response.json();
+}
 
 export async function sendReportEmail(scanId: string, email: string): Promise<void> {
   const response = await fetch(`${API_BASE}/scans/${scanId}/email-report`, {
