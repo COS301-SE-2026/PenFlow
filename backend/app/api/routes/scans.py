@@ -92,7 +92,6 @@ async def get_scan_status(
     scan_id: UUID,
     current_user: CurrentUserOptional,
     db: DbSession,
-    current_user: CurrentUserOptional,
 ) -> dict[str, Any]:
 
     user_id = None
