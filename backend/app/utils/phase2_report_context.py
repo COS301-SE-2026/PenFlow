@@ -210,7 +210,58 @@ def build_services_context(
                 "findings_count": len(service_findings)
             }
         )
-        
+
     return result
 
 
+def build_tech_context(
+        technologies: list[JSONObject] | None,
+        assets: list[JSONObject] | None,
+        services: list[JSONObject] | None,
+) -> list[JSONDict]:
+    asset_map = {
+        get_val(asset, "id"): asset
+        for asset in assets or []
+    }
+
+    services_map = {
+        get_val(services, "id"): service
+        for service in services or []
+    }
+
+    result = []
+
+    for technology in technologies or []:
+        confidence = get_val(technology, "confidence")
+
+        if isinstance(confidence, Decimal):
+            confidence = float(confidence)
+
+        asset = asset_map.get(
+            get_val(technology, "asset_id")
+        )
+
+        service = services_map.get(
+            get_val(technology, "service_id")
+        )
+
+        result.append(
+            {
+                "technology_type": get_val(technology, "technology_type", "Unknown"),
+                "product": get_val(technology, "product", "Unknown"),
+                "version": get_val(technology, "version"),
+                "confidence": confidence,
+                "detection_source": get_val(technology, "detection_source"),
+                "evidence": (get_val(technology, "evidence", {}) or {}),
+                "asset": (get_val(asset, "identifier") if asset else None),
+                "service": (
+                    {
+                        "host": get_val(service, "host"),
+                        "port": get_val(service, "port"),
+                        "protocol": get_val(service, "protocol"),
+                    } if service else None
+                ),
+            }
+        )
+
+    return result
