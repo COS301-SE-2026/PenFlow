@@ -26,6 +26,7 @@ celery_app = Celery(
     ],
 )
 
+
 @celery_app.task(name="health_check")
 def health_check() -> str:
     return "Worker is alive"

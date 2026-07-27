@@ -5,9 +5,10 @@ from app.tasks.nmap_task import run_nmap_scan
 
 #Happy Path 1
 #Successful scan with callback
+@patch("app.tasks.nmap_task.celery_app.send_task")
 @patch("app.tasks.nmap_task.send_source_callback")
 @patch("app.tasks.nmap_task.run_live_nmap_scan")
-def test_successful_task(mock_scan, mock_callback):
+def test_successful_task(mock_scan, mock_callback, mock_send_task):
 
     mock_scan.return_value = \
     {
@@ -31,12 +32,14 @@ def test_successful_task(mock_scan, mock_callback):
     (
         scan_id="scan1",
         ip_address="1.1.1.1",
+        domain="test.com",
     )
 
     assert result["status"] == "completed"
     assert len(result["assets"]) == 1
     assert result["assets"][0]["type"] == "network_service"
     mock_callback.assert_called_once()
+    assert mock_send_task.call_count == 3
 
 #Sad Path 1
 #Service failure also with callback
@@ -50,6 +53,7 @@ def test_failed_task(mock_scan, mock_callback):
     (
         scan_id="scan1",
         ip_address="1.1.1.1",
+        domain="test.com",
     )
 
     assert result["status"] == "failed"

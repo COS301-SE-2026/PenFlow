@@ -1,4 +1,4 @@
-#type: ignore
+# type: ignore
 import logging
 from typing import Annotated, Any
 

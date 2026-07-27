@@ -13,7 +13,10 @@ async def test_create_scan_success(db_session):
     email = "test@example.com"
 
     # execute 
-    new_scan = await ScanRepository.create_scan(db_session, domain, email)
+    new_scan = await ScanRepository.create_scan(db_session,
+                                                 domain=domain,
+                                                 scan_type="passive_ctem",
+                                                 email=email)
 
     assert new_scan.id is not None
     assert new_scan.domain == domain

@@ -25,14 +25,15 @@ def run_cpe_resolver_task(
         len(software_inventory),
     )
 
+    resolved_data: list[JSONDict] = []
+    
     try:
         resolved_data = run_cpe_resolution(software_inventory)
 
         assets = []
 
         for software in resolved_data:
-            assets.append\
-            (
+            assets.append(
                 {
                     "type": "resolved_software",
                     "value": software.get("cpe", "unknown"),
@@ -40,13 +41,11 @@ def run_cpe_resolver_task(
                 }
             )
 
-        result = \
-        {
+        result = {
             "scan_id": scan_id,
             "source_name": "cpe_resolver",
             "status": "completed",
-            "raw_result":
-            {
+            "raw_result": {
                 "resolved_inventory": resolved_data,
             },
             "findings": [],
@@ -54,18 +53,13 @@ def run_cpe_resolver_task(
         }
 
     except Exception as error:
-        logger.exception\
-        (
-            f"[CPE_Task] Failed: {error}"
-        )
+        logger.exception(f"[CPE_Task] Failed: {error}")
 
-        result = \
-        {
+        result = {
             "scan_id": scan_id,
             "source_name": "cpe_resolver",
             "status": "failed",
-            "raw_result":
-            {
+            "raw_result": {
                 "error": str(error),
             },
             "findings": [],
@@ -73,8 +67,7 @@ def run_cpe_resolver_task(
             "error_message": str(error),
         }
 
-    send_source_callback\
-    (
+    send_source_callback(
         scan_id=result["scan_id"],
         source_name=result["source_name"],
         status=result["status"],
@@ -83,5 +76,12 @@ def run_cpe_resolver_task(
         assets=result["assets"],
         error_message=result.get("error_message"),
     )
+
+    if result["status"] == "completed":
+
+        celery_app.send_task(
+            "scan.phase2_cve",
+            args=[scan_id, resolved_data]
+        )
 
     return result
