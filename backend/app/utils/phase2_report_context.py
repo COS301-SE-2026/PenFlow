@@ -13,7 +13,7 @@ SEVERITY = {
     "info",
 }
 
-def get_val(obj: JSONObject | None, key: str, default: Any | None) -> Any:
+def get_val(obj: JSONObject | None, key: str, default: Any | None = None) -> Any:
     if obj is None:
         return default
 
@@ -103,11 +103,13 @@ def build_findings_context(
         services: list[JSONObject] | None,
 ) -> list[JSONDict]:
     asset_map = {
-        get_val(asset, "id"): asset for asset in assets or []
+        get_val(asset, "id"): asset 
+        for asset in assets or []
     }
 
     service_map = {
-        get_val(service, "id"): service for service in services or []
+        get_val(service, "id"): service 
+        for service in services or []
     }
 
     result: list[JSONDict] = []
@@ -265,3 +267,44 @@ def build_tech_context(
         )
 
     return result
+
+
+def build_scan_sources_context(
+        scan_sources: list[JSONObject] | None
+) -> list[JSONDict]:
+    result = []
+
+    for source in scan_sources or []:
+        result.append(
+            {
+                "source_name": get_val(source, "source_name", "Unknown"),
+                "status": str(get_enum_val(get_val(source, "status", "Unknown"))),
+                "error_message": get_val(source, "error_message"),
+            }
+        )
+
+    return result
+
+
+def build_vulnerability_summary(
+        findings: list[JSONObject] | None
+) -> JSONDict:
+    cve_findings = [
+        finding for finding in findings or []
+        if get_val(finding, "cve_id")
+    ]
+
+    scores = [
+        float(get_val(finding, "cvss_score"))
+        for finding in cve_findings
+        if get_val(finding, "cvss_score") is not None
+    ]
+
+    return {
+        "cve_count": len(cve_findings),
+        "highest_cvss": (max(scores) if scores else None),
+        "average_cvss": (
+            round(sum(scores) / len(scores), 1)
+            if scores else None
+        ),
+    }
