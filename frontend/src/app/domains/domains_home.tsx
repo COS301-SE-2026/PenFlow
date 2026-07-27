@@ -1,6 +1,7 @@
 "use client";
 
 import type {ReactNode} from "react";
+import { validateDomain } from "@/lib/domainValidator";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link"
 import { AlertTriangle, Check, CheckCircle2, ChevronDown, ChevronRight, Clock, Copy, Globe, MoreVertical, Plus,
@@ -254,6 +255,13 @@ const can_add = domain_name.trim() !== "" && !submitting
 
 async function handle_add() {
    if (!can_add) return;
+
+   const result = validateDomain(domain_name);
+   if (!result.valid) {
+      set_form_error(result.error);
+      return;
+   }
+
    set_submitting(true);
    set_form_error(null);
    try {
