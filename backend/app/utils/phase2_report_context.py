@@ -308,3 +308,50 @@ def build_vulnerability_summary(
             if scores else None
         ),
     }
+
+
+def build_phase2_report_context(
+        scan: JSONObject,
+        findings: list[JSONObject] | None,
+        assets: list[JSONObject] | None,
+        services: list[JSONObject] | None,
+        technologies: list[JSONObject] | None,
+        scan_sources: list[JSONObject] | None,
+) -> JSONDict:
+    scan_id = str(get_val(scan, "id", "unknown scan id"))
+
+    scan_status = get_enum_val(get_val(scan, "status", 'completed'))
+
+    return {
+        "target_domain": get_val(scan, "domain", "Unknown domain"),
+        "report_id": f"PF-{scan_id[:8]}",
+        "generated_at": format_timestamp(),
+        "status": str(scan_status).replace("_", " ").title(),
+        "severity_counts": calc_severity_counts(findings),
+        "summary": build_summary_context(
+            findings=findings,
+            assets=assets,
+            services=services,
+            technologies=technologies,
+        ),
+        "findings": build_findings_context(
+            findings=findings,
+            assets=assets,
+            services=services,
+        ),
+        "assets": build_assets_context(
+            assets=assets,
+            findings=findings,
+        ),
+        "services": build_services_context(
+            services=services,
+            findings=findings,
+        ),
+        "technologies": build_tech_context(
+            technologies=technologies,
+            assets=assets,
+            services=services,
+        ),
+        "scan_sources": build_scan_sources_context(scan_sources=scan_sources),
+        "vulnerabilities": build_vulnerability_summary(findings=findings),
+    }
