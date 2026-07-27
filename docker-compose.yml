@@ -32,8 +32,9 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_TEST_USER}:${POSTGRES_TEST_PASSWORD}@postgres-test:5432/${POSTGRES_TEST_DB}
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
-      REPORT_OUTPUT_DIR: /app/generated_reports
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
+      REPORT_STORAGE: local
+      REPORT_OUTPUT_DIR: /app/generated_reports
     depends_on:
       postgres-test:
         condition: service_healthy
@@ -57,13 +58,16 @@ services:
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: penflow
       KEYCLOAK_CLIENT_ID: penflow-frontend
-      REPORT_OUTPUT_DIR: /app/generated_reports
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       SMTP_FROM: ${SMTP_FROM}
+      REPORT_STORAGE: ${REPORT_STORAGE:-local}
+      REPORT_OUTPUT_DIR: ${REPORT_OUTPUT_DIR:-/app/generated_reports}
+      REPORT_S3_BUCKET: ${REPORT_S3_BUCKET:-}
+      AWS_REGION: ${AWS_REGION:-af-south-1}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -86,9 +90,10 @@ services:
       BACKEND_API_URL: http://backend:3001/api/v1
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
       DATABASE_URL: postgresql://${POSTGRES_TEST_USER}:${POSTGRES_TEST_PASSWORD}@postgres-test:5432/${POSTGRES_TEST_DB}
-      REPORT_OUTPUT_DIR: /app/generated_reports
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
       SCAN_MODE: MOCK
+      REPORT_STORAGE: local
+      REPORT_OUTPUT_DIR: /app/generated_reports
     depends_on:
       postgres-test:
         condition: service_healthy
@@ -111,9 +116,12 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       URLSCAN_API_KEY: ${URLSCAN_API_KEY}
       SHODAN_API_KEY: ${SHODAN_API_KEY}
-      REPORT_OUTPUT_DIR: /app/generated_reports
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
       SCAN_MODE: LIVE
+      REPORT_STORAGE: ${REPORT_STORAGE:-local}
+      REPORT_OUTPUT_DIR: ${REPORT_OUTPUT_DIR:-/app/generated_reports}
+      REPORT_S3_BUCKET: ${REPORT_S3_BUCKET:-}
+      AWS_REGION: ${AWS_REGION:-af-south-1}
     depends_on:
       rabbitmq:
         condition: service_healthy
