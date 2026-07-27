@@ -138,7 +138,7 @@ function ScanModeToggle({ mode, onChange } : {mode: ScanMode; onChange:(mode: Sc
                 <button
                     key = {option}
                     type="button"
-                    aria--pressed = {selected}
+                    aria-pressed = {selected}
                     onClick={()=> onChange(option)}
                     className = { cn(
                         "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-all",
