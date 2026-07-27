@@ -57,3 +57,13 @@ class ReportStorageService:
                 return False
 
         raise Exception(f"Unsupported REPORT_STORAGE mode: {REPORT_STORAGE}")
+
+
+    @staticmethod
+    def is_local() -> bool:
+        return REPORT_STORAGE == "local"
+
+
+    @staticmethod
+    def is_s3() -> bool:
+        return REPORT_STORAGE == "s3"
