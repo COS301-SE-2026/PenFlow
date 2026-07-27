@@ -34,6 +34,7 @@ type NavItem =
 export default function NavBar() {
   //fix hydation error for login
   const [loggedIn,setLoggedIn] = useState(false);
+  const pathName = usePathname();
 
   useEffect( ()=>{
     setLoggedIn(isLoggedIn());
