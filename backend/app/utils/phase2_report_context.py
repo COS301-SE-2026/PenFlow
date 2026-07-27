@@ -179,5 +179,38 @@ def build_assets_context(
                 "info_count": severity_counts["info"],
             }
         )
+
+    return result
+
+
+def build_services_context(
+        services: list[JSONObject] | None,
+        findings: list[JSONObject] | None,
+) -> list[JSONDict]:
+    result: list[JSONDict] = []
+
+    for service in services or []:
+        service_id = get_val(service, "id")
+
+        service_findings = [
+            finding for finding in findings or []
+            if get_val(finding, "service_id") == service_id
+        ]
+
+        result.append(
+            {
+                "host": get_val(service, "host", "Unknown"),
+                "port": get_val(service, "port"),
+                "protocol": get_val(service, "protocol", "Unknown"),
+                "service_name": get_val(service, "service_name"),
+                "product": get_val(service, "product"),
+                "version": get_val(service, "version"),
+                "state": get_val(service, "state", "open"),
+                "tls_enabled": get_val(service, "tls_enabled", False),
+                "findings_count": len(service_findings)
+            }
+        )
         
     return result
+
+
