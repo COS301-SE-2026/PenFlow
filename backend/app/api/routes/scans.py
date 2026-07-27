@@ -95,6 +95,7 @@ async def initiate_ctem_scan(
 @router.get("/{scan_id}/status")
 async def get_scan_status(
     scan_id: UUID,
+    current_user: CurrentUserOptional,
     db: DbSession,
 ) -> dict[str, Any]:
     user_id = None
