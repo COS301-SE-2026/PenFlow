@@ -17,7 +17,7 @@ import { Separator} from "@/components/ui/separator";
 import { cn } from "@/lib/utils"
 import { postScanRequest,fetchScanHistory, type ScanHistoryItem} from "@/lib/scanService";
 import { fetch_domains,type domain_item } from "@/lib/domainServices";
-import { set } from "animejs";
+
 
 type ScanMode = "active" | "passive" ;
 
