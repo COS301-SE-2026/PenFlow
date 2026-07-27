@@ -32,6 +32,12 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_TEST_USER}:${POSTGRES_TEST_PASSWORD}@postgres-test:5432/${POSTGRES_TEST_DB}
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_PROTOCOL: amqp
+      REPORT_OUTPUT_DIR: /app/generated_reports
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
       REPORT_STORAGE: local
       REPORT_OUTPUT_DIR: /app/generated_reports
@@ -54,6 +60,11 @@ services:
       - "3001:3001"
     environment:
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_PROTOCOL: amqp
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: penflow
@@ -87,8 +98,13 @@ services:
       context: .
       dockerfile: docker/Dockerfile.workers.test
     environment:
-      BACKEND_API_URL: http://backend:3001/api/v1
+      BACKEND_URL: http://backend:3001
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_PROTOCOL: amqp
       DATABASE_URL: postgresql://${POSTGRES_TEST_USER}:${POSTGRES_TEST_PASSWORD}@postgres-test:5432/${POSTGRES_TEST_DB}
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
       SCAN_MODE: MOCK
@@ -112,7 +128,14 @@ services:
       dockerfile: docker/Dockerfile.workers
     environment:
       BACKEND_API_URL: http://backend:3001/api/v1
+      #Remember
+      BACKEND_URL: http://backend:3001
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_PROTOCOL: amqp
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       URLSCAN_API_KEY: ${URLSCAN_API_KEY}
       SHODAN_API_KEY: ${SHODAN_API_KEY}

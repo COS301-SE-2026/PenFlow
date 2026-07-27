@@ -2,6 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+import os
 import app.models  # noqa: F401 — registers all SQLAlchemy mappers before any query runs
 from app.api.routes import domains, health, internal, scans, summary, users
 from app.realtime import stream
@@ -13,9 +14,16 @@ app = FastAPI(
               
 )
 
+cors_origins = [
+    origin.strip() for origin in os.getenv(
+        "CORS_ORIGINS", "http://localhost:3000"
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
