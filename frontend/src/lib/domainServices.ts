@@ -1,14 +1,14 @@
 const API_BASE = "/api/domains";
 export type domain_verification_status = "pending" | "verified" | "failed" | "expired";
 export type DomainVerificationCode = | "verified" | "record_not_found" | "token_mismatch" | "lookup_failed";
-export type domain_sort_field = "domain" | "create_at" | "status";
+export type domain_sort_field = "domain" | "created_at" | "status";
 export type sort_order = "asc" | "desc";
 
 export interface VerifiedDomain {
     id: string;
     domain: string;
     status: domain_verification_status;
-    verification_tole: string;
+    verification_token: string;
     verified_at: string | null;
 }
 
@@ -91,7 +91,7 @@ export async function verify_domain(domainId: string): Promise<VerifiedDomain> {
 }
 
 export async function delete_domain(domainId: string): Promise<void> {
-    const response = await fetch(`${API_BASE}/${domainId}/verify`, {method: "DELETE" });
+    const response = await fetch(\${API_BASE}\${domainId},{method: "DELETE"});
     if(!response.ok && response.status !== 204) {
         throw await parseError(response, "Failed to remove domain");
     }

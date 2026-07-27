@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import type {ReactNode} from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link"
 import { AlertTriangle, Check, CheckCircle2, ChevronDown, ChevronRight, Clock, Copy, Globe, MoreVertical, Plus,
     Search, Trash2, X, XCircle,
@@ -12,22 +13,21 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { add_domain, delete_domain, fetch_domain, verify_domain, verification_code_message,
+import { add_domain, delete_domain, fetch_domains, verify_domain, verification_code_message,
     type domain_counts,
     type domain_item,
     type domain_pagination,
     type domain_sort_field,
     type domain_verification_status,
     type sort_order,
- } from "@/lib/domainService";
+ } from "@/lib/domainServices";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
-import nextConfig from "next.config";
 
  const PAGE_SIZE = 20;
- const sort_options = { value: string; label: string; sort: domain_sort_field; order: sort_order }[] = [
+ const sort_options: { value: string; label: string; sort: domain_sort_field; order: sort_order }[] = [
     {value: "recent", label: "Sort: Recently Added", sort: "created_at", order: "desc" },
     {value: "az", label: "Sort: A - Z", sort: "domain", order: "asc" },
     {value: "status", label: "Sort: Status", sort: "status", order: "asc" },
@@ -97,7 +97,7 @@ import nextConfig from "next.config";
    );
  }
 
- function VerificationStep ({ index, title, children }: {index: number; title: string; children: React.ReactNode}) {
+ function VerificationStep ({ index, title, children }: {index: number; title: string; children: ReactNode}) {
    return (
       <div className = "flex gap-3">
          <span className = "flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-cyan/15 text-xs font-semibold text-brand-cyan">
@@ -120,7 +120,7 @@ import nextConfig from "next.config";
    verifying: boolean;
  }) {
    const { label, className, icon: Icon } = status_config[domain.status];
-   const status_message = domain.last_verification_code ? verification_code_message[domian.last_verification_code]
+   const status_message = domain.last_verification_code ? verification_code_message[domain.last_verification_code]
    : "This domain has not been checked yet.";
 
    return (
@@ -141,7 +141,7 @@ import nextConfig from "next.config";
                   </button>
             </div>
 
-            <Badge variant "outline" className={cn ("w-fit gap-1 uppercase tracking-wide", className)}>
+            <Badge variant = "outline" className={cn ("w-fit gap-1 uppercase tracking-wide", className)}>
                <Icon className = "size-3" />
                {label} verification 
             </Badge>
@@ -159,7 +159,7 @@ import nextConfig from "next.config";
                   </div>
                   <div>
                      <p className ="text-xs text-muted-foreground"> Last checked</p>
-                     <p className ="text-sm text-foreground">{format_timestamp(domain.last_checked_at) : "Never"}</p>
+                     <p className ="text-sm text-foreground">{domain.last_checked_at ? format_timestamp(domain.last_checked_at) : "Never"}</p>
                   </div>
                </div>
             </div>
@@ -173,7 +173,7 @@ import nextConfig from "next.config";
                            Verify ownership
                         </h3>
                         <p className ="mt-1 text-sm text-muted-foreground">
-                           To enable active scans, add the following DNS TXT record to your domain &apos;s root.
+                           To enable active scans, add the following DNS TXT record to your domain&apos;s root.
                            </p>
                      </div>
 
@@ -248,7 +248,7 @@ function AddDomainForm({
    on_added: () => void;
 }) {
 const [domain_name, set_domain_name] = useState("");
-const [submiting, set_submitting] = useState(false);
+const [submitting, set_submitting] = useState(false);
 const [form_error, set_form_error] = useState<string | null>(null);
 const can_add = domain_name.trim() !== "" && !submitting
 
@@ -285,7 +285,7 @@ return (
          <div className = "flex flex-col gap-1.5">
             <Label htmlFor="new-domain">Domain</Label>
             <div className = "relative">
-               <Glove className = "absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"/>
+               <Globe className = "absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"/>
                <Input
                   id = "new-domain"
                   placeholder="example.com"
@@ -294,18 +294,18 @@ return (
                   onKeyDown = {(e) => {
                      if (e.key === "Enter") void handle_add();
                   }}
-                  className = "h-10 border-brand-cyan/60 pl-6 focus-visible:border-brand-cyan focus-bisible:ring-brand-cyan/25"
+                  className = "h-10 border-brand-cyan/60 pl-6 focus-visible:border-brand-cyan focus-visible:ring-brand-cyan/25"
                   autoFocus
                />
             </div>
-            {form_error && <p className = "text-sx text-brand-alert">{form_error}</p>}
+            {form_error && <p className = "text-xs text-brand-alert">{form_error}</p>}
             <p className = "text-xs text-muted-foreground">
                You will need to verify ownership via a DNS TXT record before active scans are available for this domain.
             </p>
          </div>
 
          <div className = "flex justify-end gap-2">
-            <Button variant = "outline" onClick={on_cancel} disable={submiting}>
+            <Button variant = "outline" onClick={on_cancel} disable={submitting}>
                Cancel
             </Button>
             <Button disabled={!can_add} onClick={() => void handle_add()}>
@@ -417,7 +417,7 @@ export default function DomainsHome() {
       if(deleted) set_selected_id((prev) => (prev === domain_id ? null : prev));
    }
 
-   const selected_domain = domains.find((d) => d.id === selected_id ?? null);
+   const selected_domain = domains.find((d) => d.id === selected_id) ?? null;
 
    return(
       <div className = "flex flex-col gap-6">
@@ -439,8 +439,8 @@ export default function DomainsHome() {
             <Button
                onClick={() => set_show_add_domain((prev) => !prev)}
                aria-pressed={show_add_domain}
-               className="gap-1.5 trasition-all duration-200 hover:-translate-y-0.5
-                          hover:bg-primary/85 hover:shadow-[0_0_20px_rgba(43.216.245.0.45)]"
+               className="gap-1.5 transition-all duration-200 hover:-translate-y-0.5
+                          hover:bg-primary/85 hover:shadow-[0_0_20px_rgba(43,216,245,0,45)]"
             >
                <Plus className="size-4"/>
                Add Domain
