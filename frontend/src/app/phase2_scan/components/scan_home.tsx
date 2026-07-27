@@ -290,3 +290,99 @@ function NewScanForm() {
 }
 
 
+export default function ScanHome() {
+    const [scans, setScans] = useState<ScanHistoryItem[]>([]);
+    const [loading , setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        fetchScanHistory()
+            .then(setScans)
+            .catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to load scans"))
+            .finally(()=>setLoading(false));
+    },[]);
+    const runningScans = scans.filter((s)=> RUNNING_STATUSES.has(s.status));
+    const latestResults = scans.filter ((s)=> !RUNNING_STATUSES.has(s.status));
+    return(
+        <div className="flex flex-col gap-8">
+            <div>
+                <h1 className="text-2xl font-semibold uppercase tracking-wide text-foreground">
+                        Scans
+                </h1> 
+                <p className="mt-1 text-sm text-muted-foreground">
+                    Start a new passive or active scan.
+                </p>
+            </div>
+
+            <NewScanForm/>
+
+            {error && <p className="text-sm text-brand-alert">{error}</p>}
+            {loading && <p className="text-sm text-muted-foreground">Loading Scans...</p>}
+
+            {!loading && !error && (
+                <>
+                    <section>
+                        <SectionHeader title="Running Scans" count={runningScans.length}/>
+                        {runningScans.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">No scans currently running.</p>
+                        ): (
+                            <div className="flex flex-col gap-3">
+                                {runningScans.map((scan) => (
+                                    <Card key = {scan.id} className="border border-brand-panel-border bg--brand-panel ring-0">
+                                        <CardContent className="flex flex-wrap items-center gap-4">
+                                            <ScanIcon status= {scan.status}/>
+                                            <div className="min-w-0 flex-1">
+                                            <p className="truncate font-medium text-foreground">{scan.domain}</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                {scanTypeLabel[scan.scan_type] ?? scan.scan_type}
+                                            </p>
+                                        </div>
+                                        <StatusBadge status= {scan.status}/>
+                                        <div className="flex w-48 shrink-0 items-center gap-3">
+                                            <Progress value={scan.progress} className="flex-1"/>
+                                            <span className="w-10 shrink-0 text-right text-sm text-muted-foreground">
+                                                {scan.progress}%
+                                            </span>
+                                        </div>
+                                        <TextLink href ={`/phase2_scan/progress?scan_id=${scan.id}`}>View Progress</TextLink>
+                                        <MoreMenuButton/>
+                                    </CardContent>
+                                </Card>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                        
+                    <section>
+                        <SectionHeader title="Latest Results" count= {latestResults.length}/>
+                        {latestResults.length === 0 ? (
+                                <p className="text-sm text-muted-foreground">No completed scans yet.</p>
+                        ) : (
+                            <div className="flex flex-col gap-3">
+                                {latestResults.map((scan) =>  (
+                                    <Card key={scan.id} className="border border-brand-panel-border bg-brand-panel ring-0">     
+                                        <CardContent className="flex flex-wrap items-center gap-4">
+                                            <ScanIcon status= {scan.status} />
+                                            <div className="min-w-0 flex-1">
+                                              <p className="truncate font-medium text-foreground">{scan.domain}</p>
+                                              <p className="text-sm text-muted-foreground">
+                                                {scanTypeLabel[scan.scan_type] ?? scan.scan_type}
+                                              </p>
+                                            </div>
+                                              <StatusBadge status={scan.status}/>
+                                              <span className="w-40 shrink-0 text-sm text-muted-foreground">
+                                                {formatTimestamp(scan.created_at)}
+                                              </span>
+                                              <TextLink href={`/phase2_scan/results/${scan.id}`}>View Results </TextLink>
+                                              <MoreMenuButton/>
+                                            </CardContent>
+                                        </Card>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                    </>
+                    )}
+                </div>
+                );
+}
