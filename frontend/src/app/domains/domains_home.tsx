@@ -305,7 +305,7 @@ return (
          </div>
 
          <div className = "flex justify-end gap-2">
-            <Button variant = "outline" onClick={on_cancel} disable={submitting}>
+            <Button variant = "outline" onClick={on_cancel} disabled={submitting}>
                Cancel
             </Button>
             <Button disabled={!can_add} onClick={() => void handle_add()}>
@@ -440,7 +440,7 @@ export default function DomainsHome() {
                onClick={() => set_show_add_domain((prev) => !prev)}
                aria-pressed={show_add_domain}
                className="gap-1.5 transition-all duration-200 hover:-translate-y-0.5
-                          hover:bg-primary/85 hover:shadow-[0_0_20px_rgba(43,216,245,0,45)]"
+                          hover:bg-primary/85 hover:shadow-[0_0_20px_rgba(43,216,245,0.45)]"
             >
                <Plus className="size-4"/>
                Add Domain
@@ -502,7 +502,7 @@ export default function DomainsHome() {
                      <SelectContent>
                         {sort_options.map((opt) => (
                            <SelectItem key = {opt.value} value={opt.value}>
-                              {opt.value}
+                              {opt.label}
                            </SelectItem>
                         ))}
                      </SelectContent>
@@ -518,7 +518,7 @@ export default function DomainsHome() {
                <Card className = "border border-brand-panel-border bg-brand-panel ring-0">
                   <CardContent className = "overflow-x-auto px-0 py-0">
                      <table className = "w-full border-collapse text-left">
-                        <thread>
+                        <thead>
                            <tr className = "border-b border-brand-panel-border text-xs whitespace-nowrap text-muted-foreground uppercase tracking-wide">
                               <th className = "px-3 py-2.5 font-medium">Domain</th>
                               <th className = "px-3 py-2.5 font-medium">Status</th>
@@ -531,7 +531,7 @@ export default function DomainsHome() {
                               <th className = "px-3 py-2.5 font-medium">Checked</th>
                               <th className = "px-3 py-2.5 font-medium">Action</th>
                            </tr>
-                        </thread>
+                        </thead>
                         <tbody>
                            {domains.length === 0 && (
                               <tr>
@@ -552,9 +552,9 @@ export default function DomainsHome() {
                                  <td className = "px-3 py-2.5">
                                     <span
                                        className = "flex max-w-[160px] items-center gap-1.5 truncate font-medium text-foreground"
-                                       title={item.domian}
+                                       title={item.domain}
                                     >
-                                       <GLove className = "size-3.5 shrink-0 text-muted-foreground"/>
+                                       <Globe className = "size-3.5 shrink-0 text-muted-foreground"/>
                                        <span className = "truncate">{item.domain}</span>
                                     </span>
                                  </td>
@@ -562,7 +562,7 @@ export default function DomainsHome() {
                                     <StatusBadge status={item.status} />
                                  </td>
                                  <td className = "px-3 py-2.5 whitespace-nowrap text-muted-foreground">
-                                    {formate_timestamp(item.created_at)}
+                                    {format_timestamp(item.created_at)}
                                  </td>
                                  <td className = "px-3 py-2.5 whitespace-nowrap text-muted-foreground">
                                     {item.last_checked_at ? (
@@ -631,7 +631,7 @@ export default function DomainsHome() {
                         size="sm"
                         className = "gap-1.5"
                         onClick={handle_load_more}
-                        disable={loading}
+                        disabled={loading}
                      >
                         {loading ? "Loading" : "Load more"}
                         <ChevronDown className = "size-3.5" />
