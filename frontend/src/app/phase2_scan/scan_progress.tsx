@@ -3,7 +3,7 @@ import type {ReactNode} from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Ban, Binoculars, Bug, ChevronRight, Crosshair, FileSearch, Fingerprint, Globe, Info, Lock, Network, ShieldAlert,
+import { Ban, Bug, ChevronRight, Crosshair, FileSearch, Fingerprint, Globe, Info, Lock, Network, ShieldAlert,
          ShieldCheck, type LucideIcon,} from "lucide-react";
 
 import { Card, CardContent} from "@/components/ui/card";
@@ -18,7 +18,7 @@ type SourcePhase = "idle" | "line" | "done";
 
 const POLL_INTERVAL_MS = 4000;
 const TERMINAL_SCAN_STATUSES = new Set(["completed", "failed", "partial"]);
-const TERMINAL_SOURCE_STATUSES = new Set<SourceStatus>(["completed", "failed", "parial", "skipped"]);
+const TERMINAL_SOURCE_STATUSES = new Set<SourceStatus>(["completed", "failed", "partial", "skipped"]);
 const scanTypeLabel: Record<string, string> = {
     active_vulnerability: "Active Vulnerability Scan",
     passive_ctem: "Passive Reconnaissance",
@@ -280,7 +280,7 @@ function FanColumn({
                     style = {{
                         top: `${ys[i]}%`,
                         width: `${PILL_WIDTH}%`,
-                        ...Badge(side === "left" ? {right: `${100 - nearXs[i]}$`} : {left: `${nearXs[i]}%`}),
+                        ...(side === "left" ? {right: `${100 - nearXs[i]}%`} : {left: `${nearXs[i]}%`}),
                     }}
                 >
                 <SourceCard sourceName={source.source_name} status={source.status} phase={source.phase} />
@@ -441,21 +441,21 @@ export default function ScanProgress() {
                             title="Cancelling a running scan is not available"
                             className = "gap-2 border-brand-alert text-brand-alert hover:bg-brand-alert/10"
                         >
-                            <Ban className="size-4"
+                            <Ban className="size-4"/>
                             Cancel Scan
                         </Button>
                     )}
                 </div>
             </div>
-            
-            {error && <p className="text-xs text-brand-alert"{error} </p>}
+
+            {error && <p className="text-xs text-brand-alert">{error} </p>}
             <ScanDetailsBar scan = {{ ...scan, sources: visibleSources}}/>
 
-            <Card className={"cardClassmaName"} >
+            <Card className={cardClassName} >
                 <CardContent className="flex flex-col gap-4">
                     <h2 className={sectionTitleClassName}> Overall Progress </h2>
                         <ScanNetworkDiagram sources = {visibleSources} />
-                        <ScanSourceList sources= {visible sources} />
+                        <ScanSourceList sources= {visibleSources} />
                 </CardContent>
             </Card>
         </div>

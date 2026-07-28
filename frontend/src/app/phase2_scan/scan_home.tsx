@@ -190,7 +190,7 @@ function NewScanForm() {
                     scan_type: mode === "active" ? "active_vulnerability" : "passive_ctem",
                     verified_domain_id: mode === "active" ? activeDomainId : undefined
             });
-            router.push(`/phase2_scan/progress?scan_id = ${scan_id}`);
+            router.push(`/phase2_scan/progress?scan_id=${scan_id}`);
         }catch (err){
             setFormError(err instanceof Error ? err.message : "Failed to start scan");
         } finally {
