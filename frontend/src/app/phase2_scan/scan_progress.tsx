@@ -403,5 +403,61 @@ export default function ScanProgress() {
         );
     }
 
-    
+    const visibleSources = scan.sources.filter((s)=> s.source_name !== "hunter.io");
+    return (
+        <div className="mx-auto flex w-full max-w-[1700px] flex-col gap-6">
+            <nav aria-label = "Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground">
+                <Link href = "/phase2_scan" className="hover:text-foreground hover:underline">
+                    Scans
+                </Link>
+                <ChevronRight className="size-4"/>
+                <span>{scan.domain}</span>
+                <ChevronRight className="size-4"/>
+                <span className="text-foreground">Progress</span>
+            </nav>
+
+            <div className="flex flex-wrap items-start justify-between gap-4">
+                <div>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <h1 className="text-2xl font-semibold text-foreground">{scan.domain}</h1>
+                        <Badge className="bg-brand-cyan text-blacl capitalize">{scan.status}</Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        {scanTypeLabel[scan.scan_type] ?? scan.scan_type} &bull; {scan.progress}% complete
+                    </p>
+                </div>
+                <div className="flex gap-2">
+                    {TERMINAL_SCAN_STATUSES.has(scan.status) ? (
+                        <Link href = {`/phase2_scan/results/${scan.scan_id}`}>
+                            <Button className="gap-2 bg-brand-cyan text-black hover:bg-brand-cyan/85">
+                                View Results
+                                <ChevronRight className="size-4" />
+                            </Button>
+                        </Link>
+                    ): (
+                        <Button
+                            variant= "outline"
+                            disabled
+                            title="Cancelling a running scan is not available"
+                            className = "gap-2 border-brand-alert text-brand-alert hover:bg-brand-alert/10"
+                        >
+                            <Ban className="size-4"
+                            Cancel Scan
+                        </Button>
+                    )}
+                </div>
+            </div>
+            
+            {error && <p className="text-xs text-brand-alert"{error} </p>}
+            <ScanDetailsBar scan = {{ ...scan, sources: visibleSources}}/>
+
+            <Card className={"cardClassmaName"} >
+                <CardContent className="flex flex-col gap-4">
+                    <h2 className={sectionTitleClassName}> Overall Progress </h2>
+                        <ScanNetworkDiagram sources = {visibleSources} />
+                        <ScanSourceList sources= {visible sources} />
+                </CardContent>
+            </Card>
+        </div>
+    );
 }
