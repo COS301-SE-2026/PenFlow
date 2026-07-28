@@ -47,7 +47,7 @@ export default function ScanConsoleSection() {
     }
 
     try {
-      const { scan_id } = await postScanRequest(result.domain);
+      const { scan_id } = await postScanRequest({ domain: result.domain });
       setScanId(scan_id);
       setStepsDone(Array(SOURCES.length).fill(false));
       setReportReady(false);
