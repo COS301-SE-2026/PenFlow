@@ -289,3 +289,119 @@ function FanColumn({
         </div>
     );
 }
+
+function sourcePhase(status: SourceStatus): SourcePhase {
+    if(status === "pending") return "idle";
+    if(status === "running") return "line";
+    return "done";
+}
+
+function ScanNetworkDiagram({sources}: {sources: RealTimeScanStatus["sources"]}) {
+    const withPhase = sources.map((s)=> ({
+        source_name: s.source_name,
+        status: s.status as SourceStatus,
+        phase: sourcePhase(s.status as SourceStatus),
+    }));
+    const mid = Math.ceil(withPhase.length / 2);
+    const left = withPhase.slice(0,mid);
+    const right = withPhase.slice(mid);
+
+    return (
+        <div className="hidden flex-col gap-4 lg:flex">
+            <div className="origin-top -mb-[62px] scale-90">
+                <div className="grid min-h-[620px] grid-cols-[minmax(240px, 1fr)_auto)minmax(240px , 1fr)] items-stretch">
+                    <FanColumn sources = {left} side = "left"/>
+                    <div className="flex items-center gap-3 px-4">
+                        <span className="h-px w-10 shrink-0 bg-brand-success/60"/>
+                        <div className="rounded-2xl border border-[#1c2a42] ng-gradient-to-br from-[#0d1e36] to-[#091829] p-4 shadow-[0_4px_20px_rgba(0,8,24,0.5]">
+                            <ScanRadar />
+                        </div>
+                        <span className="h-px w-10 shrink-0 bg-brand-success/60"/>
+                    </div>
+                    <FanColumn sources={right} side="right"/>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function ScanSourceList({sources}: {sources: RealTimeScanStatus["sources"]}) {
+    return (
+        <div className="flex flex-col divide-y divide-brand-panel-border lg:hidden">
+            {sources.map((source) => {
+                const status = source.status as SourceStatus;
+                const meta = SOURCE_META[source.source_name] ?? {...DEFAULT_SOURCE_META, label: source.source_name};
+                return (
+                    <div key = {source.source_name} className="flex flex-wrap items-center gap-4 py-3">
+                        <span className="flex size-5 items-center justify-center rounded-full">
+                            <span className={cn("size-2.5 rounded-full", dotToneClassName[status])}/>
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-base text-foreground">{meta.label}</span>
+                        <SourceStatusBadge status = {status} />
+                        <ChevronRight className="size-4 shrink-0 text-muted-foreground"/>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+export default function ScanProgress() {
+    const searchParams = useSearchParams();
+    const scanId = searchParams.get("scan_id");
+    const [scan, setScan] = useState<RealTimeScanStatus | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const poll = useCallback(async (id: string) => {
+        try {
+            const result = await fetchScanStatus(id);
+            setScan(result);
+            setError(null);
+            if(TERMINAL_SCAN_STATUSES.has(result.status) && pollRef.current) {
+                clearInterval(pollRef.current);
+                pollRef.current = null;
+            }
+        }catch (err) {
+            setError(err instanceof Error ? err.message : "Unable to load scan status");
+        }
+    },[]);
+
+    useEffect(()=> {
+        if (!scanId) return;
+        void poll(scanId);
+        pollRef.current = setInterval(()=> void poll(scanId), POLL_INTERVAL_MS);
+        return() => {
+            if (pollRef.current) clearInterval(pollRef.current);
+        };
+    },[scanId, poll]);
+    if(!scanId) {
+        return (
+            <div className="mx-auto flex w-full max-w-[1700px] flex-col gap-4">
+                <p className="text-sm text-muted-foreground">
+                    No scan selected. Start a new scan from the {" "}
+                    <Link href="/phase2_scan" className="text-brand-cyan hover:underline">
+                        Scans
+                    </Link>{" "}
+                    page.
+                </p>
+            </div>
+        );
+    }
+    if(error && !scan) {
+        return (
+            <div className="mx-auto flex w-full max-w-[1700px] flex-col gap-4">
+                <p className="text-sm text-brand-alert">{error}</p>
+            </div>
+        );
+    }
+
+    if(!scan) {
+        return (
+            <div className="mx-auto flex w-full max-w-[1700px] flex-col gap-4">
+                <p className="text-sm text-muted-foreground">Loading scan status...</p>
+            </div>
+        );
+    }
+
+    
+}
