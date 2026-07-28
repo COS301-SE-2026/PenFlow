@@ -9,14 +9,12 @@ logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
 
-@celery_app.task \
-(
+@celery_app.task(
     name="scan.phase2_fingerprint",
     bind=True,
     max_retries=2,
 )
-def run_fingerprinting_scan_task \
-(
+def run_fingerprinting_scan_task(
     self: Any,
     scan_id: str,
     target_url: str,
@@ -24,16 +22,11 @@ def run_fingerprinting_scan_task \
     tls_data: Optional[dict[str, Any]] = None,
 ) -> JSONDict:
 
-    logger.info \
-    (
-        f"[Fingerprint_Task] Starting fingerprint scan for {target_url}"
-    )
+    logger.info(f"[Fingerprint_Task] Starting fingerprint scan for {target_url}")
 
     try:
-
         # run the fingerprinting service
-        fingerprinting_service = FingerprintingService \
-        (
+        fingerprinting_service = FingerprintingService(
             target_url=target_url,
             nmap_data=nmap_data,
             tls_data=tls_data,
@@ -79,8 +72,7 @@ def run_fingerprinting_scan_task \
             )
 
         # package successful worker results
-        result = \
-        {
+        result = {
             "scan_id": scan_id,
             "source_name": "fingerprint",
             "status": "completed",
@@ -92,20 +84,14 @@ def run_fingerprinting_scan_task \
         }
 
     except Exception as error:
-
-        logger.exception \
-        (
-            f"[Fingerprint_Task] Failed: {error}"
-        )
+        logger.exception(f"[Fingerprint_Task] Failed: {error}")
 
         # package failed worker results
-        result = \
-        {
+        result = {
             "scan_id": scan_id,
             "source_name": "fingerprint",
             "status": "failed",
-            "raw_result":
-            {
+            "raw_result": {
                 "target": target_url,
                 "error": str(error),
             },

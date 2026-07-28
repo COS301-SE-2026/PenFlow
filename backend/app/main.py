@@ -8,10 +8,7 @@ from app.api.routes import domains, health, internal, scans, summary, users
 from app.realtime import stream
 
 app = FastAPI(
-    title="PenFlow API",
-    description="Core backend API for the PenFlow platform.",
-    version="1.0.0"
-              
+    title="PenFlow API", description="Core backend API for the PenFlow platform.", version="1.0.0"
 )
 
 cors_origins = [
@@ -38,5 +35,3 @@ app.include_router(internal.router, prefix=API_V1_PREFIX)
 app.include_router(users.router, prefix=API_V1_PREFIX)
 app.include_router(summary.router, prefix=API_V1_PREFIX)
 app.include_router(domains.router, prefix=API_V1_PREFIX)
-
-

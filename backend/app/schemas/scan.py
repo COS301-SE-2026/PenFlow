@@ -1,11 +1,12 @@
 from datetime import datetime
+from enum import Enum
 from typing import Any
 from uuid import UUID
-from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.models.base import ScanStatus
+
 
 class ScanTypeEnum(str, Enum):
     PASSIVE_CTEM = "passive_ctem"
@@ -13,18 +14,25 @@ class ScanTypeEnum(str, Enum):
 
 
 class InitiateScanRequest(BaseModel):
-    domain: str = Field(...,description="The target domain to scan", json_schema_extra={"example": "exmpl.com"}) # noqa: E501
-    scan_type: ScanTypeEnum = Field(default=ScanTypeEnum.PASSIVE_CTEM, description="Type of scan to perform")
+    domain: str = Field(
+        ..., description="The target domain to scan", json_schema_extra={"example": "exmpl.com"}
+    )  # noqa: E501
+    scan_type: ScanTypeEnum = Field(
+        default=ScanTypeEnum.PASSIVE_CTEM, description="Type of scan to perform"
+    )
     verified_domain_id: UUID | None = Field(default=None, description="Required for active scans")
-    email: EmailStr | None = Field(None,description="email to send the report to")
+    email: EmailStr | None = Field(None, description="email to send the report to")
+
 
 class InitiateScanResponse(BaseModel):
     scan_id: UUID
     status: ScanStatus
 
+
 class ScanCallbackRequest(BaseModel):
     status: ScanStatus
     error_message: str | None = None
+
 
 class ScanHistoryItem(BaseModel):
     id: UUID
@@ -52,6 +60,7 @@ class ScanSourceCallbackRequest(BaseModel):
     assets: list[dict[str, Any]] = []
     error_message: str | None = None
 
+
 class FindingsCount(BaseModel):
     critical: int
     high: int
@@ -60,6 +69,7 @@ class FindingsCount(BaseModel):
     info: int
     total: int
 
+
 class MetricsResponse(BaseModel):
     risk_score: int
     risk_level: str
@@ -67,6 +77,7 @@ class MetricsResponse(BaseModel):
     assets: dict[str, int]
     services: dict[str, int]
     technologies: dict[str, int]
+
 
 class DashboardFindingItem(BaseModel):
     id: UUID
@@ -79,28 +90,33 @@ class DashboardFindingItem(BaseModel):
     description: str | None = None
     recommendation: str | None = None
 
+
 class DashboardAssetItem(BaseModel):
     id: UUID
     identifier: str
     asset_type: str
     findings_count: int
 
+
 class RiskHistoryItem(BaseModel):
     date: str
     risk_score: int
     total_findings: int
 
+
 class FindingSeverityCounts(BaseModel):
     critical: int
-    high:int
+    high: int
     medium: int
     low_info: int
     total: int
+
 
 class FindingListResponse(BaseModel):
     total: int
     counts: FindingSeverityCounts
     items: list[dict[str, Any]]
+
 
 class ServiceSummaryCounts(BaseModel):
     total: int
@@ -109,8 +125,9 @@ class ServiceSummaryCounts(BaseModel):
     open: int
     filtered: int
 
+
 class ServiceListItem(BaseModel):
-    id:UUID
+    id: UUID
     service_name: str | None = None
     host: str
     port: int
@@ -125,10 +142,12 @@ class ServiceListItem(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+
 class ServiceListResponse(BaseModel):
     total: int
     counts: ServiceSummaryCounts
     items: list[dict[str, Any]]
+
 
 class AssetSummaryCounts(BaseModel):
     total: int = 0
@@ -137,6 +156,7 @@ class AssetSummaryCounts(BaseModel):
     subdomains: int = 0
     urls: int = 0
     other: int = 0
+
 
 class AssetListItem(BaseModel):
     id: UUID
@@ -149,6 +169,7 @@ class AssetListItem(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
 
 class AssetListResponse(BaseModel):
     total: int

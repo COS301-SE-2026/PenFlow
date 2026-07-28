@@ -72,12 +72,18 @@ export interface ScanStartResponse {
   status: string;
 }
 
-export async function postScanRequest(domain: string): Promise<ScanStartResponse> {
-  const response = await fetch(`${API_BASE}/scans/`, {
+export interface StartScanParams {
+  domain: string;
+  scan_type?: "passive_ctem" | "active_vulnerability";
+  verified_domain_id?: string;
+  email?: string;
+}
+
+export async function postScanRequest(params: StartScanParams ): Promise<ScanStartResponse> {
+  const response = await fetch("/api/scans", {
     method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ domain }),
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(params),
   });
 
   if (!response.ok) {
@@ -93,6 +99,8 @@ export interface ScanHistoryItem {
   domain: string;
   created_at: string;
   status: string;
+  scan_type: string;
+  progress: number;
   total_findings: number;
   critical_count: number;
   high_count: number;
@@ -101,9 +109,7 @@ export interface ScanHistoryItem {
 }
 
 export async function fetchScanHistory(): Promise<ScanHistoryItem[]> {
-  const response = await fetch(`${API_BASE}/scans/`, {
-    credentials: "include",
-  });
+  const response = await fetch("/api/scans");
   if (!response.ok) {
     const err = await response.json().catch(() => ({ detail: "Failed to load scan history" }));
     throw new Error(err.detail ?? "Failed to load scan history");
@@ -150,6 +156,9 @@ export interface ScanSourceStatus {
 
 export interface RealTimeScanStatus {
   scan_id: string;
+  domain: string;
+  created_at:string;
+  scan_type: string;
   status: string;
   progress: number;
   sources: ScanSourceStatus[];
@@ -157,15 +166,41 @@ export interface RealTimeScanStatus {
 }
 
 export async function fetchScanStatus(scanId: string): Promise<RealTimeScanStatus> {
-  const response = await fetch(`${API_BASE}/scans/${scanId}/status`, {
-    credentials: "include",
-  });
+  const response = await fetch(`/api/scans/${scanId}/status`);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({
       detail: "Unable to retrieve scan status",
     }));
     throw new Error(error.detail ?? "Unable to retrieve scan status");
+  }
+  return response.json();
+}
+
+export interface FindingsCount {
+  critical: number;
+  high: number;
+  medium: number;
+  low: number;
+  info: number;
+  total: number;
+}
+
+export interface ScanMetrics {
+  risk_score: number;
+  risk_level: string;
+  findings: FindingsCount;
+  assets: Record<string, number>;
+  services: Record<string, number>;
+  technologies: Record<string, number>;
+}
+
+export async function fetchScanMetrics(scanId: string): Promise<ScanMetrics> {
+  const response = await fetch(`/api/scans/${scanId}/metrics`);
+  
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({detail: "Failed to load scan metrics"}));
+    throw new Error(err.detail ?? "Failed to load scan metrics");
   }
   return response.json();
 }

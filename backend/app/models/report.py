@@ -13,20 +13,26 @@ class Report(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     scan_id = Column(
-        UUID(as_uuid=True), ForeignKey("scans.id", ondelete="CASCADE"),
-        unique=True, nullable=False,
+        UUID(as_uuid=True),
+        ForeignKey("scans.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
     )
     task_id = Column(String(255))
     status: Column[str] = Column(
-        Enum(ReportStatus, values_callable=lambda enum: [item.value for item in enum],
-             name="report_status"),
+        Enum(
+            ReportStatus,
+            values_callable=lambda enum: [item.value for item in enum],
+            name="report_status",
+        ),
         nullable=False,
         default=ReportStatus.PENDING,
     )
     pdf_path = Column(Text)
     generated_at = Column(DateTime(timezone=True))
     created_at = Column(
-        DateTime(timezone=True), nullable=False,
+        DateTime(timezone=True),
+        nullable=False,
         default=lambda: datetime.now(timezone.utc),
     )
     error_message = Column(Text)

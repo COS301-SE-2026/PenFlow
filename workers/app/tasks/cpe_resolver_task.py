@@ -25,6 +25,8 @@ def run_cpe_resolver_task(
         len(software_inventory),
     )
 
+    resolved_data: list[JSONDict] = []
+    
     try:
         resolved_data = run_cpe_resolution(software_inventory)
 
@@ -60,8 +62,7 @@ def run_cpe_resolver_task(
             "scan_id": scan_id,
             "source_name": "cpe_resolver",
             "status": "completed",
-            "raw_result":
-            {
+            "raw_result": {
                 "resolved_inventory": resolved_data,
             },
             "assets": [],
@@ -71,18 +72,13 @@ def run_cpe_resolver_task(
         }
 
     except Exception as error:
-        logger.exception\
-        (
-            f"[CPE_Task] Failed: {error}"
-        )
+        logger.exception(f"[CPE_Task] Failed: {error}")
 
-        result = \
-        {
+        result = {
             "scan_id": scan_id,
             "source_name": "cpe_resolver",
             "status": "failed",
-            "raw_result":
-            {
+            "raw_result": {
                 "error": str(error),
             },
             "assets": [],
@@ -92,8 +88,7 @@ def run_cpe_resolver_task(
             "error_message": str(error),
         }
 
-    send_source_callback\
-    (
+    send_source_callback(
         scan_id=result["scan_id"],
         source_name=result["source_name"],
         status=result["status"],

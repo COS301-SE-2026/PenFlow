@@ -37,7 +37,6 @@ services:
       RABBITMQ_USERNAME: guest
       RABBITMQ_PASSWORD: guest
       RABBITMQ_PROTOCOL: amqp
-      REPORT_OUTPUT_DIR: /app/generated_reports
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
       REPORT_STORAGE: local
       REPORT_OUTPUT_DIR: /app/generated_reports

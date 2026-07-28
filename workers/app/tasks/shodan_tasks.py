@@ -30,7 +30,7 @@ def run_shodan(scan_id: str, domain: str) -> JSONDict:
             "technologies": [],
             "findings": findings,
         }
-    
+
     except Exception as error:
         result = {
             "scan_id": scan_id,
@@ -42,7 +42,7 @@ def run_shodan(scan_id: str, domain: str) -> JSONDict:
             "technologies": [],
             "findings": [],
             "error_message": str(error),
-        }    
+        }
 
     send_source_callback(
         scan_id=scan_id,

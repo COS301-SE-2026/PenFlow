@@ -9,14 +9,12 @@ logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
 
-@celery_app.task\
-(
+@celery_app.task(
     name="scan.phase2_http_security",
     bind=True,
     max_retries=2,
 )
-def run_http_security_scan_task\
-(
+def run_http_security_scan_task(
     self: Any,
     scan_id: str,
     hostname: str,
@@ -35,26 +33,19 @@ def run_http_security_scan_task\
     Task generates findings for missing headers
     """
 
-    (logger.info
-    (
-        f"[HTTP_Task] Starting HTTP security scan for the ip address: {ip_address}"
-    ))
+    (logger.info(f"[HTTP_Task] Starting HTTP security scan for the ip address: {ip_address}"))
 
     try:
-
-        scan_data = (run_http_security_scan
-        (
+        scan_data = run_http_security_scan(
             hostname=hostname,
             ip_address=ip_address,
             ports=ports,
-        ))
+        )
 
         findings = []
 
         for target in scan_data.get("targets", []):
-
-            headers = target.get\
-            (
+            headers = target.get(
                 "security_headers",
                 {},
             )
@@ -89,31 +80,11 @@ def run_http_security_scan_task\
                     }
                 ))
 
-            checks = \
-            {
-                "X-Frame-Options":
-                    headers.get\
-                    (
-                        "x_frame_options"
-                    ),
-
-                "Referrer-Policy":
-                    headers.get\
-                    (
-                        "referrer_policy"
-                    ),
-
-                "Permissions-Policy":
-                    headers.get\
-                    (
-                        "permissions_policy"
-                    ),
-
-                "X-Content-Type-Options":
-                    headers.get\
-                    (
-                        "x_content_type_options"
-                    ),
+            checks = {
+                "X-Frame-Options": headers.get("x_frame_options"),
+                "Referrer-Policy": headers.get("referrer_policy"),
+                "Permissions-Policy": headers.get("permissions_policy"),
+                "X-Content-Type-Options": headers.get("x_content_type_options"),
             }
             if target["scheme"] == "https":
                 checks["Strict-Transport-Security"] = \
@@ -121,11 +92,9 @@ def run_http_security_scan_task\
                         "strict_transport_security"
                     )
             for header_name, value in checks.items():
-
                 if value:
                     continue
 
-                (findings.append
                 (
                     {
                         #if we have no header for now we will default to a low severity
@@ -163,13 +132,15 @@ def run_http_security_scan_task\
             "findings": findings,
         }
 
-        (logger.info
         (
-            f"[HTTP_Task] Completed HTTP security scan for {ip_address}. "
-            f"Generated {len(findings)} finding(s)."
-        ))
+            logger.info(
+                f"[HTTP_Task] Completed HTTP security scan for {ip_address}. "
+                f"Generated {len(findings)} finding(s)."
+            )
+        )
 
     except Exception as error:
+        (logger.exception(f"[HTTP_Task] Failed while scanning {ip_address}: {error}"))
 
         (logger.exception
         (
@@ -180,8 +151,7 @@ def run_http_security_scan_task\
             "scan_id": scan_id,
             "source_name": "http_security",
             "status": "failed",
-            "raw_result":
-            {
+            "raw_result": {
                 "ip": ip_address,
                 "error": str(error),
             },

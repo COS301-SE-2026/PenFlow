@@ -46,12 +46,14 @@ async def save_scan_callback_results(
         )
 
         for asset in subtask.get("assets", []):
-            stmt = pg_insert(Asset).values(
-                scan_id=scan_id,
-                identifier=asset["identifier"],
-                asset_type=asset["asset_type"],
-            ).on_conflict_do_nothing(
-                index_elements=["scan_id", "identifier", "asset_type"]
+            stmt = (
+                pg_insert(Asset)
+                .values(
+                    scan_id=scan_id,
+                    identifier=asset["identifier"],
+                    asset_type=asset["asset_type"],
+                )
+                .on_conflict_do_nothing(index_elements=["scan_id", "identifier", "asset_type"])
             )
             await db.execute(stmt)
 
@@ -93,10 +95,10 @@ async def update_scan_status_callback(
             scan.error_message = payload.error_message
 
         await db.commit()
-            
+
         if payload.status in [ScanStatus.COMPLETED, ScanStatus.PARTIAL]:
             queued_report = await queue_report_generation(db, str(scan_id))
-            
+
         logger.info("Scan %s updated to %s", scan_id, payload.status.value)
 
         return {
@@ -163,7 +165,8 @@ async def update_report_status_callback(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to process report callback",
         )
-    
+
+
 @router.patch("/scans/{scan_id}/sources/{source_name}", status_code=status.HTTP_200_OK)
 async def update_scan_source_callback(
     scan_id: UUID,
@@ -194,13 +197,13 @@ async def update_scan_source_callback(
             "progress": scan.progress,
             "report_status": report_queued["status"] if report_queued else None,
         }
-    
+
     except ValueError as error:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(error),
         )
-    
+
     except Exception:
         logger.exception(
             "Failed to process the source callback for scan %s source %s",

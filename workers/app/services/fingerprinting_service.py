@@ -15,7 +15,7 @@ from app.services.signatures.languages import LANGUAGE_SIGNATURES
 from app.services.signatures.load_balancers import LOAD_BALANCER_SIGNATURES
 from app.services.signatures.servers import SERVER_SIGNATURES
 
-#best way to silence the warnings for unsafe connections
+# best way to silence the warnings for unsafe connections
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
@@ -23,19 +23,17 @@ JSONDict = dict[str, Any]
 
 
 class FingerprintingService:
-    def __init__ \
-        (
-            self,
-            target_url: str,
-            nmap_data: Optional[dict[str, Any]] = None,
-            tls_data: Optional[dict[str, Any]] = None,
-        ):
+    def __init__(
+        self,
+        target_url: str,
+        nmap_data: Optional[dict[str, Any]] = None,
+        tls_data: Optional[dict[str, Any]] = None,
+    ):
         self.target_url = target_url
         self.nmap_data = nmap_data or {}
         self.tls_data = tls_data or {}
 
-        self.cache = \
-        {
+        self.cache = {
             "status_code": 0,
             "final_url": "",
             "headers": {},
@@ -49,15 +47,14 @@ class FingerprintingService:
 
         self.discovered = {}
 
-        self.telemetry = \
-        {
-                "unknown_server_strings": [],
-                "unknown_powered_by": [],
-                "unknown_generator": [],
-                "unknown_headers": [],
-                "unknown_cookies": [],
-                "unknown_scripts": [],
-                "unknown_meta": [],
+        self.telemetry = {
+            "unknown_server_strings": [],
+            "unknown_powered_by": [],
+            "unknown_generator": [],
+            "unknown_headers": [],
+            "unknown_cookies": [],
+            "unknown_scripts": [],
+            "unknown_meta": [],
         }
 
     def run(self) -> JSONDict:
@@ -68,7 +65,7 @@ class FingerprintingService:
         # collect http data
         self.collect_http_data()
 
-        #signature evals check against records we keep to help identify systems like...
+        # signature evals check against records we keep to help identify systems like...
         # check web servers
         self._evaluate_signatures(SERVER_SIGNATURES)
         # check languages
@@ -84,7 +81,7 @@ class FingerprintingService:
         # check load balancers
         self._evaluate_signatures(LOAD_BALANCER_SIGNATURES)
 
-        #a way to build our repo of systems
+        # a way to build our repo of systems
         self._log_unmatched_tech()
 
         # merge external data
@@ -101,9 +98,7 @@ class FingerprintingService:
         Retrieves HTTP information from the target and builds the cache.
         """
         try:
-
-            response = requests.get \
-            (
+            response = requests.get(
                 self.target_url,
                 timeout=10,
                 verify=False,
@@ -123,18 +118,16 @@ class FingerprintingService:
                 if cookie_name is None:
                     continue
 
-                cookies[cookie_name.lower()] = \
-                (
+                cookies[cookie_name.lower()] = (
                     "" if cookie_value is None else str(cookie_value).lower()
                 )
             self.cache["cookies"] = cookies
 
             self.cache["html_text"] = response.text.lower()
 
-            soup = BeautifulSoup \
-            (
+            soup = BeautifulSoup(
                 response.text,
-        "html.parser",
+                "html.parser",
             )
 
             if soup.title and soup.title.string:
@@ -157,22 +150,16 @@ class FingerprintingService:
             self.cache["links"] = links
 
         except Exception as error:
+            logger.warning(f"[Fingerprint] Failed collecting HTTP data: {error}")
 
-            logger.warning \
-            (
-                f"[Fingerprint] Failed collecting HTTP data: {error}"
-            )
-
-    #checks against our signature files and determines if it's a "known" technology
+    # checks against our signature files and determines if it's a "known" technology
     def _evaluate_signatures(self, signature_dictionary: dict) -> None:
 
         for tech_name, rules in signature_dictionary.items():
-
             category = rules.get("category")
             vendor = rules.get("vendor")
 
-            product = rules.get \
-            (
+            product = rules.get(
                 "product",
                 tech_name.lower(),
             )
@@ -181,7 +168,6 @@ class FingerprintingService:
 
             # check headers
             for rule in rules.get("headers", []):
-
                 if len(rule) == 3:
                     header_key = rule[0]
                     expected_value = rule[1]
@@ -197,19 +183,17 @@ class FingerprintingService:
                     continue
 
                 if not expected_value or expected_value.lower() in header_value:
-                        self._add_software \
-                        (
-                            category=category,
-                            vendor=vendor,
-                            product=product,
-                            version=version,
-                            weight=weight,
-                            source="header",
-                        )
+                    self._add_software(
+                        category=category,
+                        vendor=vendor,
+                        product=product,
+                        version=version,
+                        weight=weight,
+                        source="header",
+                    )
 
             # check cookies
             for rule in rules.get("cookies", []):
-
                 if len(rule) == 3:
                     cookie_key = rule[0]
                     expected_value = rule[1]
@@ -223,8 +207,7 @@ class FingerprintingService:
 
                 if cookie_value is not None:
                     if not expected_value or expected_value.lower() in cookie_value:
-                        self._add_software \
-                        (
+                        self._add_software(
                             category=category,
                             vendor=vendor,
                             product=product,
@@ -235,17 +218,14 @@ class FingerprintingService:
 
             # check meta tags
             for rule in rules.get("meta", []):
-
                 expected_value = rule[0]
                 weight = rule[1]
 
                 for tag in self.cache["meta_tags"]:
-
                     tag_content = str(tag.get("content", "")).lower()
 
                     if expected_value.lower() in tag_content:
-                        self._add_software \
-                        (
+                        self._add_software(
                             category=category,
                             vendor=vendor,
                             product=product,
@@ -256,15 +236,12 @@ class FingerprintingService:
 
             # check scripts
             for rule in rules.get("scripts", []):
-
                 expected_value = rule[0]
                 weight = rule[1]
 
                 for script in self.cache["scripts"]:
-
                     if expected_value.lower() in script:
-                        self._add_software \
-                        (
+                        self._add_software(
                             category=category,
                             vendor=vendor,
                             product=product,
@@ -272,23 +249,20 @@ class FingerprintingService:
                             weight=weight,
                             source="script",
                         )
-    #method of extracting version
+
+    # method of extracting version
     def _extract_version(self, rules: JSONDict) -> str | None:
 
         for extractor in rules.get("version_extractors", []):
-
             extractor_type = extractor.get("type")
             target = extractor.get("target", "").lower()
             regex_pattern = extractor.get("regex", "")
 
             if extractor_type == "header":
-
                 header_value = self.cache["headers"].get(target)
 
                 if header_value:
-
-                    match = re.search\
-                    (
+                    match = re.search(
                         regex_pattern,
                         header_value,
                         re.IGNORECASE,
@@ -298,21 +272,13 @@ class FingerprintingService:
                         return match.group(1)
 
             elif extractor_type == "meta":
-
                 for tag in self.cache["meta_tags"]:
-
-                    tag_name = str(
-                            tag.get("name")
-                            or tag.get("property")
-                            or ""
-                    ).lower()
+                    tag_name = str(tag.get("name") or tag.get("property") or "").lower()
 
                     if tag_name == target:
-
                         tag_content = str(tag.get("content", ""))
 
-                        match = re.search \
-                        (
+                        match = re.search(
                             regex_pattern,
                             tag_content,
                             re.IGNORECASE,
@@ -323,25 +289,18 @@ class FingerprintingService:
 
         return None
 
-    #merge fingerprint data with Nmap service information
+    # merge fingerprint data with Nmap service information
     def merge_with_nmap(self) -> None:
 
         for port in self.nmap_data.get("ports", []):
-
             port_product = port.get("product", "")
 
             for software in self.discovered.values():
-
                 software_product = software["product"].lower()
                 nmap_product = port_product.lower()
 
-                if \
-                (
-                        nmap_product in software_product
-                        or software_product in nmap_product
-                ):
-                    self._add_software \
-                    (
+                if nmap_product in software_product or software_product in nmap_product:
+                    self._add_software(
                         category=software["category"],
                         vendor=software["vendor"],
                         product=software["product"],
@@ -352,8 +311,7 @@ class FingerprintingService:
                     return
 
             if port_product:
-                self._add_software \
-                (
+                self._add_software(
                     category="service",
                     vendor="unknown",
                     product=port_product.lower(),
@@ -362,19 +320,17 @@ class FingerprintingService:
                     source="nmap",
                 )
 
-    #merge tls certs
+    # merge tls certs
     def merge_with_tls(self) -> None:
 
         try:
-
             targets = self.tls_data.get("targets", [{}])
             certificate = targets[0].get("certificate", {})
 
             issuer_name = certificate.get("issuer", {}).get("organizationName", "").lower()
 
             if "cloudflare" in issuer_name:
-                self._add_software \
-                (
+                self._add_software(
                     category="cdn",
                     vendor="cloudflare",
                     product="cloudflare",
@@ -383,29 +339,25 @@ class FingerprintingService:
                     source="tls",
                 )
 
-
         except Exception as error:
             logger.debug(f"[Fingerprint] TLS merge skipped: {error}")
 
-    def _add_software \
-    (
-                self,
-                category: str,
-                vendor: str,
-                product: str,
-                version: str | None,
-                weight: int,
-                source: str,
+    def _add_software(
+        self,
+        category: str,
+        vendor: str,
+        product: str,
+        version: str | None,
+        weight: int,
+        source: str,
     ) -> None:
 
         software_key = f"{vendor}_{product}".lower()
 
         if software_key in self.discovered:
-
             software = self.discovered[software_key]
 
-            software["evidence_score"] = min \
-            (
+            software["evidence_score"] = min(
                 software["evidence_score"] + weight,
                 100,
             )
@@ -417,9 +369,7 @@ class FingerprintingService:
                 software["version"] = version
 
         else:
-
-            self.discovered[software_key] = \
-            {
+            self.discovered[software_key] = {
                 "category": category,
                 "vendor": vendor,
                 "product": product,
@@ -428,14 +378,13 @@ class FingerprintingService:
                 "sources": [source],
             }
 
-    #logs servers that are not in the signature folders so we can use that info
+    # logs servers that are not in the signature folders so we can use that info
     # to improve our signature db
     def _log_unmatched_tech(self) -> None:
 
         server_header = self.cache["headers"].get("server")
 
         if server_header:
-
             has_web_server = False
 
             for software in self.discovered.values():
@@ -449,7 +398,6 @@ class FingerprintingService:
     def export(self) -> JSONDict:
 
         for software in self.discovered.values():
-
             score = software["evidence_score"]
 
             if score >= 90:
@@ -461,11 +409,9 @@ class FingerprintingService:
 
             software["confidence"] = confidence
 
-        result = \
-        {
+        result = {
             "target": self.target_url,
-            "fingerprint":
-            {
+            "fingerprint": {
                 "software": list(self.discovered.values()),
             },
             "telemetry": self.telemetry,
@@ -473,16 +419,14 @@ class FingerprintingService:
 
         return result
 
-    #this is temporary, we can write to the db in the future and remove the temp file
+    # this is temporary, we can write to the db in the future and remove the temp file
     def _write_telemetry_file(self) -> None:
         output_file = Path(__file__).resolve().parents[2] / "unknown_telemetry.txt"
         with output_file.open("a", encoding="utf-8") as file:
-
             file.write("=" * 80 + "\n")
             file.write(f"Target: {self.target_url}\n\n")
 
             for category, values in self.telemetry.items():
-
                 if not values:
                     continue
 

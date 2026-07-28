@@ -10,7 +10,6 @@ from app.utils.callback import send_source_callback
 
 JSONDict = dict[str, Any]
 
-
 @celery_app.task(name="scan.urlscan")
 def run_urlscan(scan_id: str, domain: str) -> JSONDict:
     try:

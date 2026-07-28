@@ -8,15 +8,13 @@ from app.utils.callback import send_source_callback
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
-@celery_app.task\
-(
+
+@celery_app.task(
     name="scan.phase2_cve",
     bind=True,
     max_retries=2,
 )
-
-def run_cve_scan_task\
-(
+def run_cve_scan_task(
     self: Any,
     scan_id: str,
     resolved_inventory: list[JSONDict],
@@ -51,8 +49,7 @@ def run_cve_scan_task\
                         f"{vulnerability.get('cve_id')} detected in "
                         f"{affected_software}"
                     ),
-                    "description":
-                    (
+                    "description": (
                         vulnerability.get(
                             "description",
                             "No description provided.",
@@ -78,13 +75,11 @@ def run_cve_scan_task\
                 }
             )
 
-        result = \
-        {
+        result = {
             "scan_id": scan_id,
             "source_name": "cve",
             "status": "completed",
-            "raw_result":
-            {
+            "raw_result": {
                 "vulnerabilities": vulnerabilities,
             },
             "assets": [],
@@ -94,18 +89,13 @@ def run_cve_scan_task\
         }
 
     except Exception as error:
-        logger.exception\
-        (
-            f"[CVE_Task] Pipeline failed: {error}"
-        )
+        logger.exception(f"[CVE_Task] Pipeline failed: {error}")
 
-        result = \
-        {
+        result = {
             "scan_id": scan_id,
             "source_name": "cve",
             "status": "failed",
-            "raw_result":
-            {
+            "raw_result": {
                 "error": str(error),
             },
             "assets": [],
@@ -115,8 +105,7 @@ def run_cve_scan_task\
             "error_message": str(error),
         }
 
-    send_source_callback\
-    (
+    send_source_callback(
         scan_id=result["scan_id"],
         source_name=result["source_name"],
         status=result["status"],

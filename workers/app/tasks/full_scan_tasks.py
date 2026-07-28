@@ -45,3 +45,22 @@ def run_phase2_full_scan(scan_id: str, domain: str) -> JSONDict:
         "scan_type": "active_vulnerability",
         "status": "queued",
     }
+
+@celery_app.task(name="scan.phase2_full")
+def run_phase2_full_scan(scan_id: str, domain: str) -> JSONDict:
+    tasks = [
+        "scan.dns",
+        "scan.crt_sh",
+        "scan.shodan",
+        "scan.hibp",
+        "scan.phase2_target_resolution",
+    ]
+
+    for task in tasks:
+        celery_app.send_task(task, args=[scan_id, domain])
+
+    return {
+        "scan_id": scan_id,
+        "scan_type": "active_vulnerability",
+        "status": "queued",
+    }

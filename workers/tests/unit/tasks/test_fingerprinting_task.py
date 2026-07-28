@@ -3,9 +3,10 @@ from unittest.mock import MagicMock, patch
 from app.tasks.fingerprinting_task import run_fingerprinting_scan_task
 
 
+@patch("app.tasks.fingerprinting_task.celery_app.send_task")
 @patch("app.tasks.fingerprinting_task.send_source_callback")
 @patch("app.tasks.fingerprinting_task.FingerprintingService")
-def test_run_fingerprinting_scan_task_success(mock_service_class, mock_callback):
+def test_run_fingerprinting_scan_task_success(mock_service_class, mock_callback, mock_send_task):
     mock_service_instance = MagicMock()
     mock_service_class.return_value = mock_service_instance
 
@@ -58,9 +59,10 @@ def test_run_fingerprinting_scan_task_success(mock_service_class, mock_callback)
         )
 
 
+@patch("app.tasks.fingerprinting_task.celery_app.send_task")
 @patch("app.tasks.fingerprinting_task.send_source_callback")
 @patch("app.tasks.fingerprinting_task.FingerprintingService")
-def test_run_fingerprinting_scan_task_empty(mock_service_class, mock_callback):
+def test_run_fingerprinting_scan_task_empty(mock_service_class, mock_callback, mock_send_task):
     mock_service_instance = MagicMock()
     mock_service_class.return_value = mock_service_instance
 

@@ -8,14 +8,13 @@ from app.utils.callback import send_source_callback
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
-@celery_app.task\
-(
+
+@celery_app.task(
     name="scan.phase2_tls",
     bind=True,
     max_retries=2,
 )
-def run_tls_scan_task\
-(
+def run_tls_scan_task(
     self: Any,
     scan_id: str,
     ip_address: str,
@@ -26,12 +25,9 @@ def run_tls_scan_task\
     Does tls inspection off of the valid ports provided by nmap
     """
 
-    logger.info(
-        f"[TLS_Task] Starting TLS scan for IP address: {ip_address}"
-    )
+    logger.info(f"[TLS_Task] Starting TLS scan for IP address: {ip_address}")
 
     try:
-
         tls_data = run_tls_scan(
             ip_address=ip_address,
             ports=ports,
@@ -41,10 +37,8 @@ def run_tls_scan_task\
         findings: list[JSONDict] = []
 
         for target in tls_data["targets"]:
-
-            #handshake fails
+            # handshake fails
             if "error" in target:
-
                 findings.append(
                     {
                         "source": "tls",
@@ -68,11 +62,9 @@ def run_tls_scan_task\
 
             certificate = target["certificate"]
 
-            #Findings
+            # Findings
             if certificate["expired"]:
-
-                findings.append\
-                (
+                findings.append(
                     {
                         "source": "tls",
                         "title": "Expired TLS Certificate",
@@ -116,9 +108,8 @@ def run_tls_scan_task\
                     }
                 )
 
-        #valid results + assets and findings determined above
-        result = \
-        {
+        # valid results + assets and findings determined above
+        result = {
             "scan_id": scan_id,
             "source_name": "tls",
             "status": "completed",
@@ -130,21 +121,14 @@ def run_tls_scan_task\
         }
 
     except Exception as error:
+        logger.exception(f"[TLS_Task] Failed while scanning {ip_address}: {error}")
 
-        logger.exception\
-        (
-            f"[TLS_Task] Failed while scanning "
-            f"{ip_address}: {error}"
-        )
-
-        #errored results
-        result = \
-        {
+        # errored results
+        result = {
             "scan_id": scan_id,
             "source_name": "tls",
             "status": "failed",
-            "raw_result":
-            {
+            "raw_result": {
                 "ip": ip_address,
                 "error": str(error),
             },
@@ -155,8 +139,7 @@ def run_tls_scan_task\
             "error_message": str(error),
         }
 
-    send_source_callback\
-    (
+    send_source_callback(
         scan_id=result["scan_id"],
         source_name=result["source_name"],
         status=result["status"],

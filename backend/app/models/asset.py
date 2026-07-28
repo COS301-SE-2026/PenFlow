@@ -15,12 +15,14 @@ class Asset(Base):
     )
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    scan_id = Column(UUID(as_uuid=True), ForeignKey("scans.id",ondelete="CASCADE"), nullable=False,
-    index=True)
+    scan_id = Column(
+        UUID(as_uuid=True), ForeignKey("scans.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     identifier = Column(String(255), nullable=False)
     asset_type = Column(String(50), nullable=False)
     asset_metadata = Column(JSONB, nullable=False, default=dict)
-    created_at = Column(DateTime(timezone=True), nullable=False,
-    default=lambda: datetime.now(timezone.utc))
+    created_at = Column(
+        DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
     scan = relationship("Scan", back_populates="assets")
     findings = relationship("Finding", back_populates="asset")
