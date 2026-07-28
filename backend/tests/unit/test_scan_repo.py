@@ -259,3 +259,22 @@ async def test_create_scan_roll_back_on_db_error():
         await ScanRepository.create_scan(db,domain= "example.com")
 
     db.rollback.assert_awaited_once()
+
+#list scan status filter
+@pytest.mark.asyncio
+async def test_list_scans_filter_by_status():
+    "test the list_scans properly filters scans by their status"
+    db = _make_db()
+    result = MagicMock()
+    result.all.return_value = [] # simulate no scans found in a give status
+
+    db.execute = AsyncMock(return_value = result)
+
+    scans = await ScanRepository.list_scans(db,uuid4(),status=ScanStatus.COMPLETED)
+
+    #verified empty list is return when no scans match the status
+    assert scans == []
+    #
+    db.execute.assert_awaited_once()
+    
+       
