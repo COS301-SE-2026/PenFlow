@@ -61,7 +61,7 @@ async def  test_start_scan_active_without_verified_domain_id_raises():
 #  test when 401 occurs
 @pytest.mark.asyncio
 async def  test_start_scan_active_without_user_id_raises(): 
-        db =AsyncMock
+        db =AsyncMock()
         scan_data = _scan_data(
             scan_type = ScanTypeEnum.ACTIVE_VULNERABILITY,
             verified_domain_id =uuid4(),
@@ -71,3 +71,40 @@ async def  test_start_scan_active_without_user_id_raises():
 
         assert exc_info.value.status_code ==401
         assert "authentication required " in exc_info.value.detail
+
+# domain lookup returns none
+@pytest.mark.asyncio
+@patch("app.services.scan_service.DomainRepository.get_by_id",new_callable=AsyncMock)
+async def  test_start_scan_active_domain_not_found_raises_403(mock_get_by_id): 
+        db =AsyncMock()
+        mock_get_by_id.return_value = None
+
+        scan_data = _scan_data(
+            scan_type = ScanTypeEnum.ACTIVE_VULNERABILITY,
+            verified_domain_id =uuid4(),
+            )
+        with pytest.raises(HTTPException) as exc_info:
+                await ScanService.start_scan(db,scan_data,user_id= None)
+
+        assert exc_info.value.status_code ==403
+        assert "fully verified domain " in exc_info.value.detail
+
+#test status is pending not verified
+@pytest.mark.asyncio
+@patch("app.services.scan_service.DomainRepository.get_by_id",new_callable=AsyncMock)
+async def  test_start_scan_active_domain_not_verified_raises_403(mock_get_by_id): 
+        db =AsyncMock()
+        mock_get_by_id.return_value = SimpleNamespace(
+               status = SimpleNamespace(value ="pending"),
+               domain = "example.com",
+        )
+
+        scan_data = _scan_data(
+            scan_type = ScanTypeEnum.ACTIVE_VULNERABILITY,
+            verified_domain_id =uuid4(),
+            )
+        with pytest.raises(HTTPException) as exc_info:
+                await ScanService.start_scan(db,scan_data,user_id= None)
+
+        assert exc_info.value.status_code ==403
+        assert "fully verified domain " in exc_info.value.detail
