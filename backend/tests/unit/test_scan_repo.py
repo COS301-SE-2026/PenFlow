@@ -248,3 +248,14 @@ async def test_save_source_result_marks_scan_completed_when_all_sources_succeed(
     assert scan.status == ScanStatus.COMPLETED
     assert scan.progress == 100
     assert scan.error_message is None
+
+#test error handling when scans roll back
+@pytest.mark.asyncio
+async def test_create_scan_roll_back_on_db_error():
+    db = _make_db()
+    db.commit = AsyncMock(side_effect = SQLAlchemyError("boom"))
+
+    with pytest.raises(SQLAlchemyError):
+        await ScanRepository.create_scan(db,domain= "example.com")
+
+    db.rollback.assert_awaited_once()
