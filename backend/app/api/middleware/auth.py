@@ -18,7 +18,11 @@ ISSUER = os.getenv(
 
 AUDIENCE = os.getenv("KEYCLOAK_AUDIENCE", "penflow-api")
 
-JWKS_URL = f"{ISSUER}/protocol/openid-connect/certs"
+JWKS_URL = os.getenv(
+    "KEYCLOAK_JWKS_URL",
+    f"{ISSUER}/protocol/openid-connect/certs",
+)
+
 
 _JWKS_TIMEOUT = 10.0
 _jwks_cache: dict[str, Any] = {}

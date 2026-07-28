@@ -26,7 +26,6 @@ PASSIVE_SCAN_SOURCES = (
     "wappalyzer",
     "crt.sh",
     "shodan",
-    "hunter.io",
     "hibp",
 )
 

@@ -1,10 +1,11 @@
-const KEYCLOAK_URL = process.env.KEYCLOAK_URL ?? "http://localhost:8080";
+const KEYCLOAK_PUBLIC_URL = process.env.KEYCLOAK_PUBLIC_URL ?? "http://localhost:8080";
+const KEYCLOAK_INTERNAL_URL = process.env.KEYCLOAK_INTERNAL_URL ?? KEYCLOAK_PUBLIC_URL;
 const REALM = process.env.KEYCLOAK_REALM ?? "penflow";
 const CLIENT_ID = process.env.KEYCLOAK_CLIENT_ID ?? "penflow-web";
 
-export const AUTHORIZATION_URL = `${KEYCLOAK_URL}/realms/${REALM}/protocol/openid-connect/auth`;
-export const TOKEN_URL = `${KEYCLOAK_URL}/realms/${REALM}/protocol/openid-connect/token`;
-export const LOGOUT_URL = `${KEYCLOAK_URL}/realms/${REALM}/protocol/openid-connect/logout`;
+export const AUTHORIZATION_URL = `${KEYCLOAK_PUBLIC_URL}/realms/${REALM}/protocol/openid-connect/auth`;
+export const TOKEN_URL = `${KEYCLOAK_INTERNAL_URL}/realms/${REALM}/protocol/openid-connect/token`;
+export const LOGOUT_URL = `${KEYCLOAK_PUBLIC_URL}/realms/${REALM}/protocol/openid-connect/logout`;
 
 export interface TokenResponse {
   access_token: string;

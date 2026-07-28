@@ -8,6 +8,7 @@ from sqlalchemy.orm import relationship
 
 from app.models.base import Base, ScanStatus, ScanType
 
+
 class ScanType(enum.Enum):
     PASSIVE_CTEM = "passive_ctem"
     ACTIVE_VULNERABILITY = "active_vulnerability"
@@ -89,3 +90,8 @@ class Scan(Base):
     report = relationship(
         "Report", back_populates="scan", cascade="all, delete-orphan", uselist=False
     )
+
+    #Remember the back_populates for the other 2
+    schedule = relationship("ScanSchedule", back_populates="scans", foreign_keys=[schedule_id])
+    user = relationship("User", foreign_keys=[user_id])
+    verified_domain = relationship("VerifiedDomain", foreign_keys=[verified_domain_id])

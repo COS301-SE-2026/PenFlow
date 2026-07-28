@@ -9,12 +9,11 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
       API_URL: http://backend:3001
-      KEYCLOAK_URL: http://keycloak:8080
+      APP_URL: http://localhost:3000
+      KEYCLOAK_PUBLIC_URL: http://localhost:8080
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
       KEYCLOAK_REALM: penflow
-      KEYCLOAK_CLIENT_ID: penflow-frontend
-      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_CLIENT_ID: penflow-web
     depends_on:
       backend:
         condition: service_started
@@ -65,9 +64,9 @@ services:
       RABBITMQ_PASSWORD: guest
       RABBITMQ_PROTOCOL: amqp
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      KEYCLOAK_URL: http://keycloak:8080
-      KEYCLOAK_REALM: penflow
-      KEYCLOAK_CLIENT_ID: penflow-frontend
+      KEYCLOAK_ISSUER: http://localhost:8080/realms/penflow
+      KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/penflow/protocol/openid-connect/certs
+      KEYCLOAK_AUDIENCE: penflow-api
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
@@ -229,17 +228,15 @@ services:
       - penflow-network
 
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:26.7.0
     container_name: penflow-keycloak
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: keycloak_password
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-      KC_HOSTNAME_STRICT: "false"
-      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KEYCLOAK_BOOTSTRAP_ADMIN_USERNAME: admin
+      KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_HTTP_ENABLED: "true"
     volumes:
       - ./docker/keycloak:/opt/keycloak/data/import

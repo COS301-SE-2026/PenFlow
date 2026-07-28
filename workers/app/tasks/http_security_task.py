@@ -119,7 +119,7 @@ def run_http_security_scan_task(
                             "observed_value": None,
                         },
                     }
-                ))
+                )
 
         result = {
             "scan_id": scan_id,
