@@ -173,9 +173,11 @@ async def download_scan_pdf(
         404: {"description": "Scan not found"},
     },
 )
+@limiter.limit("2/minute")
 async def email_scan_report(
+    request: Request,
     scan_id: UUID,
-    request: EmailReportRequest,
+    payload: EmailReportRequest,
     db: DbSession,
 ) -> dict[str, str]:
     scan = await ScanRepository.get_scan_by_id(db, scan_id)
@@ -189,7 +191,7 @@ async def email_scan_report(
         raise HTTPException(status_code=400, detail="Report is not ready yet")
 
     send_report_email(
-        to_email=request.email,
+        to_email=payload.email,
         domain=str(scan.domain),
         pdf_path=str(report.pdf_path),
     )
