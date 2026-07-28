@@ -69,3 +69,77 @@ const dotToneClassName: Record<SourceStatus, string> ={
     skipped: "bg-muted-foreground/40",
 };
 
+const cardClassName = "border border-brand-panel-border bg-brand-panel ring-0";
+const sectionTitleClassName = "text-sm font-bold uppercase tracking-[0.15em] text-foreground/90";
+
+function formatElapsed(startIso: string): string {
+    const ms = Date.now() - new Date(startIso).getTime();
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+}
+
+function SourceStatusBadge ({status}:{status: SourceStatus}) {
+    const { label,className} = sourceStatusConfig[status];
+    return (
+        <div className = "flex w-24 shrink-0 justify-center">
+            <Badge variant = "outline" className = {cn("uppercase tracking-wide", className)}>
+                {label}
+            </Badge>
+        </div>
+    );
+}
+
+function ScanRadar() {
+    return (
+        <div className = {radarStyles.radarScope} aria-hidden = "true">
+            <div className = {`${radarStyles.radarRing} ${radarStyles.r1}`} />
+            <div className = {`${radarStyles.radarRing} ${radarStyles.r2}`} />
+            <div className = {`${radarStyles.radarRing} ${radarStyles.r3}`} />
+            <div className = {radarStyles.radarSweep}/>
+            <div className = {`${radarStyles.radarDot} ${radarStyles.dotCyan}`} />
+            <div className = {`${radarStyles.radarDot} ${radarStyles.dotRed}`} />
+            <div className = {`${radarStyles.radarDot} ${radarStyles.dotOrange}`} />
+            <div className = {`${radarStyles.radarDot} ${radarStyles.dotBlue}`} />
+            <div className = {`${radarStyles.radarDot} ${radarStyles.dotYellow}`} />
+        </div>
+    );
+}
+
+function ScanDetailsBar({scan}: {scan:RealTimeScanStatus}) {
+    const completedCount = scan.sources.filter((s)=> TERMINAL_SOURCE_STATUSES.has(s.status as SourceStatus)).length;
+    const items: {label:string; value:ReactNode}[] = [
+        {label: "Domain", value: scan.domain},
+        {label: "Scan Type", value: scanTypeLabel[scan.scan_type] ?? scan.scan_type},
+        {label: "Status",
+            value: (<span className= "inline--flex items-center gap-1.5 text-brand-cyan capitalize">
+                <span className = "size-1.5 rounded-full bg-brand-cyan"/>
+                {scan.status}
+            </span>),
+        },
+        {
+            label: "Elapsed Time", value: formatElapsed(scan.created_at)},
+            {
+                label: "Sources Completed",
+                value: `${completedCount} / ${scan.sources.length}`,
+            },
+    ];
+
+    return (
+        <Card className = {cardClassName}>
+            <CardContent className = "flex flex-wrap items-center gap-x-8 gap-y-4">
+                {items.map((item,index) => (
+                    <div key = {item.label} className = "flex items-center gap-8">
+                        <div className = "flex flex-col gap-1">
+                            <span className = "text-xs uppercase tracking-wide text-muted-foreground">{item.label}</span>
+                            <span className="text-base font-medium whitespace-nowrap text-foreground">{item.value}</span>
+                        </div>
+                        {index < items.length -1 && <span className ="hidden h-8 w-px bg-brand-panel-border sm:block" />}
+                    </div>
+                ))}
+            </CardContent>
+        </Card>
+    );
+}
+
