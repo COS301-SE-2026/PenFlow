@@ -44,4 +44,30 @@ async def test_start_scan_passive_queues_full_task(mock_create_scan,mock_send_ta
         mock_send_task.assert_called_once_with(
               "scan.full",args=[str(scan_record.id),"example.com"]
         )
-        
+
+
+#  test when 400 occurs 
+@pytest.mark.asyncio
+async def  test_start_scan_active_without_verified_domain_id_raises():
+    db =AsyncMock
+    scan_data = _scan_data(scan_type = ScanTypeEnum.ACTIVE_VULNERABILITY)
+
+    with pytest.raises(HTTPException) as exe_info:
+            await ScanService.start_scan(db,scan_data, user_id= uuid4())
+
+    assert exe_info.value.status_code ==400
+    assert "verified_domain_id is required" in exe_info.value.detail
+
+#  test when 401 occurs
+@pytest.mark.asyncio
+async def  test_start_scan_active_without_user_id_raises(): 
+        db =AsyncMock
+        scan_data = _scan_data(
+            scan_type = ScanTypeEnum.ACTIVE_VULNERABILITY,
+            verified_domain_id =uuid4(),
+            )
+        with pytest.raises(HTTPException) as exc_info:
+                await ScanService.start_scan(db,scan_data,user_id= None)
+
+        assert exc_info.value.status_code ==401
+        assert "authentication required " in exc_info.value.detail
