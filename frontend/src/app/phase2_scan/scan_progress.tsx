@@ -143,3 +143,149 @@ function ScanDetailsBar({scan}: {scan:RealTimeScanStatus}) {
     );
 }
 
+function SourceCard({
+    sourceName,
+    status,
+    phase,
+}: {
+    sourceName: string;
+    status: SourceStatus;
+    phase: SourcePhase;
+}) {
+    const [flipped, setFlipped] = useState(false);
+    const meta = SOURCE_META[sourceName] ?? {...DEFAULT_SOURCE_META, label: sourceName};
+    const isDone = phase === "done";
+    const isFailed = status === "failed";
+    const toneClassName = isFailed ? "text-brand-alert" : "text-brand-success";
+    const borderClassName = isDone ? (isFailed ? "border-brand-alert" : "border-brand-success") : "border-[#2a3f66]";
+    const SourceGlyph = meta.icon;
+
+    return (
+        <button
+            type = "button"
+            onClick={() => setFlipped((prev) => !prev)}
+            aria-pressed={flipped}
+            aria-label = {`${meta.label}: click to ${flipped ? "hide" : "show"} details`}
+            className={cn(
+                "block w-full cursor-pointer text-left [perspective:800px] transistion-[height] duration-500 ease-out",
+                flipped ? "h-[150px]" : "h-20"
+            )}
+        >
+            <div className={cn(
+                "relative h-full w-full transition-transform furation-500 [transform-style:preserve-3d]",
+                flipped && "[transform:rotateY(180deg)]"
+            )}
+            >
+                <div className = {cn(
+                    "absolute inset-0 flex items-center justify-center gap-2.5 rounded-md border bg-[#102448]/85 px-4 py-3.5 backdrop-blur-sm transition-[box-shadow,border-color] duration-500 [backface-visibility:hidden]",
+                    borderClassName,
+                    isDone && (isFailed ? "shadow-[0_0_10px_1px_pgba(255,95,78,0.2]": "shadow-[0_0_10px_rgba(74, 222, 128, 0.15]")
+                )}
+                >
+                    <Info className="absolute top-2 right-2 size-3.5 shrink-0 text-white/85"/>
+                    <SourceGlyph className = {cn("size-4 shrink-0 transition-colors duration-500", isDone ? toneClassName : "text-muted-foreground/50")}/>
+                    <span
+                        className = {cn(
+                            "text-center font-heading text-sm leading-tight font-bold uppercase tracking-widest transition-colors duration-500",
+                            isDone ? toneClassName : "text-muted-foreground/50"
+                        )
+                        }
+                        >
+                            {meta.label}
+                        </span>
+                </div>
+                <div className={cn("absolute inset-0 flex items-center justify-center rounded-md border bg-[#102448]/95 px-4 py-3 text-center backdrop-blur-sm [backface-visibility:hidden] [transform:rotateY(180deg)]",
+                    borderClassName
+                )}
+                >
+                    <p className="line-clamp-6 text-sm leading-snug text-foreground/85">{meta.description}</p>
+                </div>
+            </div>
+        </button>
+    );
+}
+
+function distributeY(count: number): number[] {
+    if (count <= 1) return [50];
+    const top = 8;
+    const bottom = 92;
+    return Array.from({length: count}, (_, i) => top + (i*(bottom - top)) / (count-1));
+}
+
+const PILL_CORNER_OFFSET = 6;
+const PILL_WIDTH = 72;
+const STAGGER_STEP = 6;
+
+function cornerY(y: number): number {
+    if(y<50) return y + PILL_CORNER_OFFSET;
+    if(y>50) return y - PILL_CORNER_OFFSET;
+    return y;
+}
+
+function FanColumn({
+    sources,
+    side,
+}: {
+    sources: {source_name: string; status: SourceStatus; phase: SourcePhase }[];
+    side: "left" | "right";
+}) {
+    const ys = distributeY(sources.length);
+    const hubX = side === "left" ? 100 : 0;
+    const baseNearX = side === "left" ? 80: 20;
+    const nearXs = sources.map((_, i) => {
+        const offset = i % 2 === 1 ? STAGGER_STEP : 0;
+        return side === "left" ? baseNearX - offset : baseNearX + offset;
+    });
+
+    return (
+        <div className="realative h-full min-h-[620px] w-full">
+            <svg
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+            >
+                {sources.map((source, i) => {
+                    const lineActive = source.phase === "line" || source.phase === "done";
+                    return (
+                        <line
+                            key={source.source_name}
+                            x1={hubX}
+                            y1={50}
+                            x2={nearXs[i]}
+                            y2={cornerY(ys[i])}
+                            pathLength={100}
+                            strokeDasharray={100}
+                            strokeDashoffset={lineActive ? 0 : 100}
+                            className= {cn(
+                                "transition-[stroke, stroke-dashoffset] duration-[700ms] ease-out",
+                                lineActive ? "stroke-brand-success/60 drop-shadow-[0_0_3px_rgba(74,222,128,0.75]"
+                                : "stroke-muted-foreground/25"
+                            )}
+                            strokeWidth={0.4}
+                            strokeLinecap="round"
+                        />
+                    );
+                })}
+            </svg>
+            <span
+                aria-hidden="true"
+                className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-success ring-4 ring-brand-success/15 shadow-[0_0_10px_2px_rgba(74,222,128,0.55)]"
+                style={{left: `${hubX}%`}}
+            />
+            {sources.map((source,i)=> (
+                <div
+                    key={source.source_name}
+                    className="absolute -translate-y-1/2"
+                    style = {{
+                        top: `${ys[i]}%`,
+                        width: `${PILL_WIDTH}%`,
+                        ...Badge(side === "left" ? {right: `${100 - nearXs[i]}$`} : {left: `${nearXs[i]}%`}),
+                    }}
+                >
+                <SourceCard sourceName={source.source_name} status={source.status} phase={source.phase} />
+            </div>
+            ))}
+        </div>
+    );
+}
