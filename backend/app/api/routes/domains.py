@@ -1,10 +1,11 @@
 from typing import Annotated, Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user
+from app.api.middleware.rate_limiter import limiter
 from app.models.verified_domain import DomainVerificationStatus
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.domain import (
@@ -48,7 +49,9 @@ async def add_domain_for_verification(
 @router.post(
     "/{domain_id}/verify", response_model=VerifiedDomainResponse, status_code=status.HTTP_200_OK
 )
+@limiter.limit("10/minute")
 async def verify_domain_ownership(
+    request: Request,
     domain_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
