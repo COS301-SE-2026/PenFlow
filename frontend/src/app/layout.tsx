@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Rajdhani } from "next/font/google";
 import "./globals.css";
+import AuthRefresher from "@/shared/components/AuthRresher";
 
 const displayFont = Bebas_Neue({
   variable: "--font-display",
@@ -26,7 +27,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${displayFont.variable} ${bodyFont.variable}`}>{children}</body>
+      <body className={`${displayFont.variable} ${bodyFont.variable}`}>
+
+        <AuthRefresher/>
+        {children}
+      </body>
     </html>
   );
 }

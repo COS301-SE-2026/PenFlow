@@ -1,5 +1,5 @@
-#I am just going to implement a rought draft so long until we get the worker logic figured out
 from datetime import datetime
+from enum import Enum
 from typing import Any
 from uuid import UUID
 
@@ -8,24 +8,39 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from app.models.base import ScanStatus
 
 
+class ScanTypeEnum(str, Enum):
+    PASSIVE_CTEM = "passive_ctem"
+    ACTIVE_VULNERABILITY = "active_vulnerability"
+
+
 class InitiateScanRequest(BaseModel):
-    domain: str = Field(...,description="The target domain to scan", json_schema_extra={"example": "exmpl.com"}) # noqa: E501
-    email: EmailStr | None = Field(None,description="email to send the report to")
+    domain: str = Field(
+        ..., description="The target domain to scan", json_schema_extra={"example": "exmpl.com"}
+    )  # noqa: E501
+    scan_type: ScanTypeEnum = Field(
+        default=ScanTypeEnum.PASSIVE_CTEM, description="Type of scan to perform"
+    )
+    verified_domain_id: UUID | None = Field(default=None, description="Required for active scans")
+    email: EmailStr | None = Field(None, description="email to send the report to")
+
 
 class InitiateScanResponse(BaseModel):
     scan_id: UUID
     status: ScanStatus
 
+
 class ScanCallbackRequest(BaseModel):
     status: ScanStatus
-    results: dict[str, Any] | None = None
     error_message: str | None = None
+
 
 class ScanHistoryItem(BaseModel):
     id: UUID
     domain: str
     created_at: datetime
     status: ScanStatus
+    scan_type: ScanTypeEnum
+    progress: int
     total_findings: int
     critical_count: int
     high_count: int
@@ -33,3 +48,127 @@ class ScanHistoryItem(BaseModel):
     low_count: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ScanSourceCallbackRequest(BaseModel):
+    status: str
+    raw_result: dict[str, Any] | None = None
+    findings: list[dict[str, Any]] = []
+    assets: list[dict[str, Any]] = []
+    error_message: str | None = None
+
+
+class FindingsCount(BaseModel):
+    critical: int
+    high: int
+    medium: int
+    low: int
+    info: int
+    total: int
+
+
+class MetricsResponse(BaseModel):
+    risk_score: int
+    risk_level: str
+    findings: FindingsCount
+    assets: dict[str, int]
+    services: dict[str, int]
+    technologies: dict[str, int]
+
+
+class DashboardFindingItem(BaseModel):
+    id: UUID
+    title: str
+    cve_id: str | None = None
+    severity: str
+    cvss_score: float | None = None
+    source: str
+    asset_identifier: str | None = None
+    description: str | None = None
+    recommendation: str | None = None
+
+
+class DashboardAssetItem(BaseModel):
+    id: UUID
+    identifier: str
+    asset_type: str
+    findings_count: int
+
+
+class RiskHistoryItem(BaseModel):
+    date: str
+    risk_score: int
+    total_findings: int
+
+
+class FindingSeverityCounts(BaseModel):
+    critical: int
+    high: int
+    medium: int
+    low_info: int
+    total: int
+
+
+class FindingListResponse(BaseModel):
+    total: int
+    counts: FindingSeverityCounts
+    items: list[dict[str, Any]]
+
+
+class ServiceSummaryCounts(BaseModel):
+    total: int
+    tcp: int
+    udp: int
+    open: int
+    filtered: int
+
+
+class ServiceListItem(BaseModel):
+    id: UUID
+    service_name: str | None = None
+    host: str
+    port: int
+    protocol: str
+    product: str | None = None
+    version: str | None = None
+    state: str
+    risk_level: str
+    asset_count: int = 0
+    banner: str | None = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class ServiceListResponse(BaseModel):
+    total: int
+    counts: ServiceSummaryCounts
+    items: list[dict[str, Any]]
+
+
+class AssetSummaryCounts(BaseModel):
+    total: int = 0
+    domains: int = 0
+    ips: int = 0
+    subdomains: int = 0
+    urls: int = 0
+    other: int = 0
+
+
+class AssetListItem(BaseModel):
+    id: UUID
+    identifier: str
+    asset_type: str
+    ip_address: str | None = None
+    severity: str = "Low"
+    findings_count: int = 0
+    status: str = "Active"
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AssetListResponse(BaseModel):
+    total: int
+    counts: AssetSummaryCounts
+    items: list[dict[str, Any]]

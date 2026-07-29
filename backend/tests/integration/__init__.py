@@ -1,0 +1,1 @@
+# Makes tests/ a package so pytest gives test modules unique dotted names.

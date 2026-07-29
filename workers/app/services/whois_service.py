@@ -26,7 +26,6 @@ def collect_whois_raw_data(domain: str) -> JSONDict:
             timeout=timeout,
             follow_redirects=True,
         ) as client:
-
             response = client.get(
                 RDAP_BOOTSTRAP_URL.format(domain=domain),
             )

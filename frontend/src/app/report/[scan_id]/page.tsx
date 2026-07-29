@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, type ChartOptions } from "chart.js";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { Doughnut } from "react-chartjs-2";
-import { fetchScanSummary, getReportPdfUrl, SEVERITY_COLORS, formatDate } from "@/lib/scanService";
+import { fetchScanSummary, getReportPdfUrl, SEVERITY_COLORS, formatDate, sendReportEmail } from "@/lib/scanService";
 import type { ExecutiveSummary } from "@/lib/scanService";
 import styles from "./report.module.css";
 
@@ -121,23 +121,7 @@ export default function ReportPage() {
   if (!email.trim()) return;
 
   try {
-    const response = await fetch(
-      `http://localhost:3001/api/v1/scans/${scan_id}/email-report`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to send report");
-    }
-
+    await sendReportEmail(scan_id, email);
     setSendStatus("sent");
   } catch (err) {
     console.error(err);

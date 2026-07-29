@@ -36,9 +36,7 @@ def collect_dns_raw_data(domain: str) -> JSONDict:
         txt_records = dns.resolver.resolve(domain, "TXT")
 
         for record in txt_records:
-            record_text = "".join(
-                part.decode("utf-8") for part in record.strings
-            )
+            record_text = "".join(part.decode("utf-8") for part in record.strings)
 
             raw_result["txt_records"].append(record_text)
 
@@ -53,9 +51,7 @@ def collect_dns_raw_data(domain: str) -> JSONDict:
         dmarc_records = dns.resolver.resolve(dmarc_domain, "TXT")
 
         for record in dmarc_records:
-            record_text = "".join(
-                part.decode("utf-8") for part in record.strings
-            )
+            record_text = "".join(part.decode("utf-8") for part in record.strings)
 
             raw_result["dmarc_records"].append(record_text)
 
@@ -66,12 +62,23 @@ def collect_dns_raw_data(domain: str) -> JSONDict:
 
 
 _SERVICE_MAPPING: dict[str, str] = {
-    "adobe": "Adobe", "anthropic": "Anthropic", "apple": "Apple",
-    "atlassian": "Atlassian", "box": "Box", "canva": "Canva",
-    "citrix": "Citrix", "docusign": "DocuSign", "drift": "Drift",
-    "facebook": "Facebook", "google-site-verification": "Google",
-    "jetbrains": "JetBrains", "monday": "Monday.com", "openai": "OpenAI",
-    "slack": "Slack", "stripe": "Stripe", "zoom": "Zoom",
+    "adobe": "Adobe",
+    "anthropic": "Anthropic",
+    "apple": "Apple",
+    "atlassian": "Atlassian",
+    "box": "Box",
+    "canva": "Canva",
+    "citrix": "Citrix",
+    "docusign": "DocuSign",
+    "drift": "Drift",
+    "facebook": "Facebook",
+    "google-site-verification": "Google",
+    "jetbrains": "JetBrains",
+    "monday": "Monday.com",
+    "openai": "OpenAI",
+    "slack": "Slack",
+    "stripe": "Stripe",
+    "zoom": "Zoom",
 }
 
 
@@ -93,9 +100,7 @@ def _detect_services(txt_records: list[str]) -> set[str]:
     for record in txt_records:
         record_lower = record.lower()
 
-        matched_services = [
-            svc for kw, svc in _SERVICE_MAPPING.items() if kw in record_lower
-        ]
+        matched_services = [svc for kw, svc in _SERVICE_MAPPING.items() if kw in record_lower]
 
         if matched_services:
             detected.update(matched_services)
@@ -217,47 +222,49 @@ def generate_dns_findings(normalized_dns: JSONDict) -> JSONList:
     records = domain_security.get("records", [])
     findings: JSONList = []
 
-    record_map = {
-        record.get("record_type"): record
-        for record in records
-    }
+    record_map = {record.get("record_type"): record for record in records}
 
     spf_record = record_map.get("SPF")
     dmarc_record = record_map.get("DMARC")
     mx_record = record_map.get("MX")
 
     if spf_record and spf_record.get("status") in ["Warning", "Fail"]:
-        findings.append({
-            "source": "dns",
-            "severity": "medium" if spf_record.get("status") == "Fail" else "low",
-            "title": "Weak SPF configuration",
-            "description": spf_record.get("finding"),
-            "recommendation": "Configure SPF to list only authorized mail senders "
-            "and avoid permissive policies such as +all.",
-            "evidence": spf_record,
-        })
+        findings.append(
+            {
+                "source": "dns",
+                "severity": "medium" if spf_record.get("status") == "Fail" else "low",
+                "title": "Weak SPF configuration",
+                "description": spf_record.get("finding"),
+                "recommendation": "Configure SPF to list only authorized mail senders "
+                "and avoid permissive policies such as +all.",
+                "evidence": spf_record,
+            }
+        )
 
     if dmarc_record and dmarc_record.get("status") in ["Warning", "Fail"]:
-        findings.append({
-            "source": "dns",
-            "severity": "medium",
-            "title": "Weak or missing DMARC policy",
-            "description": dmarc_record.get("finding"),
-            "recommendation": "Configure DMARC with quarantine or reject policy "
-            "to reduce email spoofing risk.",
-            "evidence": dmarc_record,
-        })
+        findings.append(
+            {
+                "source": "dns",
+                "severity": "medium",
+                "title": "Weak or missing DMARC policy",
+                "description": dmarc_record.get("finding"),
+                "recommendation": "Configure DMARC with quarantine or reject policy "
+                "to reduce email spoofing risk.",
+                "evidence": dmarc_record,
+            }
+        )
 
     if mx_record and mx_record.get("status") == "Warning":
-        findings.append({
-            "source": "dns",
-            "severity": "info",
-            "title": "No MX records found",
-            "description": mx_record.get("finding"),
-            "recommendation": "If the domain should receive email, configure valid MX records. "
-            "If not, this may be expected.",
-            "evidence": mx_record,
-        })
+        findings.append(
+            {
+                "source": "dns",
+                "severity": "info",
+                "title": "No MX records found",
+                "description": mx_record.get("finding"),
+                "recommendation": "If the domain should receive email, configure valid MX records. "
+                "If not, this may be expected.",
+                "evidence": mx_record,
+            }
+        )
 
     return findings
-

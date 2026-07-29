@@ -64,13 +64,13 @@ export default function RegisterPage() {
             </h1>
             <div className="auth-card rounded-2xl p-8 flex flex-col gap-6">
               <p className="text-brand-cyan text-sm">
-                Your account has been created successfully.
+                Your account has been created successfully. You&apos;re now logged in.
               </p>
               <Link
-                href="/login"
+                href="/"
                 className="auth-btn h-11 w-full rounded-full text-sm font-semibold tracking-widest flex items-center justify-center transition-all duration-200 hover:-translate-y-px"
               >
-                GO TO LOGIN
+                CONTINUE
               </Link>
             </div>
           </div>
