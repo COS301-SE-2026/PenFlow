@@ -32,4 +32,20 @@ export default function ActivityView({ scanId }: { scanId: string }) {
             .catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to load scan activity"))
             .finally (() => setLoading(false));
     }, [scanId]);
+
+    if (error) {
+        return (
+            <section className="min-w-0" data-scan-id={scanId}>
+                <p className="text-sm text-muted-foreground">{error}</p>
+            </section>
+        );
+    }
+
+    if (loading || !scan) {
+        return (
+            <section className="min-w-0" data-scan-id={scanId}>
+                <p className="text-sm text-muted-foreground">Loading scan activity...</p>
+            </section>
+        );
+    }
 }
