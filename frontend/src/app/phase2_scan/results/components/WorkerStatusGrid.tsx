@@ -54,3 +54,12 @@ const WORKER_DOT_CLASS_NAME: Record<string, string> = {
     pending: "bg-muted-foreground/40",
     skipped: "bg-muted-foreground/40",
 };
+
+const WORKER_STATUS_LABEL: Record<string, string> = {
+    completed: "Successful",
+    failed: "Failed",
+    partial: "Partial",
+    running: "Running",
+    pending: "Pending",
+    skipped: "Skipped",
+};
