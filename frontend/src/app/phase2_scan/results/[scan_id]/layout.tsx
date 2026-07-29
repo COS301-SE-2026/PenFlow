@@ -1,6 +1,6 @@
 import DashboardLayout from "@/shared/components/DashboardLayout";
-import ScanHeader from "../../components/ScanHeader";
-import ScanTabs from "../../components/ScanTabs";
+import ScanHeader from "../components/ScanHeader";
+import ScanTabs from "../components/ScanTabs";
 
 interface PhaseTwoScanLayoutProps {
     children: React.ReactNode;

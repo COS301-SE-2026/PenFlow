@@ -79,6 +79,86 @@ export interface StartScanParams {
   email?: string;
 }
 
+export interface DashboardFindingItem {
+  id: string;
+  title: string;
+  cve_id: string | null;
+  severity: string;
+  cvss_score: number | null;
+  source: string;
+  asset_identifier: string | null;
+  description: string | null;
+  recommendation: string | null;
+}
+
+export interface FetchScanFindingsParams {
+  severity?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function fetchScanFindings(
+  scanId: string,
+  params: FetchScanFindingsParams = {}
+): Promise<DashboardFindingItem[]> {
+  const query = new URLSearchParams();
+  if(params.severity) query.set("severity", params.severity);
+  if(params.limit !== undefined) query.set("limit", String(params.limit));
+  if(params.offset !== undefined) query.set("offset", String(params.offset));
+
+  const qs = query.toString();
+  const response = await fetch(`/api/scans/${scanId}/findings${qs ? `?${qs}` : ""}`);
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({detail: "Failed to load scan findings"}));
+    throw new Error(err.detail ?? "Failed to load scan findings");
+  }
+  return response.json();
+}
+
+export interface DashboardAssetItem {
+  id: string;
+  identifier: string;
+  asset_type: string;
+  findings_count: number;
+}
+
+export interface FetchScanAssetsParams {
+  limit?: number;
+  offset?: number;
+}
+
+export async function fetchScanAssets(
+  scanId: string,
+  params: FetchScanAssetsParams = {}
+): Promise<DashboardAssetItem[]> {
+  const query = new URLSearchParams();
+  if(params.limit !== undefined) query.set("limit", String(params.limit));
+  if(params.offset !== undefined) query.set("offset", String(params.offset));
+
+  const qs = query.toString();
+  const response = await fetch(`/api/scans/${scanId}/assets${qs ? `?${qs}` : ""}`);
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({detail: "Failed to load scan assets"}));
+    throw new Error(err.detail ?? "Failed to load scan assets");
+  }
+  return response.json();
+}
+
+export interface RiskHistoryItem {
+  date: string;
+  risk_score:number;
+  total_findings: number;
+}
+
+export async function fetchScanRiskHistory(scanId: string): Promise<RiskHistoryItem[]> {
+  const response = await fetch(`/api/scans/${scanId}/risk-history`);
+  if(!response.ok) {
+    const err = await response.json().catch(() => ({detail: "Failed to load risk history"}));
+    throw new Error(err.detail ?? "Failed to load risk history");
+  }
+  return response.json();
+}
+
 export async function postScanRequest(params: StartScanParams ): Promise<ScanStartResponse> {
   const response = await fetch(`${API_BASE}/scans`, {
     method: "POST",
@@ -93,6 +173,64 @@ export async function postScanRequest(params: StartScanParams ): Promise<ScanSta
 
   return response.json();
 }
+
+export interface ServiceListItem {
+  id: string;
+  service_name: string;
+  host: string;
+  port: number;
+  protocol: string;
+  product: string | null;
+  version: string | null;
+  state: string;
+  risk_level: string;
+  asset_count: number;
+  banner: string | null;
+  created_at: string;
+}
+
+export interface ServiceSummaryCounts {
+  total: number;
+  tcp: number;
+  udp: number;
+  open: number;
+  filtered: number
+}
+
+export interface ServiceListResponse {
+  total: number;
+  counts: ServiceSummaryCounts;
+  items: ServiceListItem[];
+}
+
+export interface FetchScanServicesParams {
+  protocol?: string;
+  search?: string;
+  sort_by?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function fetchScanServices(
+  scanId: string,
+  params: FetchScanServicesParams = {}
+): Promise<ServiceListResponse> {
+  const query = new URLSearchParams();
+  if(params.protocol) query.set("protocol", params.protocol);
+  if(params.search) query.set("search", params.search);
+  if(params.sort_by) query.set("sort_by", params.sort_by);
+  if(params.limit !== undefined) query.set("limit", String(params.limit));
+  if(params.offset !== undefined) query.set("offset", String(params.offset));
+
+  const qs = query.toString();
+  const response = await fetch(`/api/scans/${scanId}/services${qs ? `?${qs}` : ""}`);
+  if(!response.ok) {
+    const err = await response.json().catch(() => ({detail: "Failed to load scan services"}));
+    throw new Error(err.detail ?? "Failed to load scan services");
+  }
+  return response.json();
+}
+
 
 export interface ScanHistoryItem {
   id: string;

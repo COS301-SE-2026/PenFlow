@@ -845,7 +845,11 @@ class ScanRepository:
             elif proto == "UDP":
                 counts["udp"] += 1
 
-            counts["open"] += 1
+            state = (s.state or "").lower()
+            if state == "filtered":
+                counts["filtered"] += 1
+            elif state == "open":
+                counts["open"] += 1
 
         query = select(Service).where(Service.scan_id == scan_id)
 
@@ -908,7 +912,7 @@ class ScanRepository:
                     "version": s.version,
                     "state": s.state.capitalize() if hasattr(s, "state") and s.state else "Open",
                     "risk_level": highest_sev,
-                    "assets_count": a_count,
+                    "asset_count": a_count,
                     "banner": s.banner,
                     "created_at": s.created_at,
                 }
