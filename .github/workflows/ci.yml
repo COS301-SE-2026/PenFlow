@@ -27,8 +27,6 @@ env:
   SMTP_PASSWORD: ${{ secrets.CI_SMTP_PASSWORD }}
   SMTP_FROM: test@penflow.local
 
-  URLSCAN_API_KEY: ${{ secrets.CI_KEYCLOAK_ADMIN_PASSWORD }}
-  SHODAN_API_KEY: ${{ secrets.CI_SHODAN_API_KEY }}
   KEYCLOAK_CLIENT_SECRET: ${{ secrets.CI_KEYCLOAK_CLIENT_SECRET}}
 
 jobs:
@@ -105,7 +103,11 @@ jobs:
       - name: Run Backend Unit Tests
         env:
           DATABASE_URL: postgresql+asyncpg://${{ secrets.CI_POSTGRES_USER }}:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/penflow_test
-          RABBITMQ_URL: amqp://guest:guest@localhost:5672//
+          RABBITMQ_PROTOCOL: amqp
+          RABBITMQ_HOST: localhost
+          RABBITMQ_PORT: "5672"
+          RABBITMQ_USERNAME: guest
+          RABBITMQ_PASSWORD: guest
         run: |
           PYTHONPATH=. pytest tests/unit --cov=app --cov-report=xml
 
@@ -155,7 +157,12 @@ jobs:
       - name: Run Worker Unit Tests
         env:
           DATABASE_URL: postgresql+asyncpg://${{ secrets.CI_POSTGRES_USER }}:${{ secrets.CI_POSTGRES_PASSWORD }}@localhost:5432/penflow_test
-          RABBITMQ_URL: amqp://guest:guest@localhost:5672//
+          BACKEND_URL: http://localhost:3001
+          RABBITMQ_PROTOCOL: amqp
+          RABBITMQ_HOST: localhost
+          RABBITMQ_PORT: "5672"
+          RABBITMQ_USERNAME: guest
+          RABBITMQ_PASSWORD: guest
         run: |
           PYTHONPATH=. pytest tests/unit --cov=app --cov-report=xml
 
@@ -213,13 +220,41 @@ jobs:
 
       - name: Run Backend Integration Tests
         run: |
-          docker compose --profile test run --rm backend-test \
-            pytest tests/integration
+          mkdir -p coverage/backend
+          chmod 777 coverage/backend
+
+          docker compose --profile test run --rm \
+            -v "${{ github.workspace }}/coverage/backend:/coverage-output" \
+            backend-test \
+            pytest tests/integration \
+            --cov=app \
+            --cov-report=xml:/coverage-output/coverage-integration.xml
+
+      - name: Upload Backend Integration Coverage
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
+        with:
+          files: coverage/backend/coverage-integration.xml
+          flags: backend
+          fail_ci_if_error: true
 
       - name: Run Worker Integration Tests
         run: |
-          docker compose --profile test run --rm workers-test \
-            pytest tests/integration
+          mkdir -p coverage/workers
+          chmod 777 coverage/workers
+
+          docker compose --profile test run --rm \
+            -v "${{ github.workspace }}/coverage/workers:/coverage-output" \
+            workers-test \
+            pytest tests/integration \
+            --cov=app \
+            --cov-report=xml:/coverage-output/coverage-integration.xml
+
+      - name: Upload Worker Integration Coverage
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
+        with:
+          files: coverage/workers/coverage-integration.xml
+          flags: workers
+          fail_ci_if_error: true
 
       - name: Show Docker Logs on Failure
         if: failure()
