@@ -1,58 +1,183 @@
-#name: PenFlow Production Deployment
-
-#on:
-#  workflow_run:
-#    workflows: ["PenFlow CI"]
-#    types: [completed]
-#    branches: [main]
-
-#  workflow_dispatch:
-
-#permissions:
-#  contents: read
-#  id-token: write
-
-#jobs:
-#  deploy:
-#    if: >
-#      github.event_name == 'workflow_dispatch' ||
-#      (
-#        github.event.workflow_run.conclusion == 'success' &&
-#        github.event.workflow_run.event == 'push' &&
-#        github.event.workflow_run.head_branch == 'main'      
-#      )
-      
-#      runs-on: ubuntu-latest
-
-#      steps:
-#        -name: Configure AWS credentials
-#         uses: aws-actions/configure-aws-credentials@v6
-#         with:
-#          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-#          aws-region: af-south-1
-
-#        -name: Verify AWS identity
-#         run: aws sts get-caller-identity
-
 name: PenFlow Production Deployment
 
-on: workflow_dispatch
+on:
+  workflow_run:
+    workflows: ["PenFlow CI"]
+    types: [completed]
+    branches: [main]
+
+  workflow_dispatch:
 
 permissions:
   contents: read
   id-token: write
 
+concurrency:
+  group: penflow-production
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: af-south-1
+  AWS_ACCOUNT_ID: "720546261277"
+
+  ECS_CLUSTER: penflow-cluster
+
+  BACKEND_SERVICE: penflow-backend-service-lkjzgy8z
+  BACKEND_CONTAINER: penflow-backend
+  BACKEND_ECR_REPOSITORY: penflow-backend
+
+  FRONTEND_SERVICE: penflow-frontend-service
+  FRONTEND_CONTAINER: penflow-frontend
+  FRONTEND_ECR_REPOSITORY: penflow-frontend
+
+  WORKER_SERVICE: penflow-worker
+  WORKER_CONTAINER: penflow-worker
+  WORKER_ECR_REPOSITORY: penflow-worker
+
 jobs:
-  verify-aws-oidc:
-    name: Verify AWS oidc
+  deploy:
+    name: Deploy Production
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main'
+      )
 
     steps:
-      - name: Configure  AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6.1.0
+      - name: Resolve deployment commit
+        id: commit
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            SHA="${{ github.event.workflow_run.head_sha }}"
+          else
+              SHA="${{ github.sha }}"
+          fi
+
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "tag=${SHA:0:12}" >> "$GITHUB_OUTPUT"
+
+          echo "Deploying commit: $SHA"
+          echo "Image tag: ${SHA:0:12}"
+
+      - name: Checkout deployment commit
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          ref: ${{ steps.commit.outputs.sha }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6.1.1
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: af-south-1
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Verify AWS identity
         run: aws sts get-caller-identity
+
+      - name: Login to Amazon ECR 
+        shell: bash
+        run: |
+          aws ecr get-login-password --region "$AWS_REGION" |
+            docker login \
+              --username AWS \
+              --password-stdin \
+              "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+          
+      - name: Build production images
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.commit.outputs.tag }}
+        run: |
+          REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+
+          docker build \
+            -f docker/Dockerfile.backend \
+            -t "$REGISTRY/$BACKEND_ECR_REPOSITORY:$IMAGE_TAG" \
+            .
+
+          docker build \
+            -f docker/Dockerfile.workers \
+            -t "$REGISTRY/$WORKER_ECR_REPOSITORY:$IMAGE_TAG" \
+            .
+
+          docker build \
+            -f docker/Dockerfile.frontend \
+            -t "$REGISTRY/$FRONTEND_ECR_REPOSITORY:$IMAGE_TAG" \
+            .
+
+      - name: Push production images
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.commit.outputs.tag }}
+        run: |
+          REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+
+          docker push "$REGISTRY/$BACKEND_ECR_REPOSITORY:$IMAGE_TAG"
+          docker push "$REGISTRY/$WORKER_ECR_REPOSITORY:$IMAGE_TAG"
+          docker push "$REGISTRY/$FRONTEND_ECR_REPOSITORY:$IMAGE_TAG"   
+
+      - name: Deploy backend
+        shell: bash        
+        env: 
+          IMAGE_TAG: ${{ steps.commit.outputs.tag }}
+        run: |
+          IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$BACKEND_ECR_REPOSITORY:$IMAGE_TAG"
+
+          ./scripts/deploy-ecs-service.sh \
+            "$ECS_CLUSTER" \
+            "$BACKEND_SERVICE" \
+            "$BACKEND_CONTAINER" \
+            "$IMAGE"
+
+      - name: Deploy worker
+        shell: bash        
+        env: 
+          IMAGE_TAG: ${{ steps.commit.outputs.tag }}
+        run: |
+          IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$WORKER_ECR_REPOSITORY:$IMAGE_TAG"
+
+          ./scripts/deploy-ecs-service.sh \
+            "$ECS_CLUSTER" \
+            "$WORKER_SERVICE" \
+            "$WORKER_CONTAINER" \
+            "$IMAGE"
+
+      - name: Deploy frontend
+        shell: bash        
+        env: 
+          IMAGE_TAG: ${{ steps.commit.outputs.tag }}
+        run: |
+          IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$FRONTEND_ECR_REPOSITORY:$IMAGE_TAG"
+
+          ./scripts/deploy-ecs-service.sh \
+            "$ECS_CLUSTER" \
+            "$FRONTEND_SERVICE" \
+            "$FRONTEND_CONTAINER" \
+            "$IMAGE"
+
+      - name: Production smoke tests
+        shell: bash
+        run: |
+          curl --fail --silent --show-error \
+            --retry 5 \
+            --retry-delay 5 \
+            https://pen-flow.com/api/v1/health
+
+          curl --fail --silent --show-error \
+            --retry 5 \
+            --retry-delay 5 \
+            https://pen-flow.com/health
+
+          curl --fail --silent --show-error \
+            --retry 5 \
+            --retry-delay 5 \
+            https://auth.pen-flow.com/realms/penflow/.well-known/openid-configuration
+
+          echo ""
+          echo "Production smoke tests passed"
+              
