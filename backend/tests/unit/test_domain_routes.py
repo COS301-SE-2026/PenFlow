@@ -84,3 +84,41 @@ async def test_get_domains_success(mock_get_user_id,mock_list_domains):
     )
 
     assert  result == {"items":[], "counts":{}, "pagination" :{}}
+
+
+#test missing user
+@pytest.mark.asyncio
+@patch("app.api.routes.domains.DomainService.list_domains",new_callable= AsyncMock)
+@patch("app.api.routes.domains.get_user_id_by_provider_id",new_callable=AsyncMock)
+async def test_get_domains_missing_user_raises_401(mock_get_user_id, mock_list_domains):
+    db = AsyncMock()
+    mock_get_user_id.return_value = None
+
+    with pytest.raises(HTTPException) as exc_info:
+        await get_domains(
+            verification_status = None,
+            search = None,
+            sort = DomainSortField.CREATED_AT,
+            order = SortOrder.DESC,
+            limit = 20,
+            offset = 0,
+            db = db,
+            current_user = _current_user(),
+        )
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail == "User not present."
+
+#test delete domain
+@pytest.mark.asyncio
+@patch("app.api.routes.domains.DomainService.delete_domain",new_callable= AsyncMock)
+@patch("app.api.routes.domains.get_user_id_by_provider_id",new_callable=AsyncMock)
+async def test_delete_domain_success(mock_get_user_id, mock_delete_domain) :
+    db = AsyncMock()
+    user_id = uuid4()
+    domain_id = uuid4()
+    mock_get_user_id.return_value = user_id
+
+    result = await delete_domain(domain_id,db,_current_user())
+
+    mock_delete_domain.assert_awaited_once_with(db ,domain_id =domain_id ,user_id = user_id)
+    assert result.status_code ==204
