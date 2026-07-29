@@ -106,6 +106,7 @@ export default function AssetsGrid({scanId}: {scanId: string}) {
                         ))
                     )}
                 </div>
+            </div>
 
                 {error && <p className="mt-4 text-xs text-muted-foreground"> {error} </p>}
                 {loading && <p className="mt-4 text-xs text-muted-foreground"> Loading assets... </p>}
@@ -209,7 +210,6 @@ export default function AssetsGrid({scanId}: {scanId: string}) {
                 )}
                 </div>
                 )}
-            </div>
         </section>
     );
 }

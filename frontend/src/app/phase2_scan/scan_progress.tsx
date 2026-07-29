@@ -32,13 +32,13 @@ interface SourceMeta {
 
 const SOURCE_META: Record<string, SourceMeta> = {
     dns: { label: "DNS", description: "Performs DNS enumeration for the target domain", icon: Network},
-    "crt.sh": { label: "crt.sh", description: "Searches Certificate Transparency logs for issued certificates and realated. ", icon: FileSearch},
+    "crt.sh": { label: "crt.sh", description: "Searches Certificate Transparency logs for issued certificates and reaated. ", icon: FileSearch},
     urlscan: { label: "URLScan", description: "Queries urlscan.io for prior scans and page metadata for the domain.", icon: Globe},
     wappalyzer: { label: "Wappalyzer", description: "Identifies web technologies used by the target.", icon: Fingerprint},
     shodan: { label: "Shodan", description: "Queries Shodan for exposed devices, banners, and services tied to the target's IP.", icon: Fingerprint},
     hibp: { label: "HaveIBeenPwned", description: "Checks associated email addresses and domains against known data breach databases", icon: ShieldAlert},
     target_resolution: { label: "Resolving Target", description: "Resolves the verified domain into IPv4 and IPv6 addresses.", icon: Globe},
-    nmap: { label: "Discovering ports", description: "Checks wheter the host is reachable and discovers open ports and network services.", icon: Crosshair},
+    nmap: { label: "Discovering ports", description: "Checks whether the host is reachable and discovers open ports and network services.", icon: Crosshair},
     http_security: { label: "Checking HTTP", description: "Inspects HTTP responses and security headers such as CSP and HSTS.", icon: ShieldCheck},
     tls: { label: "Inspecting TLS", description: "Checks certificates, TLS versions, cipher suites, expiry, issuer and self-signed status.", icon: Lock},
     fingerprint: { label: "Detecting Tech", description: "Identifies servers, frameworks, languages, CMS platforms, CDNs and their versions.", icon: Fingerprint},
@@ -113,7 +113,7 @@ function ScanDetailsBar({scan}: {scan:RealTimeScanStatus}) {
         {label: "Domain", value: scan.domain},
         {label: "Scan Type", value: scanTypeLabel[scan.scan_type] ?? scan.scan_type},
         {label: "Status",
-            value: (<span className= "inline--flex items-center gap-1.5 text-brand-cyan capitalize">
+            value: (<span className= "inline-flex items-center gap-1.5 text-brand-cyan capitalize">
                 <span className = "size-1.5 rounded-full bg-brand-cyan"/>
                 {scan.status}
             </span>),
@@ -167,19 +167,19 @@ function SourceCard({
             aria-pressed={flipped}
             aria-label = {`${meta.label}: click to ${flipped ? "hide" : "show"} details`}
             className={cn(
-                "block w-full cursor-pointer text-left [perspective:800px] transistion-[height] duration-500 ease-out",
+                "block w-full cursor-pointer text-left [perspective:800px] transition-[height] duration-500 ease-out",
                 flipped ? "h-[150px]" : "h-20"
             )}
         >
             <div className={cn(
-                "relative h-full w-full transition-transform furation-500 [transform-style:preserve-3d]",
+                "relative h-full w-full transition-transform duration-500 [transform-style:preserve-3d]",
                 flipped && "[transform:rotateY(180deg)]"
             )}
             >
                 <div className = {cn(
                     "absolute inset-0 flex items-center justify-center gap-2.5 rounded-md border bg-[#102448]/85 px-4 py-3.5 backdrop-blur-sm transition-[box-shadow,border-color] duration-500 [backface-visibility:hidden]",
                     borderClassName,
-                    isDone && (isFailed ? "shadow-[0_0_10px_1px_pgba(255,95,78,0.2]": "shadow-[0_0_10px_rgba(74, 222, 128, 0.15]")
+                    isDone && (isFailed ? "shadow-[0_0_10px_1px_rgba(255,95,78,0.2)]": "shadow-[0_0_10px_rgba(74, 222, 128, 0.15)]")
                 )}
                 >
                     <Info className="absolute top-2 right-2 size-3.5 shrink-0 text-white/85"/>
@@ -238,7 +238,7 @@ function FanColumn({
     });
 
     return (
-        <div className="realative h-full min-h-[620px] w-full">
+        <div className="relative h-full min-h-[620px] w-full">
             <svg
                 className="pointer-events-none absolute inset-0 h-full w-full"
                 viewBox="0 0 100 100"
@@ -258,8 +258,8 @@ function FanColumn({
                             strokeDasharray={100}
                             strokeDashoffset={lineActive ? 0 : 100}
                             className= {cn(
-                                "transition-[stroke, stroke-dashoffset] duration-[700ms] ease-out",
-                                lineActive ? "stroke-brand-success/60 drop-shadow-[0_0_3px_rgba(74,222,128,0.75]"
+                                "transition-[stroke,stroke-dashoffset] duration-[700ms] ease-out",
+                                lineActive ? "stroke-brand-success/60 drop-shadow-[0_0_3px_rgba(74,222,128,0.75)]"
                                 : "stroke-muted-foreground/25"
                             )}
                             strokeWidth={0.4}
@@ -309,11 +309,11 @@ function ScanNetworkDiagram({sources}: {sources: RealTimeScanStatus["sources"]})
     return (
         <div className="hidden flex-col gap-4 lg:flex">
             <div className="origin-top -mb-[62px] scale-90">
-                <div className="grid min-h-[620px] grid-cols-[minmax(240px, 1fr)_auto)minmax(240px , 1fr)] items-stretch">
+                <div className="grid min-h-[620px] grid-cols-[minmax(240px,1fr)_auto_minmax(240px,1fr)] items-stretch">
                     <FanColumn sources = {left} side = "left"/>
                     <div className="flex items-center gap-3 px-4">
                         <span className="h-px w-10 shrink-0 bg-brand-success/60"/>
-                        <div className="rounded-2xl border border-[#1c2a42] ng-gradient-to-br from-[#0d1e36] to-[#091829] p-4 shadow-[0_4px_20px_rgba(0,8,24,0.5]">
+                        <div className="rounded-2xl border border-[#1c2a42] bg-gradient-to-br from-[#0d1e36] to-[#091829] p-4 shadow-[0_4px_20px_rgba(0,8,24,0.5)]">
                             <ScanRadar />
                         </div>
                         <span className="h-px w-10 shrink-0 bg-brand-success/60"/>
@@ -420,7 +420,7 @@ export default function ScanProgress() {
                 <div>
                     <div className="flex flex-wrap items-center gap-3">
                         <h1 className="text-2xl font-semibold text-foreground">{scan.domain}</h1>
-                        <Badge className="bg-brand-cyan text-blacl capitalize">{scan.status}</Badge>
+                        <Badge className="bg-brand-cyan text-black capitalize">{scan.status}</Badge>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
                         {scanTypeLabel[scan.scan_type] ?? scan.scan_type} &bull; {scan.progress}% complete
