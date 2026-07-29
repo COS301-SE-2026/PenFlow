@@ -51,13 +51,13 @@ def send_report_callback(
 
 
 def send_source_callback(
-        scan_id: str,
-        source_name: str,
-        status: str,
-        raw_result: dict | None = None,
-        findings: list[dict] | None = None,
-        assets: list[dict] | None = None,
-        error_message: str | None = None,
+    scan_id: str,
+    source_name: str,
+    status: str,
+    raw_result: dict | None = None,
+    findings: list[dict] | None = None,
+    assets: list[dict] | None = None,
+    error_message: str | None = None,
 ) -> None:
     url = build_api_url(f"/internal/scans/{scan_id}/sources/{source_name}")
 

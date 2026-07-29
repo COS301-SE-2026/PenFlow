@@ -10,11 +10,9 @@ from app.utils.db import get_db
 
 router = APIRouter(prefix="/scans", tags=["Executive Summary"])
 
+
 @router.get("/{scan_id}/summary", response_model=ExecutiveSummary, status_code=status.HTTP_200_OK)
-async def get_scan_summary(
-    scan_id: UUID,
-    db: AsyncSession = Depends(get_db)
-) -> Any:
+async def get_scan_summary(scan_id: UUID, db: AsyncSession = Depends(get_db)) -> Any:
     """
     Generates the complete Executive Summary for a specific scan.
     Currently compiled blocks:
@@ -26,11 +24,9 @@ async def get_scan_summary(
 
     if not scan_data:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Scan with ID {scan_id} not found."
-
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Scan with ID {scan_id} not found."
         )
-    
+
     risk_data = await summary_repo.get_risk_snapshot(db, scan_id)
 
     top_findings_data = await summary_repo.get_top_findings_preview(db, scan_id, limit=5)
@@ -47,5 +43,5 @@ async def get_scan_summary(
         "top_findings": top_findings_data,
         "asset_impact": asset_impact_data,
         "source_coverage": source_coverage_data,
-        "report_status": report_data
+        "report_status": report_data,
     }

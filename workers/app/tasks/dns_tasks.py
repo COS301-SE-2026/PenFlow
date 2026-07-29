@@ -11,7 +11,6 @@ from app.utils.callback import send_source_callback
 
 JSONDict = dict[str, Any]
 
-
 @celery_app.task(name="scan.dns")
 def run_dns_scan(scan_id: str, domain: str) -> JSONDict:
     try:

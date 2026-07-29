@@ -1,5 +1,5 @@
 import "./Dashboard.css"
-import DashboardSidebar from "./DashboardSidebar";
+import NavBar from "./NavBar";
 
 interface DashboardLayoutProperty {
     children: React.ReactNode;
@@ -10,7 +10,7 @@ export default function DashboardLayout({
 }: DashboardLayoutProperty) {
     return (
         <div className = "dashboard-layout">
-            <DashboardSidebar />
+            <NavBar />
 
             <main className = "dashboard-main">
                 {children}
