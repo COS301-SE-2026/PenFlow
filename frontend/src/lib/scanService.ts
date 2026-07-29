@@ -267,7 +267,7 @@ export async function fetchScanSummary(scanId: string): Promise<ExecutiveSummary
 }
 
 export function getReportPdfUrl(scanId: string): string {
-  return `${API_BASE}/scans/${scanId}/pdf`;
+  return `/api/scans/${scanId}/pdf`;
 }
 
 export const SEVERITY_COLORS: Record<string, string> = {
