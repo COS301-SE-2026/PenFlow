@@ -603,7 +603,11 @@ class ScanRepository:
             elif proto == "UDP":
                 counts["udp"] += 1
 
-            counts["open"] += 1
+            state = (s.state or "").lower()
+            if state == "filtered":
+                counts["filtered"] += 1
+            elif state == "open":
+                counts["open"] += 1
 
         query = select(Service).where(Service.scan_id == scan_id)
 

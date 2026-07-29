@@ -174,6 +174,64 @@ export async function postScanRequest(params: StartScanParams ): Promise<ScanSta
   return response.json();
 }
 
+export interface ServiceListItem {
+  id: string;
+  service_name: string;
+  host: string;
+  port: number;
+  protocol: string;
+  product: string | null;
+  version: string | null;
+  state: string;
+  risk_level: string;
+  asset_count: number;
+  banner: string | null;
+  created_at: string;
+}
+
+export interface ServiceSummaryCounts {
+  total: number;
+  tcp: number;
+  udp: number;
+  open: number;
+  filtered: number
+}
+
+export interface ServiceListResponse {
+  total: number;
+  counts: ServiceSummaryCounts;
+  items: ServiceListItem[];
+}
+
+export interface FetchScanServicesParams {
+  protocol?: string;
+  search?: string;
+  sort_by?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function fetchScanServices(
+  scanId: string,
+  params: FetchScanServicesParams = {}
+): Promise<ServiceListResponse> {
+  const query = new URLSearchParams();
+  if(params.protocol) query.set("protocol", params.protocol);
+  if(params.search) query.set("search", params.search);
+  if(params.sort_by) query.set("sort_by", params.sort_by);
+  if(params.limit !== undefined) query.set("limit", String(params.limit));
+  if(params.offset !== undefined) query.set("offset", String(params.offset));
+
+  const qs = query.toString();
+  const response = await fetch(`/api/scans/${scanId}/services${qs ? `?${qs}` : ""}`);
+  if(!response.ok) {
+    const err = await response.json().catch(() => ({detail: "Failed to load scan services"}));
+    throw new Error(err.detail ?? "Failed to load scan services");
+  }
+  return response.json();
+}
+
+
 export interface ScanHistoryItem {
   id: string;
   domain: string;
