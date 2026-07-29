@@ -1,9 +1,9 @@
-"use client ";
+"use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {FolderKey, Globe, Hourglass, Lock, Mail, Network, Server, Terminal, type LucideIcon,} from "lucide-react";
+import {FolderKey, Globe, Lock, Mail, Network, Server, Terminal, type LucideIcon,} from "lucide-react";
+import {cn} from "@/lib/utils";
 
-import {fetchScanServices, ServiceSummaryCounts, type ServiceListItem, type ServicesSummaryCounts} from "@/lib/scanService";
-import {capitalize, cn} from "@/lib/utils";
+import {fetchScanServices, type ServiceListItem, type ServiceSummaryCounts} from "@/lib/scanService";
 type ProtocolFilter = "ALL" | "TCP" | "UDP";
 type SortOption = "recent" | "port";
 
@@ -130,7 +130,7 @@ return (
                 </div>
             </div>
 
-            <div className="grid grid-cols-minmax(220px, 1fr)_minmax(120px,auto)_minmax(160px,auto)] gap-3 max-[1100px]:grid-cols-2 max-[720px]:grid-cols-1">
+            <div className="grid grid-cols-[minmax(220px,1fr)_minmax(120px,auto)_minmax(160px,auto)] gap-3 max-[1100px]:grid-cols-2 max-[720px]:grid-cols-1">
             <label className="flex min-h-10 items-center gap-2.5 rounded-lg border border-brand-panel-border bg-brand-panel-deep px-3.5">
                 <span aria-hidden="true" className="text-muted-foreground">⌕</span>
                 <input
@@ -150,7 +150,7 @@ return (
             >
                 <option value="ALL">Protocol: ALL</option>
                 <option value="TCP">TCP</option>
-                <option value="AUDPL">UDP</option>
+                <option value="UDP">UDP</option>
             </select>
 
             <select
@@ -211,13 +211,13 @@ return (
 
 {error && <p className="mt-4 text-xs text-muted-foreground"> {error} </p>}
 <div   
-    className={cn("grid times-start gap-5", selectedService ? "grid-cols-[minmax(0,1.35fr)_minmax(430px, 0.95fr)] max-[1450px]:grid-cols-[minmax(1,1fr)_410px] max-[1100px]:grid-cols-1"
+    className={cn("grid items-start gap-5", selectedService ? "grid-cols-[minmax(0,1.35fr)_minmax(430px,0.95fr)] max-[1450px]:grid-cols-[minmax(0,1fr)_410px] max-[1100px]:grid-cols-1"
         : "grid-cols-[minmax(0,1fr)]"
 )}
 >
     <div className="min-w-0">
         <div className="min-w-0 border-t border-b border-brand-panel-border max-[720px]:overflow-x-auto">
-            <div className="grid mon-h-[47px] grid-cols-[minmax(220px, 1.6fr)_minmax(70px,0.5fr)_minmax(60px,0.4fr)] items-center gap-3.5 border-b border-brand-panel-border px-4 text-[10px] text-muted-foreground uppercase max-[720px]:min-w-[720px]">
+            <div className="grid min-h-[47px] grid-cols-[minmax(220px,1.6fr)_minmax(70px,0.5fr)_minmax(60px,0.4fr)] items-center gap-3.5 border-b border-brand-panel-border px-4 text-[10px] text-muted-foreground uppercase max-[720px]:min-w-[720px]">
                 <span>Service / Port</span>
                 <span>Protocol</span>
                 <span>State</span>
@@ -247,15 +247,153 @@ return (
                             >
                                 <span className="flex min-w-0 items-center gap-2.5">
                                     <span className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-panel-deep text-muted-foreground">
-
+                                        <Icon className="size-4" />
                                     </span>
+                                    <span className="grid min-w-0 gap-0.5">
+                                        <strong className="overflow-hidden text-[13px] text-ellipsis whitespace-nowrap text-foreground">
+                                            {service.service_name}
+                                        </strong>
+                                        <small className="text-[10px] text-muted-foreground">
+                                            {service.port}/{service.protocol.toLowerCase()}
+                                        </small>
+                                    </span>
+                                </span>
 
+                                <span className="text-[11px] text-[#aeb9c8]"> {service.protocol}</span>
+                                <span className="flex items-center gap-1.5 text-[11px] text-[#aeb9c8]">
+                                    <span className={cn("size-1.5 rounded-full", isOpen ? "bg-brand-success" : "bg-brand-yellow")}/>
+                                    {service.state}
+                                </span>
+
+                                <span className="text-[11px] text-[#aeb9c8]">{service.asset_count}</span>
+                                <RiskBadge riskLevel={service.risk_level}/>
+                                <span className="text-[11px] text-[#aeb9c8]">
+                                    {formatTimestamp(service.created_at)}
                                 </span>
                             </button>
+                        );
                     })
                 )}
             </div>
         </div>
+
+        {hasMore && (
+            <div className="flex justify-center py-4">
+                <button
+                    type = "button"
+                    onClick= {handleLoadMore}
+                    disabled = {loading}
+                    className="rounded-lg border border-brand-panel-border bg-brand-panel-deep px-4 py-2 text-xs text-foreground hover:bg-brand-panel"
+                >
+                    {loading ? "Loading..." : "Load more services"}
+                </button>
+            </div>
+        )}
     </div>
+
+    {selectedService && (
+        <aside className="min-w-0 overflow-hidden rounded-[9px] border border-brand-panel-border bg-[#0b1625] max-[1100px]:static max-[1100px]:max-h-none lg:sticky lg:top-5 lg:max-h-[calc(100vh-40px)]">
+            <header className="flex items-start justify-between gap-4 border-b border-brand-panel-border p-4.5">
+                <div className="flex min-w-0 items-start gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-panel-deep text-muted-foreground">
+                        {(() => {
+                            const Icon = serviceIcon(selectedService.service_name);
+                            return <Icon className="size-5"/>;
+                        })()}
+                    </span>
+                    <div>
+                        <h2 className="mt-px mb-1.5 text-lg break-words text-foreground">
+                            {selectedService.service_name}
+                        </h2>
+                        <p className="m-0 text-[11px] text-muted-foreground">
+                            {selectedService.port}/{selectedService.protocol.toLowerCase()}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-3">
+                    <RiskBadge riskLevel= {selectedService.risk_level}/>
+                        <button
+                            type = "button"
+                            aria-label = "Close service details"
+                            onClick= {() => setSelectedService(null)}
+                            className="border-0 bg-transparent text-2xl text-muted-foreground hover:text-white"
+                        >
+                            ×
+                        </button>
+                </div>
+            </header>
+
+            <div className="max-h-[calc(100vh-135px)] overflow-y-auto p-4 max-[1100px]:max-h-none">
+                <section>
+                    <h3 className="mt-0 mb-4 text-[13px] text-foreground">
+                        Overview
+                    </h3>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-3.5">
+                        <div className="grid gap-1">
+                            <dt className="text-[10px] text-muted-foreground">Protocol</dt>
+                            <dd className="m-0 text-[11px] text-foreground">{selectedService.protocol}</dd>
+                        </div>
+                        <div className="grid gap-1">
+                            <dt className="text-[10px] text-muted-foreground">Port</dt>
+                            <dd className="m-0 text-[11px] text-foreground">{selectedService.port}</dd>
+                        </div>
+                    
+
+                    
+                        <div className="grid gap-1">
+                            <dt className="text-[10px] text-muted-foreground">State</dt>
+                            <dd className="m-0 text-[11px] text-foreground">{selectedService.state}</dd>
+                        </div>
+                    
+
+                    
+                        <div className="grid gap-1">
+                            <dt className="text-[10px] text-muted-foreground">Risk</dt>
+                            <dd className="m-0 text-[11px] text-foreground">{selectedService.risk_level}</dd>
+                        </div>
+                   
+
+                    {selectedService.product && (
+                        <div className="grid gap-1">
+                            <dt className="text-[10px] text-muted-foreground">Product</dt>
+                            <dd className="m-0 text-[11px] text-foreground">{selectedService.product}</dd>
+                        </div>
+                    )}
+
+                    {selectedService.version && (
+                        <div className="grid gap-1">
+                            <dt className="text-[10px] text-muted-foreground">Version</dt>
+                            <dd className="m-0 text-[11px] text-foreground">{selectedService.version}</dd>
+                        </div>
+                    )}
+
+                        <div className="grid gap-1">
+                            <dt className="text-[10px] text-muted-foreground">Assets</dt>
+                            <dd className="m-0 text-[11px] text-foreground">{selectedService.asset_count}</dd>
+                        </div>
+
+                        <div className="grid gap-1">
+                            <dt className="text-[10px] text-muted-foreground">Detected</dt>
+                            <dd className="m-0 text-[11px] text-foreground">{formatTimestamp(selectedService.created_at)}</dd>
+                        </div>
+                    </div>
+                </section>
+
+                {selectedService.banner && (
+                    <section className="mt-3.5 border-t border-brand-panel-border pt-3.5">
+                        <h3 className="mt-0 mb-2 text-[13px] text-foreground">
+                            Banner
+                        </h3>
+                        <p className="m-0 [overflow-wrap:anywhere] text-[11px] leading-[1.6] text-[#abb7c7]">
+                            {selectedService.banner}
+                        </p>
+                    </section>
+                )}
+            </div>
+        </aside>
+    )}
 </div>
+</section>
+);}
 
