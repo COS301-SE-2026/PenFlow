@@ -16,6 +16,8 @@ venv/
 env
 env.*
 *.env
+.env.local
+.env*.local
 
 dist/
 build/
@@ -24,6 +26,7 @@ build/
 out/
 tsconfig.tsbuildinfo
 
+coverage
 coverage/
 **/coverage/
 *.lcov
