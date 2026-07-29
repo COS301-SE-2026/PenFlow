@@ -45,3 +45,12 @@ const WORKER_STATUS_CLASS_NAME: Record<string, string> = {
     pending: "border-muted-foreground/30 bg-muted/40 text-muted-foreground",
     skipped: "border-muted-foreground/30 bg-muted/40 text-muted-foreground",
 };
+
+const WORKER_DOT_CLASS_NAME: Record<string, string> = {
+    completed: "bg-brand-success",
+    failed: "bg-brand-alert",
+    partial: "bg-brand-yellow",
+    running: "bg-brand-cyan animate-pulse",
+    pending: "bg-muted-foreground/40",
+    skipped: "bg-muted-foreground/40",
+};
