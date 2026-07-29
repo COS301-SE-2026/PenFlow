@@ -220,8 +220,11 @@ jobs:
 
       - name: Run Backend Integration Tests
         run: |
+          mkdir -p coverage/backend
+          chmod 777 coverage/backend
+
           docker compose --profile test run --rm \
-          -v "${{ github.workspace }}/backend:/coverage-output" \
+            -v "${{ github.workspace }}/coverage/backend:/coverage-output" \
             backend-test \
             pytest tests/integration \
             --cov=app \
@@ -230,14 +233,17 @@ jobs:
       - name: Upload Backend Integration Coverage
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
         with:
-          files: backend/coverage-integration.xml
+          files: coverage/backend/coverage-integration.xml
           flags: backend
           fail_ci_if_error: true
 
       - name: Run Worker Integration Tests
         run: |
+          mkdir -p coverage/workers
+          chmod 777 coverage/workers
+
           docker compose --profile test run --rm \
-          -v "${{ github.workspace }}/workers:/coverage-output" \
+            -v "${{ github.workspace }}/coverage/workers:/coverage-output" \
             workers-test \
             pytest tests/integration \
             --cov=app \
@@ -246,7 +252,7 @@ jobs:
       - name: Upload Worker Integration Coverage
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
         with:
-          files: workers/coverage-integration.xml
+          files: coverage/workers/coverage-integration.xml
           flags: workers
           fail_ci_if_error: true
 
