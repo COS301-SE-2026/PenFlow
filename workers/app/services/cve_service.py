@@ -64,7 +64,6 @@ class CVEService:
         discovered_cves = []
         cpe_parts = cpe.split(":")
         version = cpe_parts[5] if len(cpe_parts) > 5 else "*"
-        vendor = software.get("vendor", "").lower()
         product = software.get("product", "").lower()
 
         # query the official nvd api using the cpe's provided by the previous worker

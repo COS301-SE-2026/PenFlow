@@ -6,8 +6,18 @@
 
 PenFlow is a cybersecurity platform that helps organizations progress from passive exposure discovery to deeper automated scanning and (later) managed engagements. For Demo 1, the architecture primarily supports:
 
-- **Phase 1 CTEM (Passive OSINT Scan)**: asynchronous aggregation of multiple OSINT sources
-- **Platform capabilities** required to make that scan practical: orchestration, state tracking, persistence, reporting
+- **Demo 1 CTEM (Passive OSINT Scan)**: asynchronous aggregation of multiple OSINT sources
+- **Demo 2 Active Scan**: extends the same architecture by introducing the first implementation of the Phase 2 Active Scanning Pipeline.
+
+**The architecture now supports:**
+
+• Phase 1 Passive CTEM discovery
+
+• Phase 2 Active security scanning
+
+• Normalised Findings and Assets
+
+• Backend filtering for Findings, Assets and Services
 
 ### 1.1 Architecture Style: Client–Server + Layered Modular Monolith
 
@@ -168,6 +178,27 @@ This section embeds the core architectural diagrams and explains **what each dia
 - State updates propagate from worker execution → Redis/state manager → WebSocket/UI updates. The UI reacts to status changes without polling.
 
 ---
+### 2.8 Phase 2 Worker Architecture
+
+Demo 2 introduces the first implementation of the Phase 2 worker pipeline.
+
+Rather than implementing a single large security scanner, the architecture follows a pipeline of specialised workers, each responsible for one stage of the scan.
+
+This decision follows the Single Responsibility Principle and improves maintainability by allowing workers to evolve independently.
+
+Each worker produces a standardised output consisting of:
+
+• Raw Results
+
+• Findings
+
+• Assets
+
+• Status
+
+Because every worker follows the same output contract, downstream systems such as reporting and frontend filtering remain independent of worker-specific implementations.
+
+Additional implementation details are documented in Phase2-Worker-Architecture.md.
 
 ## 3. Architectural Quality Requirements & Tactics (Demo 1)
 
@@ -185,6 +216,9 @@ PenFlow must handle multiple concurrent scans and multiple concurrent users with
 
 **Implications:**  
 System throughput scales primarily by increasing worker capacity, not by increasing web server threads.
+
+**Phase2:**
+Phase 2 further reinforces this by decomposing scanning into multiple independent workers. Individual workers can be parallelised or replaced without affecting the remainder of the pipeline, allowing future expansion as additional scanners are introduced.
 
 ---
 
@@ -231,6 +265,7 @@ PenFlow must support frequent change: adding/removing OSINT providers, adjusting
 - **Contract-based normalization:** Third-party output is mapped into a stable internal “finding contract.”
 - **Strong typing + validation:** Pydantic models and mypy enforce early error detection.
 - **Consistent quality gates:** Linting/formatting/testing in CI reduces long-term drift and regression risk.
+- **Standardised Outputs:** Standardised worker output further improves maintainability by ensuring that all downstream components consume a common data structure
 
 ---
 
@@ -341,3 +376,17 @@ Database operations are isolated behind repositories to preserve separation of c
 - **CI/CD:** GitHub Actions
 - **Testing:** PyTest, Jest, Cypress
 - **Code quality:** Ruff, ESLint, Prettier
+
+
+The following architectural components were introduced during Demo 2.
+- **Target Resolution Worker**
+- **Nmap Worker**
+- **HTTP Security Worker**
+- **TLS Worker**
+- **Fingerprinting Worker**
+- **CPE Resolver Worker**
+- **CVE Worker**
+- **Findings Repository**
+- **Assets Repository**
+- **Backend filtering endpoints**
+---
