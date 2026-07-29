@@ -3,11 +3,12 @@ from pathlib import Path
 from typing import Annotated, Any, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user, get_current_user_optional
+from app.api.middleware.rate_limiter import limiter
 from app.models.base import ScanStatus
 from app.repositories.report_repository import get_report_by_scan_id
 from app.repositories.scan_repo import ScanRepository
@@ -70,8 +71,10 @@ async def list_scans(
     response_model=InitiateScanResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
+@limiter.limit("3/10minutes")
 async def initiate_ctem_scan(
-    request: InitiateScanRequest,
+    request: Request,
+    payload: InitiateScanRequest,
     current_user: CurrentUserOptional,
     db: DbSession,
 ) -> InitiateScanResponse:
@@ -80,12 +83,12 @@ async def initiate_ctem_scan(
         if current_user is not None:
             user_id = await get_user_id_by_provider_id(db, current_user["sub"])
 
-        new_scan = await ScanService.start_scan(db, request, user_id=user_id)
+        new_scan = await ScanService.start_scan(db, payload, user_id=user_id)
 
         return InitiateScanResponse(scan_id=new_scan.id, status=new_scan.status)
 
     except Exception:
-        logger.exception("Failed to initiate scan for domain %s", request.domain)
+        logger.exception("Failed to initiate scan for domain %s", payload.domain)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to initiate scan",
@@ -170,9 +173,11 @@ async def download_scan_pdf(
         404: {"description": "Scan not found"},
     },
 )
+@limiter.limit("2/minute")
 async def email_scan_report(
+    request: Request,
     scan_id: UUID,
-    request: EmailReportRequest,
+    payload: EmailReportRequest,
     db: DbSession,
 ) -> dict[str, str]:
     scan = await ScanRepository.get_scan_by_id(db, scan_id)
@@ -186,7 +191,7 @@ async def email_scan_report(
         raise HTTPException(status_code=400, detail="Report is not ready yet")
 
     send_report_email(
-        to_email=request.email,
+        to_email=payload.email,
         domain=str(scan.domain),
         pdf_path=str(report.pdf_path),
     )
