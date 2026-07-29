@@ -207,6 +207,8 @@ export default function AssetsGrid({scanId}: {scanId: string}) {
                         </div>
                     </aside>
                 )}
+                </div>
+                )}
             </div>
         </section>
     );

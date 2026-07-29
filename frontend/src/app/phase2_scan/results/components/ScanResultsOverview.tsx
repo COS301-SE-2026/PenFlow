@@ -111,7 +111,7 @@ function RiskHistoryChart({history}: {history: RiskHistoryItem[]}) {
                 <div 
                     className="absolute inset-x-0 top-0 bottom-[22px]"
                     style = {{
-                        backgroundImage: "linear-gradient(to right, rgb(51 65 85 / 35%) 1px, transparent 1px), linear-gradient(to bottom, rgb(51 65 85 / 35%) 1px, transparent 1px",
+                        backgroundImage: "linear-gradient(to right, rgb(51 65 85 / 35%) 1px, transparent 1px), linear-gradient(to bottom, rgb(51 65 85 / 35%) 1px, transparent 1px)",
                         backgroundSize: "12.5% 25%",
                     }}
                 />

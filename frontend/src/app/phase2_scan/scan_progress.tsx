@@ -10,7 +10,7 @@ import { Card, CardContent} from "@/components/ui/card";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
 import {cn} from "@/lib/utils";
-import radarStyles from "@app/scan/components/ScanConsoleSection.module.css";
+import radarStyles from "@/app/scan/components/ScanConsoleSection.module.css";
 import {fetchScanStatus, type RealTimeScanStatus} from "@/lib/scanService";
 
 type SourceStatus = "pending" | "running" | "completed" | "failed" | "partial"| "skipped";
