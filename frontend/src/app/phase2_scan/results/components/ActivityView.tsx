@@ -58,7 +58,7 @@ export default function ActivityView({ scanId }: { scanId: string }) {
         { label: "Scan Type", value: scanTypeLabel[scan.scan_type] ?? scan.scan_type },
         { label: "Status", value: scan.status },
         { label: "Elapsed Time", value: formatElapsed(scan.created_at) },
-        { label: "Sources Completed", value: `${completedCount} / ${visivleSources.length}`},
+        { label: "Sources Completed", value: `${completedCount} / ${visibleSources.length}`},
     ];
 
     return (
@@ -81,7 +81,10 @@ export default function ActivityView({ scanId }: { scanId: string }) {
                 </div>
             </div>
 
-            
+            <div className="rounded-[10px] border border-brand-panel-border bg-[#0b1625] p-[18px]">
+                <h2 className="mb-4 text-sm font-bold uppercase tracking-[0.15em] text-foreground/90">Worker Activity</h2>
+                <WorkerStatusGrid sources={visibleSources} />
+            </div>
         </section>
-    )
+    );
 }
