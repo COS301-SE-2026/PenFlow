@@ -122,3 +122,17 @@ async def test_delete_domain_success(mock_get_user_id, mock_delete_domain) :
 
     mock_delete_domain.assert_awaited_once_with(db ,domain_id =domain_id ,user_id = user_id)
     assert result.status_code ==204
+
+#test delete domain fail
+
+@pytest.mark.asyncio
+@patch("app.api.routes.domains.get_user_id_by_provider_id",new_callable=AsyncMock)
+async def test_delete_domain_missing_user_raises_401(mock_get_user_id) :
+    db = AsyncMock()
+    mock_get_user_id.return_value = None
+
+    with pytest.raises(HTTPException) as exc_info:
+        await delete_domain(uuid4(),db,_current_user())
+
+    assert exc_info.value.status_code ==401
+    assert exc_info.value.detail == "User not present."
