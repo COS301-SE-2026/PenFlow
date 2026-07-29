@@ -4,6 +4,7 @@ from urllib.parse import quote
 
 from celery import Celery
 
+
 def build_broker_url() -> str:
 
     protocol = os.getenv("RABBITMQ_PROTOCOL", "amqps")
