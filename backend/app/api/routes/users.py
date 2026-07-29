@@ -1,9 +1,9 @@
-#type: ignore
+# type: ignore
 import logging
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user
 from app.repositories.user_repo import get_or_create_user
@@ -14,16 +14,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["Users"])
 
 CurrentUser = Annotated[dict[str, Any], Depends(get_current_user)]
-DbSession = Annotated[Session, Depends(get_db)]
+DbSession = Annotated[AsyncSession, Depends(get_db)]
 
 
 @router.get("/me")
-def provision_user(
+async def provision_user(
     current_user: CurrentUser,
     db: DbSession,
 ) -> dict[str, Any]:
     try:
-        return get_or_create_user(
+        return await get_or_create_user(
             db=db,
             auth_provider_id=current_user["sub"],
             email=current_user.get("email", ""),

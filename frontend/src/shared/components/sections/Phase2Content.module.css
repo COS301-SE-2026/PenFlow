@@ -1,0 +1,159 @@
+.phaseContent {
+  background: var(--col-abyss);
+  padding: clamp(28px, 4vw, 48px) clamp(16px, 4vw, 40px);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(24px, 4vw, 60px);
+  align-items: center;
+}
+
+.phaseCopyWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.phaseHeading {
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  color: var(--col-text);
+  margin: 0;
+  letter-spacing: 0.06em;
+}
+
+.phaseBody {
+  color: var(--col-text);
+  font-size: clamp(0.9rem, 1.3vw, 1.05rem);
+  line-height: 1.75;
+  margin: 0;
+  font-weight: 500;
+}
+
+.visual {
+  border: 1px solid var(--col-edge);
+  border-radius: 14px;
+  background: rgba(6, 14, 28, 0.97);
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 8, 24, 0.6), var(--sh-glow-cyan);
+  max-width: 420px;
+}
+
+.terminalBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(13, 30, 58, 0.9);
+  border-bottom: 1px solid var(--col-edge);
+  border-radius: 14px 14px 0 0;
+}
+
+.termTitle {
+  font-family: var(--font-display), monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  color: var(--col-text);
+  flex: 1;
+  text-align: center;
+}
+
+.secureSvg {
+  width: 100%;
+  max-width: 360px;
+}
+
+.terminalBody {
+  padding: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.portHeader {
+  display: grid;
+  grid-template-columns: 60px 100px 90px 1fr;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--col-edge);
+  font-family: var(--font-display), monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  color: var(--col-muted);
+}
+
+.portRow {
+  display: grid;
+  grid-template-columns: 60px 100px 90px 1fr;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(43, 180, 220, 0.06);
+  align-items: center;
+}
+
+.portNum {
+  font-family: var(--font-display), monospace;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--col-cyan);
+}
+
+.portService {
+  font-family: var(--font-display), monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--col-text);
+}
+
+.portStatus {
+  font-family: var(--font-display), monospace;
+  font-size: 0.72rem;
+  color: var(--col-muted);
+  letter-spacing: 0.1em;
+}
+
+.portStatus[data-open="true"] { color: var(--col-success); }
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-family: var(--font-display), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.badge[data-sev="critical"] { background: rgba(255,95,78,0.2);  color: var(--col-alert);   border: 1px solid rgba(255,95,78,0.4); }
+.badge[data-sev="high"]     { background: rgba(240,128,48,0.2); color: var(--col-orange);  border: 1px solid rgba(240,128,48,0.4); }
+.badge[data-sev="medium"]   { background: rgba(245,200,66,0.2); color: var(--col-yellow);  border: 1px solid rgba(245,200,66,0.4); }
+.badge[data-sev="low"]      { background: rgba(74,222,128,0.1); color: var(--col-success); border: 1px solid rgba(74,222,128,0.3); }
+.badge[data-sev="info"]     { background: rgba(79,159,255,0.1); color: var(--col-blue);    border: 1px solid rgba(79,159,255,0.3); }
+
+
+.ctaBtn {
+  display: block;
+  width: fit-content;
+  margin: 24px auto 0;
+  padding: 14px 36px;
+  border-radius: 50px;
+  background: #b54e22;
+  color: var(--col-text);
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 200ms ease, box-shadow 200ms ease, transform 150ms ease;
+  box-shadow: 0 4px 16px rgba(100, 40, 18, 0.35);
+}
+
+.ctaBtn:hover {
+  background: #c85a28;
+  box-shadow: 0 6px 22px rgba(100, 40, 18, 0.45);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 900px) {
+  .phaseContent {
+    grid-template-columns: 1fr;
+  }
+}
