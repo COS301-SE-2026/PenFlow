@@ -1,10 +1,22 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, SmallInteger, String, Time, UniqueConstraint
-from sqlalchemy.orm import relationship
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    Enum,
+    ForeignKey,
+    SmallInteger,
+    String,
+    Time,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
+
 from app.models.base import Base, ScanScheduleFrequency, ScanType
+
 
 class ScanSchedule(Base):
     __tablename__ = "scan_schedules"

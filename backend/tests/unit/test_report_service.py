@@ -4,7 +4,6 @@ import pytest
 
 from app.services.report_service import (
     build_report_output_path,
-    generate_report_pdf,
     queue_report_generation,
     render_report_html,
 )

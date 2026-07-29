@@ -5,7 +5,7 @@ import logging
 import os
 import socket
 from pathlib import Path
-import ipaddress
+
 import httpx
 
 # Logger to tell us this file was in error

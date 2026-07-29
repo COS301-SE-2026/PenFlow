@@ -13,8 +13,8 @@ from app.repositories.report_repository import (
     mark_report_generating,
     mark_report_task_queued,
 )
-from app.utils.report_context import build_report_context
 from app.utils.phase2_report_context import build_phase2_report_context
+from app.utils.report_context import build_report_context
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 TEMPLATE_DIR = BASE_DIR / "templates"

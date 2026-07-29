@@ -1,9 +1,9 @@
 import logging
-from typing import Annotated, Any, Optional 
+from typing import Annotated, Any, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status 
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user, get_current_user_optional
@@ -26,8 +26,8 @@ from app.schemas.scan import (
     ServiceListResponse,
 )
 from app.services.email_service import send_report_email
-from app.services.scan_service import ScanService
 from app.services.report_storage_service import ReportStorageService
+from app.services.scan_service import ScanService
 from app.utils.db import get_db
 
 logger = logging.getLogger(__name__)
@@ -128,13 +128,13 @@ async def get_scan_status(
 
 @router.get(
     "/{scan_id}/pdf",
-    response_class=FileResponse,
+    response_class=Response,
     status_code=status.HTTP_200_OK,
 )
 async def download_scan_pdf(
     scan_id: UUID,
     db: DbSession,
-) -> FileResponse:
+) -> Response:
 
     report = await get_report_by_scan_id(db, str(scan_id))
 

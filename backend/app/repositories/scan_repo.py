@@ -1,15 +1,14 @@
-import builtins
 import logging
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import String, case, func, select
+from sqlalchemy.dialects.postgresql import insert as psg_insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.dialects.postgresql import insert as psg_insert
 
 from app.models.asset import Asset
-from app.models.base import ScanStatus, Severity, ScanSourceStatus, FindingStatus
+from app.models.base import FindingStatus, ScanSourceStatus, ScanStatus, Severity
 from app.models.detected_technology import DetectedTechnology
 from app.models.finding import Finding
 from app.models.report import Report
@@ -281,6 +280,12 @@ class ScanRepository:
                 )
                 service = service_result.scalar_one_or_none()
 
+                if service is None:
+                    raise RuntimeError(
+                        f"Service could not be retrieved: "
+                        f"{host}:{port}/{protocol}"
+                    )
+                
                 if asset and service.asset_id is None:
                     service.asset_id = asset.id
 
@@ -473,7 +478,7 @@ class ScanRepository:
             finished_count = sum(1 for _, status in source_statuses if status in finished_statuses)
 
             progress = int((finished_count / total_sources) * 100)
-            scan.progress = builtins.min(progress, 100)
+            setattr(scan, "progress", min(progress, 100))
 
             if finished_count == total_sources:
                 failed_sources = [
@@ -625,7 +630,7 @@ class ScanRepository:
             + (findings_breakdown["medium"] * 5)
             + (findings_breakdown["low"] * 1)
         )
-        risk_score = builtins.min(100, weighted_score)
+        risk_score = min(100, weighted_score)
 
         return {
             "risk_score": risk_score,

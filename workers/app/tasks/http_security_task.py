@@ -66,7 +66,7 @@ def run_http_security_scan_task(
                         ),
                         "recommendation": 
                         (
-                            "Configure an appropriate Content-Security-Policy header for the application."
+                            "Create a suitable Content-Security-Policy header for the application."
                         ),
                         "host": ip_address,
                         "port": target["port"],
@@ -95,6 +95,7 @@ def run_http_security_scan_task(
                 if value:
                     continue
 
+                findings.append
                 (
                     {
                         #if we have no header for now we will default to a low severity

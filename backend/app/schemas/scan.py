@@ -57,7 +57,6 @@ class ScanSourceCallbackRequest(BaseModel):
     services: list[dict[str, Any]] = []
     technologies: list[dict[str, Any]] = []
     findings: list[dict[str, Any]] = []
-    assets: list[dict[str, Any]] = []
     error_message: str | None = None
 
 

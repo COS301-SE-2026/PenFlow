@@ -40,7 +40,7 @@ def fetch_mock_data(domain: str) -> dict:
 def fetch_live_data(domain: str) -> dict:
     # Live Mode
     logger.info(f"[CRT.sh] Running in FULL LIVE mode for {domain}")
-
+    url = f"https://crt.sh/?q=%.{domain}&output=json&exclude=expired"
     #crt.sh is very bad with reliable requests, 
     #we have to do a lot of retry logic to try get a good response.
     max_attempts = 3

@@ -1,4 +1,3 @@
-import enum
 import uuid
 from datetime import datetime, timezone
 
@@ -6,7 +5,7 @@ from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, UniqueConstrain
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base, DomainVerificationStatus, DomainVerificationCode
+from app.models.base import Base, DomainVerificationCode, DomainVerificationStatus
 
 
 class VerifiedDomain(Base):

@@ -38,9 +38,9 @@ def test_run_cve_scan_task_success(
 
     finding = result["findings"][0]
 
-    assert finding["severity"] == "HIGH"
-    assert finding["metadata"]["cve_id"] == "CVE-2025-1234"
-    assert finding["metadata"]["cvss_score"] == 8.8
+    assert finding["severity"] == "high"
+    assert finding["cve_id"] == "CVE-2025-1234"
+    assert finding["cvss_score"] == 8.8
 
     mock_callback.assert_called_once_with\
     (
@@ -53,6 +53,8 @@ def test_run_cve_scan_task_success(
         },
         findings=result["findings"],
         assets=[],
+        services=[],
+        technologies=[],
         error_message=None,
     )
 
@@ -109,5 +111,7 @@ def test_run_cve_scan_task_failure(
         },
         findings=[],
         assets=[],
+        services=[],
+        technologies=[],
         error_message="NVD unavailable",
     )

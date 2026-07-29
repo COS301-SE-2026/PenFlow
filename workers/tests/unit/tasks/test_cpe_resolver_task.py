@@ -26,12 +26,12 @@ def test_run_cpe_resolver_task_success(mock_run, mock_callback, mock_send_task):
 
     assert result["status"] == "completed"
     assert result["source_name"] == "cpe_resolver"
-    assert len(result["assets"]) == 1
+    assert len(result["technologies"]) == 1
 
-    asset = result["assets"][0]
+    technologies = result["technologies"][0]
 
-    assert asset["type"] == "resolved_software"
-    assert asset["value"] == resolved_inventory[0]["cpe"]
+    assert technologies["technology_type"] == "software"
+    assert technologies["evidence"]["cpe"] == resolved_inventory[0]["cpe"]
 
     mock_callback.assert_called_once()
     mock_send_task.assert_called_once_with(

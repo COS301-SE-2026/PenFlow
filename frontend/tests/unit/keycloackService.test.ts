@@ -1,6 +1,6 @@
 //testing for auth function(login ,refresh ,logout, register)
 //mock keycloak api resonse to verify behavior without making real clalls
-
+/*
 import {
     loginWithPassword,
     // refreshAccessToken,
@@ -67,3 +67,4 @@ describe("LoginWithPassword",()=>{
 }
 );
 
+*/

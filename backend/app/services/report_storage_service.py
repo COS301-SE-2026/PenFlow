@@ -1,5 +1,7 @@
-import os 
+import os
 from pathlib import Path
+from typing import Any, cast
+
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 
@@ -24,7 +26,7 @@ class ReportStorageService:
 
 
     @staticmethod
-    def get_s3_object(storage_ref: str) -> dict:
+    def get_s3_object(storage_ref: str) -> dict[str, Any]:
         if REPORT_STORAGE != "s3":
             raise Exception("S3 report requested while storage mode is not s3")
 
@@ -33,7 +35,7 @@ class ReportStorageService:
 
         try:
             client = boto3.client("s3", region_name=AWS_REGION)
-            return client.get_object(Bucket=REPORT_S3_BUCKET, Key=storage_ref)
+            return cast(dict[str, Any], client.get_object(Bucket=REPORT_S3_BUCKET, Key=storage_ref))
 
         except(BotoCoreError, ClientError) as err:
             raise Exception(f"Failed to retrieve report from S3: {storage_ref}") from err

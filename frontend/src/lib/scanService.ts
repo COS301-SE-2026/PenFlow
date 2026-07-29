@@ -1,4 +1,5 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "/api/v1";
+//const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "/api/scans";
+const API_BASE = "/api/scans";
 
 // --- Executive summary types ---
 
@@ -160,7 +161,7 @@ export async function fetchScanRiskHistory(scanId: string): Promise<RiskHistoryI
 }
 
 export async function postScanRequest(params: StartScanParams ): Promise<ScanStartResponse> {
-  const response = await fetch(`${API_BASE}/scans`, {
+  const response = await fetch(API_BASE, {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(params),
@@ -247,7 +248,7 @@ export interface ScanHistoryItem {
 }
 
 export async function fetchScanHistory(): Promise<ScanHistoryItem[]> {
-  const response = await fetch(`${API_BASE}/scans`);
+  const response = await fetch(API_BASE);
   if (!response.ok) {
     const err = await response.json().catch(() => ({ detail: "Failed to load scan history" }));
     throw new Error(err.detail ?? "Failed to load scan history");
@@ -256,7 +257,7 @@ export async function fetchScanHistory(): Promise<ScanHistoryItem[]> {
 }
 
 export async function fetchScanSummary(scanId: string): Promise<ExecutiveSummary> {
-  const response = await fetch(`${API_BASE}/scans/${scanId}/summary`, {
+  const response = await fetch(`${API_BASE}/${scanId}/summary`, {
     credentials: "include",
   });
   if (!response.ok) {
@@ -267,7 +268,7 @@ export async function fetchScanSummary(scanId: string): Promise<ExecutiveSummary
 }
 
 export function getReportPdfUrl(scanId: string): string {
-  return `${API_BASE}/scans/${scanId}/pdf`;
+  return `${API_BASE}/${scanId}/pdf`;
 }
 
 export const SEVERITY_COLORS: Record<string, string> = {
@@ -304,7 +305,7 @@ export interface RealTimeScanStatus {
 }
 
 export async function fetchScanStatus(scanId: string): Promise<RealTimeScanStatus> {
-  const response = await fetch(`${API_BASE}/scans/${scanId}/status`);
+  const response = await fetch(`${API_BASE}/${scanId}/status`);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({
@@ -334,7 +335,7 @@ export interface ScanMetrics {
 }
 
 export async function fetchScanMetrics(scanId: string): Promise<ScanMetrics> {
-  const response = await fetch(`${API_BASE}/scans/${scanId}/metrics`);
+  const response = await fetch(`${API_BASE}/${scanId}/metrics`);
   
   if (!response.ok) {
     const err = await response.json().catch(() => ({detail: "Failed to load scan metrics"}));
@@ -344,7 +345,7 @@ export async function fetchScanMetrics(scanId: string): Promise<ScanMetrics> {
 }
 
 export async function sendReportEmail(scanId: string, email: string): Promise<void> {
-  const response = await fetch(`${API_BASE}/scans/${scanId}/email-report`, {
+  const response = await fetch(`${API_BASE}/${scanId}/email-report`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },

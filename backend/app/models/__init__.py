@@ -1,6 +1,5 @@
 # type: ignore
 from app.models.asset import Asset as Asset
-from app.models.base import Base
 from app.models.base import Base, ScanStatus, Severity
 from app.models.detected_technology import DetectedTechnology as DetectedTechnology
 from app.models.finding import Finding as Finding
@@ -21,6 +20,8 @@ __all__ = [
     "Scan",
     "ScanSchedule",
     "ScanSource",
+    "ScanStatus",
+    "Severity",
     "User",
     "VerifiedDomain",
 ]
