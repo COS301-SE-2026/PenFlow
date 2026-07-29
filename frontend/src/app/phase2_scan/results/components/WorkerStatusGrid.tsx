@@ -12,8 +12,9 @@ import {
     type LucideIcon,
 } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { capitalize, cn } from "@/lib/utils";
 import type { ScanSourceStatus } from "@/lib/scanService";
+import { sources } from "next/dist/compiled/webpack/webpack";
 
 interface WorkerMeta {
     label: string;
@@ -63,3 +64,41 @@ const WORKER_STATUS_LABEL: Record<string, string> = {
     pending: "Pending",
     skipped: "Skipped",
 };
+
+function workerMeta(sourceName: string): WorkerMeta {
+    return (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {sources.map((source) => {
+                const meta = workerMeta(source.source_name);
+                const Icon = meta.icon;
+                const statusClassName = WORKER_STATUS_CLASS_NAME[source.status] ?? WORKER_STATUS_CLASS_NAME.pending;
+                const statusLabel = WORKER_STATUS_LABEL[source.status] ?? capitalize(source.status);
+
+                return (
+                    <div
+                        key={source.source_name}
+                        className={cn("flex flex-col gap-2 rounded-lg border p-3.5", statusClassName)}
+                    >
+                        <div className="flex items-center gap-2">
+                            <Icon className="size-4 shrink-0" />
+                            <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{meta.label}</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 text-xs uppercase tracking-wide">
+                            <span className={cn("size-1.5 rounded-full", WORKER_DOT_CLASS_NAME[source.status] ?? WORKER_DOT_CLASS_NAME.pending)} />
+                            {statusLabel}
+                        </div>
+
+                        {source.error_message && (
+                            <p className="line-clamp-2 text-xs text-muted-foreground">{source.error_message}</p>
+                        )}
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+function capitalize(value: string): string {
+    return value.charAt(0).toUpperCase() + value.slice(1);
+}
