@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>
+        PenFlow Active Vulnerability Asessment - {{target_domain}}
+    </title>
+
+    <link rel="stylesheet" href="report_styles.css">
+</head>
+
+<body>
+    <header class = "cover">
+        <div class = "cover-top">
+            <img src="bluevision_logo.png" class="bluevision-logo" alt = "BlueVision logo">
+        </div>
+
+        <div class = "cover-label">
+            ACTIVE ASSESSMENT
+        </div>
+
+        <h1>PenFlow Vulnerability Report</h1>
+
+        <p class = "subtitle">
+            Active External Vulnerability Assessment
+        </p>
+
+        <div class = "meta-box">
+
+            <div class = "meta-row">
+                <span>Target</span>
+                <strong>{{target_domain}}</strong>
+            </div>
+            <div class = "meta-row">
+                <span>Report ID</span>
+                <strong>{{report_id}}</strong>
+            </div>
+            <div class = "meta-row">
+                <span>Generated</span>
+                <strong>{{generated_at}}</strong>
+            </div>
+            <div class = "meta-row">
+                <span>Status</span>
+                <strong>{{status}}</strong>
+            </div>
+
+        </div>
+    </header>
+
+    <section>
+        <div class = "section-heading">
+            <div>
+                <span class = "section-kicker">01</span>
+                <h2>Executive Summary</h2>
+            </div>
+        </div>
+
+        <p>
+            PenFlow performed an active external security assessment of <strong>{{target_domain}}</strong>.
+            The assessment evaluated the externally observable attack surface, exposed network services,
+            HTTP and TLS security characteristics, identifiable technologies, and vulnerability indifactors
+            associated with sufficiently identified software.
+        </p>
+
+        <p class = "secondary-task">
+            Results represent externally observable conditions at the time of assessment. Findings should be
+            evaluated together with system purpose, business context, and existing security controls.
+        </p>
+
+        <div class = "summary-grid">
+
+            <div class = "summary-card">
+                <strong>{{summary.total_findings}}</strong>
+                <span>Total Findings</span>
+            </div>
+
+            <div class = "summary-card summary-card-risk">
+                <strong>{{severity_counts.critical + severity_counts.high}}</strong>
+                <span>Critical / High</span>
+            </div>
+
+            <div class = "summary-card">
+                <strong>{{summary.asset_count}}</strong>
+                <span>External Assets</span>
+            </div>
+
+            <div class = "summary-card">
+                <strong>{{summary.service_count}}</strong>
+                <span>Exposed Services</span>
+            </div>
+
+            <div class = "summary-card">
+                <strong>{{vulnerabilities.cve_count}}</strong>
+                <span>Matched CVEs</span>
+            </div>
+
+        </div>
+
+        {% if vulnerabilities.cve_count > 0 %}
+
+        <div class = "vulnerability-summary">
+
+            <div>
+                <span>Known CVEs Matched</span>
+                <strong>{{vulnerabilities.cve_count}}</strong>
+            </div>
+
+            <div>
+                <span>Highest CVSS</span>
+                <strong>
+                    {% if vulnerabilities.highest_cvss is not none %}
+                        {{vulnerabilities.highest_cvss}} / 10
+                    {% else #}
+                        N/A
+                    {% endif %}
+                </strong>
+            </div>
+
+            <div>
+                <span>Average CVSS</span>
+                <strong>
+                    {% if vulnerabilities.average_cvss is not none %}
+                        {{vulnerabilities.average_cvss}} / 10
+                    {% else #}
+                        N/A
+                    {% endif %}          
+                </strong>
+            </div>
+        </div>
+
+        {% endif %}
+    </section>
+
+    <section>
+        <div class = "section-heading">
+            <div>
+                <span class = "section-kicker">02</span>
+                <h2>Finding Severity</h2>
+            </div>
+        </div>
+
+        <div class = "severity-grid">
+            
+            <div class = "severity-card critical">
+                <strong>{{severity_counts.critical}}</strong>
+                 <span>Critical</span>
+            </div>
+
+            <div class = "severity-card high">
+                <strong>{{severity_counts.high}}</strong>
+                 <span>High</span>
+            </div>
+
+            <div class = "severity-card medium">
+                <strong>{{severity_counts.medium}}</strong>
+                 <span>Medium</span>
+            </div>
+
+            <div class = "severity-card low">
+                <strong>{{severity_counts.low}}</strong>
+                 <span>Low</span>
+            </div>
+
+            <div class = "severity-card info">
+                <strong>{{severity_counts.info}}</strong>
+                 <span>Informational</span>
+            </div>
+            
+        </div>
+
+        {% if severity_counts.critical > 0 %}
+        <div class = "risk-notice risk-notice-critical">
+            <strong>Critical exposure identified.</strong>
+            One or more findings represent potentially severe weaknesses requiring
+            urgent investigation.
+        </div>
+
+        {% elif severity_counts.high > 0 %}
+        <div class = "risk-notice risk-notice-high">
+            <strong>High severity exposure detected.</strong>
+        </div>
+
+        {% elif summary.total_findings == 0 %}
+        <div class = "risk-notice risk-notice-clear">
+            <strong>No findings were identified by the completed scan checks.</strong>
+            No reportable security findings were identified from the externall observable evidence
+            collected during this assessment. This does not guarentee that the target is free of vulnerabilities.
+        </div>
+        {% endif %}
+
+    </section>
+
+    <section>
+        <div class = "section-heading">
+            <div>
+                <span class = "section-kicker">03</span>
+                <h2>Assessment Scope & Methodology</h2>
+            </div>
+        </div>
+
+        <p>
+            The assessment targeted the verified domain <strong>{{target_domain}}</strong>
+            and externally reachable infrastructure associated with it.
+        </p>
+
+        <table class = "methodology-table">
+            <thead>
+                <tr>
+                    <th>Assessment Area</th>
+                    <th>Purpose</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>Target Resolution</td>
+                    <td>
+                        Identify externally reachable IP addresses associated with the verified domain.
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>Service Discovery</td>
+                    <td>
+                        Identify reachable network ports, protocols, services, products, and observable
+                        version information.
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>HTTP Security</td>
+                    <td>
+                        Inspect HTTP endpoints and relevant security header configuration.
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>TLS Inspection</td>
+                    <td>
+                        Inspect TLS-enabled endpoints and certificate characteristics.
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>Technology Fingerprints</td>
+                    <td>
+                        Identify externally observable platforms, servers, frameworks, and software components.
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>Vulnerability Correlation</td>
+                    <td>
+                        Correlate sufficiently identified software versions with known vulnerability information.
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>External Intelligence</td>
+                    <td>
+                        Supplement active observations with DNS, certificate transparency, infrastructure, and branch intelligence.
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </section>
+
+    {% if scan_sources %}
+
+    <section>
+        <div class = "section-heading">
+            <div>
+                <span class = "section-kicker">04</span>
+                <h2>Assessment Coverage</h2>
+            </div>
+        </div>
+
+        <p>
+            The following scan components contributed to this report.
+            Failed, partial, or skipped components may reduce assessment coverage.
+        </p>
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Component</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for source in scan_sources %}
+                <tr>
+                    <td>
+                        <strong>{{source.source_name | replace("_", " ") | title}}</strong>
+                    </td>
+
+                    <td>
+                        <span class = "status-pill status={{source.status}}">
+                            {{source.status | replace("_", " ") | title}}
+                        </span>
+                    </td>
+
+                    <td>
+                        {% if source.error_message %}
+                            {{source.error_message}}
+                        {% else %}
+                            Completed without reported errors.
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+    {% endif %}
+    </body>
+    </html>
+    
