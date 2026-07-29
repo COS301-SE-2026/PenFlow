@@ -35,10 +35,12 @@ async def test_scan_progress_stream_send__all_mock_events_and_closes(mock_sleep)
 @patch("app.realtime.stream.asyncio.sleep",new_callable= AsyncMock)
 async def test_scan_progress_stream_handles_client_disconnect(mock_sleep):
     websocket = AsyncMock()
-    websocket.send_text.side__effect = WebSocketDisconnect()
+    websocket.send_text.side_effect = WebSocketDisconnect()
 
     await scan_progress_stream(websocket , "test-scan-id")
 
     websocket.accept.assert_awaited_once()
     websocket.send_text.assert_awaited_once()
     websocket.close.assert_not_awaited()
+
+#test 
