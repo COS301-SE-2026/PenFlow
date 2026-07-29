@@ -1,12 +1,13 @@
 from types import SimpleNamespace
-from unittest.mock import AsyncMock , patch
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
 
 from app.schemas.scan import InitiateScanRequest, ScanTypeEnum
-from app.services.scan_service import  ScanService
+from app.services.scan_service import ScanService
+
 
 def _scan_data(**overrides):
     defaults ={
