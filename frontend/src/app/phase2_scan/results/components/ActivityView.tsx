@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 
 import { fetchScanStatus, type RealTimeScanStatus } from "@/lib/scanService";
 import WorkerStatusGrid from "./WorkerStatusGrid";
-import { INSPECT_MAX_BYTES } from "buffer";
 
 const scanTypeLabel: Record<string, string> = {
     active_vulnerability: "Active Vulnerability Scan",
@@ -63,7 +62,7 @@ export default function ActivityView({ scanId }: { scanId: string }) {
 
     return (
         <section className="min-w-0" data-scan-id={scanId}>
-            <div className="mb-5 rounded-[10px] border border-brand-panel-border bg-[#ob1625] p-[18px]">
+            <div className="mb-5 rounded-[10px] border border-brand-panel-border bg-[#0b1625] p-[18px]">
                 <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
                     {details.map((item, index) => (
                         <div key={item.label} className="flex items-center gap-8">
