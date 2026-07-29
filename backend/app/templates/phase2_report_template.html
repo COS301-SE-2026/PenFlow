@@ -319,6 +319,355 @@
         </table>
     </section>
     {% endif %}
-    </body>
-    </html>
-    
+
+    <section>
+        <div class = "section-heading">
+            <div>
+                <span class = "section-kicker">05</span>
+                <h2>External Attack Surface</h2>
+            </div>
+        </div>
+
+        <p>
+            Assets below were discovered or associated with the target during the assessment.
+            Finding counts indicate security observations linked to each asset.
+        </p>
+
+        {% if assets %}
+        <table>
+            <thead>
+                <tr>
+                    <td>Asset</td>
+                    <td>Type</td>
+                    <td>Finding</td>
+                    <td>Critical</td>
+                    <td>High</td>
+                    <td>Medium</td>
+                    <td>Low</td>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for asset in assets %}
+                <tr>
+                    <td>
+                        <strong>{{asset.identifier}}</strong>
+                    </td>
+
+                    <td>
+                        {{asset.asset_type | replace("_", " ") | title}}
+                    </td>
+
+                    <td>
+                        {{asset.findings_count}}
+                    </td>
+
+                    <td>
+                        {{asset.critical_count}}
+                    </td>
+
+                    <td>
+                        {{asset.high_count}}
+                    </td>
+
+                    <td>
+                        {{asset.medium_count}}
+                    </td>
+
+                    <td>
+                        {{asset.low_count}}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% else %}
+        <div class = "empty-state">
+            No external assets were recorded during this assessment.
+        </div>
+
+        {% endif %}
+    </section>
+
+      <section>
+        <div class = "section-heading">
+            <div>
+                <span class = "section-kicker">06</span>
+                <h2>Externally Exposed Services</h2>
+            </div>
+        </div>
+
+        <p>
+            Publicly reachable services expand the target's external attack surface.
+            Exposure should be reviewed to confirm that each service is necessary and appropriately secured.
+        </p>
+
+        {% if services %}
+        <table class = "services-table">
+            <thead>
+                <tr>
+                    <th>Host</th>
+                    <th>Port</th>
+                    <th>Transport</th>
+                    <th>Service</th>
+                    <th>Product</th>
+                    <th>Version</th>
+                    <th>State</th>
+                    <th>TLS</th>
+                    <th>Findings</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for service in services %}
+                <tr>
+                    <td>
+                        {{service.host}}
+                    </td>
+
+                    <td>
+                        <strong>{{service.port}}</strong>
+                    </td>
+
+                    <td>
+                        {{service.protocol | upper}}
+                    </td>
+
+                    <td>
+                        {{service.service_name or "Unknown"}}
+                    </td>
+
+                    <td>
+                        {{service.product or "Unknown"}}
+                    </td>
+
+                    <td>
+                        {{service.version or "Unknown"}}
+                    </td>
+
+                    <td>
+                        {{service.state or "Unknown"}}
+                    </td>
+
+                    <td>
+                        {% if service.tls_enabled %}
+                            Yes
+                        {% else %}
+                            No
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {{service.findings_count}}
+                    </td>
+                </tr>
+                {% if service.banner %}
+                
+                <tr class = "service-detail-row">
+                    <td colspan="9">
+                        <strong>Observed service detail:</strong> {{service.banner}}
+                    </td>
+                </tr>
+                {% endif %}
+            {% endfor %}
+            </tbody>
+        </table>
+
+        {% else %}
+        <div class = "empty-state">
+            No externally exposed services were recorded.
+        </div>
+
+        {% endif %}
+    </section>
+
+      <section>
+        <div class = "section-heading">
+            <div>
+                <span class = "section-kicker">07</span>
+                <h2>Detected Technology Inventory</h2>
+            </div>
+        </div>
+
+        <p>
+            PenFlow identified the following technologies from externally observable evidence.
+            Version information may be unavailable when a service suppresses, obscures, or proxies identifying information.
+        </p>
+
+        {% if technologies %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Product</th>
+                    <th>Version</th>
+                    <th>Confidence</th>
+                    <th>Source</th>
+                    <th>Observed</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for tech in technologies %}
+                <tr>
+                    <td>
+                        {{tech.technology_type | replace("_", " ") | title}}
+                    </td>
+
+                    <td>
+                        <strong>{{tech.product}}</strong>
+                    </td>
+
+                    <td>
+                        {{tech.version or "Unknown"}}
+                    </td>
+
+                    <td>
+                        {% if tech.confidence is not none %}
+                            {{(tech.confidence * 100) | round(0)}}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {{tech.detection_source or "Unknown"}}
+                    </td>
+
+                    <td>
+                        {% if tech.asset %}
+                            {{tech.asset}}
+                        {% elif tech.service %}
+                            {{tech.service.host}}
+                            {% if tech.service.port %}
+                                :{{tech.service.port}}
+                            {% endif %}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+        {% set versioned_count = namespace(value=0) %}
+
+        {% for tech in technologies %}
+            {% if tech.version %}
+                {% set versioned_count.value = versioned_count.value + 1 %}
+            {% endif %}
+        {% endfor %}
+
+        {% if technologies | length > 0 and versioned_count.value == 0 %}
+            <div class = "context-note">
+                <strong>No software versions were reliably identified.</strong>
+                Version-specific vulerability matching may therefore be limited. Reverse proxies, CDNs, and
+                service configurations can obscure underlying software versions.
+            </div>
+        {% endif %}
+
+    {% else %}
+        <div class = "empty-state">
+            No technologies could be reliably identified.
+        </div>
+    {% endif %}
+
+    </section>
+
+      <section>
+        <div class = "section-heading">
+            <div>
+                <span class = "section-kicker">08</span>
+                <h2>Finding Register</h2>
+            </div>
+        </div>
+
+        <p>
+            The table below provides a concise register of findings produced during the assessment.
+            Detailed evidence and remediation guidance follow.
+        </p>
+
+        {% if findings %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Severity</th>
+                    <th>Finding</th>
+                    <th>CVE</th>
+                    <th>CVSS</th>
+                    <th>Affected Target</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for find in findings %}
+                <tr>
+                    <td>
+                        <span class = "badge badge-{{find.severity}}">
+                            {{find.severity}}
+                        </span>
+                    </td>
+
+                    <td>
+                        <strong>{{find.title}}</strong>
+                    </td>
+
+                    <td>
+                        {{find.cve_id or "—"}}
+                    </td>
+
+                    <td>
+                        {% if find.cvss_score is not none %}
+                            {{find.cvss_score}}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if find.asset %}
+                            {{find.asset}}
+                        {% endif %}
+
+                        {% if find.service %}
+                            {% if find.asset %}
+                                <br>
+                            {% endif %}
+
+                            {{find.service.host}}
+                            {% if find.service.port %}
+                                :{{find.service.port}}
+                            {% endif %}
+
+                            {% if find.service.protocol %}
+                                /{{find.service.protocol}}
+                            {% endif %}
+
+                        {% endif %}
+
+                        {% if not find.asset and not find.service %}
+                            —
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {{find.status | replace("_", " ") | title}}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+    {% else %}
+        <div class = "empty-state">
+            No security findings were produced by the completed scan checks.
+        </div>
+    {% endif %}
+
+    </section>
+
+</body>
+</html>
