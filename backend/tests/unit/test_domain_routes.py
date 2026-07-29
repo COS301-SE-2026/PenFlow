@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock ,patch
+from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
 import pytest
@@ -8,9 +8,9 @@ from app.api.routes.domains import (
     add_domain_for_verification,
     delete_domain,
     get_domains,
-    verify_domain_ownership,
 )
-from app.schemas.domain import AddDomainRequest, DomainSortField,SortOrder
+from app.schemas.domain import AddDomainRequest, DomainSortField, SortOrder
+
 
 def _current_user():
     return{"sub": "kc-123", "email": "test@example.com"}

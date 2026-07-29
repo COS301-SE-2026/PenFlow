@@ -4,6 +4,7 @@ import pytest
 
 from app.api.routes.health import health_check
 
+
 @pytest.mark.asyncio
 async def test_health_check_database_connected():
     db = AsyncMock()

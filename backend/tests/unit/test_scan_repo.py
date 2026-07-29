@@ -111,7 +111,7 @@ async def test_save_source_result_creates_new_source_with_assets_and_findings(mo
 @pytest.mark.asyncio
 @patch("app.repositories.scan_repo.ScanRepository.get_scan_by_id",
 new_callable = AsyncMock)
-async def test_save_source_result_updates_existing_soruce(mock_get_scan):
+async def test_save_source_result_updates_existing_source(mock_get_scan):
     db = _make_db()
     fake_scan = SimpleNamespace(
         id = uuid4(),
