@@ -20,13 +20,12 @@ type NavItem =
 
   const loggedInNavItems: NavItem[] = [
     { label: "Home", href: "/", kind: "link"},
-    { label: "Dashboard", href: "/dashboard", kind: "link"},
+    //{ label: "Dashboard", href: "/dashboard", kind: "link"},
     { label: "Domains", href: "/domains", kind: "link"},
     { label: "Scans", href: "/phase2_scan", kind: "link"},
-    { label: "Scheduled Scans", href: "/scheduled-scans", kind: "link"},
+    //{ label: "Scheduled Scans", href: "/scheduled-scans", kind: "link"},
     { label: "Scan History", href: "/history", kind: "link"},
-    { label: "Old History", href: "/history", kind: "link"},
-    { label: "Settings", href: "/settings", kind: "link"},
+    //{ label: "Settings", href: "/settings", kind: "link"},
     { label: "Help", href: "/help", kind: "link"},
     { label: "Logout", href: "/api/auth/logout", kind: "external"},
   ];
