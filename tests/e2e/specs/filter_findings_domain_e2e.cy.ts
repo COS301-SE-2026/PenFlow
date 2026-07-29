@@ -29,6 +29,16 @@ describe('filter/Search Findings', () => {
             expect($badge.text().toLowerCase()).to.eq("critical");
           });
       });
+      
     });
+    //search
+     it("finds a finding by searching its title", () => {
+    cy.get("section[data-scan-id] h3").first().invoke("text").then((title) => {
+      const term = title.trim().split(" ")[0];
+      cy.get('input[aria-label="Search findings"]').type(term);
+
+      cy.contains("h3", title).should("be.visible");
+    });
+  });
   
 })
