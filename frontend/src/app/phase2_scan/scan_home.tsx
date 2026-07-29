@@ -36,15 +36,7 @@ const statusConfig: Record<string, { label: string; className: string; icon:Luci
     partial: {label: "Partial", className: "border-brand-yellow text-brand-yellow bg-brand-yellow/10", icon: XCircle} ,
 };
 
-function formatTimestamp(iso: string): string {
-    return new Date(iso).toLocaleString("en-GB",{
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-    });
-}
+
 
 function StatusBadge({ status }: { status: string}) {
         const config = statusConfig[status] ?? statusConfig.queued;
@@ -302,7 +294,7 @@ export default function ScanHome() {
             .finally(()=>setLoading(false));
     },[]);
     const runningScans = scans.filter((s)=> RUNNING_STATUSES.has(s.status));
-    const latestResults = scans.filter ((s)=> !RUNNING_STATUSES.has(s.status));
+    
     return(
         <div className="flex flex-col gap-8">
             <div>
@@ -353,34 +345,7 @@ export default function ScanHome() {
                         )}
                     </section>
                         
-                    <section>
-                        <SectionHeader title="Latest Results" count= {latestResults.length}/>
-                        {latestResults.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">No completed scans yet.</p>
-                        ) : (
-                            <div className="flex flex-col gap-3">
-                                {latestResults.map((scan) =>  (
-                                    <Card key={scan.id} className="border border-brand-panel-border bg-brand-panel ring-0">     
-                                        <CardContent className="flex flex-wrap items-center gap-4">
-                                            <ScanIcon status= {scan.status} />
-                                            <div className="min-w-0 flex-1">
-                                              <p className="truncate font-medium text-foreground">{scan.domain}</p>
-                                              <p className="text-sm text-muted-foreground">
-                                                {scanTypeLabel[scan.scan_type] ?? scan.scan_type}
-                                              </p>
-                                            </div>
-                                              <StatusBadge status={scan.status}/>
-                                              <span className="w-40 shrink-0 text-sm text-muted-foreground">
-                                                {formatTimestamp(scan.created_at)}
-                                              </span>
-                                              <TextLink href={`/phase2_scan/results/${scan.id}`}>View Results </TextLink>
-                                              <MoreMenuButton/>
-                                            </CardContent>
-                                        </Card>
-                                ))}
-                            </div>
-                        )}
-                    </section>
+                    
                     </>
                     )}
                 </div>
