@@ -21,7 +21,7 @@ interface SummaryCardProps {
     donutGradient: string;
 }
 
-const severityClassName: record<string, string> = {
+const severityClassName: Record<string, string> = {
     critical: "border-[#991b1b] text-brand-alert bg-brand-alert/10",
     high: "border-brand-orange/70 text-brand-orange bg-brand-orange/10",
     medium: "border-brand-yellow/70 text-brand-yellow bg-brand-yellow/10",
@@ -38,7 +38,7 @@ const DONUT_GRADIENTS = {
 const PANEL_CLASS_NAME = "min-w-0 rounded-[10px] border-brand-panel-border bg-[#0b1625] p-[18px]";
 function SummaryCard({title, value, items, donutGradient}: SummaryCardProps) {
     return (
-        <article className={cn(PANEL_CLASS_NAME, "min-h-[210px")}>
+        <article className={cn(PANEL_CLASS_NAME, "min-h-[210px]")}>
             <div className="flex items-center justify-between gap-4">
                 <div>
                     <span className="mb-2 block text-[11px] font-semibold text-[#cbd5e1] uppercase">{title}</span>
@@ -50,7 +50,7 @@ function SummaryCard({title, value, items, donutGradient}: SummaryCardProps) {
                         className="size-[74px] shrink-0 rounded-full"
                         style = {{
                             background: donutGradient,
-                            mask: "radial-gradient(circle at center, trasparent 48%, #000 50%",
+                            mask: "radial-gradient(circle at center, transparent 48%, #000 50%)",
                         }}
                     />
                 )}
@@ -73,11 +73,11 @@ function SummaryCard({title, value, items, donutGradient}: SummaryCardProps) {
 }
 
 function riskLevelLabel(level: string): string {
-    return level.split("_").map((word) => capitalize(word.toLowerCase())).join("");
+    return level.split("_").map((word) => capitalize(word.toLowerCase())).join(" ");
 }
 
 function BreakdownItems(breakdown: Record<string, number>) : BreakdownItem[] {
-    return Object.entries(breakdown).filter(([key]) => key !== "total").map(([Key, value]) => ({label:capitalize(key), value}));
+    return Object.entries(breakdown).filter(([key]) => key !== "total").map(([Key, value]) => ({label:capitalize(Key), value}));
 }
 
 function RiskHistoryChart({history}: {history: RiskHistoryItem[]}) {
@@ -111,7 +111,7 @@ function RiskHistoryChart({history}: {history: RiskHistoryItem[]}) {
                 <div 
                     className="absolute inset-x-0 top-0 bottom-[22px]"
                     style = {{
-                        backgroundImage: "linear-gradient(to right, rgb(51 65 85 / 35%) 1px, transparent 1px), linear-gradient(to bottom, rgb(51 65 85 / 35%) 1px, transparent px",
+                        backgroundImage: "linear-gradient(to right, rgb(51 65 85 / 35%) 1px, transparent 1px), linear-gradient(to bottom, rgb(51 65 85 / 35%) 1px, transparent 1px",
                         backgroundSize: "12.5% 25%",
                     }}
                 />
@@ -126,7 +126,7 @@ function RiskHistoryChart({history}: {history: RiskHistoryItem[]}) {
                             className="fill-none stroke-[#ef4444]"
                             style = {{strokeWidth: 4, vectorEffect: "non-scaling-stroke"}}
                         />
-                        <polygon points={fillPoints} fill = "rgb(239 68 68 / 10%" />
+                        <polygon points={fillPoints} fill = "rgb(239 68 68 / 10%)" />
                         {points.map((p, index) => (
                             <circle key = {`${p.x}-${p.y}`} cx={p.x} cy={p.y} r="5" fill="#ef4444">
                                 <title>{history[index].date}</title>
@@ -263,7 +263,7 @@ export default function ScanResultsOverview({scanId}: {scanId: string}) {
                         <div className="grid">
                             {topFindings.map((finding) => (
                                 <div className="grid min-h-[42px] grid-cols-[minmax(140px,1.7fr)_minmax(90px,1fr)_auto_34px] items-center gap-3 border-b border-brand-panel-border/70 text-[11px]
-                                                last: border-b-0 max-[650px]:grid-cols-[1fr_auto] max-[650px]:py-2.5"
+                                                last:border-b-0 max-[650px]:grid-cols-[1fr_auto] max-[650px]:py-2.5"
                                                 key={finding.id}
                                 >
                                     <span className="overflow-hidden text-ellipsis whitespace-nowrap text-foreground">

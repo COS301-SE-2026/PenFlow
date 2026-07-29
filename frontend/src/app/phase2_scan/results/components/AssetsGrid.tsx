@@ -90,9 +90,124 @@ export default function AssetsGrid({scanId}: {scanId: string}) {
                 </div>
 
                 <div className = "mb-4.5 grid grid-cols-5 max-[1100px]:grid-cols-3 max-[1100px]:gap-y-2.5 max-[720px]:grid-cols-1">
-                    
+                    {assetTypes.length === 0 ? (
+                        <p className="mt-4 text-xs text-muted-foreground">No assets discovered yet.</p>
+                    ): (
+                        assetTypes.map((type) => (
+                            <div
+                                key = {type}
+                                className="flex min-w-0 items-center gap-2.5 border-r border-brand-panel-border px-4.5 py-2 text-foreground first:pl-0 last:border-r-0 max-[720px]:border-r-0 max-[720px]:border-b max-[720px]:py-2.5"
+                            >
+                                <span className="grid gap-0.5">
+                                    <small className="text-[11px] text-[#aeb9c8]"> {capitalize(type)} </small>
+                                    <strong className="text-xl"> {typeCounts[type]} </strong>
+                                </span>
+                            </div>
+                        ))
+                    )}
                 </div>
+
+                {error && <p className="mt-4 text-xs text-muted-foreground"> {error} </p>}
+                {loading && <p className="mt-4 text-xs text-muted-foreground"> Loading assets... </p>}
+                {!loading && !error && (
+                    <div
+                        className={cn("grid items-start gap-5", selectedAsset
+                            ? "grid-cols-[minmax(0,1.35fr)_minmax(430px,0.95fr)] max-[1450px]:grid-cols-[minmax(0,1fr)_410px] max-[1100px]:grid-cols-1"
+                            : "grid-cols-[minmax(0,1fr)]"
+                )}
+            >
+                <div className="min-w-0">
+                    <div className="min-w-0 border-t border-b border-brand-panel-border max-[720px]:overflow-x-auto">
+                        <div className="grid min-h-[47px] grid-cols-[minmax(260px,1.8fr)_minmax(90px,0.65fr)_minmax(70px,0.45fr)_22px]
+                                        items-center gap-3.5 border-b border-brand-panel-border px-4 text-[10px] text-muted-foreground uppercase max-[720px]:min-w-[670px]">
+                                <span>Asset</span>  
+                                <span>Type</span>  
+                                <span>Findings</span>  
+                                <span />                                  
+                        </div>
+
+                        <div>
+                             {visibleAssets.length === 0 ? (
+                                <p className="mt-4 text-xs text-muted-foreground">No assets match your filters.</p>
+                             ) : (
+                                visibleAssets.map((asset) => {
+                                    const isSelected = selectedAsset?.id === asset.id;
+                                    return (
+                                        <button
+                                            key={asset.id}
+                                            type ="button"
+                                            onClick={() => setSelectedAsset(asset)}
+                                            className={cn("grid min-h-[72px] w-full grid-cols-[minmax(260px,1.8fr)_minmax(90px,0.65fr)_minmax(70px,0.45fr)_22px] items-center gap-3.5 border-0 border-b border-[#243047]/[0.76] bg-transparent px-4 text-left text-[#cbd5e1] last:border-b-0 hover:bg-[#0d1928] max-[720px]:min-w-[670px]",
+                                            isSelected && "bg-[#0d1928] shadow-[inset_2px_0_#258cff]"
+                                    )}
+                                >
+                                    <span className="flex min-w-0 items-center gap-3">
+                                        <strong className="overflow-hidden text-[13px] text-foreground text-ellipsis whitespace-nowrap">
+                                            {asset.identifier}
+                                        </strong>
+                                    </span>
+
+                                    <span className="text-[11px] text-[#aeb9c8]">{capitalize(asset.asset_type)}</span>
+                                    <strong className="text-base font-medium">{asset.findings_count}</strong>
+                                    <span className="text-[21px] text-[#cbd5e1]" aria-hidden ="true">{`>`}</span>
+                                </button>
+                             );
+                            })
+                        )}
+                        </div>
+                    </div>
+                </div>
+
+                {selectedAsset && (
+                    <aside className="min-w-0 overflow-hidden rounded-[9px] border border-brand-panel-border bg-[#0b1625] max-[1100px]:static max-[1100px]:max-h-none lg:sticky lg:top-5 lg:max-h-[calc(100vh-40px)]">
+                        <header className="flex items-start justify-between gap-4 border-b border-brand-panel-border p-4.5 max-[720px]:flex-col">
+                            <div className="flex min-w-0 items-start gap-3">
+                                <div>
+                                    <h2 className="mt-px mb-1.5 text-lg break-words text-foreground"> {selectedAsset.identifier} </h2>
+                                    <p className="m-0 flex flex-wrap gap-1.5 text-[10px] text-muted-foreground">
+                                        {capitalize(selectedAsset.asset_type)}
+                                        <span>•</span>
+                                        <strong className="font-medium text-brand-alert"> {selectedAsset.findings_count} findings </strong>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex shrink-0 items-center gap-3 max-[720px]:w-full max-[720px]:justify-between">
+                                <button
+                                    type = "button"
+                                    aria-label="close asset details"
+                                    onClick={()=> setSelectedAsset(null)}
+                                    className="border-0 bg-transparent text-2xl text-muted-foreground hover:text-white">x</button>
+                            </div>
+                        </header>
+
+                        <div className="max-h-[calc(100vh-135px)] overflow-y-auto p-4 max-[1100px]:max-h-none">
+                            <section className="border-b border-brand-panel-border pb-4">
+                                <h3 className="mt-0 mb-4 text-[13px] text-foreground">Overview</h3>
+                                <div className="grid grid-cols-2 max-[720px]:grid-cols-1">
+                                    <dl className="m-0 grid gap-3.5 border-r border-brand-panel-border pr-4 max-[720px]:border-r-0 max-[720px]:border-b max-[720px]:pr-0 max-[720px]:pb-3.5">
+                                        <div className="grid gap-1">
+                                            <dt className="text-[10px] text-muted-foreground">Type</dt>
+                                            <dd className="m-0 text-[11px] text-foreground"> {capitalize(selectedAsset.asset_type)}</dd>
+                                        </div>
+                                        <div className="grid gap-1">
+                                            <dt className="text-[10px] text-muted-foreground">Open Findings</dt>
+                                            <dd className="m-0 text-[11px] text-foreground"> {selectedAsset.findings_count} </dd>
+                                        </div>
+                                    </dl>
+                                </div>
+                            </section>
+
+                            <Link
+                                href={`/phase2_scan/results/${scanId}/findings`}
+                                className="relative mt-3.5 grid gap-1 rounded-lg border border-[#26364e] bg-[#0c1828] px-3.5 py-3 pr-10 text-center no-underline hover:border-[#155da1] hover:bg-[#102036]"
+                                >
+                                    <strong className="text-[10px] text-[#70b9ff]">View findings in the Findings tab</strong>
+                            </Link>
+                        </div>
+                    </aside>
+                )}
             </div>
         </section>
-    )
+    );
 }
