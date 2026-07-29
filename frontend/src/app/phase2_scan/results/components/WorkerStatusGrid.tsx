@@ -14,7 +14,6 @@ import {
 
 import { capitalize, cn } from "@/lib/utils";
 import type { ScanSourceStatus } from "@/lib/scanService";
-import { sources } from "next/dist/compiled/webpack/webpack";
 
 interface WorkerMeta {
     label: string;
@@ -65,11 +64,15 @@ const WORKER_STATUS_LABEL: Record<string, string> = {
     skipped: "Skipped",
 };
 
-function workerMeta(sourceName: string): WorkerMeta {
+function getWorkersMeta(sourceName: string): WorkerMeta {
+    return WORKER_META[sourceName] ?? DEFAULT_WORKER_META;
+}
+
+export default function WorkerStatusGrid({ sources }: { sources: ScanSourceStatus[] }) {
     return (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {sources.map((source) => {
-                const meta = workerMeta(source.source_name);
+                const meta = getWorkersMeta(source.source_name);
                 const Icon = meta.icon;
                 const statusClassName = WORKER_STATUS_CLASS_NAME[source.status] ?? WORKER_STATUS_CLASS_NAME.pending;
                 const statusLabel = WORKER_STATUS_LABEL[source.status] ?? capitalize(source.status);
@@ -97,8 +100,4 @@ function workerMeta(sourceName: string): WorkerMeta {
             })}
         </div>
     );
-}
-
-function capitalize(value: string): string {
-    return value.charAt(0).toUpperCase() + value.slice(1);
 }
