@@ -4,9 +4,12 @@ import os
 import httpx
 
 logger = logging.getLogger(__name__)
-backend_url = os.getenv("BACKEND_URL")
-if not backend_url:
-    raise RuntimeError("BACKEND_URL is missing")    
+temp_backend_url = os.getenv("BACKEND_URL")
+
+if not temp_backend_url:
+    raise RuntimeError("BACKEND_URL is missing")
+
+backend_url: str = temp_backend_url
 
 def build_api_url(path: str) -> str:
     return f"{backend_url.rstrip('/')}/api/v1{path}"
