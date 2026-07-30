@@ -36,9 +36,8 @@ export default function LoginPage() {
         return;
       }
 
-      // TODO: redirect to scan history once implemented
-      // router.push("/scan-history");
-      router.push("/");
+      // goes to dashboard once login
+      router.push("/dashboard");
     } catch {
       setError("Network error. Please try again.");
     } finally {

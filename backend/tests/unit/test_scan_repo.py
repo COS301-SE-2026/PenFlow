@@ -14,8 +14,8 @@ from app.repositories.scan_repo import ScanRepository
 # create a mock db with common method
 def _make_db():
     db = MagicMock()
-    db.add = MagicMock() #mock for adding objec to session
-    db.commit = AsyncMock() #mock from commiting transcation
+    db.add = MagicMock() #mock for adding object to session
+    db.commit = AsyncMock() #mock from committing transaction
     db.rollback = AsyncMock() # mock for roll back
     db.refresh = AsyncMock() # mock for refreshing object
     db.flush = AsyncMock()  # mock for flushing session
@@ -111,12 +111,13 @@ async def test_save_source_result_creates_new_source_with_assets_and_findings(mo
 @pytest.mark.asyncio
 @patch("app.repositories.scan_repo.ScanRepository.get_scan_by_id",
 new_callable = AsyncMock)
-async def test_save_source_result_updates_existing_soruce(mock_get_scan):
+async def test_save_source_result_updates_existing_source(mock_get_scan):
     db = _make_db()
-    fake_scan = SimpleNamespace(id = uuid4(), 
-                                progress =0, 
-                                status= ScanStatus.RUNNING,
-                                scan_type=SimpleNamespace(value="passive_ctem")
+    fake_scan = SimpleNamespace(
+        id = uuid4(),
+        progress =0, 
+        status= ScanStatus.RUNNING,
+        scan_type=SimpleNamespace(value="passive_ctem")
     )
     mock_get_scan.return_value =fake_scan
 
@@ -206,3 +207,74 @@ async def test_get_scan_status_returns_none_when_scan_missing(mock_get_scan):
                                                   None)
 
     assert result is None
+
+#test scan source when all the source succeed
+#This test covers when all scan source is completely works 
+@pytest.mark.asyncio
+@patch("app.repositories.scan_repo.ScanRepository.get_scan_by_id",new_callable =AsyncMock)
+async def test_save_source_result_marks_scan_completed_when_all_sources_succeed(mock_get_scan):
+    db = _make_db()
+    fake_scan = SimpleNamespace(
+        id = uuid4(),
+        progress =0, 
+        status= ScanStatus.RUNNING,
+        scan_type=SimpleNamespace(value="passive_ctem")
+    )
+    mock_get_scan.return_value =fake_scan
+
+    #mock source result update query
+    source_result = MagicMock()
+    source_result.scalar_one_or_none.return_value = None # no scan source
+
+    #mock status aggregation
+    count_result = MagicMock()
+    #passive osint scan workers
+    count_result.all.return_value = [
+        ("dns",ScanSourceStatus.COMPLETED),
+        ("urlscan",ScanSourceStatus.COMPLETED),
+        ("wappalyzer",ScanSourceStatus.COMPLETED),
+        ("crt.sh",ScanSourceStatus.COMPLETED),
+        ("shodan",ScanSourceStatus.COMPLETED),
+        ("hunter.io",ScanSourceStatus.COMPLETED),
+        ("hibp",ScanSourceStatus.COMPLETED),
+
+    ]
+    db.execute = AsyncMock(side_effect = [ source_result, count_result])
+
+    #update source result (hibp)
+    scan = await ScanRepository.save_source_result(db,fake_scan.id,"hibp",{"status":"completed"})
+
+    #assert
+    assert scan.status == ScanStatus.COMPLETED
+    assert scan.progress == 100
+    assert scan.error_message is None
+
+#test error handling when scans roll back
+@pytest.mark.asyncio
+async def test_create_scan_roll_back_on_db_error():
+    db = _make_db()
+    db.commit = AsyncMock(side_effect = SQLAlchemyError("boom"))
+
+    with pytest.raises(SQLAlchemyError):
+        await ScanRepository.create_scan(db,domain= "example.com")
+
+    db.rollback.assert_awaited_once()
+
+#list scan status filter
+@pytest.mark.asyncio
+async def test_list_scans_filter_by_status():
+    "test the list_scans properly filters scans by their status"
+    db = _make_db()
+    result = MagicMock()
+    result.all.return_value = [] # simulate no scans found in a give status
+
+    db.execute = AsyncMock(return_value = result)
+
+    scans = await ScanRepository.list_scans(db,uuid4(),status=ScanStatus.COMPLETED)
+
+    #verified empty list is return when no scans match the status
+    assert scans == []
+    #
+    db.execute.assert_awaited_once()
+    
+       

@@ -36,6 +36,8 @@ app.dependency_overrides[get_current_user] = override_get_current_user
 
 @pytest.mark.asyncio
 async def test_add_domain_for_verification(test_client, test_user):
+    app.dependency_overrides[get_current_user] = override_get_current_user
+
     payload = {"domain": "pen-flow.com"}
 
     response = await test_client.post("/api/v1/domains/", json=payload)
