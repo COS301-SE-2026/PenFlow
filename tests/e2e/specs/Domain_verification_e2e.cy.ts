@@ -30,7 +30,7 @@ describe("Domain Verification", () => {
       cy.contains("button", "Verify").click();
     });
 
-    // Real DNS lookup against a domain with no TXT record - genuinely fails, no stubbing.
+    // Real DNS lookup against a domain with no TXT record - genuinely fails, 
     // domain_service.verify_domain only ever sets PENDING or VERIFIED (never FAILED) on
     // this endpoint, so the button stays labeled "Verify", not "Retry", after a failed check.
     cy.contains("td", domain).parents("tr").within(() => {
@@ -40,7 +40,7 @@ describe("Domain Verification", () => {
   });
 
   // Success path needs a domain with a real, permanently-published TXT record matching
-  // CYPRESS_VERIFIED_TEST_DOMAIN once that domain exists; skipped until then.
+  // CYPRESS_VERIFIED_TEST_DOMAIN once that domain exists skipped until then.
   const verifiedDomain = Cypress.env("VERIFIED_TEST_DOMAIN") as string | undefined;
   (verifiedDomain ? it : it.skip)(
     "verifies ownership of a pre-seeded domain with a real TXT record",

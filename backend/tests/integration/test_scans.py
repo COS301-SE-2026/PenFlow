@@ -1,5 +1,5 @@
 #route contract test for scans endpoints : hit the real fastapi via test_client
-#(full request pipleine :auth ,validation ,status code) but mock scan repo itself
+# mock scan repo itself but not the request pipeline
 
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID
@@ -11,23 +11,18 @@ from app.api.middleware.auth import get_current_user_optional
 from app.main import app
 from app.models.user import User
 from app.models.verified_domain import DomainVerificationStatus, VerifiedDomain
+from app.repositories.scan_repo import ScanRepository
 
 
+#phase2
+#test initate scan success 
 @pytest.mark.asyncio
 @patch("app.services.scan_service.celery_app.send_task")
-@patch("app.repositories.scan_repo.ScanRepository.create_scan", new_callable=AsyncMock)
-async def test_initiate_scan_success(mock_create_scan, mock_send_task, test_client):
-    mock_scan = MagicMock()
-    mock_scan.id = UUID("550e8400-e29b-41d4-a716-446655440000")
-    mock_scan.status = "queued"
-    mock_create_scan.return_value = mock_scan
-
-    mock_task = MagicMock()
-    mock_task.id = "mock-task-id"
-    mock_send_task.return_value = mock_task
+async def test_initiate_scan_success(mock_send_task, test_client, db_session):
+    mock_send_task.return_value = MagicMock(id="mock-task-id")
 
     payload = {
-        "domain": "jeandre.co",
+        "domain": "real-db-scan.com",
         "email": "jeandre@gmail.com",
     }
 
@@ -35,8 +30,17 @@ async def test_initiate_scan_success(mock_create_scan, mock_send_task, test_clie
 
     assert response.status_code == status.HTTP_202_ACCEPTED
     data = response.json()
-    assert "scan_id" in data
     assert data["status"] == "queued"
+
+    scan = await ScanRepository.get_scan_by_id(db_session, UUID(data["scan_id"]))
+    assert scan is not None
+    assert scan.domain == "real-db-scan.com"
+    assert scan.email == "jeandre@gmail.com"
+
+    mock_send_task.assert_called_once()
+    args, _ = mock_send_task.call_args
+    assert args[0] == "scan.full"
+
 
 @pytest.mark.asyncio
 async def test_initiate_scan_invalid_domain(test_client):
