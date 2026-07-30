@@ -11,7 +11,7 @@ export async function GET(_req:Request, {params} : {params: Promise<{scan_id: st
 
     const accessToken = (await cookies()).get("access_token")?.value;
     const response = await fetch(`${BACKEND_URL}/api/v1/scans/${scan_id}/pdf`, {
-        headers: accessToken ? {Authorisation: `Bearer ${accessToken}`} : {},
+        headers: accessToken ? {Authorization: `Bearer ${accessToken}`} : {},
         cache: "no-store",
     });
 

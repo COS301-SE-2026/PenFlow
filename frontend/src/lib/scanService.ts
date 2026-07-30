@@ -257,8 +257,7 @@ export async function fetchScanHistory(): Promise<ScanHistoryItem[]> {
 }
 
 export async function fetchScanSummary(scanId: string): Promise<ExecutiveSummary> {
-  const response = await fetch(`${API_BASE}/${scanId}/summary`, {
-    credentials: "include",
+  const response = await fetch(`/api/scans/${scanId}/summary`, {
   });
   if (!response.ok) {
     const err = await response.json().catch(() => ({ detail: "Failed to load summary" }));
