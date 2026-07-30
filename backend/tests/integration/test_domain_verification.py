@@ -119,6 +119,8 @@ async def _add_domain(test_client, domain: str) -> dict:
 
 
 #verify success when adding a domain real-dns-pass.com
+#phase2
+#POST /domains/{domain_id}/verify ,happy path verify domain fake dns
 @pytest.mark.asyncio
 async def test_verify_success(fake_dns_server, test_client):
     domain = await _add_domain(test_client, "real-dns-pass.com")
@@ -140,6 +142,8 @@ async def test_verify_token_mismatch(fake_dns_server, test_client):
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "did not match" in response.json()["detail"]
 
+
+#Error path
 #verify when record not found
 @pytest.mark.asyncio
 async def test_verify_record_not_found( fake_dns_server, test_client):
@@ -160,6 +164,7 @@ async def test_verify_domain_not_found(test_client):
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
+#Error path
 #test when a user is not authed 
 @pytest.mark.asyncio
 async def test_add_domain_requires_auth(test_client):

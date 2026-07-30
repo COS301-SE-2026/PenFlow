@@ -19,6 +19,8 @@ def test_build_report_output_path(monkeypatch, tmp_path):
     assert tmp_path.exists()
 
 
+#phase2 view report happy path:
+#render html
 @patch("app.services.report_service.get_template_environment")
 def test_render_report_html(mock_get_template_environment):
     template = MagicMock()
@@ -34,6 +36,7 @@ def test_render_report_html(mock_get_template_environment):
     template.render.assert_called_once_with(domain="test.com")
 
 
+#phase 2 generate report happy path
 @pytest.mark.asyncio
 @patch("app.services.report_service.generate_pdf_from_html")
 @patch("app.services.report_service.build_report_context")

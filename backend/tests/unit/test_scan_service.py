@@ -132,6 +132,7 @@ async def  test_start_scan_active_domain_mismatch_raises_400(mock_get_by_id):
         assert "does not match" in exc_info.value.detail
 
 #happy path for phase 2 scan
+# initate scan endpoint POST /scans/
 @pytest.mark.asyncio 
 @patch("app.services.scan_service.celery_app.send_task")
 @patch("app.services.scan_service.ScanRepository.create_scan",new_callable=AsyncMock)

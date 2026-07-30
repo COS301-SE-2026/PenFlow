@@ -8,7 +8,7 @@ from fastapi import status
 from app.api.middleware.auth import get_current_user
 from app.main import app
 from app.models.user import User
-from app.models.verified_domain import DomainVerificationCode, DomainVerificationStatus
+from app.models.verified_domain import DomainVerificationCode, DomainVerificationStatus ,VerifiedDomain
 
 
 @pytest_asyncio.fixture
@@ -34,6 +34,9 @@ async def override_get_current_user():
 
 app.dependency_overrides[get_current_user] = override_get_current_user
 
+#Phase 2 
+#test adding domain successs verified 
+# POST /domains/ (add domain) happy path intergration 
 @pytest.mark.asyncio
 async def test_add_domain_for_verification(test_client, test_user):
     app.dependency_overrides[get_current_user] = override_get_current_user
@@ -74,6 +77,8 @@ async def test_verify_domain_ownership_success(mock_verify_txt, test_client, tes
     assert data["status"] == DomainVerificationStatus.VERIFIED.value
     assert data["verified_at"] is not None
 
+#phase2
+#POST /domains/{domain_id}/verify error  path verify domain
 @pytest.mark.asyncio
 @patch("app.services.domain_service.VerificationService.verify_dns_txt", new_callable=AsyncMock)
 async def test_verify_domain_ownership_fail(mock_verify_txt, test_client, test_user):
@@ -105,3 +110,35 @@ async def test_verify_domain_not_found(test_client, test_user):
     verify_response = await test_client.post(f"/api/v1/domains/{fake_id}/verify")
 
     assert verify_response.status_code == status.HTTP_404_NOT_FOUND
+
+#phase 2 add domain intergration test
+#delete domain happy path 
+@pytest_asyncio
+async def test_domain_success(test_client, test_user, db_session):
+    app.dependency_overrides[get_current_user] = override_get_current_user
+    add_response = await test_client.post(
+        "/api/v1/domains/",
+        json={"domain": "delete-me.com"}
+    )
+
+    domain_id = add_response.json()["id"]
+
+
+    delete_response = await test_client.delete(f"/api/v1/domains/{domain_id}")
+
+    assert delete_response.status_code == status.HTTP_204_NO_CONTENT
+
+    #verify the db
+    result = await db_session.get(VerifiedDomain, UUID(domain_id))
+
+    assert result is None
+
+#delete domain error path domain not exist
+@pytest_asyncio
+async def test_delete_domain_not_found(test_client, test_user):
+    app.dependency_overrides[get_current_user] = override_get_current_user
+    fake_id = "00000000-0000-0000-0000-000000000000"
+
+    delete_response = await test_client.delete(f"/api/v1/domains/{fake_id}")
+
+    assert delete_response.status_code == status.HTTP_404_NOT_FOUND
