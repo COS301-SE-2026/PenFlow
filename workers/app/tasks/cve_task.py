@@ -33,12 +33,21 @@ def run_cve_scan_task(
         vulnerabilities = run_cve_scan(resolved_inventory)
         findings = []
         for vulnerability in vulnerabilities:
-            findings.append(
+            cve_id = vulnerability.get("cve_id")
+            affected_software = vulnerability.get(
+                "affected_software",
+                "unknown software",
+            )
+
+            findings.append\
+            (
                 {
-                    "severity": vulnerability.get("severity", "medium"),
-                    "title": (
+                    "source": "cve",
+                    "severity": str(vulnerability.get("severity", "medium")).lower(),
+                    "title":
+                    (
                         f"{vulnerability.get('cve_id')} detected in "
-                        f"{vulnerability.get('affected_software')}"
+                        f"{affected_software}"
                     ),
                     "description": (
                         vulnerability.get(
@@ -46,16 +55,22 @@ def run_cve_scan_task(
                             "No description provided.",
                         )
                     ),
-                    "remediation": (
+                    "recommendation":
+                    (
                         vulnerability.get(
                             "remediation",
                             "Update to the latest patched version.",
                         )
                     ),
-                    "target": (vulnerability.get("affected_software")),
-                    "metadata": {
-                        "cve_id": (vulnerability.get("cve_id")),
-                        "cvss_score": (vulnerability.get("cvss_score")),
+                    "cve_id": cve_id,
+                    "cvss_score": vulnerability.get("cvss_score"),
+                    "host": vulnerability.get("host"),
+                    "port": vulnerability.get("port"),
+                    "protocol": vulnerability.get("protocol"),
+                    "evidence": {
+                        "cpe": vulnerability.get("cpe"),
+                        "affected_software": affected_software,
+                        "affected_version": vulnerability.get("affected_version"),
                     },
                 }
             )
@@ -67,8 +82,10 @@ def run_cve_scan_task(
             "raw_result": {
                 "vulnerabilities": vulnerabilities,
             },
-            "findings": findings,
             "assets": [],
+            "services": [],
+            "technologies": [],
+            "findings": findings,
         }
 
     except Exception as error:
@@ -81,8 +98,10 @@ def run_cve_scan_task(
             "raw_result": {
                 "error": str(error),
             },
-            "findings": [],
             "assets": [],
+            "services": [],
+            "technologies": [],
+            "findings": [],
             "error_message": str(error),
         }
 
@@ -91,8 +110,10 @@ def run_cve_scan_task(
         source_name=result["source_name"],
         status=result["status"],
         raw_result=result["raw_result"],
-        findings=result["findings"],
         assets=result["assets"],
+        services=result["services"],
+        technologies=result["technologies"],
+        findings=result["findings"],
         error_message=result.get("error_message"),
     )
 

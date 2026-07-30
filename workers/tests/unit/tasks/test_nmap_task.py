@@ -36,8 +36,12 @@ def test_successful_task(mock_scan, mock_callback, mock_send_task):
     )
 
     assert result["status"] == "completed"
-    assert len(result["assets"]) == 1
-    assert result["assets"][0]["type"] == "network_service"
+    assert len(result["services"]) == 1
+    service = result["services"][0]
+    assert service["host"] == "1.1.1.1"
+    assert service["port"] == 22
+    assert service["protocol"] == "tcp"
+    assert service["service_name"] == "ssh"
     mock_callback.assert_called_once()
     assert mock_send_task.call_count == 3
 
@@ -57,7 +61,7 @@ def test_failed_task(mock_scan, mock_callback):
     )
 
     assert result["status"] == "failed"
-    assert result["assets"] == []
+    assert result["services"] == []
     assert "error_message" in result
 
     mock_callback.assert_called_once()

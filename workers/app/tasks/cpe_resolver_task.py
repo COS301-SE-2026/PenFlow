@@ -30,14 +30,31 @@ def run_cpe_resolver_task(
     try:
         resolved_data = run_cpe_resolution(software_inventory)
 
-        assets = []
+        technologies = []
 
         for software in resolved_data:
-            assets.append(
+            evidence_score = software.get("evidence_score", 0)
+
+            technologies.append(
                 {
-                    "type": "resolved_software",
-                    "value": software.get("cpe", "unknown"),
-                    "metadata": software,
+                    "technology_type": software.get(
+                        "category",
+                        "software",
+                    ),
+                    "product": software.get(
+                        "product",
+                        "unknown",
+                    ),
+                    "version": software.get("version"),
+                    "confidence": evidence_score / 100,
+                    "detection_source": "cpe_resolver",
+                    "host": software.get("host"),
+                    "port": software.get("port"),
+                    "protocol": software.get("protocol"),
+                    "evidence": {
+                        **software,
+                        "cpe": software.get("cpe"),
+                    },
                 }
             )
 
@@ -48,8 +65,10 @@ def run_cpe_resolver_task(
             "raw_result": {
                 "resolved_inventory": resolved_data,
             },
+            "assets": [],
+            "services": [],
+            "technologies": technologies,
             "findings": [],
-            "assets": assets,
         }
 
     except Exception as error:
@@ -62,8 +81,10 @@ def run_cpe_resolver_task(
             "raw_result": {
                 "error": str(error),
             },
-            "findings": [],
             "assets": [],
+            "services": [],
+            "technologies": [],
+            "findings": [],
             "error_message": str(error),
         }
 
@@ -72,8 +93,10 @@ def run_cpe_resolver_task(
         source_name=result["source_name"],
         status=result["status"],
         raw_result=result["raw_result"],
-        findings=result["findings"],
         assets=result["assets"],
+        services=result["services"],
+        technologies=result["technologies"],
+        findings=result["findings"],
         error_message=result.get("error_message"),
     )
 
@@ -81,7 +104,8 @@ def run_cpe_resolver_task(
 
         celery_app.send_task(
             "scan.phase2_cve",
-            args=[scan_id, resolved_data]
+            args=[scan_id, resolved_data],
         )
+
 
     return result

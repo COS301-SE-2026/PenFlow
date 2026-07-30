@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user
 from app.api.middleware.rate_limiter import limiter
-from app.models.verified_domain import DomainVerificationStatus
+from app.models.base import DomainVerificationStatus
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.domain import (
     AddDomainRequest,

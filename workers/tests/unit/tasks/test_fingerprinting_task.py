@@ -39,13 +39,14 @@ def test_run_fingerprinting_scan_task_success(mock_service_class, mock_callback,
     assert result["scan_id"] == "scan-123"
     assert result["source_name"] == "fingerprint"
 
-    assert len(result["assets"]) == 1
+    assert len(result["technologies"]) == 1
 
-    asset = result["assets"][0]
-    assert asset["type"] == "software"
-    assert asset["value"] == "nginx"
-    assert asset["metadata"]["product"] == "nginx"
-    assert asset["metadata"]["vendor"] == "f5"
+    technology = result["technologies"][0]
+    assert technology["technology_type"] == "unknown"
+    assert technology["product"] == "nginx"
+    assert technology["confidence"] == 0.40
+    assert technology["evidence"]["vendor"] == "f5"
+    assert technology["evidence"]["target_url"] == "https://hackerone.com"
 
     mock_callback.assert_called_once_with \
             (
@@ -54,7 +55,9 @@ def test_run_fingerprinting_scan_task_success(mock_service_class, mock_callback,
             status="completed",
             raw_result=fake_fingerprint_results,
             findings=[],
-            assets=result["assets"],
+            assets=[],
+            services=[],
+            technologies=result["technologies"],
             error_message=None,
         )
 
@@ -121,5 +124,7 @@ def test_run_fingerprinting_scan_task_failure(mock_service_class, mock_callback)
             raw_result=expected_raw_result,
             findings=[],
             assets=[],
+            services=[],
+            technologies=[],
             error_message="Connection timed out",
         )

@@ -1,50 +1,8 @@
-"use client";
-
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
+//import Link from "next/link";
 import NavBar from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    const form = e.currentTarget;
-    const username = (form.elements.namedItem("username") as HTMLInputElement).value;
-    const password = (form.elements.namedItem("password") as HTMLInputElement).value;
-
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await res.json() as { error?: string };
-
-      if (!res.ok) {
-        setError(data.error ?? "Login failed");
-        return;
-      }
-
-      // goes to dashboard once login
-      router.push("/dashboard");
-    } catch {
-      setError("Network error. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   return (
     <main className="auth-page min-h-screen flex flex-col">
       <NavBar />
@@ -57,65 +15,15 @@ export default function LoginPage() {
           </h1>
 
           <div className="auth-card rounded-2xl p-8">
-            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-
-              {error && (
-                <p className="text-red-400 text-sm text-center">{error}</p>
-              )}
-
-              <div className="flex flex-col gap-2">
-                <Label
-                  htmlFor="login-username"
-                  className="auth-label text-xs font-semibold tracking-[0.12em] uppercase"
-                >
-                  Username
-                </Label>
-                <Input
-                  id="login-username"
-                  name="username"
-                  type="text"
-                  placeholder="enter username"
-                  required
-                  className="auth-input h-11 rounded-lg px-4 text-sm placeholder:opacity-40 focus-visible:ring-1"
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <Label
-                  htmlFor="login-password"
-                  className="auth-label text-xs font-semibold tracking-[0.12em] uppercase"
-                >
-                  Password
-                </Label>
-                <Input
-                  id="login-password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  required
-                  className="auth-input h-11 rounded-lg px-4 text-sm placeholder:opacity-40 focus-visible:ring-1"
-                />
-              </div>
-
-              <Button
-                type="submit"
-                disabled={loading}
-                className="auth-btn mt-1 h-11 w-full rounded-full text-sm font-semibold tracking-widest cursor-pointer transition-all duration-200 hover:-translate-y-px"
-              >
-                {loading ? "LOGGING IN..." : "LOGIN"}
-              </Button>
-            </form>
-          </div>
-
-          <p className="text-center mt-6 text-sm text-brand-muted">
-            No account yet?{" "}
-            <Link
-              href="/register"
-              className="text-brand-cyan font-semibold transition-colors duration-150 hover:underline"
+            <Button
+              asChild
+              className = "auth-btn h-11 w-full rounded-full text-sm font-semibold tracking-widest"
             >
-              Register
-            </Link>
-          </p>
+              <a href = "/api/auth/login">
+                LOGIN
+              </a>
+            </Button>
+          </div>
         </div>
       </div>
     </main>

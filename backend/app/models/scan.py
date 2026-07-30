@@ -1,4 +1,3 @@
-import enum
 import uuid
 from datetime import datetime, timezone
 
@@ -6,13 +5,8 @@ from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.models.base import Base, ScanStatus
-from app.schemas.scan import ScanTypeEnum
+from app.models.base import Base, ScanStatus, ScanType
 
-
-class ScanType(enum.Enum):
-    PASSIVE_CTEM = "passive_ctem"
-    ACTIVE_VULNERABILITY = "active_vulnerability"
 
 class Scan(Base):
     __tablename__ = "scans"
@@ -28,17 +22,39 @@ class Scan(Base):
     )
     task_id = Column(String(255))
     domain = Column(String(255), nullable=False, index=True)
-    email = Column(String(255))
-    scan_type = Column(
-        Enum(
-            ScanTypeEnum,
-            values_callable=lambda enum: [item.value for item in enum],
-            name="scan_type",
-        ),
-        nullable=False,
-        default=ScanTypeEnum.PASSIVE_CTEM,
+
+    verified_domain_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("verified_domains.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
     )
+
+    schedule_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("scan_schedules.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    scheduled_for = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    scan_type = Column(
+        Enum(
+            ScanType,
+            values_callable = lambda enum: [item.value for item in enum],
+            name = "scan_type",
+        ),
+        nullable=False,
+        default=ScanType.PASSIVE_CTEM,
+        index=True,
+    )
+
+    #Don't think this is truly needed
+    email = Column(String(255))
     verified_domain_id = Column(
         UUID(as_uuid=True),
         ForeignKey("verified_domains.id", ondelete="SET NULL"),
@@ -69,3 +85,8 @@ class Scan(Base):
     report = relationship(
         "Report", back_populates="scan", cascade="all, delete-orphan", uselist=False
     )
+
+    #Remember the back_populates for the other 2
+    schedule = relationship("ScanSchedule", back_populates="scans", foreign_keys=[schedule_id])
+    user = relationship("User", foreign_keys=[user_id])
+    verified_domain = relationship("VerifiedDomain", foreign_keys=[verified_domain_id])

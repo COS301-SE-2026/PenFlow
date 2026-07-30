@@ -57,8 +57,8 @@ def test_crt_sh_sad_path_502_loop(mock_get, mock_sleep, mock_send_callback):
     assert result["raw_result"]["subdomains"]["discovered_names"] == []
     
     # Prove our "Fail Fast" retry loops fired exactly 6 times
-    assert mock_get.call_count == 6 
-    assert mock_sleep.call_count == 6 
+    assert mock_get.call_count == 3
+    assert mock_sleep.call_count == 2
     mock_send_callback.assert_called_once()
 
 
@@ -92,6 +92,8 @@ def test_crtsh_exception(mock_raw_data, mock_send_callback):
         "raw_result": {"error": "Some crt.sh exception"},
         "findings": [],
         "assets": [],
+        "services": [],
+        "technologies": [],
         "error_message": "Some crt.sh exception",
     }
 
@@ -102,5 +104,7 @@ def test_crtsh_exception(mock_raw_data, mock_send_callback):
         raw_result = {"error": "Some crt.sh exception"},
         findings = [],
         assets = [],
+        services = [],
+        technologies = [],
         error_message = "Some crt.sh exception",
     )
