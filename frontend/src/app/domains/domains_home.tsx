@@ -3,8 +3,7 @@
 import type {ReactNode} from "react";
 import { validateDomain } from "@/lib/domainValidator";
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link"
-import { AlertTriangle, Check, CheckCircle2, ChevronDown, ChevronRight, Clock, Copy, Globe, MoreVertical, Plus,
+import { AlertTriangle, Check, CheckCircle2, ChevronDown, Clock, Copy, Globe, MoreVertical, Plus,
     Search, Trash2, X, XCircle,
 } from "lucide-react";
 
@@ -26,6 +25,7 @@ import { add_domain, delete_domain, fetch_domains, verify_domain, verification_c
  } from "@/lib/domainServices";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
+import PageHero from "@/shared/components/PageHero";
 
  const PAGE_SIZE = 20;
  const sort_options: { value: string; label: string; sort: domain_sort_field; order: sort_order }[] = [
@@ -429,21 +429,9 @@ export default function DomainsHome() {
 
    return(
       <div className = "flex flex-col gap-6">
-         <nav aria-label = "Breadcrumb" className = "flex items-center gap-1 text-sm text-muted-foreground">
-            <Link href = "/dashboard" className = "hover:text-foreground hover:underline">
-               Home
-            </Link>
-            <ChevronRight className = "size-4"/>
-            <span className = "text-foreground">Domains</span>
-         </nav>
-
-         <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-               <h1 className="text-2xl font-semibold text-foreground">Domains</h1>
-               <p className="mt-1 text-sm text-muted-foreground">
-                  Manage verified domains and control which domains can receive active scans.
-               </p>
-            </div>
+         <PageHero title = "DOMAINS" />
+         <div className="flex flex-wrap items-start justify-end gap-4">
+ 
             <Button
                onClick={() => set_show_add_domain((prev) => !prev)}
                aria-pressed={show_add_domain}

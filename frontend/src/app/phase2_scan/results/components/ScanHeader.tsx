@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState} from "react";
-import Link from "next/link";
+
 import { fetchScanStatus, getReportPdfUrl, type RealTimeScanStatus} from "@/lib/scanService";
 
 const scanTypeLabel: Record<string, string> = {
@@ -18,52 +18,42 @@ export default function ScanHeader({scanId}: {scanId: string}) {
     const scanType = scan ? (scanTypeLabel[scan.scan_type] ?? scan.scan_type) : "";
 
     return (
-        <>
-            <div className="mb-3.5 flex items-center gap-2 text-xs text-muted-foreground">
-                <Link href = "/phase2_scan" className="hover:text-foreground">
-                    Scans
-                </Link>
-                <span>{'>'}</span>
-                <span>{domain}</span>
-                <span>{'>'}</span>
-                <span>Results</span>
+        <header className="flex items-start justify-between gap-6">
+            <div>
+                <div className="flex items-center gap-3">
+                    <h1 className="m-0 text-[28px] text-foreground">{domain}</h1>
+                    {scan && (
+                        <span className="rounded-full border border-brand-success/60 bg-brand-success/10 px-2.5 py-1 text-[10px] font-bold text-brand-success uppercase capitalize">
+                            {scan.status}
+                        </span>
+                    )}
+                </div>
+                <p className="mt-2.5 flex items-center gap-2 text-sm text-muted-foreground">
+                    <span>{scanType}</span>
+                </p>
             </div>
 
-            <header className="flex items-start justify-between gap-6">
-                <div>
-                    <div className="flex items-center gap-3">
-                        <h1 className="m-0 text-[28px] text-foreground">{domain}</h1>
-                        {scan && (
-                            <span className="rounded-full border border-brand-success/60 bg-brand-success/10 px-2.5 py-1 text-[10px] font-bold text-brand-success uppercase capitalize">
-                                {scan.status}
-                            </span>
-                        )}
-                    </div>
-                    <p className="mt-2.5 flex items-center gap-2 text-sm text-muted-foreground">
-                        <span>{scanType}</span>
-                    </p>
-                </div>
+                
 
                 <div className="flex items-center gap-4.5">
                     <a
                         href={getReportPdfUrl(scanId)}
-                        target = "_blank"
+                        target="_blank"
                         rel = "noopener noreferrer"
-                        className="min-h-[42px] rounded-lg border border-brand-panel-border bg-brand-panel-deep px-4 py-2.5 text-foreground hover:bg-brand-panel"
+                        className="min-h-[42px] rounded-lg border-brand-panel-border bg-brand-panel-deep px-4 py-2.5 text-foreground hover:bg-brand-panel"
                     >
-                        Download Report
+                        Download
                     </a>
+                        <button
+                            type = "button" 
+                            className="min-h-[42px] w-[42px] rounded-lg border border-brand-panel-border bg-brand-panel-deep p-0 text-xl text-foreground hover:bg-brand-panel"
+                            aria-label="More actions"
+                        >
+                            :
+                        </button>
+                        </div>
+                        </header>
 
-                    <button
-                        type = "button"
-                        className="min-h-[42px] w-[42px] rounded-lg border border-brand-panel-border bg-brand-panel-deep p-0 text-xl text-foreground hover:bg-brand-panel"
-                        aria-label="More actions"
-                    >
-                        :
-                    </button>
-                </div>
-            </header>
-        </>
-    );
+    );  
 }
 

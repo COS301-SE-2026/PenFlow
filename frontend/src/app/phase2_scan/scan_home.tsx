@@ -17,6 +17,7 @@ import { Separator} from "@/components/ui/separator";
 import { cn } from "@/lib/utils"
 import { postScanRequest,fetchScanHistory, type ScanHistoryItem} from "@/lib/scanService";
 import { fetch_domains,type domain_item } from "@/lib/domainServices";
+import PageHero from "@/shared/components/PageHero";
 
 
 type ScanMode = "active" | "passive" ;
@@ -297,15 +298,8 @@ export default function ScanHome() {
     
     return(
         <div className="flex flex-col gap-8">
-            <div>
-                <h1 className="text-2xl font-semibold uppercase tracking-wide text-foreground">
-                        Scans
-                </h1> 
-                <p className="mt-1 text-sm text-muted-foreground">
-                    Start a new passive or active scan.
-                </p>
-            </div>
-
+            <PageHero title = "SCANS" />
+            
             <NewScanForm/>
 
             {error && <p className="text-sm text-brand-alert">{error}</p>}
