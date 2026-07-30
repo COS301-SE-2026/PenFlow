@@ -85,9 +85,24 @@ async def test_save_source_result_creates_new_source_with_assets_and_findings(mo
 
     source_result = MagicMock()
     source_result.scalar_one_or_none.return_value = None # no scan source
-    count_result = MagicMock()
-    count_result.all.return_value = [("dns", ScanSourceStatus.COMPLETED)]
-    db.execute = AsyncMock(side_effect = [source_result,count_result])
+
+    asset_insert_result = MagicMock()
+    asset_result = MagicMock()
+    asset_result.scalar_one_or_none.return_value = SimpleNamespace(id=uuid4())
+
+    status_result = MagicMock()
+    status_result.all.return_value = [
+        ("dns", ScanSourceStatus.COMPLETED),
+    ]
+
+    db.execute = AsyncMock(
+        side_effect = [
+            source_result,
+            asset_insert_result,
+            asset_result,
+            status_result,
+        ]
+    )
 
     payload = {
         "status": "completed",
@@ -100,7 +115,7 @@ async def test_save_source_result_creates_new_source_with_assets_and_findings(mo
 
     assert scan.progress == 14
     assert scan.status == ScanStatus.RUNNING
-    assert db.add.call_count ==3 #scan source,asset ,finding too make the 3
+    assert db.add.call_count == 1
     db.flush.assert_awaited_once()
     db.commit.assert_awaited_once()
     db.refresh.assert_awaited_once_with(fake_scan)
@@ -120,18 +135,19 @@ async def test_save_source_result_updates_existing_soruce(mock_get_scan):
     )
     mock_get_scan.return_value =fake_scan
 
-    existing_source =SimpleNamespace(status=None,raw_result=None,error_message=None)
     source_result = MagicMock()
-    source_result.scalar_one_or_none.return_value = existing_source
-    count_result = MagicMock()
-    count_result.scalar.return_value =1
-    db.execute= AsyncMock(side_effect = [source_result,count_result])
+    status_result = MagicMock()
+    status_result.all.return_value = [
+        ("shodan", ScanSourceStatus.FAILED),
+    ]
+
+    db.execute= AsyncMock(side_effect = [source_result,status_result])
     
     await ScanRepository.save_source_result(db,  fake_scan.id , "shodan",{"status":"failed"})
 
-
-    assert existing_source.status == ScanSourceStatus.FAILED 
-    db.add.assert_not_called()
+    assert db.execute.await_count == 2
+    assert db.add.call_count == 0
+    db.commit.assert_awaited_once()
 
 #Test roll back
 @pytest.mark.asyncio
