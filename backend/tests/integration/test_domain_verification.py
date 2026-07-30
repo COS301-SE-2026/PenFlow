@@ -2,7 +2,7 @@
 #create a local dns server that answers the txt lookup to show dns txt 
 #no mock
 
-import socket 
+import socket
 import threading
 from uuid import UUID
 
@@ -14,9 +14,9 @@ import dns.rdatatype
 import dns.rrset
 import pytest
 import pytest_asyncio
-from fastapi import status 
+from fastapi import status
 
-from app.api.middleware.auth import get_current_user  #
+from app.api.middleware.auth import get_current_user
 from app.main import app
 from app.models.user import User
 
