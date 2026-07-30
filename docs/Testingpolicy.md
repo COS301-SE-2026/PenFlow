@@ -421,22 +421,22 @@ demo submission.
 
 ### 5.3 Test Scenarios
 
-The following use cases must have passing E2E tests for Demo 2:
+The following use cases must have passing E2E tests for :
 
-| ID     | Use Case                            | Phase |
-|--------|-------------------------------------|-------|
-| E2E-01 | Initiate CTEM scan as guest         | 1     |
-| E2E-02 | View inline scan summary            | 1     |
-| E2E-03 | Register and log in                 | 1     |
-| E2E-04 | View scan history (authenticated)   | 1     |
-| E2E-05 | Initiate domain verification        | 2     |
-| E2E-06 | Initiate Phase 2 vulnerability scan | 2     |
-| E2E-07 | View Phase 2 scan results           | 2     |
-| E2E-08 | Create a recurring scan schedule    | 2     |
+ Use Case                            | Phase |
+-------------------------------------|-------|
+ Initiate CTEM scan as guest         | 1     |
+ View inline scan summary            | 1     |
+ log in                              | 1     |
+ View scan history (authenticated)   | 1     |
+ Initiate domain verification        | 2     |
+ Initiate Phase 2 vulnerability scan | 2     |
+ View Phase 2 scan results           | 2     |
+ add/delete domain                   | 2     |
+ filter findings domain              | 2     |
 
 Each E2E test must include assertions on page navigation, visible UI
-content such as headings and status badges, and error states such as
-invalid input and unauthorized access attempts.
+content such as headings and status badges
 
 ### 5.4 Acceptance Criteria
 

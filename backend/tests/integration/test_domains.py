@@ -8,7 +8,11 @@ from fastapi import status
 from app.api.middleware.auth import get_current_user
 from app.main import app
 from app.models.user import User
-from app.models.verified_domain import DomainVerificationCode, DomainVerificationStatus ,VerifiedDomain
+from app.models.verified_domain import (
+    DomainVerificationCode,
+    DomainVerificationStatus,
+    VerifiedDomain,
+)
 
 
 @pytest_asyncio.fixture
@@ -52,6 +56,22 @@ async def test_add_domain_for_verification(test_client, test_user):
     assert data["status"] == "pending"
     assert data["verification_token"].startswith("penflow-verification=")
     assert "id" in data
+
+#phase2
+# #POST /domains/ (add domain) error path - duplicate domain
+@pytest.mark.asyncio
+async def test_add_domain_for_verification_duplicate(test_client, test_user):
+    app.dependency_overrides[get_current_user] = override_get_current_user
+
+    payload = {"domain": "duplicate-test.com"}
+
+    first_response = await test_client.post("/api/v1/domains/", json=payload)
+    assert first_response.status_code == status.HTTP_201_CREATED
+
+    second_response = await test_client.post("/api/v1/domains/", json=payload)
+
+    assert second_response.status_code == status.HTTP_409_CONFLICT
+    assert second_response.json()["detail"] == "This domain has already been added"
 
 @pytest.mark.asyncio
 @patch("app.services.domain_service.VerificationService.verify_dns_txt", new_callable=AsyncMock)
@@ -111,10 +131,10 @@ async def test_verify_domain_not_found(test_client, test_user):
 
     assert verify_response.status_code == status.HTTP_404_NOT_FOUND
 
-#phase 2 add domain intergration test
+#phase 2 delete domain intergration test
 #delete domain happy path 
-@pytest_asyncio
-async def test_domain_success(test_client, test_user, db_session):
+@pytest.mark.asyncio
+async def test_delete_domain_success(test_client, test_user, db_session):
     app.dependency_overrides[get_current_user] = override_get_current_user
     add_response = await test_client.post(
         "/api/v1/domains/",
@@ -134,7 +154,7 @@ async def test_domain_success(test_client, test_user, db_session):
     assert result is None
 
 #delete domain error path domain not exist
-@pytest_asyncio
+@pytest.mark.asyncio
 async def test_delete_domain_not_found(test_client, test_user):
     app.dependency_overrides[get_current_user] = override_get_current_user
     fake_id = "00000000-0000-0000-0000-000000000000"
