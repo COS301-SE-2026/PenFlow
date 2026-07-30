@@ -226,39 +226,40 @@ test_client, login_as):
 #Authenticated User Attaches User ID ,initiate scan with Auth (POST/scans)
 @pytest.mark.asyncio
 @patch("app.services.scan_service.celery_app.send_task")
-@patch("app.repositories.scan_repo.ScanRepository.create_scan",new_callable=AsyncMock)
-@patch("app.api.routes.scans.get_user_id_by_provider_id",new_callable =AsyncMock)
 async def test_initiate_scan_authenticated_user_attaches_user_id(
-    mock_get_user_id,mock_create_scan,mock_send_task,test_client
+    mock_send_task, test_client, db_session
 ):
+    user = User(
+        auth_provider="keycloak",
+        auth_provider_id="kc-123",
+        email="user@example.com",
+        full_name="Scan Test User",
+        role="client",
+    )
+    db_session.add(user)
+    await db_session.flush()
+    await db_session.refresh(user)
 
-    app.dependency_overrides[get_current_user_optional] =  lambda: {
+    app.dependency_overrides[get_current_user_optional] = lambda: {
         "sub": "kc-123",
         "email": "user@example.com",
     }
 
     try:
-        mock_get_user_id.return_value = UUID("550e8400-e29b-41d4-a716-446655440000")
-
-        mock_scan = MagicMock()
-        mock_scan.id = UUID("660e8400-e29b-41d4-a716-446655440000")
-        mock_scan.status = "queued"
-        mock_create_scan.return_value = mock_scan
         mock_send_task.return_value = MagicMock(id="mock-task-id")
 
-
-
-        response = await test_client.post (
+        response = await test_client.post(
             "/api/v1/scans/",
-        json={"domain": "Jeandre.co", "email": "jeandre@gmail.com"},
+            json={"domain": "Jeandre.co", "email": "jeandre@gmail.com"},
         )
 
         assert response.status_code == status.HTTP_202_ACCEPTED
-        mock_create_scan.assert_awaited_once()
-        _, kwargs = mock_create_scan.call_args
-        assert kwargs["user_id"] == UUID("550e8400-e29b-41d4-a716-446655440000")
+        data = response.json()
+        scan = await ScanRepository.get_scan_by_id(db_session, UUID(data["scan_id"]))
+        assert scan is not None
+        assert scan.user_id== user.id
     finally:
-        app.dependency_overrides.pop(get_current_user_optional,None)
+        app.dependency_overrides.pop(get_current_user_optional, None)
 
 #test: scan status not found 200 
 @pytest.mark.asyncio 
