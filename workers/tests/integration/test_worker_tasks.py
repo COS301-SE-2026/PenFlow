@@ -5,6 +5,7 @@ from app.tasks.wappalyzer_tasks import run_wappalyzer
 from app.tasks.target_resolution_task import run_target_resolution
 from app.tasks.nmap_task import run_nmap_scan
 from app.tasks.http_security_task import run_http_security_scan_task
+from app.tasks.tls_task import run_tls_scan_task
 
 
 @patch("app.tasks.wappalyzer_tasks.send_source_callback")
@@ -262,3 +263,117 @@ def test_http_security_task_service_pipeline\
     assert result["findings"] == []
     mock_callback.assert_called_once()
     mock_get.assert_called_once()
+
+
+#TLS int test
+#mock the handshake required in this stage
+@patch("app.tasks.tls_task.send_source_callback")
+@patch("app.services.tls_service.os.unlink")
+@patch("app.services.tls_service.ssl._ssl._test_decode_cert")
+@patch("app.services.tls_service.tempfile.NamedTemporaryFile")
+@patch("app.services.tls_service.ssl.DER_cert_to_PEM_cert")
+@patch("app.services.tls_service.ssl.create_default_context")
+@patch("app.services.tls_service.socket.create_connection")
+def test_tls_task_service_pipeline\
+(
+    mock_connection,
+    mock_context,
+    mock_der_to_pem,
+    mock_tempfile,
+    mock_decode,
+    mock_unlink,
+    mock_callback,
+):
+
+    # Fake TCP connection and tls sockets
+    socket_connection = MagicMock()
+    mock_connection.return_value.__enter__.return_value = socket_connection
+    tls_socket = MagicMock()
+    tls_socket.version.return_value = "TLSv1.3"
+    tls_socket.cipher.return_value = \
+    (
+        "TLS_AES_256_GCM_SHA384",
+        "TLSv1.3",
+        256,
+    )
+
+    tls_socket.getpeercert.return_value = b"fake-binary-cert"
+
+    # Fake SSL Context
+    context = MagicMock()
+    context.wrap_socket.return_value.__enter__.return_value = tls_socket
+    mock_context.return_value = context
+
+    # Fake certificate conversion
+    mock_der_to_pem.return_value = "certificateWOW"
+
+    # Fake temporary certificate file
+    temp_file = MagicMock()
+    temp_file.name = "/tmp/mockfake.txt"
+    mock_tempfile.return_value.__enter__.return_value = temp_file
+
+    # Fake decoded certificate
+    mock_decode.return_value = \
+    {
+        "subject": \
+        (
+            (
+                ("commonName", "hackerone.com"),
+            ),
+        ),
+        "issuer": \
+        (
+            (
+                ("commonName", "Let's Encrypt"),
+            ),
+        ),
+        "notBefore": "Jan 01 00:00:00 2026 GMT",
+        "notAfter": "Jan 01 00:00:00 2030 GMT",
+    }
+
+    # Fake Nmap ports passed into TLS worker
+    ports = [
+        {
+            "port": 443,
+            "service": "https",
+        }
+    ]
+
+    # Run the REAL task
+    result = run_tls_scan_task(
+        "scan-123",
+        "192.168.1.1",
+        ports,
+        "hackerone.com",
+    )
+
+    assert result["status"] == "completed"
+    assert result["raw_result"]["ip"] == "192.168.1.1"
+    assert len(result["raw_result"]["targets"]) == 1
+    target = result["raw_result"]["targets"][0]
+    assert target["port"] == 443
+    assert target["tls_version"] == "TLSv1.3"
+    assert target["cipher"] == \
+    (
+        "TLS_AES_256_GCM_SHA384",
+        "TLSv1.3",
+        256,
+    )
+
+    assert (target["certificate"]["subject"] ==
+    {
+        "commonName": "hackerone.com",
+    })
+    assert target["certificate"]["issuer"] == \
+    {
+        "commonName": "Let's Encrypt YAY",
+    }
+    assert target["certificate"]["expired"] is False
+    assert target["certificate"]["self_signed"] is False
+    mock_callback.assert_called_once()
+    mock_connection.assert_called_once()
+    mock_context.assert_called_once()
+    context.wrap_socket.assert_called_once()
+    tls_socket.getpeercert.assert_called_once()
+    mock_decode.assert_called_once()
+    mock_unlink.assert_called_once()
