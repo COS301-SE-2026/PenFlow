@@ -78,7 +78,8 @@ async def test_get_current_user_success():
     #Test successful user authentication with valid JWT token.
     decoded_payload = {"sub": "user-1", "email": "user@example.com"}
 
-    with patch.object(auth_module, "decode_token", new=AsyncMock(return_value=decoded_payload)) as mock_decode:
+    with patch.object(auth_module, "decode_token", 
+                      new=AsyncMock(return_value=decoded_payload)) as mock_decode:
             # accept 2 paramter ,parm1 fastapi request object , param2 credential
             #add await
         result = await auth_module.get_current_user(request=_request(), credentials=_credentials()) 

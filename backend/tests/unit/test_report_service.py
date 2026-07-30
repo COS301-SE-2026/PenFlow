@@ -1,7 +1,8 @@
 from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import uuid4
 
 import pytest
-from uuid import uuid4
+
 from app.models.base import ScanType
 from app.services.report_service import (
     build_report_output_path,
