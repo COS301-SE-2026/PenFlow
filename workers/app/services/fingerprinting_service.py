@@ -293,11 +293,14 @@ class FingerprintingService:
     def merge_with_nmap(self) -> None:
 
         for port in self.nmap_data.get("ports", []):
-            port_product = port.get("product", "")
+            port_product = port.get("product", "").strip()
+            if not port_product:
+                continue
 
+            nmap_product = port_product.lower()
+            matched =False
             for software in self.discovered.values():
                 software_product = software["product"].lower()
-                nmap_product = port_product.lower()
 
                 if nmap_product in software_product or software_product in nmap_product:
                     self._add_software(
@@ -308,13 +311,13 @@ class FingerprintingService:
                         weight=25,
                         source="nmap",
                     )
-                    return
-
-            if port_product:
+                    matched =True
+                    break
+            if not matched:
                 self._add_software(
                     category="service",
                     vendor="unknown",
-                    product=port_product.lower(),
+                    product=port_product.strip(),
                     version=port.get("version"),
                     weight=85,
                     source="nmap",

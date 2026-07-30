@@ -8,7 +8,7 @@ describe("View scan history",()=>{
         cy.getCookie("logged_in").should("have.property","value","1")
     })
     it("View Scan history",()=>{
-        cy.contains("a","HISTORY").click();   
+        cy.get('nav a[href="/history"]').click();
         cy.url().should("include","/history");
         cy.contains("h1","SCAN HISTORY").should("be.visible")
 

@@ -15,7 +15,7 @@ import { useEffect } from "react";
 //access token configure
 
 const ACCESS_TOKEN_LIFESPAN_SECONDS =
-    Number(process.env.NEXT_PUBLIC_ACCESS_TOKEN_LIFESPAN_SECONDS) || 300;
+    Number(process.env.NEXT_PULIC_ACCESS_TOKEN_LIFESPAN_SECONDS) || 900;
     
 const REFRESH_INTERVAL_MS = ACCESS_TOKEN_LIFESPAN_SECONDS *1000*0.8;;
 

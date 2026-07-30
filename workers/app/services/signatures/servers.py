@@ -17,7 +17,7 @@ SERVER_SIGNATURES = {
         "category": "web_server",
         "vendor": "apache",
         "product": "http_server",
-        "headers": [("server", "apache", 80)],
+        "headers": [("server", "apache", 90)],
         "version_extractors": [
             {"type": "header", "target": "server", "regex": r"apache/([\d\.]+)"}
         ],
@@ -36,6 +36,26 @@ SERVER_SIGNATURES = {
         "vendor": "cloudflare",
         "product": "cloudflare",
         "headers": [("server", "cloudflare", 90)],
+        "version_extractors": [],
+    },
+    "Granian": {
+        "category": "web_server",
+        "vendor": "granian",
+        "product": "granian",
+        "headers": [("server", "granian", 90)],
+        "version_extractors": [
+            {
+                "type": "header",
+                "target": "server",
+                "regex": r"granian/?([\d\.]+)?"
+            }
+        ],
+    },
+    "GitHub Pages": {
+        "category": "web_server",
+        "vendor": "github",
+        "product": "github_pages",
+        "headers": [("server", "github.com", 90)],
         "version_extractors": [],
     },
 }
