@@ -324,7 +324,7 @@ def test_tls_task_service_pipeline\
         "issuer": \
         (
             (
-                ("commonName", "Let's Encrypt"),
+                ("commonName", "Let's Encrypt YAY"),
             ),
         ),
         "notBefore": "Jan 01 00:00:00 2026 GMT",
