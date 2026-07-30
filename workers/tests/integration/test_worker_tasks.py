@@ -6,6 +6,7 @@ from app.tasks.target_resolution_task import run_target_resolution
 from app.tasks.nmap_task import run_nmap_scan
 from app.tasks.http_security_task import run_http_security_scan_task
 from app.tasks.tls_task import run_tls_scan_task
+from app.tasks.fingerprinting_task import run_fingerprinting_scan_task
 
 
 @patch("app.tasks.wappalyzer_tasks.send_source_callback")
@@ -377,3 +378,88 @@ def test_tls_task_service_pipeline\
     tls_socket.getpeercert.assert_called_once()
     mock_decode.assert_called_once()
     mock_unlink.assert_called_once()
+
+
+#fingerprinting int test
+@patch("app.tasks.fingerprinting_task.celery_app.send_task")
+@patch("app.tasks.fingerprinting_task.send_source_callback")
+@patch("app.services.fingerprinting_service.requests.get")
+def test_fingerprinting_task_service_pipeline\
+(
+    mock_get,
+    mock_callback,
+    mock_send_task,
+):
+    response = MagicMock()
+    response.status_code = 200
+    response.url = "https://hackerone.com"
+    response.headers = \
+    {
+        "Server": "nginx/1.27.0",
+        "Content-Security-Policy": "default-src 'self'",
+        "X-Powered-By": "PHP/8.2",
+    }
+
+    #the type of response we expect
+    response.cookies.get_dict.return_value = {}
+    response.text = """
+    <html>
+        <head>
+            <meta name="generator" content="WordPress 6.8">
+            <title>HackerOne</title>
+        </head>
+
+        <body>
+
+            <script src="/wp-content/test.js"></script>
+
+        </body>
+
+    </html>
+    """
+
+    mock_get.return_value = response
+
+    # Real task
+    result = run_fingerprinting_scan_task(
+        "scan-123",
+        "https://hackerone.com",
+        {"ports": \
+                [
+                    {
+                        "product": "nginx",
+                        "version": "1.27.0",
+                    }
+                ]
+            },
+        {
+            "targets": \
+            [
+                {
+                    "certificate": \
+                    {
+                        "issuer": \
+                        {
+                            "organizationName": "Cloudflare Inc",
+                        }
+                    }
+                }
+            ]
+        },
+    )
+    assert result["status"] == "completed"
+    assert result["source_name"] == "fingerprint"
+    assert "fingerprint" in result["raw_result"]
+    assert len(result["assets"]) > 0
+    mock_callback.assert_called_once()
+    mock_send_task.assert_called_once()
+    #cpe need to be called immediately to generate
+    mock_send_task.assert_called_with(
+        "scan.phase2_cpe_resolver",
+        args=\
+        [
+            "scan-123",
+            result["raw_result"]["fingerprint"]["software"],
+        ],
+    )
+    mock_get.assert_called_once()
