@@ -184,7 +184,7 @@ def test_merge_nmap_new(base_service):
     software = base_service.discovered["unknown_openssh"]
 
     assert software["category"] == "service"
-    assert software["product"] == "openssh"
+    assert software["product"] == "OpenSSH"
     assert software["version"] == "8.2p1"
     assert software["evidence_score"] == 85
 
