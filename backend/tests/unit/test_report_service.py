@@ -59,7 +59,7 @@ async def test_queue_report_generation_success(
     mock_render_html.return_value = "<html>Test</html>"
     mock_build_context.return_value = {"domain": "test.com"}
     mock_load_report_data.return_value = {
-        "scan": MagicMock(),
+        "scan": MagicMock(scan_type=ScanType.PASSIVE_CTEM),
         "findings": [],
         "scan_sources": []
     }
