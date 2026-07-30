@@ -48,7 +48,7 @@ export default function NavBar() {
   return (
     <>
     <nav className = "topbar">
-      <div className={`navFlip${helpOpen? "navFlipped": ""}`}>
+      <div className={`navFlip${helpOpen? " navFlipped": ""}`}>
         <div className="navFace navFaceFront">
         <div className = "logoPanel">
         <Image
@@ -96,7 +96,7 @@ export default function NavBar() {
                 <li key={item.label}>
                   <button
                     type="button"
-                    className="nav-link"
+                    className="nav-link nav-link-help"
                     onClick={() => setHelpOpen(true)}
                   >
                     {item.label}
