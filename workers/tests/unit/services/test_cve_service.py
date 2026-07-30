@@ -105,7 +105,8 @@ def test_lookup_nvd_success(mock_get, resolved_inventory):
                     "descriptions":
                     [
                         {
-                            "value": "Example vulnerability.",
+                            "lang": "en",
+                            "value": "Tomcat vulnerability.",
                         }
                     ],
                     "metrics":
