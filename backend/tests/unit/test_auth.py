@@ -76,11 +76,9 @@ async def test_get_jwks_fetches_and_caches():
 @pytest.mark.asyncio
 async def test_get_current_user_success():
     #Test successful user authentication with valid JWT token.
-    fake_keys = [{"kty": "RSA", "kid": "k1", "use": "sig", "n": "n", "e": "e"}]
     decoded_payload = {"sub": "user-1", "email": "user@example.com"}
 
-    with patch.object(auth_module, "_get_jwks", new=AsyncMock(return_value=fake_keys)), \
-            patch.object(auth_module.jwt, "decode", return_value=decoded_payload) as mock_decode:
+    with patch.object(auth_module, "decode_token", new=AsyncMock(return_value=decoded_payload)) as mock_decode:
             # accept 2 paramter ,parm1 fastapi request object , param2 credential
             #add await
         result = await auth_module.get_current_user(request=_request(), credentials=_credentials()) 
@@ -109,7 +107,7 @@ async def test_get_current_user_invalid_token_raises_401():
 async def test_get_current_user_jwks_unreachable_raises_503():
     #Test that JWKS endpoint unreachable raises a 503 Service Unavailable.
     with patch.object(
-        auth_module, "_get_jwks", new=AsyncMock(side_effect=httpx.RequestError("timeout"))
+        auth_module, "decode_token", new=AsyncMock(side_effect=httpx.RequestError("timeout"))
     ):
         request = _request()
         credentials = _credentials()
@@ -122,7 +120,7 @@ async def test_get_current_user_jwks_unreachable_raises_503():
 @pytest.mark.asyncio
 async def test_get_current_user_unexpected_error_raises_500():
     #Test that unexpected errors raise a 500 Internal Server Error.
-    with patch.object(auth_module, "_get_jwks", new=AsyncMock(side_effect=ValueError("boom"))):
+    with patch.object(auth_module, "decode_token", new=AsyncMock(side_effect=ValueError("boom"))):
         request = _request()
         credentials = _credentials()
         with pytest.raises(HTTPException) as exc_info:

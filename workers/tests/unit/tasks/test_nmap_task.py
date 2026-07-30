@@ -39,7 +39,7 @@ def test_successful_task(mock_scan, mock_callback, mock_send_task):
     assert len(result["services"]) == 1
     service = result["services"][0]
     assert service["host"] == "1.1.1.1"
-    assert service["port"] == "22"
+    assert service["port"] == 22
     assert service["protocol"] == "tcp"
     assert service["service_name"] == "ssh"
     mock_callback.assert_called_once()

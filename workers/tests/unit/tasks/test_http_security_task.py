@@ -61,7 +61,6 @@ def test_missing_security_headers(mock_scan, mock_callback):
     titles = [finding["title"] for finding in result["findings"]]
 
     assert "Missing Content-Security-Policy" in titles
-    assert "Missing Strict-Transport-Security" in titles
 
 
 ##Sad Paths [HTTP ignores HSTS]

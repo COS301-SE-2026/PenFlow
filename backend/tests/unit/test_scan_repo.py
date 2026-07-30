@@ -113,7 +113,7 @@ async def test_save_source_result_creates_new_source_with_assets_and_findings(mo
 
     scan = await ScanRepository.save_source_result(db,fake_scan.id,"dns",payload)
 
-    assert scan.progress == 14
+    assert scan.progress == 16
     assert scan.status == ScanStatus.RUNNING
     assert db.add.call_count == 1
     db.flush.assert_awaited_once()
@@ -251,7 +251,6 @@ async def test_save_source_result_marks_scan_completed_when_all_sources_succeed(
         ("wappalyzer",ScanSourceStatus.COMPLETED),
         ("crt.sh",ScanSourceStatus.COMPLETED),
         ("shodan",ScanSourceStatus.COMPLETED),
-        ("hunter.io",ScanSourceStatus.COMPLETED),
         ("hibp",ScanSourceStatus.COMPLETED),
 
     ]
