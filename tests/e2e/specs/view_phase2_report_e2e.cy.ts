@@ -1,14 +1,19 @@
 //generate or view phase2 report
-//download phase2
+//download phase2 report (active report)
 describe("Generate/View Phase 2 Report", () => {
   beforeEach(() => {
     cy.login("1234", "1234");
     cy.getCookie("logged_in").should("have.property", "value", "1");
   })
-  
-  it("downloads the PDF report from the scan overview", () => {
+
+  it("downloads the PDF report from an active vulnerability scan", () => {
     cy.visit("/phase2_scan")
-    cy.contains("a", "View Results").first().click()
+    //open latest result and find active vulnerability scan tag and click download pdf
+    cy.contains("h2", "Latest Results")
+      .closest("section")
+      .contains('[data-slot="card"]', "Active Vulnerability Scan")
+      .contains("a", "View Results")
+      .click();
     cy.url().should("match", /\/phase2_scan\/results\/[^/]+$/);
 
     cy.contains("a", "Download Report")
@@ -19,9 +24,13 @@ describe("Generate/View Phase 2 Report", () => {
   });
 
     //checks if it a pdf
-  it("serves a valid PDF at the report URL", () => {
+  it("serves a valid PDF at the report URL for an active vulnerability scan", () => {
     cy.visit("/phase2_scan");
-    cy.contains("a", "View Results").first().click();
+    cy.contains("h2", "Latest Results")
+      .closest("section")
+      .contains('[data-slot="card"]', "Active Vulnerability Scan")
+      .contains("a", "View Results")
+      .click();
 
     cy.contains("a", "Download Report").click()
       .invoke("attr", "href")
