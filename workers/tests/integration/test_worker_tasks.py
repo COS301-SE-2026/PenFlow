@@ -7,6 +7,7 @@ from app.tasks.nmap_task import run_nmap_scan
 from app.tasks.http_security_task import run_http_security_scan_task
 from app.tasks.tls_task import run_tls_scan_task
 from app.tasks.fingerprinting_task import run_fingerprinting_scan_task
+from app.tasks.cpe_resolver_task import run_cpe_resolver_task
 
 
 @patch("app.tasks.wappalyzer_tasks.send_source_callback")
@@ -463,3 +464,60 @@ def test_fingerprinting_task_service_pipeline\
         ],
     )
     mock_get.assert_called_once()
+
+
+
+#cpe resolver int test
+@patch("app.tasks.cpe_resolver_task.celery_app.send_task")
+@patch("app.tasks.cpe_resolver_task.send_source_callback")
+def test_cpe_resolver_task_service_pipeline\
+(
+    mock_callback,
+    mock_send_task,
+):
+    software_inventory = \
+    [
+        {
+            "vendor": "unknown",
+            "product": "nginx",
+            "version": "1.27.0",
+            "confidence": "high",
+        },
+        {
+            "vendor": "unknown",
+            "product": "mysql",
+            "version": "8.0.42",
+            "confidence": "high",
+        },
+    ]
+
+    result = run_cpe_resolver_task\
+    (
+        "scan-123",
+        software_inventory,
+    )
+
+    assert result["status"] == "completed"
+    assert result["source_name"] == "cpe_resolver"
+    resolved = result["raw_result"]["resolved_inventory"]
+    assert len(resolved) == 2
+    assert resolved[0]["vendor"] == "nginx"
+    assert resolved[0]["product"] == "nginx"
+    assert resolved[0]["cpe"] == \
+        "cpe:2.3:a:nginx:nginx:1.27.0:*:*:*:*:*:*:*"
+    assert resolved[1]["vendor"] == "oracle"
+    assert resolved[1]["product"] == "mysql"
+    assert resolved[1]["cpe"] == \
+        "cpe:2.3:a:oracle:mysql:8.0.42:*:*:*:*:*:*:*"
+
+    mock_callback.assert_called_once()
+    #similarly to fingerprinting, we need to call cve from this result
+    mock_send_task.assert_called_once_with\
+    (
+        "scan.phase2_cve",
+        args=\
+        [
+            "scan-123",
+            resolved,
+        ],
+    )
