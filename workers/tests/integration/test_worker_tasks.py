@@ -4,6 +4,7 @@ from app.queue.celery_app import health_check
 from app.tasks.wappalyzer_tasks import run_wappalyzer
 from app.tasks.target_resolution_task import run_target_resolution
 from app.tasks.nmap_task import run_nmap_scan
+from app.tasks.http_security_task import run_http_security_scan_task
 
 
 @patch("app.tasks.wappalyzer_tasks.send_source_callback")
@@ -211,3 +212,53 @@ def test_nmap_task_service_pipeline\
     )
     mock_portscanner.assert_called_once()
     scanner.scan.assert_called_once()
+
+#http security int test
+@patch("app.tasks.http_security_task.send_source_callback")
+@patch("app.services.http_security_service.requests.get")
+def test_http_security_task_service_pipeline\
+(
+    mock_get,
+    mock_callback,
+):
+    response = MagicMock()
+    response.status_code = 200
+    response.headers = \
+    {
+        "Server": "nginx",
+        "Strict-Transport-Security": "max-age=696969",
+        "Content-Security-Policy": "default-src 'self'",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "strict-origin",
+        "Permissions-Policy": "geolocation=()",
+        "X-Content-Type-Options": "nosniff",
+    }
+
+    mock_get.return_value = response
+    ports = \
+    [
+        {
+            "port": 443,
+            "service": "https",
+        }
+    ]
+
+    result = run_http_security_scan_task\
+    (
+        "scan-123",
+        "hackerone.com",
+        "192.168.1.1",
+        ports,
+    )
+
+    assert result["status"] == "completed"
+    assert len(result["raw_result"]["targets"]) == 1
+    target = result["raw_result"]["targets"][0]
+    assert target["url"] == "https://hackerone.com"
+    assert target["status_code"] == 200
+    assert target["server"] == "nginx"
+    assert target["security_headers"]["strict_transport_security"] == "max-age=696969"
+    assert target["security_headers"]["content_security_policy"] == "default-src 'self'"
+    assert result["findings"] == []
+    mock_callback.assert_called_once()
+    mock_get.assert_called_once()
