@@ -224,7 +224,7 @@ h1, h2, h3 {
   position: relative;
 }
 
-.navFaceback {
+.navFaceBack {
   transform: rotateY(180deg);
   padding: 20px 16px;
   gap: 16px;

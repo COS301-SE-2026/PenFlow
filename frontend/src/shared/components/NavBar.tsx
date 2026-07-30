@@ -91,6 +91,20 @@ export default function NavBar() {
               );
             }
 
+            if (item.kind === "help") {
+              return (
+                <li key={item.label}>
+                  <button
+                    type="button"
+                    className="nav-link"
+                    onClick={() => setHelpOpen(true)}
+                  >
+                    {item.label}
+                  </button>
+                </li>
+              );
+            }
+
             const isActive = pathName === item.href || (item.href !== "/" && pathName.startsWith(`${item.href}/`));
 
             return ( 
