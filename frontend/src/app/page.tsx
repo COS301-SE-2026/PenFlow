@@ -48,9 +48,7 @@ export default function Home() {
       </section>
 
       <div className={styles.pipeline}>
-        <div className={styles.pipelineHeadingWrap}>
-          <h2 className={styles.pipelineHeading}>THE PENFLOW PIPELINE</h2>
-        </div>
+        
 
         <div className={styles.phaseLabel} data-first="true">
           <span className={styles.phaseNum}>PHASE 1</span>
