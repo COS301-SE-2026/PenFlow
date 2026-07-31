@@ -84,10 +84,20 @@ PenFlow is a **layered modular monolith** with an **event-driven orchestration l
 ### High-Level System Architecture
 <img src="docs/Architecture/images/Architecture Diagram.jpg" alt="High-Level System Architecture" width="100%" />
 
-### Documentation
-- **Software Architecture (Demo 1):** `docs/architecture.md`
-- **SRS:** `docs/SRS.md`
-- **Design:** `docs/DESIGN.md`
+## Documentation
+
+Detailed project documentation is available below.
+
+
+| Document | Description |
+| --- | --- |
+| [Software Requirements Specification](docs/SRS.md)
+| [Software Architecture Specification](docs/SAS.md) 
+| [Design Specification](docs/DESIGN.md) 
+| [Coding Standards](docs/coding_standards.md)
+| [User Manual](docs/User%20Manual.pdf) 
+| [Testing Policy](docs/Testingpolicy.md) 
+| [Brand Style](docs/TESTING.md)
 
 ---
 

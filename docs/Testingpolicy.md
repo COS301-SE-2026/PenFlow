@@ -180,7 +180,6 @@ The following frameworks are used for integration testing:
 - **Frontend (Jest) and E2E (Cypress):** Tests use `describe()` blocks grouped by feature or component, with `it()` statements written as plain-English descriptions of expected behaviour in the present tense. Each `it()` statement must clearly communicate the specific behaviour being verified without requiring additional documentation.
 
 
-
 ## 3. Testing Workflow
 
 The testing workflow outlines the systematic approach taken to ensure
