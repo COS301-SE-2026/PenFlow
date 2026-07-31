@@ -95,7 +95,7 @@ Detailed project documentation is available below.
 | [Software Architecture Specification](docs/SAS.md) 
 | [Design Specification](docs/DESIGN.md) 
 | [Coding Standards](docs/coding_standards.md)
-| [User Manual](docs/USER-MANUAL.md) 
+| [User Manual](docs/User%20Manual.pdf) 
 | [Testing Policy](docs/Testingpolicy.md) 
 | [Brand Style](docs/TESTING.md)
 
