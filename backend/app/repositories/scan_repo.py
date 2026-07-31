@@ -1,19 +1,19 @@
-import builtins
 import logging
 from typing import Any
 from uuid import UUID
 
 from sqlalchemy import String, case, func, select
+from sqlalchemy.dialects.postgresql import insert as psg_insert
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
-from app.models.base import ScanStatus, Severity
+from app.models.base import FindingStatus, ScanSourceStatus, ScanStatus, Severity
 from app.models.detected_technology import DetectedTechnology
 from app.models.finding import Finding
 from app.models.report import Report
 from app.models.scan import Scan
-from app.models.scan_source import ScanSource, ScanSourceStatus
+from app.models.scan_source import ScanSource
 from app.models.service import Service
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,6 @@ PASSIVE_SCAN_SOURCES = (
     "wappalyzer",
     "crt.sh",
     "shodan",
-    "hunter.io",
     "hibp",
 )
 
@@ -164,49 +163,296 @@ class ScanRepository:
 
         try:
             source_status = payload["status"]
-            source_query = select(ScanSource).where(
-                ScanSource.scan_id == scan.id,
-                ScanSource.source_name == source_name,
-            )
-            source_result = await db.execute(source_query)
-            scan_source = source_result.scalar_one_or_none()
 
-            if scan_source:
-                scan_source.status = ScanSourceStatus(source_status)
-                scan_source.raw_result = payload.get("raw_result")
-                scan_source.error_message = payload.get("error_message")
-            else:
-                scan_source = ScanSource(
+            query = (
+                psg_insert(ScanSource).values(
                     scan_id=scan.id,
                     source_name=source_name,
                     status=ScanSourceStatus(source_status),
                     raw_result=payload.get("raw_result"),
                     error_message=payload.get("error_message"),
+                ).on_conflict_do_update(
+                    index_elements = [
+                        "scan_id",
+                        "source_name",
+                    ],
+                    set_ = {
+                        "status": ScanSourceStatus(source_status),
+                        "raw_result": payload.get("raw_result"),
+                        "error_message": payload.get("error_message"),
+                    },
                 )
-                db.add(scan_source)
+            )
+
+            await db.execute(query)
+
+            asset_cache: dict[str, Asset] = {}
 
             for asset_data in payload.get("assets", []):
                 identifier = asset_data.get("identifier")
+                asset_type = asset_data.get("asset_type", "unknown")
+
                 if not identifier:
                     continue
 
-                asset = Asset(
-                    scan_id=scan.id,
-                    identifier=identifier,
-                    asset_type=asset_data.get("asset_type", "unknown"),
+                query = (
+                    psg_insert(Asset).values(
+                        scan_id=scan.id,
+                        identifier=identifier,
+                        asset_type=asset_type,
+                        asset_metadata=asset_data.get("asset_metadata", {}),
+                    ).on_conflict_do_nothing(
+                        index_elements = [
+                            "scan_id",
+                            "identifier",
+                            "asset_type",
+                        ]
+                    )
                 )
-                db.add(asset)
+
+                await db.execute(query)
+
+                asset_result = await db.execute(
+                    select(Asset).where(
+                        Asset.scan_id == scan.id,
+                        Asset.identifier == identifier,
+                        Asset.asset_type == asset_type,
+                    )
+                )
+                asset = asset_result.scalar_one_or_none()
+
+                asset_cache[identifier] = asset
+
+            service_cache: dict[tuple[str, int, str], Service] = {}
+
+            for service_data in payload.get("services", []):
+                host = service_data.get("host")
+                port = service_data.get("port")
+                protocol = service_data.get("protocol")
+
+                if not host or port is None or not protocol:
+                    continue
+
+                asset = asset_cache.get(host)
+
+                if asset is None:
+                    asset_query = select(Asset).where(
+                        Asset.scan_id == scan.id,
+                        Asset.identifier == host,
+                    )
+
+                    asset_result = await db.execute(asset_query)
+                    asset = asset_result.scalar_one_or_none()
+
+
+                query = (
+                    psg_insert(Service).values(
+                        scan_id=scan.id,
+                        asset_id=asset.id if asset else None,
+                        host=host,
+                        port=port,
+                        protocol=protocol,
+                        service_name=service_data.get("service_name"),
+                        product=service_data.get("product"),
+                        version=service_data.get("version"),
+                        banner=service_data.get("banner"),
+                        state=service_data.get("state", "open"),
+                        tls_enabled=service_data.get("tls_enabled", False),
+                    ).on_conflict_do_nothing(
+                        index_elements = [
+                            "scan_id",
+                            "host",
+                            "port",
+                            "protocol",
+                        ]
+                    )
+                )
+
+                await db.execute(query)
+
+                service_result = await db.execute(
+                    select(Service).where(
+                        Service.scan_id == scan.id,
+                        Service.host == host,
+                        Service.port == port,
+                        Service.protocol == protocol,
+                    )
+                )
+                service = service_result.scalar_one_or_none()
+
+                if service is None:
+                    raise RuntimeError(
+                        f"Service could not be retrieved: "
+                        f"{host}:{port}/{protocol}"
+                    )
+                
+                if asset and service.asset_id is None:
+                    service.asset_id = asset.id
+
+                if service_data.get("service_name"):
+                    service.service_name = service_data["service_name"]
+
+                if service_data.get("product"):
+                    service.product = service_data["product"]
+
+                if service_data.get("version"):
+                    service.version = service_data["version"]
+
+                if service_data.get("banner"):
+                    service.banner = service_data["banner"]
+
+                if service_data.get("state"):
+                    service.state = service_data["state"]
+
+                if service_data.get("tls_enabled"):
+                    service.tls_enabled = True
+
+                service_cache[host, port, protocol] = service
+
+            for technology_data in payload.get("technologies", []):
+                product = technology_data.get("product")
+                technology_type = technology_data.get("technology_type")
+
+                if not product or not technology_type:
+                    continue
+
+                host = technology_data.get("host")
+                port = technology_data.get("port")
+                protocol = technology_data.get("protocol")
+
+                asset = None
+                service = None
+
+                if host:
+                    asset = asset_cache.get(host)
+
+                    if asset is None:
+                        asset_result = await db.execute(
+                            select(Asset).where(
+                                Asset.scan_id == scan.id,
+                                Asset.identifier == host,
+                            )
+                        )
+
+                        asset = asset_result.scalar_one_or_none()
+
+                if host and port is not None and protocol:
+                    service = service_cache.get(
+                        (host, port, protocol)
+                    )
+
+                    if service is None:
+                        service_result = await db.execute(
+                            select(Service).where(
+                                Service.scan_id == scan.id,
+                                Service.host == host,
+                                Service.port == port,
+                                Service.protocol == protocol,
+                            )
+                        )
+
+                        service = service_result.scalar_one_or_none()
+
+                asset_id = asset.id if asset else None
+                service_id = service.id if service else None
+
+                technology_query = select(DetectedTechnology).where(
+                    DetectedTechnology.scan_id == scan.id,
+                    DetectedTechnology.product == product,
+                    DetectedTechnology.technology_type == technology_type,
+                    DetectedTechnology.version == technology_data.get("version"),
+                    DetectedTechnology.asset_id == asset_id,
+                    DetectedTechnology.service_id == service_id,
+                )
+
+                technology_result = await db.execute(technology_query)
+
+                technology = technology_result.scalar_one_or_none()
+
+                if technology is None:
+                    technology = DetectedTechnology(
+                        scan_id = scan.id,
+                        asset_id = asset.id if asset else None,
+                        service_id = service.id if service else None,
+                        technology_type = technology_type,
+                        product = product,
+                        version = technology_data.get("version"),
+                        confidence = technology_data.get("confidence"),
+                        detection_source = technology_data.get("detection_source", source_name),
+                        evidence = technology_data.get("evidence", {})
+                    )
+
+                    db.add(technology)
+
+                else:
+                    if asset and technology.asset_id is None:
+                        technology.asset_id = asset.id
+
+                    if service and technology.service_id is None:
+                        technology.service_id = service.id
+
+                    if technology_data.get("confidence") is not None:
+                        technology.confidence = technology_data["confidence"]
+
+                    technology.evidence = technology_data.get("evidence") or technology.evidence
 
             for finding_data in payload.get("findings", []):
+                host = finding_data.get("host")
+                port = finding_data.get("port")
+                protocol = finding_data.get("protocol")
+
+                asset = None
+                service = None
+
+                if host:
+                    asset = asset_cache.get(host)
+
+                    if asset is None:
+                        asset_result = await db.execute(
+                            select(Asset).where(
+                                Asset.scan_id == scan.id,
+                                Asset.identifier == host,
+                            )
+                        )
+
+                        asset = asset_result.scalar_one_or_none()
+
+                if host and port is not None and protocol:
+                    service = service_cache.get(
+                        (host, port, protocol)
+                    )
+
+                    if service is None:
+                        service_result = await db.execute(
+                            select(Service).where(
+                                Service.scan_id == scan.id,
+                                Service.host == host,
+                                Service.port == port,
+                                Service.protocol == protocol,
+                            )
+                        )
+
+                        service = service_result.scalar_one_or_none()
+
                 finding = Finding(
-                    scan_id=scan.id,
-                    source=finding_data.get("source", source_name),
-                    severity=Severity(finding_data.get("severity", "info")),
-                    title=finding_data.get("title", "Untitled finding"),
-                    description=finding_data.get("description"),
-                    recommendation=finding_data.get("recommendation"),
-                    evidence=finding_data.get("evidence"),
+                    scan_id = scan.id,
+                    asset_id = asset.id if asset else service.asset_id if service else None,
+                    service_id = service.id if service else None,
+                    source = finding_data.get("source", source_name),
+                    status = FindingStatus(
+                        finding_data.get("status", "open")
+                    ),
+                    cvss_score = finding_data.get("cvss_score"),
+                    cve_id = finding_data.get("cve_id"),
+                    severity = Severity(
+                        finding_data.get("severity", "info").lower()
+                    ),
+                    title = finding_data.get("title", "Untitled finding"),
+                    description = finding_data.get("description"),
+                    recommendation = finding_data.get("recommendation"),
+                    evidence = finding_data.get("evidence", {}),
                 )
+
                 db.add(finding)
 
             await db.flush()
@@ -232,8 +478,7 @@ class ScanRepository:
             finished_count = sum(1 for _, status in source_statuses if status in finished_statuses)
 
             progress = int((finished_count / total_sources) * 100)
-            min_progress = builtins.min(progress, 100)
-            setattr(scan, "progress", min_progress)
+            setattr(scan, "progress", min(progress, 100))
 
             if finished_count == total_sources:
                 failed_sources = [
@@ -245,9 +490,11 @@ class ScanRepository:
                 if len(failed_sources) == 0:
                     scan.status = ScanStatus.COMPLETED
                     scan.error_message = None
+
                 elif len(failed_sources) == total_sources:
                     scan.status = ScanStatus.FAILED
                     scan.error_message = "All Scan Sources Failed"
+
                 else:
                     scan.status = ScanStatus.PARTIAL
                     scan.error_message = f"Some Scan Sources Failed: {', '.join(failed_sources)}"
@@ -383,7 +630,7 @@ class ScanRepository:
             + (findings_breakdown["medium"] * 5)
             + (findings_breakdown["low"] * 1)
         )
-        risk_score = builtins.min(100, weighted_score)
+        risk_score = min(100, weighted_score)
 
         return {
             "risk_score": risk_score,

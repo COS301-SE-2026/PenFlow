@@ -2,8 +2,6 @@ import { NextResponse } from "next/server";
 
 import { type TokenResponse } from "@/lib/keycloakService";
 
-const BACKEND_URL = process.env.API_URL ?? "http://localhost:3001";
-
 export function setAuthCookies(res: NextResponse, tokens: TokenResponse): void {
 
   const isProduction = process.env.NODE_ENV === "production";
@@ -32,22 +30,11 @@ export function setAuthCookies(res: NextResponse, tokens: TokenResponse): void {
     path: "/",
   });
 
-}
-
-export async function createAuthResponse(tokens: TokenResponse): Promise<NextResponse> {
-  const res = NextResponse.json({ success: true });
-  setAuthCookies(res, tokens);
-  const provisionRes = await fetch(`${BACKEND_URL}/api/v1/users/me`, {
-    headers: { Authorization: `Bearer ${tokens.access_token}` },
-  }).catch((err: unknown) => {
-    console.error("[auth] backend unreachable during provisioning:", err);
-    return null;
+  res.cookies.set("id_token", tokens.id_token, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: "lax",
+    maxAge: tokens.refresh_expires_in,
+    path: "/",
   });
-
-  if (provisionRes && !provisionRes.ok) {
-    const body = await provisionRes.text().catch(() => "");
-    console.error(`[auth] provisioning returned ${provisionRes.status}:`, body);
-  }
-
-  return res;
 }

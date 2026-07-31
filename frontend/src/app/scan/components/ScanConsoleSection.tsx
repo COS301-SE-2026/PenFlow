@@ -7,14 +7,14 @@ import styles from "./ScanConsoleSection.module.css";
 import { validateDomain } from "@/lib/domainValidator";   
 import { postScanRequest,  fetchScanStatus} from "@/lib/scanService";  
 
-const LEFT_SOURCES  = ["Shodan", "HaveIBeenPwned", "URLScan.io",];
+const LEFT_SOURCES  = ["Shodan", "HaveIBeenPwned", "URLScan.io", "Wappalyzer"];
 const RIGHT_SOURCES = ["crt.sh", "WHOIS", "DNS"];
 const SOURCES = [...LEFT_SOURCES, ...RIGHT_SOURCES,];
 const SOURCE_MAPPINGS: Record<string, string> = {
   Shodan: "shodan",
   HaveIBeenPwned: "hibp",
   "URLScan.io": "urlscan",
-  "Hunter.io": "hunter.io",
+  Wappalyzer: "wappalyzer",
   "crt.sh": "crt.sh",
   WHOIS: "dns",
   DNS: "dns",

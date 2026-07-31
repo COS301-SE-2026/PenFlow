@@ -38,8 +38,10 @@ def run_urlscan(scan_id: str, domain: str) -> JSONDict:
             "source_name": "urlscan",
             "status": status,
             "raw_result": normalized,
-            "findings": findings,
             "assets": [],
+            "services": [],
+            "technologies": [],
+            "findings": findings,
         }
 
     except Exception as error:
@@ -48,8 +50,10 @@ def run_urlscan(scan_id: str, domain: str) -> JSONDict:
             "source_name": "urlscan",
             "status": "failed",
             "raw_result": {"error": str(error)},
-            "findings": [],
             "assets": [],
+            "services": [],
+            "technologies": [],
+            "findings": [],
             "error_message": str(error),
         }
 
@@ -58,8 +62,10 @@ def run_urlscan(scan_id: str, domain: str) -> JSONDict:
         source_name=result["source_name"],
         status=result["status"],
         raw_result=result["raw_result"],
-        findings=result["findings"],
         assets=result["assets"],
+        services=result["services"],
+        technologies=result["technologies"],
+        findings=result["findings"],
         error_message=result.get("error_message"),
     )
 

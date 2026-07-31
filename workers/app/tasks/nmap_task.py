@@ -40,23 +40,21 @@ def run_nmap_scan(
             profile=profile,
         )
 
-        assets = []
+        services = []
 
         for port in scan_data.get("ports", []):
-            (
-                assets.append(
-                    {
-                        "type": "network_service",
-                        "value": f"{scan_data['ip']}:{port['port']}",
-                        "metadata": {
-                            "protocol": port["protocol"],
-                            "service": port["service"],
-                            "product": port["product"],
-                            "version": port["version"],
-                            "state": port["state"],
-                        },
-                    }
-                )
+            services.append(
+                {
+                    "host": scan_data["ip"],
+                    "port": port["port"],
+                    "protocol": port["protocol"],
+                    "service_name": port["service"],
+                    "product": port["product"],
+                    "version": port["version"],
+                    "banner": port.get("extra_info"),
+                    "state": port["state"],
+                    "tls_enabled": False,
+                }
             )
 
         result = {
@@ -64,8 +62,11 @@ def run_nmap_scan(
             "source_name": "nmap",
             "status": "completed",
             "raw_result": scan_data,
+            "assets": [],
+            "services": services,
+            "technologies": [],
             "findings": [],
-            "assets": assets,
+            
         }
 
         (
@@ -87,21 +88,23 @@ def run_nmap_scan(
                 "ip": ip_address,
                 "error": str(error),
             },
-            "findings": [],
             "assets": [],
+            "services": [],
+            "technologies": [],
+            "findings": [],
             "error_message": str(error),
         }
 
-    (
-        send_source_callback(
-            scan_id=result["scan_id"],
-            source_name=result["source_name"],
-            status=result["status"],
-            raw_result=result["raw_result"],
-            findings=result["findings"],
-            assets=result["assets"],
-            error_message=result.get("error_message"),
-        )
+    send_source_callback(
+        scan_id=result["scan_id"],
+        source_name=result["source_name"],
+        status=result["status"],
+        raw_result=result["raw_result"],
+        assets=result["assets"],
+        services=result["services"],
+        technologies=result["technologies"],
+        findings=result["findings"],
+        error_message=result.get("error_message"),
     )
 
     if result["status"] == "completed":

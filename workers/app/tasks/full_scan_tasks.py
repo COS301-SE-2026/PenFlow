@@ -22,9 +22,10 @@ def run_full_scan(scan_id: str, domain: str) -> JSONDict:
 
     return {
         "scan_id": scan_id,
-        #Maybe add passive_ctem
+        "scan_type": "passive_ctem",
         "status": "queued",
     }
+
 
 @celery_app.task(name="scan.phase2_full")
 def run_phase2_full_scan(scan_id: str, domain: str) -> JSONDict:

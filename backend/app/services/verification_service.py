@@ -4,7 +4,7 @@ import dns.asyncresolver
 import dns.exception
 import dns.resolver
 
-from app.models.verified_domain import DomainVerificationCode
+from app.models.base import DomainVerificationCode
 
 
 class VerificationService:

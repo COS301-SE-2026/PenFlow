@@ -6,7 +6,7 @@ describe("User log in and Download pdf report",()=>{
         cy.getCookie("logged_in").should("have.property","value","1")
     })
     it("Download Pdf report",()=>{
-        cy.contains("a","HISTORY").click();   
+        cy.get('nav a[href="/history"]').click(); 
         cy.url().should("include","/history");
         cy.get("table tbody tr").first().click();
         cy.contains("button","VIEW REPORT").should("be.visible").click();

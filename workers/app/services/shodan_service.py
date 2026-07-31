@@ -109,9 +109,16 @@ def generate_findings_and_assets(normalized_data: dict) -> tuple:
 
     # Add the IP address to the PenFlow Asset inventory
     for ip_obj in normalized_data.get("ip_addresses", []):
+        ip_str = ip_obj["ip_str"]
+        ip_version = ipaddress.ip_address(ip_str).version
         assets.append(
-            {"asset_type": "ip_address", "identifier": ip_obj["ip_str"], "source": "shodan"}
-        )
+        {
+            "asset_type": "ipv4" if ip_version == 4 else "ipv6",
+            "identifier": ip_str,
+            "asset_metadata": {
+                "source": "shodan",
+            },
+        })
 
     # Risky port definitions
     RISKY_PORTS = {

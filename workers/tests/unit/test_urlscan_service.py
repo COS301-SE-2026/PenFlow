@@ -90,6 +90,8 @@ def test_hibp_exception(mock_raw_data, mock_send_callback):
         "raw_result": {"error": "Some urlscan exception"},
         "findings": [],
         "assets": [],
+        "services": [],
+        "technologies": [],
         "error_message": "Some urlscan exception",
     }
 
@@ -100,5 +102,7 @@ def test_hibp_exception(mock_raw_data, mock_send_callback):
         raw_result = {"error": "Some urlscan exception"},
         findings = [],
         assets = [],
+        services = [],
+        technologies = [],
         error_message = "Some urlscan exception",
     )

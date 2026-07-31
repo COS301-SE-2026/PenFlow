@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+/*import { NextRequest, NextResponse } from "next/server";
 
 import { createAuthResponse } from "@/lib/authSession";
 import { loginWithPassword, registerUser } from "@/lib/keycloakService";
@@ -24,3 +24,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: message }, { status });
   }
 }
+*/

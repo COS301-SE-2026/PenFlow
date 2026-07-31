@@ -40,24 +40,41 @@ def run_fingerprinting_scan_task(
         fingerprint_results = fingerprinting_service.run()
 
         # convert discovered software into orchestrator assets
-        software_assets = []
         fingerprint_block = fingerprint_results.get("fingerprint", {})
         software_list = fingerprint_block.get("software", [])
+        technologies = []
 
         for software_entry in software_list:
-            # if we dont have the signature its unknown
-            product_name = software_entry.get(
-                "product",
-                "unknown",
-            )
+            confidence_label = software_entry.get("confidence", "low")
 
-            asset = {
-                "type": "software",
-                "value": product_name,
-                "metadata": software_entry,
+            confidence_map = {
+                "low": 0.40,
+                "medium": 0.70,
+                "high": 0.95,
             }
 
-            software_assets.append(asset)
+            technologies.append(
+                {
+                    "technology_type": software_entry.get("category", "unknown"),
+                    "product": software_entry.get("product", "unknown"),
+                    "version": software_entry.get("version"),
+                    "confidence": confidence_map.get(
+                        confidence_label,
+                        0.40,
+                    ),
+                    "detection_source": "fingerprint",
+                    "evidence": {
+                        "vendor": software_entry.get("vendor"),
+                        "evidence_source": software_entry.get(
+                            "evidence_score",
+                            0,
+                        ),
+                        "sources": software_entry.get("sources", []),
+                        "confidence_label": confidence_label,
+                        "target_url": target_url,
+                    },
+                }
+            )
 
         # package successful worker results
         result = {
@@ -65,8 +82,10 @@ def run_fingerprinting_scan_task(
             "source_name": "fingerprint",
             "status": "completed",
             "raw_result": fingerprint_results,
+            "assets": [],
+            "services": [],
+            "technologies": technologies,
             "findings": [],
-            "assets": software_assets,
         }
 
     except Exception as error:
@@ -81,19 +100,23 @@ def run_fingerprinting_scan_task(
                 "target": target_url,
                 "error": str(error),
             },
-            "findings": [],
             "assets": [],
+            "services": [],
+            "technologies": [],
+            "findings": [],
             "error_message": str(error),
         }
 
     # send the results back to the orchestrator
-    send_source_callback(
+    send_source_callback (
         scan_id=result["scan_id"],
         source_name=result["source_name"],
         status=result["status"],
         raw_result=result["raw_result"],
-        findings=result["findings"],
         assets=result["assets"],
+        services=result["services"],
+        technologies=result["technologies"],
+        findings=result["findings"],
         error_message=result.get("error_message"),
     )
 
@@ -104,5 +127,6 @@ def run_fingerprinting_scan_task(
             "scan.phase2_cpe_resolver",
             args=[scan_id, software_inventory],
         )
+
 
     return result

@@ -53,8 +53,10 @@ class ScanHistoryItem(BaseModel):
 class ScanSourceCallbackRequest(BaseModel):
     status: str
     raw_result: dict[str, Any] | None = None
-    findings: list[dict[str, Any]] = []
     assets: list[dict[str, Any]] = []
+    services: list[dict[str, Any]] = []
+    technologies: list[dict[str, Any]] = []
+    findings: list[dict[str, Any]] = []
     error_message: str | None = None
 
 
@@ -131,8 +133,8 @@ class ServiceListItem(BaseModel):
     protocol: str
     product: str | None = None
     version: str | None = None
-    state: str
-    risk_level: str
+    state: str = "open"
+    risk_level: str 
     asset_count: int = 0
     banner: str | None = None
     created_at: datetime

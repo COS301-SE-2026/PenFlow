@@ -32,8 +32,10 @@ def run_crt_sh(scan_id: str, domain: str) -> JSONDict:
             "source_name": "crt.sh",
             "status": status,
             "raw_result": normalized,
-            "findings": findings,
             "assets": assets,
+            "services": [],
+            "technologies": [],
+            "findings": findings,
         }
 
     except Exception as error:
@@ -42,8 +44,10 @@ def run_crt_sh(scan_id: str, domain: str) -> JSONDict:
             "source_name": "crt.sh",
             "status": "failed",
             "raw_result": {"error": str(error)},
-            "findings": [],
             "assets": [],
+            "services": [],
+            "technologies": [],
+            "findings": [],
             "error_message": str(error),
         }
 
@@ -52,8 +56,10 @@ def run_crt_sh(scan_id: str, domain: str) -> JSONDict:
         source_name=result["source_name"],
         status=result["status"],
         raw_result=result["raw_result"],
-        findings=result["findings"],
         assets=result["assets"],
+        services=result["services"],
+        technologies=result["technologies"],
+        findings=result["findings"],
         error_message=result.get("error_message"),
     )
 

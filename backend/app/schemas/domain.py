@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.verified_domain import DomainVerificationCode, DomainVerificationStatus
+from app.models.base import DomainVerificationCode, DomainVerificationStatus
 
 
 class AddDomainRequest(BaseModel):
