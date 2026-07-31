@@ -9,6 +9,7 @@ from app.tasks.tls_task import run_tls_scan_task
 from app.tasks.fingerprinting_task import run_fingerprinting_scan_task
 from app.tasks.cpe_resolver_task import run_cpe_resolver_task
 from app.tasks.cve_task import run_cve_scan_task
+from app.tasks.domain_verification_task import run_domain_verification_task
 
 
 @patch("app.tasks.wappalyzer_tasks.send_source_callback")
@@ -601,3 +602,41 @@ def test_cve_task_service_pipeline\
     assert result["findings"][0]["metadata"]["cve_id"] == "CVE-2025-12345"
     mock_callback.assert_called_once()
     mock_get.assert_called_once()
+
+
+#domain verification int test
+@patch("app.tasks.domain_verification_task.send_source_callback")
+@patch("app.services.domain_verification_service.dns.resolver.resolve")
+def test_domain_verification_task_service_pipeline\
+(
+    mock_resolve,
+    mock_callback,
+):
+    txt_record = MagicMock()
+    txt_record.to_text.return_value = \
+        '"penflow-verify=abc123"'
+
+    mock_resolve.return_value = \
+    [
+        txt_record,
+    ]
+
+    result = run_domain_verification_task\
+    (
+        "scan-123",
+        "hackerone.com",
+        "penflow-verify=abc123",
+    )
+    assert result["status"] == "completed"
+    assert result["source_name"] == "domain_verification"
+    assert result["raw_result"] == \
+    {
+        "domain": "hackerone.com",
+        "verified": True,
+    }
+    mock_callback.assert_called_once()
+    mock_resolve.assert_called_once_with\
+    (
+        "hackerone.com",
+        "TXT",
+    )
