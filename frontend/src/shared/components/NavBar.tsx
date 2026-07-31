@@ -136,6 +136,23 @@ export default function NavBar() {
     
 
     <div className="navFace navFaceBack">
+      <div className = "logoPanel">
+        <Image
+          src = {bluevisionLogo}
+          alt = "Bluevision"
+          width = {80}
+          height = {48}
+          style = {{width: "auto", height: 48}}
+          />
+          <div className="logoDivider" />
+          <Image
+            src = {brocodeLogo}
+            alt = "BroCode"
+            width = {80}
+            height = {48}
+            style = {{ width: "auto", height: 48}}
+            />
+      </div>
       <div className="helpBackHeader">
         <button
           type = "button"

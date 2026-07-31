@@ -8,12 +8,14 @@ import type { ScanHistoryItem } from "@/lib/scanService";
 import Image from "next/image";
 import submarineImage from "@/app/images/images/submarine.png";
 import styles from "./history.module.css";
-import { CheckCircle2, Clock, Globe, MoreVertical , XCircle,} from "lucide-react";
+import { CheckCircle2, ChevronRight, Clock, Globe, MoreVertical , XCircle,} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {Card , CardContent} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils"
+import Link from "next/link";
+
 
 const scanTypeLabel: Record<string, string> = {
     active_vulnerability: "Active Vulnerability Scan",
@@ -135,7 +137,7 @@ export default function HistoryPage() {
           if (error) return <div className={styles.stateWrap}><p className={styles.stateText}>{error}</p></div>;
           if (scans.length === 0) return <div className={styles.stateWrap}><p className={styles.stateText}>NO SCANS YET</p></div>;
           return (
-              <div className="flex flex-col gap-3">
+              <div className="flex w- full flex-col gap-3">
                 {scans.map(scan => (
                   <Card
                     key={scan.id}
@@ -155,6 +157,12 @@ export default function HistoryPage() {
                       <span className="w-40 shrink-0 text-sm text-muted-foreground">
                             {formatDate(scan.created_at)}
                       </span>
+                      <Link href={`/phase2_scan/results/${scan.id}`} onClick={e => e.stopPropagation()}>
+                        <Button className="gap-2 bg-brand-cyan text-black hover:bg-brand-cyan/85">
+                          View Results
+                          <ChevronRight className="size-4" />
+                        </Button>
+                      </Link>
                           <Button
                           variant="ghost"
                           size="icon"
