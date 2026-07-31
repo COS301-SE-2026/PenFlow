@@ -4,11 +4,20 @@ import os
 import httpx
 
 logger = logging.getLogger(__name__)
-BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://localhost:3001/api/v1")
+temp_backend_url = os.getenv("BACKEND_URL")
 
+if not temp_backend_url:
+    raise RuntimeError("BACKEND_URL is missing")
 
-def send_scan_callback(scan_id: str, status: str, error_message: str | None = None) -> None:
-    url = f"{BACKEND_API_URL}/internal/scans/{scan_id}/status"
+backend_url: str = temp_backend_url
+
+def build_api_url(path: str) -> str:
+    return f"{backend_url.rstrip('/')}/api/v1{path}"
+
+def send_scan_callback(
+    scan_id: str, status: str, error_message: str | None = None
+) -> None:
+    url = build_api_url(f"/internal/scans/{scan_id}/status")
     payload = {
         "status": status,
         "error_message": error_message,
@@ -26,7 +35,7 @@ def send_scan_callback(scan_id: str, status: str, error_message: str | None = No
 def send_report_callback(
     scan_id: str, status: str, pdf_path: str | None = None, error_message: str | None = None
 ) -> None:
-    url = f"{BACKEND_API_URL}/internal/reports/{scan_id}/status"
+    url = build_api_url(f"/internal/reports/{scan_id}/status")
     payload = {
         "status": status,
         "pdf_path": pdf_path,
@@ -42,21 +51,25 @@ def send_report_callback(
 
 
 def send_source_callback(
-    scan_id: str,
-    source_name: str,
-    status: str,
-    raw_result: dict | None = None,
-    findings: list[dict] | None = None,
-    assets: list[dict] | None = None,
-    error_message: str | None = None,
+        scan_id: str,
+        source_name: str,
+        status: str,
+        raw_result: dict | None = None,
+        findings: list[dict] | None = None,
+        assets: list[dict] | None = None,
+        services: list[dict] | None = None,
+        technologies: list[dict] | None = None,
+        error_message: str | None = None,
 ) -> None:
-    url = f"{BACKEND_API_URL}/internal/scans/{scan_id}/sources/{source_name}"
+    url = build_api_url(f"/internal/scans/{scan_id}/sources/{source_name}")
 
     payload = {
         "status": status,
         "raw_result": raw_result,
-        "findings": findings or [],
         "assets": assets or [],
+        "services": services or [],
+        "technologies": technologies or [],
+        "findings": findings or [],
         "error_message": error_message,
     }
 

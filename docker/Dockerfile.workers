@@ -8,6 +8,7 @@ ENV PYTHONUNBUFFERED=1
 COPY workers/requirements.txt ./requirements.txt
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    nmap \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
     libharfbuzz0b \
@@ -35,6 +36,9 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    nmap \
+    ca-certificates \
+    curl \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
     libharfbuzz0b \
@@ -58,4 +62,4 @@ RUN adduser --disabled-password --gecos "" appuser && \
 
 USER appuser
 
-CMD ["celery", "-A", "app.queue.celery_app:celery_app", "worker", "--loglevel=info", "--concurrency=7"]
+CMD ["celery", "-A", "app.queue.celery_app:celery_app", "worker", "--loglevel=info", "--concurrency=2"]

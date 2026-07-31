@@ -46,6 +46,10 @@ def test_strip_domain_invalid(domain):
     assert excep.value.detail == "A valid domain is needed"
 
 
+#Phase 2 
+#test adding domain successs verified 
+# POST /domains/ (add domain) happy path service layer
+
 @pytest.mark.asyncio
 @patch("app.services.domain_service.DomainRepository.create_rec", new_callable=AsyncMock)
 @patch("app.services.domain_service.VerificationService.generate_txt_token")
@@ -91,6 +95,9 @@ async def test_add_domain(mock_get_domain, mock_gen_token, mock_create_domain):
     assert result == created_domain
 
 
+#Phase 2 
+#test adding domain successs verified 
+# POST /domains/ (add domain) error path 
 @pytest.mark.asyncio
 @patch("app.services.domain_service.DomainRepository.create_rec", new_callable=AsyncMock)
 @patch("app.services.domain_service.VerificationService.generate_txt_token")
@@ -300,6 +307,8 @@ async def test_verify_domain_not_found(mock_get_domain, mock_verify_dns):
     mock_verify_dns.assert_not_awaited()
 
 
+#phase2
+#POST /domains/{domain_id}/verify edge case verify domain
 @pytest.mark.asyncio
 @patch("app.services.domain_service.DomainRepository.save_domain", new_callable=AsyncMock)
 @patch("app.services.domain_service.VerificationService.verify_dns_txt", new_callable=AsyncMock)
@@ -330,7 +339,8 @@ async def test_verify_domain_already_verified(mock_get_domain, mock_verify_dns, 
 
     assert result == domain
 
-
+#phase2
+#POST /domains/{domain_id}/verify happy path verify domain
 @pytest.mark.asyncio
 @patch("app.services.domain_service.DomainRepository.save_domain", new_callable=AsyncMock)
 @patch("app.services.domain_service.VerificationService.verify_dns_txt", new_callable=AsyncMock)
@@ -398,6 +408,9 @@ async def test_verify_domain_success(mock_get_domain, mock_verify_dns, mock_save
         ),
     ],
 )
+
+#phase2
+#POST /domains/{domain_id}/verify error path verify domain
 @patch("app.services.domain_service.DomainRepository.save_domain", new_callable=AsyncMock)
 @patch("app.services.domain_service.VerificationService.verify_dns_txt", new_callable=AsyncMock)
 @patch("app.services.domain_service.DomainRepository.get_by_id", new_callable=AsyncMock)
@@ -448,8 +461,8 @@ async def test_verify_domain_unsuccessful(
         db,
         domain,
     )
-
-
+#phase 2 
+#DELETE /domains/{domain_id} delete domain happy path
 @pytest.mark.asyncio
 @patch("app.services.domain_service.DomainRepository.delete_domain", new_callable=AsyncMock)
 @patch("app.services.domain_service.DomainRepository.get_by_id", new_callable=AsyncMock)
@@ -486,6 +499,8 @@ async def test_delete_domain(mock_get_domain, mock_delete_domain):
     assert result is None
 
 
+#phase2
+#POST /domains/{domain_id}/verify error path verify domain add domain
 @pytest.mark.asyncio
 @patch("app.services.domain_service.DomainRepository.delete_domain", new_callable=AsyncMock)
 @patch("app.services.domain_service.DomainRepository.get_by_id", new_callable=AsyncMock)

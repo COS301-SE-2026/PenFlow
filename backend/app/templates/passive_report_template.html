@@ -129,30 +129,6 @@
     </section>
 
     <section>
-        <h2>Email Exposure / Phishing Surface</h2>
-        <p><strong>Source:</strong> Hunter.io</p>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Email</th>
-                    <th>Type</th>
-                    <th>Confidence</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for email in phishing_surface.public_emails_found %}
-                <tr>
-                    <td>{{ email.email }}</td>
-                    <td>{{ email.type }}</td>
-                    <td>{{ email.confidence_score }}%</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </section>
-
-    <section>
         <h2>Breach Exposure</h2>
         <p><strong>Source:</strong> HaveIBeenPwned</p>
 

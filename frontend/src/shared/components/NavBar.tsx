@@ -7,6 +7,9 @@ import { usePathname} from "next/navigation";
 import brocodeLogo from "@/app/images/images/BroCode logo.png";
 import bluevisionLogo from "@/app/images/images/Bluevision logo.png";
 import { useEffect, useState } from "react";
+import { getHelpTopics } from "../helpContext";
+import type { HelpTopic } from "../helpContext";
+import HelpTopicModal from "./HelpTopicModal";
 
 function isLoggedIn(): boolean {
   if (typeof document === "undefined") return false;
@@ -16,32 +19,38 @@ function isLoggedIn(): boolean {
 type NavItem = 
   | { label: string; href: string; kind: "link"}
   | { label: string; href: string; kind: "external"}
-  | { label: string; kind: "disabled"};
+  | { label: string; kind: "disabled"}
+  | { label: string; kind: "help"};
 
   const loggedInNavItems: NavItem[] = [
     { label: "Home", href: "/", kind: "link"},
-    { label: "Dashboard", href: "/dashboard", kind: "link"},
+    //{ label: "Dashboard", href: "/dashboard", kind: "link"},
     { label: "Domains", href: "/domains", kind: "link"},
     { label: "Scans", href: "/phase2_scan", kind: "link"},
-    { label: "Scheduled Scans", href: "/scheduled-scans", kind: "link"},
+    //{ label: "Scheduled Scans", href: "/scheduled-scans", kind: "link"},
     { label: "Scan History", href: "/history", kind: "link"},
-    { label: "Old History", href: "/history", kind: "link"},
-    { label: "Settings", href: "/settings", kind: "link"},
-    { label: "Help", href: "/help", kind: "link"},
+    //{ label: "Settings", href: "/settings", kind: "link"},
+    { label: "Help", kind: "help"},
     { label: "Logout", href: "/api/auth/logout", kind: "external"},
   ];
 
 export default function NavBar() {
   //fix hydation error for login
   const [loggedIn,setLoggedIn] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const pathName = usePathname();
+  const HelpTopics = getHelpTopics(pathName);
+  const [activeTopic, setActiveTopic] = useState<HelpTopic | null>(null);
 
   useEffect( ()=>{
     setLoggedIn(isLoggedIn());
   },[]);
   return (
+    <>
     <nav className = "topbar">
-      <div className = "logoPanel">
+      <div className={`navFlip${helpOpen? " navFlipped": ""}`}>
+        <div className="navFace navFaceFront">
+        <div className = "logoPanel">
         <Image
           src = {bluevisionLogo}
           alt = "Bluevision"
@@ -82,6 +91,20 @@ export default function NavBar() {
               );
             }
 
+            if (item.kind === "help") {
+              return (
+                <li key={item.label}>
+                  <button
+                    type="button"
+                    className="nav-link nav-link-help"
+                    onClick={() => setHelpOpen(true)}
+                  >
+                    {item.label}
+                  </button>
+                </li>
+              );
+            }
+
             const isActive = pathName === item.href || (item.href !== "/" && pathName.startsWith(`${item.href}/`));
 
             return ( 
@@ -108,8 +131,45 @@ export default function NavBar() {
             SCAN
           </Link>
         </div>
-      )
-    }
+      )}
+      </div>
+    
+
+    <div className="navFace navFaceBack">
+      <div className="helpBackHeader">
+        <button
+          type = "button"
+          className="helpBackBtn"
+          onClick={() => setHelpOpen(false)}
+          aria-label="Back to navigation"
+        >
+          &larr; Back
+        </button>
+        <span className="helpBackTitle">Help</span>
+      </div>
+      
+      {HelpTopics.length > 0 ? (
+        <ul className="helpTopicList">
+          {HelpTopics.map((topic) => (
+            <li key={topic.id}>
+              <button
+                type = "button"
+                className = "helpTopicBtn"
+                onClick={() => setActiveTopic(topic)}
+              >
+                {topic.title}
+              </button>
+            </li>
+          ))}
+        </ul>
+      ): (
+        <p className="helpEmpty">No help topics for this page.</p>
+      )}
+
+    </div>
+    </div>
     </nav>
+    <HelpTopicModal topic = {activeTopic} onClose={()=>setActiveTopic(null)} />
+    </>
   );
 }

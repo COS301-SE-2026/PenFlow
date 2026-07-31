@@ -5,8 +5,7 @@ from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.models.base import Base
-from app.models.report_status import ReportStatus
+from app.models.base import Base, ReportStatus
 
 
 class Report(Base):

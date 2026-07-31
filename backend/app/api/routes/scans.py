@@ -1,13 +1,13 @@
 import logging
-from pathlib import Path
 from typing import Annotated, Any, Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user, get_current_user_optional
+from app.api.middleware.rate_limiter import limiter
 from app.models.base import ScanStatus
 from app.repositories.report_repository import get_report_by_scan_id
 from app.repositories.scan_repo import ScanRepository
@@ -26,6 +26,7 @@ from app.schemas.scan import (
     ServiceListResponse,
 )
 from app.services.email_service import send_report_email
+from app.services.report_storage_service import ReportStorageService
 from app.services.scan_service import ScanService
 from app.utils.db import get_db
 
@@ -70,8 +71,10 @@ async def list_scans(
     response_model=InitiateScanResponse,
     status_code=status.HTTP_202_ACCEPTED,
 )
+@limiter.limit("3/10minutes")
 async def initiate_ctem_scan(
-    request: InitiateScanRequest,
+    request: Request,
+    payload: InitiateScanRequest,
     current_user: CurrentUserOptional,
     db: DbSession,
 ) -> InitiateScanResponse:
@@ -80,12 +83,12 @@ async def initiate_ctem_scan(
         if current_user is not None:
             user_id = await get_user_id_by_provider_id(db, current_user["sub"])
 
-        new_scan = await ScanService.start_scan(db, request, user_id=user_id)
+        new_scan = await ScanService.start_scan(db, payload, user_id=user_id)
 
         return InitiateScanResponse(scan_id=new_scan.id, status=new_scan.status)
 
     except Exception:
-        logger.exception("Failed to initiate scan for domain %s", request.domain)
+        logger.exception("Failed to initiate scan for domain %s", payload.domain)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to initiate scan",
@@ -125,13 +128,13 @@ async def get_scan_status(
 
 @router.get(
     "/{scan_id}/pdf",
-    response_class=FileResponse,
+    response_class=Response,
     status_code=status.HTTP_200_OK,
 )
 async def download_scan_pdf(
     scan_id: UUID,
     db: DbSession,
-) -> FileResponse:
+) -> Response:
 
     report = await get_report_by_scan_id(db, str(scan_id))
 
@@ -147,19 +150,43 @@ async def download_scan_pdf(
             detail="Report is not ready yet",
         )
 
-    pdf_path = Path(report.pdf_path)
+    storage_reference = str(report.pdf_path)
+    try:
+        if ReportStorageService.is_local():
+            pdf_path = ReportStorageService.get_local_report_storage(
+                storage_reference
+            )
 
-    if not pdf_path.exists():
+            return FileResponse(
+                path = str(pdf_path),
+                media_type = "application/pdf",
+                filename = f"PenFlow_Report_{scan_id}.pdf"
+            )
+        if ReportStorageService.is_s3():
+            s3_object = ReportStorageService.get_s3_object(
+                storage_reference
+            )
+
+            body = s3_object["Body"]
+
+            return StreamingResponse(
+                body.iter_chunks(),
+                media_type = "application/pdf",
+                headers = {
+                    "Content-Disposition": (
+                        f'attachment; filename="PenFlow_Report_{scan_id}.pdf"'
+                    )
+                },
+            )
+
+        raise Exception("Unsupported report storage mode.")
+
+    except Exception as err:
+        logger.exception("Failed to retrieve report for scan %s", scan_id)
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="PDF file not found on server",
-        )
-
-    return FileResponse(
-        path=str(pdf_path),
-        media_type="application/pdf",
-        filename=f"PenFlow_Report_{scan_id}.pdf",
-    )
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = str(err),
+        ) from err
 
 
 @router.post(
@@ -170,9 +197,11 @@ async def download_scan_pdf(
         404: {"description": "Scan not found"},
     },
 )
+@limiter.limit("2/minute")
 async def email_scan_report(
+    request: Request,
     scan_id: UUID,
-    request: EmailReportRequest,
+    payload: EmailReportRequest,
     db: DbSession,
 ) -> dict[str, str]:
     scan = await ScanRepository.get_scan_by_id(db, scan_id)
@@ -186,7 +215,7 @@ async def email_scan_report(
         raise HTTPException(status_code=400, detail="Report is not ready yet")
 
     send_report_email(
-        to_email=request.email,
+        to_email=payload.email,
         domain=str(scan.domain),
         pdf_path=str(report.pdf_path),
     )

@@ -40,15 +40,12 @@ def fetch_mock_data(domain: str) -> dict:
 def fetch_live_data(domain: str) -> dict:
     # Live Mode
     logger.info(f"[CRT.sh] Running in FULL LIVE mode for {domain}")
-
-    # crt.sh is a free public database, we need no api key
-    # we use %.domain to get all subdomains
     url = f"https://crt.sh/?q=%.{domain}&output=json&exclude=expired"
-
-    # crt.sh is very bad with reliable requests,
-    # we have to do a lot of retry logic to try get a good response.
-    max_attempts = 6
-    timeout_seconds = 15.0
+    #crt.sh is very bad with reliable requests, 
+    #we have to do a lot of retry logic to try get a good response.
+    max_attempts = 3
+    timeout_seconds = 8.0
+    retry_delay_seconds = 3
 
     with httpx.Client() as client:
         for attempt in range(1, max_attempts + 1):
@@ -63,32 +60,33 @@ def fetch_live_data(domain: str) -> dict:
                 # Catch 502 Bad Gateway / 503 Service Unavailable natively
                 if res.status_code in [502, 503, 504]:
                     logger.warning(f"[CRT.sh] Server returned {res.status_code}. Retrying...")
-                    time.sleep(3)
-                    continue
-
-                res.raise_for_status()
-
-                # crt.sh sometimes returns a completely blank page when it struggles
-                if not res.text.strip():
-                    logger.warning("[CRT.sh] Returned a blank response. Retrying...")
-                    time.sleep(3)
-                    continue
-
-                # Try to parse the JSON. If it's half-broken, catch it and retry.
-                try:
-                    return {"certificates": res.json()}
-                except json.JSONDecodeError:
-                    logger.warning("[CRT.sh] Returned invalid JSON. Retrying...")
-                    time.sleep(3)
-                    continue
-
-            except httpx.ReadTimeout:
+                    
+                else:
+                    res.raise_for_status()
+                    # crt.sh sometimes returns a completely blank page when it struggles
+                    if not res.text.strip():
+                        logger.warning("[CRT.sh] Returned a blank response. Retrying...")
+                    else:
+                        try:
+                            return {
+                                "certificates": res.json()
+                            }
+                        # Try to parse the JSON. If it's half-broken, catch it and retry.
+                        except json.JSONDecodeError:
+                            logger.warning(
+                                "[CRT.sh] Request timed out after %.1fs.",
+                                timeout_seconds,
+                            )
+                
+            except httpx.TimeoutException:
                 logger.warning(f"[CRT.sh] Timeout reached ({timeout_seconds}s). Retrying...")
-                time.sleep(3)
+
             except httpx.HTTPError as e:
                 logger.warning(f"[CRT.sh] HTTP Error: {e}. Retrying...")
-                time.sleep(3)
 
+            if attempt < max_attempts:
+                time.sleep(retry_delay_seconds)
+            
         # If we exhaust all 5 attempts, fail gracefully
         logger.error(f"[CRT.sh] X Completely failed after {max_attempts} attempts.")
         return {"error": "API Request Failed / Timed Out"}
@@ -154,18 +152,19 @@ def normalize_data(raw_data: dict) -> dict:
 def generate_findings_and_assets(normalized_data: dict) -> tuple:
     findings = []
     assets = []
-
-    if "error" in normalized_data:
-        return findings, assets
-
+    
     subdomains = normalized_data.get("subdomains", {})
-    for subdomain in subdomains.get("discovered_names", []):
-        assets.append(
-            {
-                "asset_type": "subdomain",
-                "identifier": subdomain,
-                "source": CRT_SH_PROVIDER,
-            }
-        )
 
+    if "error" in subdomains:
+        return findings, assets
+    
+    for subdomain in subdomains.get("discovered_names", []):
+        assets.append({
+            "asset_type": "subdomain",
+            "identifier": subdomain,
+            "asset_metadata": {
+                "source": CRT_SH_PROVIDER,
+            },
+        })
+            
     return findings, assets

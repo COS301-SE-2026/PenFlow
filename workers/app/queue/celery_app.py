@@ -1,10 +1,31 @@
 import os
+import ssl
+from urllib.parse import quote
 
 from celery import Celery
 
+
+def build_broker_url() -> str:
+
+    protocol = os.getenv("RABBITMQ_PROTOCOL", "amqps")
+    host = os.getenv("RABBITMQ_HOST")
+    port = os.getenv("RABBITMQ_PORT", "5671")
+    username = os.getenv("RABBITMQ_USERNAME")
+    password = os.getenv("RABBITMQ_PASSWORD")
+
+    if not host or not username or not password:
+        raise RuntimeError("RabbitMQ environment variables are missing")
+
+    return (
+        f"{protocol}://{quote(username, safe='')}:"
+        f"{quote(password, safe='')}@"
+        f"{host}:{port}//"
+    )
+
+
 celery_app = Celery(
     "penflow_workers",
-    broker=os.getenv("RABBITMQ_URL"),
+    broker=build_broker_url(),
     include=[
         "app.tasks.report_tasks",
         "app.tasks.dns_tasks",
@@ -12,9 +33,7 @@ celery_app = Celery(
         "app.tasks.wappalyzer_tasks",
         "app.tasks.crtsh_tasks",
         "app.tasks.shodan_tasks",
-        "app.tasks.hunter_tasks",
         "app.tasks.hibp_tasks",
-        "app.tasks.domain_verification_task",
         "app.tasks.target_resolution_task",
         "app.tasks.nmap_task",
         "app.tasks.http_security_task",
@@ -26,6 +45,19 @@ celery_app = Celery(
     ],
 )
 
+celery_app.conf.update(
+    task_default_queue="celery",
+    task_default_queue_type="quorum",
+    worker_detect_quorum_queues=True,
+    broker_transport_options={
+        "confirm_publish": True,
+    },
+)
+
+if os.getenv("RABBITMQ_PROTOCOL", "amqps") == "amqps":
+    celery_app.conf.broker_use_ssl = {
+        "cert_reqs": ssl.CERT_REQUIRED,
+    }
 
 @celery_app.task(name="health_check")
 def health_check() -> str:

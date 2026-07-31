@@ -2,15 +2,12 @@
 //mock keycloak api resonse to verify behavior without making real clalls
 
 import {
-    loginWithPassword,
-    // refreshAccessToken,
-    // logoutSession,
-    // registerUser,
+    refreshAccessToken,
 } from "@/lib/keycloakService";
 
+
 //keycloak endpoints used in the test:
-// const Token_URL = "http://localhost:8080/realms/penflow/protocol/openid-connect/token";
-// const LOGOUT_URL = "http://localhost:8080/realms/penflow/protocol/openid-connect/logout";
+const TOKEN_URL = "http://localhost:8080/realms/penflow/protocol/openid-connect/token";
 
 //helper simplife mocking fetch reponse with custom status and body
 
@@ -27,43 +24,47 @@ beforeEach(()=>{
     jest.resetAllMocks();
 });
 
-//login tests
 
-describe("LoginWithPassword",()=>{
-    //mock success  token response
-    const tokens ={
-        access_token :"accesss123",
-        refresh_token: "refresh123",
-        expires_in: 900, //15min access token
-        refresh_expires_in: 1800 //30min refresh token
+//test refresh token
+describe( "refresh token ",() =>{
+it("refresh token grant and return a new token pair",async() =>{
+   const tokens = {
+      access_token: "newAccess",
+      refresh_token: "newRefresh",
+      expires_in: 900,
+      refresh_expires_in: 1800,
     };
-    it("send password grant to keycloak and return tokens",async() => {
-    const fetchSpy = jest.spyOn(global,"fetch") 
+
+    const fetchSpy = jest
+    .spyOn(global, "fetch")
     .mockResolvedValue(jsonResponse(tokens));
 
-    //cal function with test credentials
-    const result = await loginWithPassword("1234","1234");
+      //execute refresh
+    const result = await refreshAccessToken("OldRefreshToken")
 
-    //verify request body 
-    const body = (fetchSpy.mock.calls[0][1]?.body as URLSearchParams).toString();
-    expect(body).toContain("grant_type=password")
-    expect(body).toContain("username=1234");
-    expect(body).toContain("password=1234");
-      // Verify returned tokens match expected
-     expect(result).toEqual(tokens);
-})
-     it("throws with Keycloak's error_description on bad credentials", async () => {
-    // Mock 401 error response from Keycloak
+    //verify request sent to correct token endpoint
+        expect(fetchSpy).toHaveBeenCalledWith(
+      TOKEN_URL,
+      expect.objectContaining({ method: "POST" })
+    );
+    //verify request body
+
+    const body =(fetchSpy.mock.calls[0][1]?.body as URLSearchParams).toString();
+    expect(body).toContain("grant_type=refresh_token");
+    expect(body).toContain("refresh_token=OldRefreshToken");
+    expect(result).toEqual(tokens);
+    expect(result).toEqual(tokens);
+});
+//error when token expires
+  it("throws when the refresh token is expired/invalid", async () => {
     jest.spyOn(global, "fetch").mockResolvedValue(
-      jsonResponse({ error_description: "Invalid user credentials" }, false, 401)
+      jsonResponse({ error_description: "Token is not active" }, false, 400)
     );
 
-    // Verify the error is thrown with the correct message
-    await expect(loginWithPassword("1234", "wrong")).rejects.toThrow(
-      "Invalid user credentials"
+    await expect(refreshAccessToken("expiredToken")).rejects.toThrow(
+      "Token is not active"
     );
   });
 
-}
-);
 
+});

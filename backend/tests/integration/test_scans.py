@@ -1,5 +1,5 @@
 #route contract test for scans endpoints : hit the real fastapi via test_client
-#(full request pipleine :auth ,validation ,status code) but mock scan repo itself
+# mock scan repo itself but not the request pipeline
 
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID
@@ -7,23 +7,22 @@ from uuid import UUID
 import pytest
 from fastapi import status
 
+from app.api.middleware.auth import get_current_user_optional
+from app.main import app
+from app.models.user import User
+from app.models.verified_domain import DomainVerificationStatus, VerifiedDomain
+from app.repositories.scan_repo import ScanRepository
 
-# POST tests /scans/ (Initiate Scan)
+
+#phase2
+#test initate scan success 
 @pytest.mark.asyncio
 @patch("app.services.scan_service.celery_app.send_task")
-@patch("app.repositories.scan_repo.ScanRepository.create_scan", new_callable=AsyncMock)
-async def test_initiate_scan_success(mock_create_scan, mock_send_task, test_client):
-    mock_scan = MagicMock()
-    mock_scan.id = UUID("550e8400-e29b-41d4-a716-446655440000")
-    mock_scan.status = "queued"
-    mock_create_scan.return_value = mock_scan
-
-    mock_task = MagicMock()
-    mock_task.id = "mock-task-id"
-    mock_send_task.return_value = mock_task
+async def test_initiate_scan_success(mock_send_task, test_client, db_session):
+    mock_send_task.return_value = MagicMock(id="mock-task-id")
 
     payload = {
-        "domain": "jeandre.co",
+        "domain": "real-db-scan.com",
         "email": "jeandre@gmail.com",
     }
 
@@ -31,8 +30,17 @@ async def test_initiate_scan_success(mock_create_scan, mock_send_task, test_clie
 
     assert response.status_code == status.HTTP_202_ACCEPTED
     data = response.json()
-    assert "scan_id" in data
     assert data["status"] == "queued"
+
+    scan = await ScanRepository.get_scan_by_id(db_session, UUID(data["scan_id"]))
+    assert scan is not None
+    assert scan.domain == "real-db-scan.com"
+    assert scan.email == "jeandre@gmail.com"
+
+    mock_send_task.assert_called_once()
+    args, _ = mock_send_task.call_args
+    assert args[0] == "scan.full"
+
 
 @pytest.mark.asyncio
 async def test_initiate_scan_invalid_domain(test_client):
@@ -218,41 +226,40 @@ test_client, login_as):
 #Authenticated User Attaches User ID ,initiate scan with Auth (POST/scans)
 @pytest.mark.asyncio
 @patch("app.services.scan_service.celery_app.send_task")
-@patch("app.repositories.scan_repo.ScanRepository.create_scan",new_callable=AsyncMock)
-@patch("app.api.routes.scans.get_user_id_by_provider_id",new_callable =AsyncMock)
 async def test_initiate_scan_authenticated_user_attaches_user_id(
-    mock_get_user_id,mock_create_scan,mock_send_task,test_client
+    mock_send_task, test_client, db_session
 ):
-    from app.api.middleware.auth import get_current_user_optional
-    from app.main import app
+    user = User(
+        auth_provider="keycloak",
+        auth_provider_id="kc-123",
+        email="user@example.com",
+        full_name="Scan Test User",
+        role="client",
+    )
+    db_session.add(user)
+    await db_session.flush()
+    await db_session.refresh(user)
 
-    app.dependency_overrides[get_current_user_optional] =  lambda: {
+    app.dependency_overrides[get_current_user_optional] = lambda: {
         "sub": "kc-123",
         "email": "user@example.com",
     }
 
     try:
-        mock_get_user_id.return_value = UUID("550e8400-e29b-41d4-a716-446655440000")
-
-        mock_scan = MagicMock()
-        mock_scan.id = UUID("660e8400-e29b-41d4-a716-446655440000")
-        mock_scan.status = "queued"
-        mock_create_scan.return_value = mock_scan
         mock_send_task.return_value = MagicMock(id="mock-task-id")
 
-
-
-        response = await test_client.post (
+        response = await test_client.post(
             "/api/v1/scans/",
-        json={"domain": "Jeandre.co", "email": "jeandre@gmail.com"},
+            json={"domain": "Jeandre.co", "email": "jeandre@gmail.com"},
         )
 
         assert response.status_code == status.HTTP_202_ACCEPTED
-        mock_create_scan.assert_awaited_once()
-        _, kwargs = mock_create_scan.call_args
-        assert kwargs["user_id"] == UUID("550e8400-e29b-41d4-a716-446655440000")
+        data = response.json()
+        scan = await ScanRepository.get_scan_by_id(db_session, UUID(data["scan_id"]))
+        assert scan is not None
+        assert scan.user_id== user.id
     finally:
-        app.dependency_overrides.pop(get_current_user_optional,None)
+        app.dependency_overrides.pop(get_current_user_optional, None)
 
 #test: scan status not found 200 
 @pytest.mark.asyncio 
@@ -272,3 +279,56 @@ async def test_get_scan_status_found(mock_get_status,test_client):
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["progress"] == 42
+
+
+#phase2
+#POST /scans/ (scan_type=active_vulnerability) happy path intergration
+# celery_app.send_task is mocked 
+# else hits the real test db via db_session/test_client
+@pytest.mark.asyncio
+@patch("app.services.scan_service.celery_app.send_task")
+async def test_initiate_active_scan_success(mock_send_task, test_client, db_session):  
+    
+    mock_send_task.return_value = MagicMock(id="mock-task-id")
+
+    user = User(
+        auth_provider="keycloak",
+        auth_provider_id="active-scan-user",
+        email="activescan@example.com",
+        full_name="Active Scan User",
+        role="client",
+    )
+    db_session.add(user)
+    await db_session.flush()
+    await db_session.refresh(user)
+
+    verified_domain = VerifiedDomain(
+        user_id=user.id,
+        domain="verified-active.com",
+        status=DomainVerificationStatus.VERIFIED,
+        verification_token="penflow-verification=abc123",
+    )
+    db_session.add(verified_domain)
+    await db_session.flush()
+    await db_session.refresh(verified_domain)
+
+    # Add dependency override
+    app.dependency_overrides[get_current_user_optional] = lambda: {
+        "sub": "active-scan-user",
+        "email": "activescan@example.com",
+    }
+    try:
+        payload = {
+            "domain": "verified-active.com",
+            "scan_type": "active_vulnerability",
+            "verified_domain_id": str(verified_domain.id),
+        }
+        response =await test_client.post("/api/v1/scans/", json=payload)
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        data = response.json()
+        assert data["status"] == "queued"
+        mock_send_task.assert_called_once()
+        args, _ = mock_send_task.call_args
+        assert args[0] == "scan.phase2_full"
+    finally:
+        app.dependency_overrides.pop(get_current_user_optional, None)

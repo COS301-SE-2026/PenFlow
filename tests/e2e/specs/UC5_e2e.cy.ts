@@ -4,7 +4,7 @@ describe("User Login",()=>{
         cy.login("1234","1234")
 
         //authenticated user and reach dashboard after it implemented
-        // cy.url().should("include","/dashboard")
+        cy.url().should("include","/dashboard")
     });
 
 }

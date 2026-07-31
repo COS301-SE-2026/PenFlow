@@ -1,4 +1,3 @@
-import enum
 import uuid
 from datetime import datetime, timezone
 
@@ -6,21 +5,7 @@ from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, UniqueConstrain
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
-from app.models.base import Base
-
-
-class DomainVerificationStatus(str, enum.Enum):
-    PENDING = "pending"
-    VERIFIED = "verified"
-    FAILED = "failed"
-    EXPIRED = "expired"
-
-
-class DomainVerificationCode(str, enum.Enum):
-    VERIFIED = "verified"
-    RECORD_NOT_FOUND = "record_not_found"
-    TOKEN_MISMATCH = "token_mismatch"
-    LOOKUP_FAILED = "lookup_failed"
+from app.models.base import Base, DomainVerificationCode, DomainVerificationStatus
 
 
 class VerifiedDomain(Base):

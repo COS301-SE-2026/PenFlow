@@ -10,6 +10,7 @@ from app.models.scan import Scan
 
 
 @pytest.mark.asyncio
+#phase2 download pdf happy path
 async def test_download_completed_report_pdf(test_client, db_session, tmp_path):
     scan_id = uuid4()
 

@@ -41,6 +41,7 @@ def test_successful_tls_scan\
                     "valid_from": "today",
                     "valid_until": "2035",
                     "expired": False,
+                    "self_signed": False,
                 },
             }
         ]
@@ -56,7 +57,7 @@ def test_successful_tls_scan\
 
     assert result["status"] == "completed"
     assert result["findings"] == []
-    assert len(result["assets"]) == 1
+    assert result["assets"] == []
 
     mock_callback.assert_called_once()
 
@@ -93,6 +94,7 @@ def test_expired_certificate\
                     "valid_from": "2020",
                     "valid_until": "2021",
                     "expired": True,
+                    "self_signed": False,
                 },
             }
         ]

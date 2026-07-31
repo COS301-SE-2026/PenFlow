@@ -4,11 +4,11 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.verified_domain import (
+from app.models.base import (
     DomainVerificationCode,
     DomainVerificationStatus,
-    VerifiedDomain,
 )
+from app.models.verified_domain import VerifiedDomain
 from app.repositories.domain_repository import DomainRepository
 from app.schemas.domain import (
     DomainCounts,

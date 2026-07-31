@@ -45,7 +45,14 @@ class CVEService:
 
         # only need one cve if multiple come through
         for vulnerability in self.vulnerabilities:
-            identifier = f"{vulnerability['cve_id']}_{vulnerability['affected_software']}"
+            identifier = \
+            (
+                vulnerability.get("cve_id"),
+                vulnerability.get("host"),
+                vulnerability.get("port"),
+                vulnerability.get("protocol"),
+                vulnerability.get("affected_software"),
+            )
 
             if identifier in seen:
                 continue
@@ -171,26 +178,29 @@ class CVEService:
                             "baseScore",
                             metric.get("baseScore", 0),
                         )
-
                     else:
                         severity = metric.get("baseSeverity", "UNKNOWN")
                         score = metric.get("baseScore", 0)
 
-
-                discovered_cves.append\
-                (
+                discovered_cves.append(
                     {
                         "cve_id": cve["id"],
                         "severity": str(severity).upper(),
                         "cvss_score": score,
                         "description": description,
-                        "affected_software": cpe,
+                        "affected_software": software.get(
+                            "product",
+                            "unknown",
+                        ),
+                        "affected_version": software.get("version"),
+                        "cpe": cpe,
+                        "host": software.get("host"),
+                        "port": software.get("port"),
+                        "protocol": software.get("protocol"),
                         "remediation": "Check NVD reference links for patches.",
                     }
                 )
 
-            else:
-                logger.warning(f"[CVE_Service] NVD returned HTTP {response.status_code} for {cpe}")
 
         except Exception as error:
             logger.error(f"[CVE_Service] NVD API error for {cpe}: {error}")
