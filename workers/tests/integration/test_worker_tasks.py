@@ -1,15 +1,15 @@
 from unittest.mock import MagicMock, patch
 
 from app.queue.celery_app import health_check
-from app.tasks.wappalyzer_tasks import run_wappalyzer
-from app.tasks.target_resolution_task import run_target_resolution
-from app.tasks.nmap_task import run_nmap_scan
-from app.tasks.http_security_task import run_http_security_scan_task
-from app.tasks.tls_task import run_tls_scan_task
-from app.tasks.fingerprinting_task import run_fingerprinting_scan_task
 from app.tasks.cpe_resolver_task import run_cpe_resolver_task
 from app.tasks.cve_task import run_cve_scan_task
 from app.tasks.domain_verification_task import run_domain_verification_task
+from app.tasks.fingerprinting_task import run_fingerprinting_scan_task
+from app.tasks.http_security_task import run_http_security_scan_task
+from app.tasks.nmap_task import run_nmap_scan
+from app.tasks.target_resolution_task import run_target_resolution
+from app.tasks.tls_task import run_tls_scan_task
+from app.tasks.wappalyzer_tasks import run_wappalyzer
 
 
 @patch("app.tasks.wappalyzer_tasks.send_source_callback")
@@ -548,7 +548,7 @@ def test_cve_task_service_pipeline\
                     [
                         {
                             "lang": "en",
-                            "value": "A vulnerability in nginx allows remote attackers to execute arbitrary code.",
+                            "value": "A vulnerability in nginx allows remote attacks",
                         }
                     ],
 
