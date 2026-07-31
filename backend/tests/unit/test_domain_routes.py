@@ -15,7 +15,10 @@ from app.schemas.domain import AddDomainRequest, DomainSortField, SortOrder
 def _current_user():
     return{"sub": "kc-123", "email": "test@example.com"}
 
+
+#Phase 2 
 #test adding domain successs verified 
+# POST /domains/ (add domain)happy path 
 @pytest.mark.asyncio
 @patch("app.api.routes.domains.DomainService.add_domain",new_callable=AsyncMock)
 @patch("app.api.routes.domains.get_user_id_by_provider_id",new_callable=AsyncMock)
@@ -35,6 +38,9 @@ async def test_add_domain_for_verification_success(mock_get_user_id,mock_add_dom
 
 
 
+#Phase 2 
+#test adding domain successs verified 
+# POST /domains/ (add domain)Error path
 #test verification return 401
 @pytest.mark.asyncio
 @patch("app.api.routes.domains.get_user_id_by_provider_id",new_callable= AsyncMock)
@@ -108,7 +114,10 @@ async def test_get_domains_missing_user_raises_401(mock_get_user_id, mock_list_d
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail == "User not present."
 
+# phase 2 
 #test delete domain
+##phase 2 
+#DELETE /domains/{domain_id} delete domain happy path 
 @pytest.mark.asyncio
 @patch("app.api.routes.domains.DomainService.delete_domain",new_callable= AsyncMock)
 @patch("app.api.routes.domains.get_user_id_by_provider_id",new_callable=AsyncMock)
@@ -124,7 +133,8 @@ async def test_delete_domain_success(mock_get_user_id, mock_delete_domain) :
     assert result.status_code ==204
 
 #test delete domain fail
-
+#phase 2 
+#DELETE /domains/{domain_id} delete domain error path
 @pytest.mark.asyncio
 @patch("app.api.routes.domains.get_user_id_by_provider_id",new_callable=AsyncMock)
 async def test_delete_domain_missing_user_raises_401(mock_get_user_id) :
