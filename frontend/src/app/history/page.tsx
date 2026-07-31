@@ -8,11 +8,10 @@ import type { ScanHistoryItem } from "@/lib/scanService";
 import Image from "next/image";
 import submarineImage from "@/app/images/images/submarine.png";
 import styles from "./history.module.css";
-import { CheckCircle2, ChevronRight, Clock, Globe, MoreVertical , XCircle,} from "lucide-react";
+import { CheckCircle2, ChevronRight, Clock, Globe , XCircle, Download,} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {Card , CardContent} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils"
 import Link from "next/link";
 
@@ -57,7 +56,7 @@ export default function HistoryPage() {
   const [scans, setScans] = useState<ScanHistoryItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [emailSent, setEmailSent] = useState<Record<string, boolean>>({});
+
   const [modal, setModal] = useState<ScanHistoryItem | null>(null);
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
   const dragOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
@@ -95,10 +94,7 @@ export default function HistoryPage() {
 
   const closeModal = () => { setModal(null); setDragPos(null); };
 
-  const handleSendEmail = (scanId: string) => {
-    setEmailSent(prev => ({ ...prev, [scanId]: true }));
-    closeModal();
-  };
+  
 
   return (
     <div className={styles.historyPage}>
@@ -137,11 +133,11 @@ export default function HistoryPage() {
           if (error) return <div className={styles.stateWrap}><p className={styles.stateText}>{error}</p></div>;
           if (scans.length === 0) return <div className={styles.stateWrap}><p className={styles.stateText}>NO SCANS YET</p></div>;
           return (
-              <div className="flex w- full flex-col gap-3">
+              <div className="flex w-full flex-col gap-3">
                 {scans.map(scan => (
                   <Card
                     key={scan.id}
-                    className="cursor-pointer border border-brand-panel-border bg-brand-panel ring-0"
+                    className="w-full cursor-pointer border border-brand-panel-border bg-brand-panel ring-0"
                     onClick={e => openModal(scan, e)}
                   >
 
@@ -157,20 +153,24 @@ export default function HistoryPage() {
                       <span className="w-40 shrink-0 text-sm text-muted-foreground">
                             {formatDate(scan.created_at)}
                       </span>
-                      <Link href={`/phase2_scan/results/${scan.id}`} onClick={e => e.stopPropagation()}>
-                        <Button className="gap-2 bg-brand-cyan text-black hover:bg-brand-cyan/85">
-                          View Results
-                          <ChevronRight className="size-4" />
-                        </Button>
+                     <Link
+                        href={`/phase2_scan/results/${scan.id}`}
+                        onClick={e => e.stopPropagation()}
+                        className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-brand-cyan hover:underline"
+                      >
+                        View Results
+                        <ChevronRight className="size-4" />
                       </Link>
-                          <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label="More options"
-                          onClick={e => openModal(scan, e)}
+                          <a
+                          href={getReportPdfUrl(scan.id)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          aria-label="Download report"
+                          className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                         >
-                          <MoreVertical className="size-4" />
-                        </Button>
+                          <Download className="size-4" />
+                        </a>
                       </CardContent>
               </Card>
          ))}
@@ -228,14 +228,7 @@ export default function HistoryPage() {
             ↓ DOWNLOAD PDF
           </a>
 
-          <button
-            type="button"
-            className={`${styles.modalBtn} ${styles.modalBtnSend}`}
-            disabled={!!emailSent[modal.id]}
-            onClick={() => handleSendEmail(modal.id)}
-          >
-            {emailSent[modal.id] ? "EMAIL SENT" : "SEND EMAIL"}
-          </button>
+        
         </div>
       </>
     )}
