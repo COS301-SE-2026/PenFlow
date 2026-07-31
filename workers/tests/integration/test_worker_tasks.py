@@ -25,10 +25,12 @@ def test_wappalyzer_task_mock_mode(mock_callback):
     assert "findings" in result
     mock_callback.assert_called_once()
 
+
 def test_worker_health_check():
     result = health_check.delay().get()
 
     assert result == "Worker is alive"
+
 
 #mock the dns part, for this section we only care
 #about worker component interactions
@@ -53,6 +55,7 @@ def create_mock_dns_answer(ip_records: list[str]) -> MagicMock:
 @patch("app.tasks.target_resolution_task.celery_app.send_task")
 @patch("app.tasks.target_resolution_task.send_source_callback")
 @patch("app.services.target_resolution_service.dns.resolver.Resolver.resolve")
+
 
 def test_target_resolution_task_service_pipeline\
 (
@@ -112,6 +115,7 @@ def test_target_resolution_task_service_pipeline\
     )
 
     assert mock_resolve.call_count == 2
+
 
 #nmap int test
 @patch("app.tasks.nmap_task.celery_app.send_task")
@@ -218,6 +222,7 @@ def test_nmap_task_service_pipeline\
     mock_portscanner.assert_called_once()
     scanner.scan.assert_called_once()
 
+
 #http security int test
 @patch("app.tasks.http_security_task.send_source_callback")
 @patch("app.services.http_security_service.requests.get")
@@ -267,6 +272,7 @@ def test_http_security_task_service_pipeline\
     assert result["findings"] == []
     mock_callback.assert_called_once()
     mock_get.assert_called_once()
+
 
 
 #TLS int test
@@ -381,6 +387,7 @@ def test_tls_task_service_pipeline\
     tls_socket.getpeercert.assert_called_once()
     mock_decode.assert_called_once()
     mock_unlink.assert_called_once()
+
 
 
 #fingerprinting int test
@@ -524,6 +531,7 @@ def test_cpe_resolver_task_service_pipeline\
         ],
     )
 
+
 #cve int test
 @patch("app.tasks.cve_task.send_source_callback")
 @patch("app.services.cve_service.requests.get")
@@ -650,6 +658,7 @@ def test_domain_verification_task_service_pipeline\
 @patch("app.tasks.cpe_resolver_task.celery_app.send_task")
 @patch("app.services.cve_service.requests.get")
 @patch("app.tasks.fingerprinting_task.FingerprintingService")
+
 
 def test_fingerprint_to_cve_pipeline\
 (
