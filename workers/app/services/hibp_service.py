@@ -58,7 +58,7 @@ def collect_raw_data(domain: str) -> dict:
             return {"error": "API Request Failed"}
 
 
-def normalize_data(raw_data: list) -> dict:
+def normalize_data(raw_data: dict) -> dict:
     """
     Normalizes breach data from a raw HaveIBeenPwned response payload.
     """

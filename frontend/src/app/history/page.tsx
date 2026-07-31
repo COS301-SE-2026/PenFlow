@@ -3,17 +3,51 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import NavBar from "@/components/NavBar";
-import { fetchScanHistory, getReportPdfUrl, SEVERITY_COLORS, formatDate } from "@/lib/scanService";
+import { fetchScanHistory, getReportPdfUrl, formatDate } from "@/lib/scanService";
 import type { ScanHistoryItem } from "@/lib/scanService";
 import Image from "next/image";
 import submarineImage from "@/app/images/images/submarine.png";
 import styles from "./history.module.css";
+import { CheckCircle2, Clock, Globe, MoreVertical , XCircle,} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import {Card , CardContent} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils"
 
+const scanTypeLabel: Record<string, string> = {
+    active_vulnerability: "Active Vulnerability Scan",
+    passive_ctem: "Passive Reconnaissance",
+};
 
-function SeverityDots({ count, color }: { count: number; color: string }) {
-  return Array.from({ length: Math.min(count, 8) }).map((_, i) => (
-    <span key={`${color}-${i}`} className={styles.dot} style={{ backgroundColor: color }} />
-  ));
+const statusConfig: Record<string, { label: string; className: string; icon: LucideIcon }> = {
+    running: { label: "Running", className: "border-brand-cyan text-brand-cyan bg-brand-cyan/10" ,icon: Globe },
+    queued: { label: "Queued", className: "border-brand-yellow text-brand-yellow bg-brand-yellow/10", icon: Clock},
+    completed: {label: "Completed", className: "border-brand-success text-brand-success bg-brand-success/10", icon: CheckCircle2},
+    failed: {label: "Failed", className: "border-brand-alert text-brand-alert bg-brand-alert/10", icon: XCircle},
+    partial: {label: "Partial", className: "border-brand-yellow text-brand-yellow bg-brand-yellow/10", icon: XCircle} ,
+};
+
+function StatusBadge({ status }: { status: string}) {
+        const config = statusConfig[status] ?? statusConfig.queued;
+        return (
+            <div className="flex w-28 shrink-0 justify-center">
+                <Badge variant = "outline" className={(cn("uppercase tracking-wide",config.className))}>
+                    {config.label}                
+                </Badge>
+            </div>
+            
+    );
+}
+
+function ScanIcon ({ status }: { status: string}){
+        const config = statusConfig[status] ?? statusConfig.queued;
+        const Icon = config.icon;
+        return(
+            <div className ={cn("flex size-11 shrink-0 items-center justify-center rounded-full bg-muted",config.className)}>
+                <Icon className = "size-5"/>
+            </div>
+        );
 }
 
 export default function HistoryPage() {
@@ -101,44 +135,37 @@ export default function HistoryPage() {
           if (error) return <div className={styles.stateWrap}><p className={styles.stateText}>{error}</p></div>;
           if (scans.length === 0) return <div className={styles.stateWrap}><p className={styles.stateText}>NO SCANS YET</p></div>;
           return (
-          <div className={styles.card}>
-            <table className={styles.table}>
-              <colgroup>
-                <col style={{ width: "38%" }} />
-                <col style={{ width: "40%" }} />
-                <col style={{ width: "22%" }} />
-              </colgroup>
-              <thead>
-                <tr>
-                  <th>DOMAIN</th>
-                  <th>FINDINGS</th>
-                  <th>DATE</th>
-                </tr>
-              </thead>
-              <tbody>
+              <div className="flex flex-col gap-3">
                 {scans.map(scan => (
-                  <tr
+                  <Card
                     key={scan.id}
-                    className={styles.clickableRow}
+                    className="cursor-pointer border border-brand-panel-border bg-brand-panel ring-0"
                     onClick={e => openModal(scan, e)}
                   >
-                    <td className={styles.domainCell}>{scan.domain}</td>
-                    <td>
-                      <div className={styles.findingsCell}>
-                        <span className={styles.total}>{scan.total_findings}</span>
-                        <div className={styles.severityDots}>
-                          <SeverityDots count={scan.critical_count} color={SEVERITY_COLORS.critical} />
-                          <SeverityDots count={scan.high_count}     color={SEVERITY_COLORS.high} />
-                          <SeverityDots count={scan.medium_count}   color={SEVERITY_COLORS.medium} />
-                          <SeverityDots count={scan.low_count}      color={SEVERITY_COLORS.low} />
-                        </div>
+
+                    <CardContent className="flex flex-wrap items-center gap-4">
+                      <ScanIcon status= {scan.status} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-foreground">{scan.domain}</p>
+                        <p className="text-sm text-muted-foreground">
+                            {scanTypeLabel[scan.scan_type] ?? scan.scan_type}
+                        </p>
                       </div>
-                    </td>
-                    <td className={styles.dateCell}>{formatDate(scan.created_at)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <StatusBadge status={scan.status}/>
+                      <span className="w-40 shrink-0 text-sm text-muted-foreground">
+                            {formatDate(scan.created_at)}
+                      </span>
+                          <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="More options"
+                          onClick={e => openModal(scan, e)}
+                        >
+                          <MoreVertical className="size-4" />
+                        </Button>
+                      </CardContent>
+              </Card>
+         ))}
           </div>
           );
         })()}
@@ -178,7 +205,7 @@ export default function HistoryPage() {
           <button
             type="button"
             className={`${styles.modalBtn} ${styles.modalBtnReport}`}
-            onClick={() => { closeModal(); router.push(`/report/${modal.id}`); }}
+            onClick={() => { closeModal(); router.push(`/phase2_scan/results/${modal.id}`); }}
           >
             VIEW REPORT
           </button>

@@ -1,10 +1,9 @@
 import logging
-from pathlib import Path
 from typing import Annotated, Any, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user, get_current_user_optional
@@ -27,6 +26,7 @@ from app.schemas.scan import (
     ServiceListResponse,
 )
 from app.services.email_service import send_report_email
+from app.services.report_storage_service import ReportStorageService
 from app.services.scan_service import ScanService
 from app.utils.db import get_db
 
@@ -128,13 +128,13 @@ async def get_scan_status(
 
 @router.get(
     "/{scan_id}/pdf",
-    response_class=FileResponse,
+    response_class=Response,
     status_code=status.HTTP_200_OK,
 )
 async def download_scan_pdf(
     scan_id: UUID,
     db: DbSession,
-) -> FileResponse:
+) -> Response:
 
     report = await get_report_by_scan_id(db, str(scan_id))
 
@@ -150,19 +150,43 @@ async def download_scan_pdf(
             detail="Report is not ready yet",
         )
 
-    pdf_path = Path(report.pdf_path)
+    storage_reference = str(report.pdf_path)
+    try:
+        if ReportStorageService.is_local():
+            pdf_path = ReportStorageService.get_local_report_storage(
+                storage_reference
+            )
 
-    if not pdf_path.exists():
+            return FileResponse(
+                path = str(pdf_path),
+                media_type = "application/pdf",
+                filename = f"PenFlow_Report_{scan_id}.pdf"
+            )
+        if ReportStorageService.is_s3():
+            s3_object = ReportStorageService.get_s3_object(
+                storage_reference
+            )
+
+            body = s3_object["Body"]
+
+            return StreamingResponse(
+                body.iter_chunks(),
+                media_type = "application/pdf",
+                headers = {
+                    "Content-Disposition": (
+                        f'attachment; filename="PenFlow_Report_{scan_id}.pdf"'
+                    )
+                },
+            )
+
+        raise Exception("Unsupported report storage mode.")
+
+    except Exception as err:
+        logger.exception("Failed to retrieve report for scan %s", scan_id)
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="PDF file not found on server",
-        )
-
-    return FileResponse(
-        path=str(pdf_path),
-        media_type="application/pdf",
-        filename=f"PenFlow_Report_{scan_id}.pdf",
-    )
+            status_code = status.HTTP_404_NOT_FOUND,
+            detail = str(err),
+        ) from err
 
 
 @router.post(

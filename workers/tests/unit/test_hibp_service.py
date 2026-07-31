@@ -91,6 +91,8 @@ def test_hibp_exception(mock_raw_data, mock_send_callback):
         "raw_result": {"error": "Some hibp exception"},
         "findings": [],
         "assets": [],
+        "services": [],
+        "technologies": [],
         "error_message": "Some hibp exception",
     }
 
@@ -101,5 +103,7 @@ def test_hibp_exception(mock_raw_data, mock_send_callback):
         raw_result = {"error": "Some hibp exception"},
         findings = [],
         assets = [],
+        services = [],
+        technologies = [],
         error_message = "Some hibp exception",
     )

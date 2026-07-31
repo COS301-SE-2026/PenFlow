@@ -28,18 +28,24 @@ def run_target_resolution(
     try:
         ip_data = resolve_target_ips(domain)
         assets = [
-            {
-                "type": "ipv4",
-                "value": ip,
-            }
-            for ip in ip_data["ipv4"]
-        ] + [
-            {
-                "type": "ipv6",
-                "value": ip,
-            }
-            for ip in ip_data["ipv6"]
-        ]
+                     {
+                         "identifier": ip,
+                         "asset_type": "ipv4",
+                         "asset_metadata": {
+                             "source_domain": domain,
+                         }
+                     }
+                     for ip in ip_data["ipv4"]
+                 ] + [
+                     {
+                         "identifier": ip,
+                         "asset_type": "ipv6",
+                         "asset_metadata": {
+                             "source_domain": domain,
+                         }
+                     }
+                     for ip in ip_data["ipv6"]
+                 ]
 
         has_targets = bool(ip_data["ipv4"] or ip_data["ipv6"])
 
@@ -52,8 +58,10 @@ def run_target_resolution(
             "source_name": "target_resolution",
             "status": status,
             "raw_result": ip_data,
-            "findings": [],
             "assets": assets,
+            "services": [],
+            "technologies": [],
+            "findings": [],
         }
 
         if error_message:
@@ -70,8 +78,10 @@ def run_target_resolution(
                 "error": str(error),
             },
             # findings and assets are both blank we just want the ip's
-            "findings": [],
             "assets": [],
+            "services": [],
+            "technologies": [],
+            "findings": [],
             "error_message": str(error),
         }
 
@@ -80,11 +90,13 @@ def run_target_resolution(
         source_name=result["source_name"],
         status=result["status"],
         raw_result=result["raw_result"],
-        findings=result["findings"],
         assets=result["assets"],
+        services=result["services"],
+        technologies=result["technologies"],
+        findings=result["findings"],
         error_message=result.get("error_message"),
     )
-
+    
     if result["status"] == "completed":
         ipv4_addresses = result["raw_result"].get("ipv4", [])
 
@@ -99,5 +111,5 @@ def run_target_resolution(
         #        "scan.phase2_nmap",
         #        args=[scan_id, ip_address, domain],
         #    )
-
+        
     return result

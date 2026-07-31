@@ -1,6 +1,7 @@
 from app.utils.report_context import build_report_context
 
 
+#phase 2 GET /scans/{scan_id}/pdf download_scan_pdf  normalized data
 def test_build_report_context_from_normalized_data():
     scan = {
         "id": "10337236-d819-43fd-b878-9c911f0d09ae",

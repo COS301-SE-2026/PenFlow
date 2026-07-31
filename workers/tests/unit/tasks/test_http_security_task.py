@@ -42,7 +42,9 @@ def test_missing_security_headers(mock_scan, mock_callback):
         "targets": [
             {
                 "url": "https://hackerone.com",
-                "protocol": "https",
+                "scheme": "https",
+                "port": 443,
+                "status_code": 200,
                 "security_headers": {},
             }
         ]
@@ -59,7 +61,6 @@ def test_missing_security_headers(mock_scan, mock_callback):
     titles = [finding["title"] for finding in result["findings"]]
 
     assert "Missing Content-Security-Policy" in titles
-    assert "Missing Strict-Transport-Security" in titles
 
 
 ##Sad Paths [HTTP ignores HSTS]

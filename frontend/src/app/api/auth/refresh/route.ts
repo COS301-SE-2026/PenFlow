@@ -30,6 +30,7 @@ export async function POST(req:NextRequest) {
         res.cookies.delete("access_token");
         res.cookies.delete("refresh_token");
         res.cookies.delete("logged_in");
+        res.cookies.delete("id_token");
         return res;
     }
 }

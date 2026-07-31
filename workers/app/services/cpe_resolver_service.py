@@ -4,6 +4,46 @@ from typing import Any
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
+#Maps software names from the fingerprint worker
+#to official NVD vendor/product names.
+#will probably extend over time
+KNOWN_PRODUCTS = {
+    "apache httpd": \
+    {
+        "vendor": "apache",
+        "product": "http_server",
+    },
+    "nginx": \
+    {
+        "vendor": "nginx",
+        "product": "nginx",
+    },
+    "openssl": \
+    {
+        "vendor": "openssl",
+        "product": "openssl",
+    },
+    "openssh": \
+    {
+        "vendor": "openbsd",
+        "product": "openssh",
+    },
+    "tomcat": \
+    {
+        "vendor": "apache",
+        "product": "tomcat",
+    },
+    "mysql": \
+    {
+        "vendor": "oracle",
+        "product": "mysql",
+    },
+    "postgresql": \
+    {
+        "vendor": "postgresql",
+        "product": "postgresql",
+    },
+}
 
 class CPEResolverService:
     def __init__(self, software_inventory: list[JSONDict]):
@@ -18,19 +58,36 @@ class CPEResolverService:
         resolved_inventory = []
 
         for software in self.software_inventory:
-            vendor = software.get("vendor", "unknown")
-            product = software.get("product", "unknown")
-            version = software.get("version") or "*"
+            product_name = software.get("product", "").strip().lower()
+            version = software.get("version")
 
             # Fingerprinting sometimes reports Tomcat as 1.1. as it is the wrappers version
             # not the underlying service, we ignore it for now till we
             # implement better version probing later
-            if product == "tomcat" and version == "1.1":
+            if not version:
                 version = "*"
+            else:
+                version = version.strip()
 
-            software["cpe"] = f"cpe:2.3:a:{vendor}:{product}:{version}:*:*:*:*:*:*:*"
+                if version in ("", "unknown", "1.1"):
+                    version = "*"
 
-            resolved_inventory.append(software)
+            mapping = KNOWN_PRODUCTS.get(product_name)
+
+            if mapping is None:
+                logger.warning\
+                (
+                    "[CPE_Resolver] No CPE mapping exists for '%s'",
+                    product_name,
+                )
+                continue
+            resolved = software.copy()
+            vendor = mapping["vendor"]
+            product = mapping["product"]
+            resolved["vendor"] = vendor
+            resolved["product"] = product
+            resolved["cpe"] = f"cpe:2.3:a:{vendor}:{product}:{version}:*:*:*:*:*:*:*"
+            resolved_inventory.append(resolved)
 
         return resolved_inventory
 

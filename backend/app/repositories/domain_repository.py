@@ -5,7 +5,8 @@ from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from app.models.verified_domain import DomainVerificationStatus, VerifiedDomain
+from app.models.base import DomainVerificationStatus
+from app.models.verified_domain import VerifiedDomain
 from app.schemas.domain import DomainSortField, SortOrder
 
 

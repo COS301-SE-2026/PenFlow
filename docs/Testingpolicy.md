@@ -18,6 +18,8 @@ Update date: 2026/07/07
      - 2.2.1 Objective
      - 2.2.2 Automation
      - 2.2.3 Framework
+     - 2.3 Test Naming Conventions
+
 3. Testing Workflow
 4. Quality Assurance Testing
    - 4.1 Performance
@@ -46,7 +48,6 @@ Update date: 2026/07/07
 6. Defect Management
    - 6.1 Defect Reporting
    - 6.2 Severity Classification
-
 ---
 
 ## 1. Introduction
@@ -160,7 +161,24 @@ The following frameworks are used for integration testing:
   mode to execute worker tasks synchronously during tests without
   requiring a running RabbitMQ broker.
 
----
+### 2.3 Test Naming Conventions
+ 
+ Test files and test functions follow consistent naming patterns across the codebase to ensure maintainability and clear traceability between tests and the functionality they validate.
+
+#### File Naming
+
+- **Backend (Python/pytest):** Test files are named using the pattern `test_<module_or_feature>.py`, where `<module_or_feature>` corresponds to the component, service, or repository being tested. Test files are organised under the `tests/` directory structure with separate subdirectories for unit tests and integration tests .
+
+- **Frontend (TypeScript/Jest):** Test files are named using the pattern `<name>.test.ts`, where `<name>` corresponds to the component, utility, or module being tested. Component tests use the `.tsx` extension.
+
+- **E2E (Cypress):** End-to-end test files are named using the pattern `<use_case>_e2e.cy.ts`, where `<use_case>` describes the user journey being tested. Use case identifiers from the test scenarios table may be used as prefixes for traceability.
+
+#### Test Function and Case Naming
+
+- **Python (pytest):** Test functions are named in `snake_case` following the pattern `test_<action>_<scenario_or_outcome>`. This format describes the behaviour being tested and its expected result, where `<action>` indicates the operation performed and `<scenario_or_outcome>` describes the specific test condition or expected result.
+
+- **Frontend (Jest) and E2E (Cypress):** Tests use `describe()` blocks grouped by feature or component, with `it()` statements written as plain-English descriptions of expected behaviour in the present tense. Each `it()` statement must clearly communicate the specific behaviour being verified without requiring additional documentation.
+
 
 ## 3. Testing Workflow
 
@@ -186,9 +204,12 @@ follows:
   check are run to confirm the application compiles and initialises
   without errors.
 
-- **End-to-End Testing:** On pull requests targeting the main branch,
-  Cypress E2E tests run against the staging deployment to validate
-  complete user journeys through the browser.
+- **End-to-End Testing:** Cypress E2E tests are executed manually 
+against 
+the staging deployment prior to each demo submission to validate 
+complete user journeys through the browser. E2E tests are not 
+included in the automated CI pipeline due to their dependency on 
+a live staging environment.
 
 - **Review and Feedback:** If any issues are identified at any stage,
   feedback is shared among the team. The team members responsible for
@@ -393,34 +414,32 @@ during E2E testing.
 
 ### 5.2 Framework
 
-End-to-end testing is implemented using Cypress, running against the
-staging deployment. A dedicated test user account and a pre-seeded test
-domain are used for all E2E test runs. E2E tests execute automatically
-on pull requests targeting the main branch in the GitHub Actions
-pipeline.
+E2E tests are executed manually against the staging deployment. 
+Results are documented and stored as test evidence prior to each 
+demo submission.
 
 ### 5.3 Test Scenarios
 
-The following use cases must have passing E2E tests for Demo 2:
+The following use cases must have passing E2E tests for :
 
-| ID     | Use Case                            | Phase |
-|--------|-------------------------------------|-------|
-| E2E-01 | Initiate CTEM scan as guest         | 1     |
-| E2E-02 | View inline scan summary            | 1     |
-| E2E-03 | Register and log in                 | 1     |
-| E2E-04 | View scan history (authenticated)   | 1     |
-| E2E-05 | Initiate domain verification        | 2     |
-| E2E-06 | Initiate Phase 2 vulnerability scan | 2     |
-| E2E-07 | View Phase 2 scan results           | 2     |
-| E2E-08 | Create a recurring scan schedule    | 2     |
+ Use Case                            | Phase |
+-------------------------------------|-------|
+ Initiate CTEM scan as guest         | 1     |
+ View inline scan summary            | 1     |
+ log in                              | 1     |
+ View scan history (authenticated)   | 1     |
+ Initiate domain verification        | 2     |
+ Initiate Phase 2 vulnerability scan | 2     |
+ View Phase 2 scan results           | 2     |
+ add/delete domain                   | 2     |
+ filter findings domain              | 2     |
 
 Each E2E test must include assertions on page navigation, visible UI
-content such as headings and status badges, and error states such as
-invalid input and unauthorized access attempts.
+content such as headings and status badges
 
 ### 5.4 Acceptance Criteria
 
-A use case is considered fully implemented for Demo 2 if and only if:
+Definition of Done:
 
 - It has at least one passing integration test covering the happy path.
 - It has at least one passing integration test covering a relevant
@@ -456,3 +475,4 @@ be followed:
 | High     | Feature broken but workaround exists            | Within 2 days   |
 | Medium   | Minor functional issue, feature partially works | Before demo     |
 | Low      | Cosmetic or non-functional issue                | Best effort     |
+

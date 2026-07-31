@@ -204,6 +204,8 @@ def test_run_dns_exception(mock_collect_dns, mock_send_callback):
         "raw_result": {"error": "Some DNS exception"},
         "findings": [],
         "assets": [],
+        "services": [],
+        "technologies": [],
         "error_message": "Some DNS exception",
     }
 
@@ -214,5 +216,7 @@ def test_run_dns_exception(mock_collect_dns, mock_send_callback):
         raw_result = {"error": "Some DNS exception"},
         findings = [],
         assets = [],
+        services = [],
+        technologies = [],
         error_message = "Some DNS exception",
     )

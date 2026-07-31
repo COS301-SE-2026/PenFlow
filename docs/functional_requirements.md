@@ -2,7 +2,7 @@
 
 ## Functional Requirement
 
-### Phase 1
+
 
 #### FR-1: Initiate CTEM Scan
 * **FR-1.1:** The system shall allow any user (authenticated or anonymous) to submit a domain name for OSINT scanning without requiring account creation.
@@ -10,7 +10,7 @@
 * **FR-1.3:** The system shall generate and return a unique `scan_id` upon successful scan submission.
 * **FR-1.4:** The system shall return an initial scan status (e.g., queued, in_progress) upon submission.
 * **FR-1.5:** The system shall display real-time scan progress inline on the landing page, updating without requiring a page reload.
-* **FR-1.6:** The system shall implement IP-based rate limiting to prevent abuse (maximum 3 scans per IP per 24 hours).
+* **FR-1.6:** The system shall implement IP-based rate limiting to prevent abuse (maximum 3 scans per IP per 10 minutes).
 * **FR-1.7:** The system shall complete gracefully even if one or more OSINT data sources are unavailable, returning partial results where possible.
 * **FR-1.8:** The system shall allow any user (authenticated or anonymous) to optionally provide an email address at the time of scan initiation, to receive the comprehensive scan report upon completion.
 

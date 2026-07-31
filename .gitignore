@@ -43,3 +43,14 @@ Thumbs.db
 docker/keycloak/penflow-realm.json
 
 generated_reports
+
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+*.zip
+infra/terraform.tfstate
+infra/terraform.tfvars.example

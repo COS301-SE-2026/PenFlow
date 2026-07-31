@@ -29,12 +29,18 @@ def test_run_target_resolution_success(
 
     expected_assets = [
         {
-            "type": "ipv4",
-            "value": "104.26.12.5",
+            "identifier": "104.26.12.5",
+            "asset_type": "ipv4",
+            "asset_metadata": {
+                "source_domain": "hackerone.com"
+            }
         },
         {
-            "type": "ipv6",
-            "value": "2606:4700::1",
+            "identifier": "2606:4700::1",
+            "asset_type": "ipv6",
+            "asset_metadata": {
+                "source_domain": "hackerone.com"
+            }
         },
     ]
 
@@ -47,6 +53,8 @@ def test_run_target_resolution_success(
             "ipv6": ["2606:4700::1"],
         },
         "findings": [],
+        "services": [],
+        "technologies": [],
         "assets": expected_assets,
     }
 
@@ -61,6 +69,8 @@ def test_run_target_resolution_success(
             "ipv6": ["2606:4700::1"],
         },
         findings=[],
+        services=[],
+        technologies=[],
         assets=expected_assets,
         error_message=None,
     )
@@ -95,8 +105,11 @@ def test_run_target_resolution_ipv4_only(
 
     expected_assets = [
         {
-            "type": "ipv4",
-            "value": "104.26.12.5",
+            "identifier": "104.26.12.5",
+            "asset_type": "ipv4",
+            "asset_metadata": {
+                "source_domain": "hackerone.com"
+            }
         }
     ]
 
@@ -109,6 +122,8 @@ def test_run_target_resolution_ipv4_only(
             "ipv6": [],
         },
         "findings": [],
+        "services": [],
+        "technologies": [],
         "assets": expected_assets,
     }
 
@@ -145,8 +160,11 @@ def test_run_target_resolution_ipv6_only(
 
     expected_assets = [
         {
-            "type": "ipv6",
-            "value": "2606:4700::1",
+            "identifier": "2606:4700::1",
+            "asset_type": "ipv6",
+            "asset_metadata": {
+                "source_domain": "hackerone.com"
+            }
         }
     ]
 
@@ -159,6 +177,8 @@ def test_run_target_resolution_ipv6_only(
             "ipv6": ["2606:4700::1"],
         },
         "findings": [],
+        "services": [],
+        "technologies": [],
         "assets": expected_assets,
     }
 
@@ -202,6 +222,8 @@ def test_run_target_resolution_no_ips(
         },
         "findings": [],
         "assets": [],
+        "technologies": [],
+        "services": [],
         "error_message": "No IPv4 or IPv6 addresses were resolved.",
     }
 
@@ -215,6 +237,8 @@ def test_run_target_resolution_no_ips(
         },
         findings=[],
         assets=[],
+        services=[],
+        technologies=[],
         error_message="No IPv4 or IPv6 addresses were resolved.",
     )
 
@@ -250,6 +274,8 @@ def test_run_target_resolution_exception(
         },
         "findings": [],
         "assets": [],
+        "services": [],
+        "technologies": [],
         "error_message": "DNS exploded",
     }
 
@@ -262,6 +288,8 @@ def test_run_target_resolution_exception(
         },
         findings=[],
         assets=[],
+        services=[],
+        technologies=[],
         error_message="DNS exploded",
     )
     mock_send_task.assert_not_called()

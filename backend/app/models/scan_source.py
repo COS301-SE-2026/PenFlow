@@ -1,20 +1,10 @@
-import enum
 import uuid
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
-from app.models.base import Base
-
-
-class ScanSourceStatus(str, enum.Enum):
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-    PARTIAL = "partial"
-    SKIPPED = "skipped"
+from app.models.base import Base, ScanSourceStatus
 
 
 class ScanSource(Base):

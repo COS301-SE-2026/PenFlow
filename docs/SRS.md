@@ -3,51 +3,8 @@
 # PenFlow
 ## Team: The BroCode
 
+## Functional Requirement
 
-## Table of Contents
-
-1. [Introduction](#1-introduction)
-2. [Domain Model](#2-domain-model)
-3. [User Stories / User Characteristics](#3-user-stories--user-characteristics)
-4. [Use Cases](#4-use-cases)
-5. [Functional Requirements](#5-functional-requirements)
-6. [Quality Requirements](#6-quality-requirements)
-7. [Architectural Requirements](#7-architectural-requirements)
-
----
-
-## 1. Introduction
-
-
----
-
-## 2. Domain Model
-
-### 2.1 UML Class Diagram
-
-### 2.2 Description
-
----
-
-## 3. User Stories / User Characteristics
-
-### 3.1 Intended Users
-
-### 3.2 User Stories
-
----
-
-## 4. Use Cases
-
-### 4.1 Use Case Diagrams
-
-### 4.2 Use Case Descriptions
-
----
-
-## 5. Functional Requirements
-
-### Phase 1
 
 #### FR-1: Initiate CTEM Scan
 * **FR-1.1:** The system shall allow any user (authenticated or anonymous) to submit a domain name for OSINT scanning without requiring account creation.
@@ -55,7 +12,7 @@
 * **FR-1.3:** The system shall generate and return a unique `scan_id` upon successful scan submission.
 * **FR-1.4:** The system shall return an initial scan status (e.g., queued, in_progress) upon submission.
 * **FR-1.5:** The system shall display real-time scan progress inline on the landing page, updating without requiring a page reload.
-* **FR-1.6:** The system shall implement IP-based rate limiting to prevent abuse (maximum 3 scans per IP per 24 hours).
+* **FR-1.6:** The system shall implement IP-based rate limiting to prevent abuse (maximum 3 scans per IP per 10 minutes).
 * **FR-1.7:** The system shall complete gracefully even if one or more OSINT data sources are unavailable, returning partial results where possible.
 * **FR-1.8:** The system shall allow any user (authenticated or anonymous) to optionally provide an email address at the time of scan initiation, to receive the comprehensive scan report upon completion.
 
@@ -116,25 +73,23 @@
   * **FR-8.1:** The system shall require that an asset's domain ownership is verified before
     a Phase 2 automated vulnerability scan can be initiated on that asset.
   * **FR-8.2:** The system shall allow authenticated users to initiate a domain ownership
-    verification request for an asset registered to their organisation.
+    verification request for an asset registered to their account.
   * **FR-8.3:** The system shall generate a unique cryptographic token for each verification
     request and instruct the user to create a DNS TXT record at the root domain level
     (host `@`) with the record value set to the provided token.
   * **FR-8.4:** The system shall verify ownership by performing a DNS TXT record query
     (e.g. via `dig`/`nslookup`-equivalent resolution) against the root of the target domain
     and confirming that the issued token is present among the returned TXT values.
-  * **FR-8.5:** The system shall allow the user to trigger a verification check on demand,
-    and shall poll the DNS record on a limited retry schedule to accommodate DNS propagation
-    delay before marking the request as failed.
+  * **FR-8.5:** The system shall allow the user to trigger a verification check on demand;
+    the system performs a single DNS TXT lookup at that point and returns the result
+    immediately, marking the request as failed if the token is not present.
   * **FR-8.6:** The system shall mark the asset as verified (`isVerified: true`, recording
     `verifiedAt`) upon successful token confirmation via DNS TXT lookup.
-  * **FR-8.7:** The system shall record all verification attempts (pending, verified, failed,
-    expired) against the asset in the `DomainVerification` entity, including the method used
-    (`dns_txt`) and the issued token.
-  * **FR-8.8:** The system shall expire unconfirmed verification tokens after a fixed period
-    (e.g. 7 days), after which the user must request a new token.
-  * **FR-8.9:** The system shall log every verification attempt in the audit log, recording
-    the user ID, asset ID, method (`dns_txt`), outcome, and timestamp.
+  * **FR-8.7:** The system shall record the most recent verification state against the asset,
+    including the current status (pending, verified, failed), the method used (`dns_txt`),
+    the issued token, and the timestamp of the last check. Only the latest state is retained;
+    prior attempts are overwritten.
+
 
 #### FR-9: Automated External Vulnerability Scan
  * **FR-9.1:** The system shall allow authenticated users to initiate a Phase 2 vulnerability
@@ -182,30 +137,146 @@
   active schedule and update them after each triggered scan.
 * **FR-11.5:** The system shall notify the asset owner when a scheduled scan completes,
   via an in-platform notification.
----
 
-## 6. Quality Requirements
 
-### 6.1 Performance
+# PenFlow: OSINT Scanning Engine Use Cases
 
-### 6.2 Reliability
-
-### 6.3 Scalability
-
-### 6.4 Security
-
-### 6.5 Maintainability
-
----
-
-## 7. Architectural Requirements
-
-### 7.1 Architectural Patterns
-
-### 7.2 Design Patterns
-
-### 7.3 Constraints
+## User Stories
+* **US-01:** As a PenFlow User, I want to initiate an OSINT scan on this domain so that I can discover potential vulnerabilities and exposed assets.
+* **US-02:** As a PenFlow User, I want to view a summarized scan report so that I can quickly understand the risk level and asset impact of my target infrastructure.
+* **US-03:** As a PenFlow User, I want to access my scan history so that I can track previous assessments and easily locate past reports.
+* **US-04:** As a PenFlow User, I want to email the generated PDF report so that I can easily share the intelligence findings with my team or clients.
+* **US-05:** As a PenFlow User, I want to securely authenticate and log in so that my sensitive scan data is protected and private.
+* **US-06:** As a PenFlow User, I want to download my scan report as a PDF so I can store it offline or attach it to internal tickets. 
+* **US-07:** As a PenFlow User, I want to cancel a running scan so that I don't waste system resources if I entered the wrong domain.
 
 ---
 
-## Appendix
+## 1. Actors
+An actor denotes a business role played by (and on the behalf of) a set of business entities.
+
+* **PenFlow User:** This is the primary client interacting with our Next.js frontend to initiate scans and view results.
+* **OSINT Workers:** The automated backend subsystems responsible for executing the intelligence gathering (which includes subdomains, open ports, breached credentials).
+
+---
+
+## 2. Use Case Specifications
+
+### UC-01: Initiate OSINT Scan
+**Actor(s):** PenFlow User
+
+**High-Level Description:**
+* **TUCBW** the User entering a target domain and clicking the "Start Scan" button on the dashboard.
+* **TUCEW** the system presents the user with the scan dashboard, indicating the scan has successfully started.
+
+**Expanded Specification:**
+1. The PenFlow User navigates to the New Scan page.
+2. The user inputs the target domain and optionally provides an email address.
+3. The user clicks "Start Scan".
+4. The system validates the domain format.
+5. The system confirms the scan has been successfully initiated.
+6. The system redirects the user to the Executive Summary dashboard.
+
+### UC-02: View Scan Report
+**Actor(s):** PenFlow User
+
+**High-Level Description:**
+* **TUCBW** the User clicks on a completed scan from their dashboard or receives a redirect after initiating a new scan.
+* **TUCEW** the User successfully views the aggregated intelligence data.
+
+**Expanded Specification:**
+1. The PenFlow User requests to view the summary for a specific scan.
+2. The system retrieves the base scan details and findings.
+3. The system aggregates the risk snapshot and asset impact breakdown.
+4. The system retrieves and truncates the top findings for preview.
+5. The system presents the Executive Summary dashboard to the user.
+
+### UC-03: View Scan History
+**Actor:** PenFlow User
+
+**High-Level Description:**
+* **TUCBW** the User clicks the History or All Scans tab from the main navigation menu.
+* **TUCEW** the User views a structured list of all their historical scans, including current statuses and timestamps.
+
+**Expanded Specification:**
+1. The PenFlow User navigates to the Scan History page.
+2. The system retrieves all historical scan records associated with the user's account.
+3. The system orders the records by creation date (newest first).
+4. The system displays the formatted list of scans, allowing the user to view which are Pending, Running, or Completed.
+
+### UC-04: Send Scan Report via Email
+**Actor:** PenFlow User
+
+**High-Level Description:**
+* **TUCBW** the PenFlow User clicks the "Email Report" button on the Executive Summary dashboard and submits a target email address.
+* **TUCEW** the system verifies the PDF report exists and successfully queues the email for delivery.
+
+**Expanded Specification:**
+1. The PenFlow User requests to email the report for a specific scan by providing a target email address.
+2. The system validates the email address format.
+3. The system verifies that a final PDF report document has been generated for that scan.
+4. If the report is missing or still generating, the system displays an error message to the user.
+5. If the report exists, the system queues the report for email dispatch.
+6. The system displays a confirmation message to the user indicating that the email has been queued.
+
+### UC-05: Log In
+**Actor:** PenFlow User
+
+**High-Level Description:**
+* **TUCBW** an unauthenticated user attempts to access a protected route or clicks the "Login" button.
+* **TUCEW** the system verifies their identity and grants access to the dashboard.
+
+**Expanded Specification:**
+1. The user navigates to the login page.
+2. The user submits their credentials.
+3. The system validates the credentials.
+4. The system grants access and redirects the authenticated user to the main dashboard.
+
+### UC-06: Download PDF Report
+**Actor:** PenFlow User
+
+**High-Level Description:**
+* **TUCBW** the PenFlow User clicks the "Download PDF" button on the Executive Summary dashboard.
+* **TUCEW** the system retrieves the generated PDF and streams it to the user. 
+
+**Expanded Specification:**
+1. The PenFlow User requests the PDF download for a specific scan.
+2. The system verifies that the report generation is complete.
+3. The system retrieves the final report file.
+4. The system prompts the user's browser to save the PDF file locally.
+
+### UC-07: Cancel Running Scan
+**Actors:** PenFlow User
+
+**High-Level Description:**
+* **TUCBW** the user clicks "Cancel" on a scan that is currently in a "Running" or "Pending" state.
+* **TUCEW** the system terminates the background worker process and marks the scan as canceled.
+
+**Expanded Specifications:**
+1. The User requests to cancel a specific scan.
+2. The system verifies the user has permission to modify this scan and that the scan is not already completed.
+3. The system halts the background scanning tasks.
+4. The system marks the scan as canceled.
+5. The system updates the UI to reflect the canceled status to the user.
+
+
+### Domain Model
+
+![PenFlow Demo 2 Domain Model](Domain%20Model/domainModeldemo2.drawio.png)
+
+## Non-functional Requirements
+
+### NFR-1: Performance
+Our system's API endpoints respond to user requests within 2 seconds for 95% of requests under standard operating conditions. Futhermore due to the parallel execution of pur OSINT lookups, Phase 1 CTEM scans must complete and generate initial results within xx seconds.
+
+### NFR-2: Secuirity
+All user passwords and sensitive scan data must be encrypted at rest. Assitionally we enforce strict tenant isolation, all of our Phase 2, active scans, must be executed within isolated short-lived worker containers that are destroyed upon completion to prevent crossclient data leakage.
+
+### NFR-3: Reliability
+The core of our PenFlow web interface and user dashboard shall achieve 99% uptime. In the event of a third party OSINT API failure, our background worker processes must successfully recover within x seconds and gracefully compile a partial report, maintaining a 1% system crash rate.
+
+### NFR-4: Scalability
+The system's worker queue architecture must automatically support horizontal scaling, being able to handle an increase in workload of up to xxx% without requiring manual architectural changes and without experiencing more than xx% decrease in the speed of report generation.
+
+### NFR-5: Maintainability
+Our backend services and worker modules must maintain a minimum of 80% automated test coverage (all types of tests) to ensure reliable deployments. 
