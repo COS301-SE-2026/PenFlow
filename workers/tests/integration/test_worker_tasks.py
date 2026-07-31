@@ -8,6 +8,7 @@ from app.tasks.http_security_task import run_http_security_scan_task
 from app.tasks.tls_task import run_tls_scan_task
 from app.tasks.fingerprinting_task import run_fingerprinting_scan_task
 from app.tasks.cpe_resolver_task import run_cpe_resolver_task
+from app.tasks.cve_task import run_cve_scan_task
 
 
 @patch("app.tasks.wappalyzer_tasks.send_source_callback")
@@ -521,3 +522,82 @@ def test_cpe_resolver_task_service_pipeline\
             resolved,
         ],
     )
+
+#cve int test
+@patch("app.tasks.cve_task.send_source_callback")
+@patch("app.services.cve_service.requests.get")
+def test_cve_task_service_pipeline\
+(
+    mock_get,
+    mock_callback,
+):
+    response = MagicMock()
+    response.status_code = 200
+    response.json.return_value = \
+    {
+        "vulnerabilities": \
+        [
+            {
+                "cve": \
+                {
+                    "id": "CVE-2025-12345",
+                    "published": "2025-06-01T00:00:00.000",
+
+                    "descriptions": \
+                    [
+                        {
+                            "lang": "en",
+                            "value": "A vulnerability in nginx allows remote attackers to execute arbitrary code.",
+                        }
+                    ],
+
+                    "metrics": \
+                    {
+                        "cvssMetricV31": \
+                        [
+                            {
+                                "cvssData": \
+                                {
+                                    "baseSeverity": "HIGH",
+                                    "baseScore": 8.8,
+                                }
+                            }
+                        ]
+                    },
+                }
+            }
+        ]
+    }
+
+    mock_get.return_value = response
+
+    #what fingerprinting should give
+    resolved_inventory = \
+    [
+        {
+            "vendor": "nginx",
+            "product": "nginx",
+            "version": "1.27.0",
+            "confidence": "high",
+            "cpe": "cpe:2.3:a:nginx:nginx:1.27.0:*:*:*:*:*:*:*",
+        }
+    ]
+
+    #real run
+    result = run_cve_scan_task\
+    (
+        "scan-123",
+        resolved_inventory,
+    )
+
+    assert result["status"] == "completed"
+    assert result["source_name"] == "cve"
+    vulnerabilities = result["raw_result"]["vulnerabilities"]
+    assert len(vulnerabilities) == 1
+    assert vulnerabilities[0]["cve_id"] == "CVE-2025-12345"
+    assert vulnerabilities[0]["severity"] == "HIGH"
+    assert vulnerabilities[0]["cvss_score"] == 8.8
+    assert len(result["findings"]) == 1
+    assert result["findings"][0]["metadata"]["cve_id"] == "CVE-2025-12345"
+    mock_callback.assert_called_once()
+    mock_get.assert_called_once()
