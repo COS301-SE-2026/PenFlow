@@ -1,0 +1,22 @@
+project_name = "penflow"
+environment  = "production"
+aws_region   = "af-south-1"
+
+domain_name      = "example.com"
+auth_domain_name = "auth.example.com"
+
+db_name     = "penflow"
+db_username = "penflow_administrator"
+
+rabbitmq_username       = "penflow"
+rabbitmq_engine_version = "<supported RabbitMQ version in your AWS region>"
+
+app_env   = "production"
+log_level = "INFO"
+
+smtp_host = "smtp.example.com"
+smtp_port = 587
+smtp_user = "smtp-user"
+smtp_from = "noreply@example.com"
+
+# Secret values are not stored here. They are supplied to scripts/bootstrap-infra.sh through environment variables.
