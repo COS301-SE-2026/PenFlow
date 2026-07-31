@@ -1,0 +1,87 @@
+{
+  "realm": "penflow",
+  "enabled": true,
+
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "verifyEmail": false,
+  "resetPasswordAllowed": true,
+
+  "roles": {
+    "realm": [
+      {
+        "name": "user",
+        "description": "Standard PenFlow user"
+      },
+      {
+        "name": "admin",
+        "description": "PenFlow administrator"
+      }
+    ]
+  },
+
+  "defaultRoles": [
+    "user"
+  ],
+
+  "clients": [
+    {
+      "clientId": "penflow-web",
+      "name": "PenFlow Web",
+      "enabled": true,
+
+      "protocol": "openid-connect",
+      "publicClient": true,
+
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+
+      "rootUrl": "https://pen-flow.com",
+      "baseUrl": "https://pen-flow.com",
+
+      "redirectUris": [
+        "https://pen-flow.com/*"
+      ],
+
+      "webOrigins": [
+        "https://pen-flow.com"
+      ],
+
+      "attributes": {
+        "post.logout.redirect.uris": "https://pen-flow.com/*",
+        "pkce.code.challenge.method": "S256"
+      },
+
+      "protocolMappers": [
+        {
+          "name": "penflow-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "penflow-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "penflow-api",
+      "name": "PenFlow API",
+      "enabled": true,
+
+      "protocol": "openid-connect",
+      "publicClient": false,
+
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    }
+  ]
+}
