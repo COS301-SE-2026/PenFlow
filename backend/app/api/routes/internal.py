@@ -7,13 +7,17 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset
-from app.models.base import ScanStatus, Severity
+from app.models.base import ReportStatus, ScanSourceStatus, ScanStatus, Severity
 from app.models.finding import Finding
-from app.models.scan_source import ScanSource, ScanSourceStatus
-from app.repositories.report_repository import mark_report_completed, mark_report_failed
+from app.models.scan_source import ScanSource
+from app.repositories.report_repository import (
+    get_report_by_scan_id,
+    mark_report_completed,
+    mark_report_failed,
+)
 from app.repositories.scan_repo import ScanRepository
 from app.schemas.report import ReportCallbackRequest
-from app.schemas.scan import ScanCallbackRequest
+from app.schemas.scan import ScanCallbackRequest, ScanSourceCallbackRequest
 from app.services.report_service import queue_report_generation
 from app.utils.db import get_db
 
@@ -42,12 +46,14 @@ async def save_scan_callback_results(
         )
 
         for asset in subtask.get("assets", []):
-            stmt = pg_insert(Asset).values(
-                scan_id=scan_id,
-                identifier=asset["identifier"],
-                asset_type=asset["asset_type"],
-            ).on_conflict_do_nothing(
-                index_elements=["scan_id", "identifier", "asset_type"]
+            stmt = (
+                pg_insert(Asset)
+                .values(
+                    scan_id=scan_id,
+                    identifier=asset["identifier"],
+                    asset_type=asset["asset_type"],
+                )
+                .on_conflict_do_nothing(index_elements=["scan_id", "identifier", "asset_type"])
             )
             await db.execute(stmt)
 
@@ -88,12 +94,10 @@ async def update_scan_status_callback(
         if payload.error_message:
             scan.error_message = payload.error_message
 
-        if payload.results:
-            await save_scan_callback_results(db, scan_id, payload.results)
-            await db.commit()
+        await db.commit()
+
+        if payload.status in [ScanStatus.COMPLETED, ScanStatus.PARTIAL]:
             queued_report = await queue_report_generation(db, str(scan_id))
-        else:
-            await db.commit()
 
         logger.info("Scan %s updated to %s", scan_id, payload.status.value)
 
@@ -112,6 +116,7 @@ async def update_scan_status_callback(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to process callback",
         ) from None
+
 
 @router.patch("/reports/{scan_id}/status", status_code=status.HTTP_200_OK)
 async def update_report_status_callback(
@@ -159,4 +164,53 @@ async def update_report_status_callback(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to process report callback",
+        )
+
+
+@router.patch("/scans/{scan_id}/sources/{source_name}", status_code=status.HTTP_200_OK)
+async def update_scan_source_callback(
+    scan_id: UUID,
+    source_name: str,
+    payload: ScanSourceCallbackRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    try:
+        scan = await ScanRepository.save_source_result(
+            db=db,
+            scan_id=scan_id,
+            source_name=source_name,
+            payload=payload.model_dump(),
+        )
+
+        report_queued = None
+        if scan.status in [ScanStatus.COMPLETED, ScanStatus.PARTIAL]:
+            report = await get_report_by_scan_id(db, str(scan_id))
+            if report is None or report.status not in [
+                ReportStatus.GENERATING,
+                ReportStatus.COMPLETED,
+            ]:
+                report_queued = await queue_report_generation(db, str(scan_id))
+        return {
+            "scan_id": str(scan.id),
+            "source_name": source_name,
+            "scan_status": scan.status.value,
+            "progress": scan.progress,
+            "report_status": report_queued["status"] if report_queued else None,
+        }
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(error),
+        )
+
+    except Exception:
+        logger.exception(
+            "Failed to process the source callback for scan %s source %s",
+            scan_id,
+            source_name,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to process source callback",
         )

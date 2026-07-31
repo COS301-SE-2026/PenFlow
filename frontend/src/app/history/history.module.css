@@ -2,7 +2,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding-left: 130px;
+  padding-left: 220px;
   background: var(--col-navy);
 }
 
@@ -64,7 +64,7 @@
   border: 1px solid var(--col-edge);
   border-radius: 12px;
   overflow: hidden;
-  max-width: 720px;
+  max-width: 1100px;
 }
 
 .table {
@@ -168,7 +168,7 @@
 .modal {
   position: fixed;
   top: 50%;
-  left: calc(130px + 60px + 720px * 0.78 - 60px);
+  left: calc(220px + 60px + 720px * 0.78 - 60px);
   transform: translateY(-50%);
   z-index: 50;
   background: var(--col-deep);

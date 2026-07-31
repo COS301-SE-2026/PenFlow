@@ -11,6 +11,7 @@ beautifulsoup4==4.14.3
 billiard==4.2.4
 black==26.3.1
 blinker==1.9.0
+boto3>=1.42.70
 brotli==1.2.0
 celery==5.6.3
 certifi==2026.4.22
@@ -91,3 +92,5 @@ webencodings==0.5.1
 Werkzeug==3.1.8
 yarl==1.23.0
 zopfli==0.4.1
+python-nmap==0.7.1
+types-python-nmap==0.7.1.20260508

@@ -19,3 +19,5 @@ passlib[bcrypt]>=1.7.4
 gunicorn>=21.2.0
 weasyprint>=60.0
 jinja2>=3.1.0
+boto3>=1.42.70
+slowapi>=0.1.9

@@ -71,23 +71,25 @@
   * **FR-8.1:** The system shall require that an asset's domain ownership is verified before
     a Phase 2 automated vulnerability scan can be initiated on that asset.
   * **FR-8.2:** The system shall allow authenticated users to initiate a domain ownership
-    verification request for an asset registered to their account.
+    verification request for an asset registered to their organisation.
   * **FR-8.3:** The system shall generate a unique cryptographic token for each verification
     request and instruct the user to create a DNS TXT record at the root domain level
     (host `@`) with the record value set to the provided token.
   * **FR-8.4:** The system shall verify ownership by performing a DNS TXT record query
     (e.g. via `dig`/`nslookup`-equivalent resolution) against the root of the target domain
     and confirming that the issued token is present among the returned TXT values.
-  * **FR-8.5:** The system shall allow the user to trigger a verification check on demand;
-    the system performs a single DNS TXT lookup at that point and returns the result
-    immediately, marking the request as failed if the token is not present.
+  * **FR-8.5:** The system shall allow the user to trigger a verification check on demand,
+    and shall poll the DNS record on a limited retry schedule to accommodate DNS propagation
+    delay before marking the request as failed.
   * **FR-8.6:** The system shall mark the asset as verified (`isVerified: true`, recording
     `verifiedAt`) upon successful token confirmation via DNS TXT lookup.
-  * **FR-8.7:** The system shall record the most recent verification state against the asset,
-    including the current status (pending, verified, failed), the method used (`dns_txt`),
-    the issued token, and the timestamp of the last check. Only the latest state is retained;
-    prior attempts are overwritten.
-
+  * **FR-8.7:** The system shall record all verification attempts (pending, verified, failed,
+    expired) against the asset in the `DomainVerification` entity, including the method used
+    (`dns_txt`) and the issued token.
+  * **FR-8.8:** The system shall expire unconfirmed verification tokens after a fixed period
+    (e.g. 7 days), after which the user must request a new token.
+  * **FR-8.9:** The system shall log every verification attempt in the audit log, recording
+    the user ID, asset ID, method (`dns_txt`), outcome, and timestamp.
 
 #### FR-9: Automated External Vulnerability Scan
  * **FR-9.1:** The system shall allow authenticated users to initiate a Phase 2 vulnerability

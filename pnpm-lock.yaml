@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      workers:
+        specifier: ^0.0.1
+        version: 0.0.1
     devDependencies:
       concurrently:
         specifier: ^9.2.1
@@ -35,6 +39,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      lucide-react:
+        specifier: ^1.27.0
+        version: 1.27.0(react@19.2.6)
       next:
         specifier: ^15.0.0
         version: 15.5.18(@babel/core@7.29.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -3962,6 +3969,11 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
+  lucide-react@1.27.0:
+    resolution: {integrity: sha512-rJicGl/3Fly/E0rOH1YmPZ6e49JCnKknh1ox1vpHnkfjujAkKA6sqUZvH3MTAaXXjgexyUwgNwTJzTtYuAFYJw==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   lz-string@1.5.0:
     resolution: {integrity: sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==}
     hasBin: true
@@ -4107,6 +4119,9 @@ packages:
 
   node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
+
+  node-logr@0.5.2:
+    resolution: {integrity: sha512-roPNxvG+OsefMyfVa5HeO24kRtxA7UB8CtvsR8CfSxaESw+1FTsMf8gkDluG5vppzXrXVCI146PQR2KMaszWig==}
 
   node-releases@2.0.44:
     resolution: {integrity: sha512-5WUyunoPMsvvEhS8AxHtRzP+oA8UCkJ7YRxatWKjngndhDGLiqEVAQKWjFAiAiuL8zMRGzGSJxFnLetoa43qGQ==}
@@ -5197,6 +5212,9 @@ packages:
   word-wrap@1.2.5:
     resolution: {integrity: sha512-BN22B5eaMMI9UMtjrGd5g5eCYPpCPDUy0FJXbYsaT5zYxjFOckS53SQDE3pWkVoWpHXVb3BrYcEN4Twa55B5cA==}
     engines: {node: '>=0.10.0'}
+
+  workers@0.0.1:
+    resolution: {integrity: sha512-cp2HU5tdKyxOiHg7l8p67R2F07vLT1Hd/h3Xi3dXtoO5NlXml4nkJ48O0EmEkOMtWqEZMWAoNLZfctT3qiP3IA==}
 
   wrap-ansi@7.0.0:
     resolution: {integrity: sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==}
@@ -9659,6 +9677,10 @@ snapshots:
     dependencies:
       yallist: 3.1.1
 
+  lucide-react@1.27.0(react@19.2.6):
+    dependencies:
+      react: 19.2.6
+
   lz-string@1.5.0: {}
 
   magic-string@0.30.21:
@@ -9792,6 +9814,8 @@ snapshots:
       formdata-polyfill: 4.0.10
 
   node-int64@0.4.0: {}
+
+  node-logr@0.5.2: {}
 
   node-releases@2.0.44: {}
 
@@ -11031,6 +11055,10 @@ snapshots:
       isexe: 3.1.5
 
   word-wrap@1.2.5: {}
+
+  workers@0.0.1:
+    dependencies:
+      node-logr: 0.5.2
 
   wrap-ansi@7.0.0:
     dependencies:

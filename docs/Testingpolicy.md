@@ -18,7 +18,7 @@ Update date: 2026/07/07
      - 2.2.1 Objective
      - 2.2.2 Automation
      - 2.2.3 Framework
-   - 2.3 Test Naming Conventions
+     - 2.3 Test Naming Conventions
 
 3. Testing Workflow
 4. Quality Assurance Testing
@@ -48,7 +48,6 @@ Update date: 2026/07/07
 6. Defect Management
    - 6.1 Defect Reporting
    - 6.2 Severity Classification
-
 ---
 
 ## 1. Introduction
@@ -73,9 +72,8 @@ The sections below provide detailed procedures, tools, and
 responsibilities associated with each testing phase, ensuring that all
 components of PenFlow are validated before each demo submission. For
 Demo 2, at least five fully implemented use cases must be supported by
-passing unit and integration tests with no mocks in the final build,
-supported by manual end-to-end testing executed against the staging
-deployment prior to each demo submission.
+passing unit, integration, and end-to-end tests with no mocks in the
+final build.
 
 ---
 
@@ -164,12 +162,12 @@ The following frameworks are used for integration testing:
   requiring a running RabbitMQ broker.
 
 ### 2.3 Test Naming Conventions
-
-Test files and test functions follow consistent naming patterns across the codebase to ensure maintainability and clear traceability between tests and the functionality they validate.
+ 
+ Test files and test functions follow consistent naming patterns across the codebase to ensure maintainability and clear traceability between tests and the functionality they validate.
 
 #### File Naming
 
-- **Backend (Python/pytest):** Test files are named using the pattern `test_<module_or_feature>.py`, where `<module_or_feature>` corresponds to the component, service, or repository being tested. Test files are organised under the `tests/` directory structure with separate subdirectories for unit tests and integration tests.
+- **Backend (Python/pytest):** Test files are named using the pattern `test_<module_or_feature>.py`, where `<module_or_feature>` corresponds to the component, service, or repository being tested. Test files are organised under the `tests/` directory structure with separate subdirectories for unit tests and integration tests .
 
 - **Frontend (TypeScript/Jest):** Test files are named using the pattern `<name>.test.ts`, where `<name>` corresponds to the component, utility, or module being tested. Component tests use the `.tsx` extension.
 
@@ -181,7 +179,6 @@ Test files and test functions follow consistent naming patterns across the codeb
 
 - **Frontend (Jest) and E2E (Cypress):** Tests use `describe()` blocks grouped by feature or component, with `it()` statements written as plain-English descriptions of expected behaviour in the present tense. Each `it()` statement must clearly communicate the specific behaviour being verified without requiring additional documentation.
 
----
 
 ## 3. Testing Workflow
 
@@ -207,11 +204,12 @@ follows:
   check are run to confirm the application compiles and initialises
   without errors.
 
-- **End-to-End Testing:** Cypress E2E tests are executed manually
-  against the staging deployment prior to each demo submission to validate
-  complete user journeys through the browser. E2E tests are not
-  included in the automated CI pipeline due to their dependency on
-  a live staging environment.
+- **End-to-End Testing:** Cypress E2E tests are executed manually 
+against 
+the staging deployment prior to each demo submission to validate 
+complete user journeys through the browser. E2E tests are not 
+included in the automated CI pipeline due to their dependency on 
+a live staging environment.
 
 - **Review and Feedback:** If any issues are identified at any stage,
   feedback is shared among the team. The team members responsible for
@@ -260,10 +258,10 @@ Performance testing focuses on the following key metrics:
 
 #### 4.1.3 Testing Framework
 
-Performance testing is conducted using JMeter for measuring API
-response times, latency percentiles, and throughput under load.
-WebSocket latency for real-time scan progress updates is measured
-separately against the staging deployment.
+Performance testing is conducted using pytest-benchmark for measuring
+individual function execution times and custom load scripts for
+measuring API throughput. WebSocket latency for real-time scan progress
+updates is measured separately against the staging deployment.
 
 #### 4.1.4 Test Scenarios
 
@@ -311,11 +309,10 @@ Scalability testing measures:
 
 #### 4.2.3 Testing Framework
 
-Scalability testing is conducted using JMeter for load and stress
-testing against the staging API, using multiple threads with ramp-up
-scheduling to simulate concurrent virtual users. Test scripts simulate
-realistic traffic patterns including scan initiation, report retrieval,
-and scan history queries across multiple concurrent virtual users.
+Scalability testing is conducted using K6 for load and stress testing
+against the staging API. Test scripts simulate realistic traffic
+patterns including scan initiation, report retrieval, and scan history
+queries across multiple concurrent virtual users.
 
 #### 4.2.4 Load Testing Scenarios
 
@@ -364,7 +361,7 @@ Security testing covers the following areas:
 - **Input Validation:** Testing for SQL injection, XSS, and malformed
   domain input handling.
 - **Rate Limiting:** Verifying that the IP-based rate limiter blocks
-  more than 3 Phase 1 scan submissions per IP per 10 minutes.
+  more than 3 Phase 1 scan submissions per IP per 24 hours.
 - **Secrets Exposure:** Confirming that API keys, database credentials,
   and environment variables are not exposed in API responses or logs.
 - **Audit Trail Integrity:** Verifying that audit log records cannot be
@@ -387,7 +384,7 @@ Security tests evaluate the following attack vectors:
 - Initiating a Phase 2 scan against an unverified asset
 - Submitting malformed or oversized domain input to the scan endpoint
 - Submitting more than 3 scan requests from the same IP within a
-  10-minute window
+  24-hour window
 - Attempting to delete or update an audit log record directly via SQL
 
 #### 4.3.5 Security Acceptance Criteria
@@ -398,7 +395,7 @@ Security tests must demonstrate:
 - All cross-user data access attempts return 403
 - Phase 2 scan initiation against an unverified asset returns 403
 - Rate limiter returns 429 on the fourth scan submission from the same
-  IP within 10 minutes
+  IP within 24 hours
 - No sensitive data (API keys, passwords, internal IDs) present in any
   API error response
 - Audit log records cannot be modified or deleted at the database level
@@ -417,42 +414,39 @@ during E2E testing.
 
 ### 5.2 Framework
 
-E2E tests are executed manually against the staging deployment.
-Results are documented and stored as test evidence prior to each
+E2E tests are executed manually against the staging deployment. 
+Results are documented and stored as test evidence prior to each 
 demo submission.
 
 ### 5.3 Test Scenarios
 
-The following use cases must have passing E2E tests:
+The following use cases must have passing E2E tests for :
 
-| Use Case                            | Phase |
-|-------------------------------------|-------|
-| Initiate CTEM scan as guest         | 1     |
-| View inline scan summary            | 1     |
-| Log in                              | 1     |
-| View scan history (authenticated)   | 1     |
-| Initiate domain verification        | 2     |
-| Initiate Phase 2 vulnerability scan | 2     |
-| View Phase 2 scan results           | 2     |
-| Add/delete domain                   | 2     |
-| Filter findings by domain           | 2     |
+ Use Case                            | Phase |
+-------------------------------------|-------|
+ Initiate CTEM scan as guest         | 1     |
+ View inline scan summary            | 1     |
+ log in                              | 1     |
+ View scan history (authenticated)   | 1     |
+ Initiate domain verification        | 2     |
+ Initiate Phase 2 vulnerability scan | 2     |
+ View Phase 2 scan results           | 2     |
+ add/delete domain                   | 2     |
+ filter findings domain              | 2     |
 
 Each E2E test must include assertions on page navigation, visible UI
-content such as headings and status badges.
+content such as headings and status badges
 
-### 5.4 Definition of Done
+### 5.4 Acceptance Criteria
 
-A feature or use case is considered fully implemented and ready for
-release if all of the following conditions are met:
+Definition of Done:
 
 - It has at least one passing integration test covering the happy path.
 - It has at least one passing integration test covering a relevant
   error path such as invalid input or unauthorized access.
-- It has a passing manual E2E test executed against the staging
-  deployment, simulating the complete user flow.
+- It has a passing E2E test simulating the complete user flow.
 - No test in the suite mocks the database or any internal service.
-- The CI pipeline is green on the main branch at demo time (unit
-  and integration tests only).
+- The CI pipeline is green on the main branch at demo time.
 
 ---
 
@@ -481,3 +475,4 @@ be followed:
 | High     | Feature broken but workaround exists            | Within 2 days   |
 | Medium   | Minor functional issue, feature partially works | Before demo     |
 | Low      | Cosmetic or non-functional issue                | Best effort     |
+

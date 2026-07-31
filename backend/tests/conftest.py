@@ -1,22 +1,111 @@
+# Shared test fixtures: real DB session + FastAPI client for integration tests
+# This file provides fixtures for:
+# 1. Real database sessions for integration tests
+# 2. FastAPI test client with dependency overrides
+# 3. Authentication override for testing protected endpoints
+# Unit tests should mock their own dependencies instead of using these fixtures.
+
+import os
 import sys
 from pathlib import Path
 
-import pytest
+import pytest_asyncio
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.pool import NullPool
 
+# Shared test fixtures: real DB session + FastAPI client for integration tests
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT_DIR))
 
-from fastapi.testclient import TestClient  #noqa: E402
 
+from app.api.middleware.auth import get_current_user  # noqa: E402
 from app.main import app  # noqa: E402
+from app.utils.db import get_db  # noqa: E402
+
+# Configure test database URL
+# Convert postgresql:// to postgresql+asyncpg:// for async support
+TEST_DATABASE_URL = os.getenv("DATABASE_URL")
+
+if TEST_DATABASE_URL.startswith("postgresql://"):
+    TEST_DATABASE_URL = TEST_DATABASE_URL.replace(
+        "postgresql://",
+        "postgresql+asyncpg://",
+        1,
+    )
+
+# Create async engine for test database
+# NullPool prevents connection pooling issues between tests
+engine = create_async_engine(
+    TEST_DATABASE_URL,
+    poolclass=NullPool,
+)
+
+# Session factory for creating database sessions in tests
+TestingSessionLocal = async_sessionmaker(
+    bind=engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
 
 
-@pytest.fixture(scope="module")
-def test_client():
-    """
-    TestsClient instance, to simulate API requests
-    """
+@pytest_asyncio.fixture
+async def db_session():
+    async with engine.connect() as connection:
+        transaction = await connection.begin()
 
-    with TestClient(app) as client:
+        async with TestingSessionLocal(bind=connection) as session:
+            yield session
+
+        await transaction.rollback()
+
+
+@pytest_asyncio.fixture
+async def test_client(db_session):
+    # Provides a FastAPI test client with database dependency overridden
+    # Overrides get_db to use the test database session
+    async def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="https://test",
+    ) as client:
         yield client
 
+    # Clean up dependency overrides after test completes
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def login_as():
+    """
+    Simulate a logged-in user by overriding the auth dependency.
+    
+    This fixture allows integration tests to bypass real Keycloak authentication
+    by overriding get_current_user to return a mock user identity.
+    
+    Usage:
+        await login_as({
+            "sub": "kc-123",
+            "email": "test@example.com",
+            "name": "Test User"
+        })
+    """
+    def _login(identity: dict):
+        # Override the auth dependency to return the provided identity
+        # This bypasses all JWT validation and Keycloak calls
+        app.dependency_overrides[get_current_user] = lambda: identity
+
+    # Yield the login function to the test
+    yield _login
+    
+    # Cleanup: Remove the override after the test completes
+    # Ensures other tests don't inherit this override
+    app.dependency_overrides.pop(get_current_user, None)

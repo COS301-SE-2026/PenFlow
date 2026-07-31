@@ -1,0 +1,1 @@
+#empty file to avoid collision of the sma file name  eg test_scan repo

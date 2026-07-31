@@ -20,7 +20,7 @@
   <a href="https://codecov.io/gh/COS301-SE-2026/PenFlow">
     <img alt="Coverage" src="https://img.shields.io/codecov/c/github/COS301-SE-2026/PenFlow?style=for-the-badge&logo=codecov&logoColor=white" />
   </a>
-  <a href="https://img.shields.io/github/issues/COS301-SE-2026/PenFlow">
+  <a href="https://github.com/COS301-SE-2026/PenFlow/issues">
     <img alt="Issues" src="https://img.shields.io/github/issues/COS301-SE-2026/PenFlow?style=for-the-badge&logo=github&logoColor=white" />
   </a>
   <img alt="Demo 1" src="https://img.shields.io/badge/Demo%201-In%20Progress-2980B9?style=for-the-badge" />
@@ -34,10 +34,6 @@
     />
   </a>
 </p>
-
----
-
-[Project Board](https://github.com/orgs/COS301-SE-2026/projects/51)
 
 ---
 
@@ -88,10 +84,20 @@ PenFlow is a **layered modular monolith** with an **event-driven orchestration l
 ### High-Level System Architecture
 <img src="docs/Architecture/images/Architecture Diagram.jpg" alt="High-Level System Architecture" width="100%" />
 
-### Documentation
-- **Software Architecture (Demo 1):** `docs/architecture.md`
-- **SRS:** `docs/SRS.md`
-- **Design:** `docs/DESIGN.md`
+## Documentation
+
+Detailed project documentation is available below.
+
+
+| Document | Description |
+| --- | --- |
+| [Software Requirements Specification](docs/SRS.md)
+| [Software Architecture Specification](docs/SAS.md) 
+| [Design Specification](docs/DESIGN.md) 
+| [Coding Standards](docs/coding_standards.md)
+| [User Manual](docs/USER-MANUAL.md) 
+| [Testing Policy](docs/Testingpolicy.md) 
+| [Brand Style](docs/TESTING.md)
 
 ---
 
@@ -109,63 +115,6 @@ PenFlow is a **layered modular monolith** with an **event-driven orchestration l
 | CI/CD | GitHub Actions |
 | Testing | PyTest, Jest, Cypress |
 
-
----
-
-## Repository Setup
-
-The project repository is structured as a monorepo to support coordinated development across the frontend, backend, worker services, and testing environments. The repository follows a GitFlow branching strategy, where `main` represents stable production-ready code, `dev` is used as the primary integration branch, and feature branches are created for isolated development tasks before being merged back into `dev`.
-
-To maintain consistency and improve repository organization, branch naming conventions are enforced:
-
-| Prefix | Purpose |
-|--------|---------|
-| `f_` | Feature development |
-| `d_` | Documentation |
-| `t_` | Testing |
-| `fix_` | Bug fixes and corrections |
-
-The repository is divided into the following logical components:
-
-| Directory | Description |
-|-----------|-------------|
-| `frontend/` | Next.js frontend application |
-| `backend/` | FastAPI backend API |
-| `workers/` | Asynchronous Celery worker services |
-| `docker/` | Container configurations and Dockerfiles |
-| `tests/` | Integration and system testing |
-| `.github/workflows/` | CI pipeline definitions |
-
-Docker Compose is used to orchestrate local development and testing environments, including PostgreSQL, RabbitMQ, Redis, backend services, worker services, and the frontend application. Ensuring a consistent setup process across all developer machines and CI environments.
-
-Branch protection rules are enforced to maintain code quality and reduce the risk of unstable changes being merged into shared branches:
-
-- `dev` requires a minimum of **2 approvals** before pull requests can be merged
-- `main` requires a minimum of **3 approvals** before pull requests can be merged
-
----
-
-## Continuous Integration (CI)
-
-The project uses GitHub Actions for Continuous Integration to automate validation, testing, and build processes on every pull request and merge into the development branches.
-
-The CI pipeline is divided into the following stages:
-
-| Stage | Details |
-|-------|---------|
-| Frontend Validation | Linting, type checking, unit testing, and build verification |
-| Backend Validation | Ruff, MyPy, and Pytest |
-| Worker Validation | Ruff, MyPy, and Pytest |
-| Docker Verification | Image build verification |
-| Integration Testing | Containerized service interoperability testing |
-
-Integration tests are executed in isolated Docker environments to ensure interoperability between services such as PostgreSQL, RabbitMQ, Redis, the FastAPI backend, and Celery workers.
-
-The CI pipeline enforces the following standards before code can be merged into protected branches:
-
-- Code quality and consistent formatting
-- Automated testing and successful build validation
-- Reduced regression risk across the project
 
 ---
 

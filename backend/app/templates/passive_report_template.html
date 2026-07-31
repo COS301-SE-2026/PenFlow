@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>PenFlow CTEM Report</title>
+    <link rel="stylesheet" href="report_styles.css">
+</head>
+<body>
+
+    <header class="cover">
+        <div class="cover-top">
+            <img src="bluevision_logo.png" class="bluevision-logo" alt="BlueVision logo">
+        </div>
+        <h1>PenFlow CTEM Report</h1>
+        <p class="subtitle">Passive External Exposure Assessment</p>
+
+        <div class="meta-box">
+            <p><strong>Target:</strong> {{ target_domain }}</p>
+            <p><strong>Scan ID:</strong> {{ report_id }}</p>
+            <p><strong>Generated:</strong> {{ generated_at }}</p>
+            <p><strong>Status:</strong> {{ status }}</p>
+        </div>
+    </header>
+
+    <section>
+        <h2>Executive Summary</h2>
+        <p>
+            This Phase 1 CTEM report summarizes passive open-source intelligence
+            collected for the target domain. The scan identified public-facing
+            infrastructure, technologies, subdomains, reputation indicators,
+            email exposure, and breach-related risks.
+        </p>
+    </section>
+
+    <section>
+        <h2>Severity Overview</h2>
+
+        <div class="severity-grid">
+            <div class="severity-card critical">Critical: {{ severity_counts.critical }}</div>
+            <div class="severity-card high">High: {{ severity_counts.high }}</div>
+            <div class="severity-card medium">Medium: {{ severity_counts.medium }}</div>
+            <div class="severity-card low">Low: {{ severity_counts.low }}</div>
+            <div class="severity-card info">Info: {{ severity_counts.info }}</div>
+        </div>
+    </section>
+
+    <section>
+        <h2>Infrastructure</h2>
+        <p><strong>Source:</strong> Shodan</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Hosting Provider</th>
+                    <th>IP Address</th>
+                    <th>Port</th>
+                    <th>State</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for port in infrastructure.open_ports %}
+                <tr>
+                    <td>{{ infrastructure.hosting_provider }}</td>
+                    <td>{{ infrastructure.ip_address }}</td>
+                    <td>{{ port.port }}</td>
+                    <td>{{ port.state }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Technology Stack</h2>
+        <p><strong>Source:</strong> Wappalyzer</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Technology</th>
+                    <th>Version</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tech in tech_stack %}
+                    <tr>
+                        <td>{{ tech.name }}</td>
+                        <td>{{ tech.version }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+
+    <section>
+        <h2>Discovered Subdomains</h2>
+        <p><strong>Source:</strong> crt.sh</p>
+        <p><strong>Total Found:</strong> {{ subdomains.total_found }}</p>
+
+        <ul>
+            {% for subdomain in subdomains.discovered_names %}
+                <li>{{ subdomain }}</li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <section>
+        <h2>Reputation Analysis</h2>
+        <p><strong>Source:</strong> URLScan</p>
+
+        <div class="finding-card">
+            <h3>URLScan Reputation Result</h3>
+            <p><strong>Malicious Flags:</strong> {{ reputation.malicious_flags }}</p>
+            <p><strong>URLScan UUID:</strong> {{ reputation.urlscan_uuid }}</p>
+            <div class="screenshot-section">
+                <h4>Captured Screenshot</h4>
+
+                <img
+                    src="{{ reputation.screenshot_path }}"
+                    alt="URLScan Screenshot"
+                    class="urlscan-screenshot"
+                >
+            </div>
+            <p>
+                A small number of reputation indicators were identified.
+                Further review is recommended before escalation.
+            </p>
+        </div>
+    </section>
+
+    <section>
+        <h2>Breach Exposure</h2>
+        <p><strong>Source:</strong> HaveIBeenPwned</p>
+
+        <div class="finding-card">
+            <h3>Known Breach Exposure</h3>
+            <span class="badge badge-medium">{{ breach_data.severity }}</span>
+            <p><strong>Pwned Accounts:</strong> {{ breach_data.pwned_accounts_count }}</p>
+            <p><strong>Known Breaches:</strong> {{ breach_data.known_breaches | join(", ") }}</p>
+            <p>
+                Public breach exposure was detected for accounts associated
+                with this domain.
+            </p>
+        </div>
+    </section>
+
+    <section>
+        <h2>Domain & Mail Security</h2>
+        <p><strong>Source:</strong> DNS / WHOIS</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Record Type</th>
+                    <th>Status</th>
+                    <th>Finding</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dns in domain_security.records %}
+                <tr>
+                    <td>{{ dns.record_type }}</td>
+                    <td>{{ dns.status }}</td>
+                    <td>{{ dns.finding }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if domain_security.whois %}
+        <div class="service-list-section">
+            <h3>Domain Registration Intelligence</h3>
+            <table class="whois-table">
+                <tbody>
+                    <tr>
+                        <th>Registrar</th>
+                        <td>{{ domain_security.whois.registrar }}</td>
+                    </tr>
+                    <tr>
+                        <th>Registered</th>
+                        <td>{{ domain_security.whois.registration_date }}</td>
+                    </tr>
+                    <tr>
+                        <th>Expires</th>
+                        <td>{{ domain_security.whois.expiration_date }}</td>
+                    </tr>
+                    <tr>
+                        <th>DNSSEC Enabled</th>
+                        <td>{{ domain_security.whois.dnssec_enabled }}</td>
+                    </tr>
+                    <tr>
+                        <th>Nameservers</th>
+                        <td>
+                            {% for nameserver in domain_security.whois.nameservers %}
+                                {{ nameserver }}{% if not loop.last %}, {% endif %}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        {% if domain_security.detected_services %}
+        <div class="service-list-section">
+            <h3>Third-Party Services Detected from DNS TXT Records</h3>
+            <div class="service-list">
+                {% for service in domain_security.detected_services %}
+                    <span class="service-badge">{{ service }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </section>
+
+    <section>
+        <h2>Recommendations</h2>
+        <ul>
+            {% for recommendation in recommendations %}
+                <li>{{ recommendation }}</li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <section class="cta">
+        <h2>Next Step: Phase 2 External Scan</h2>
+        <p>
+            Phase 1 used passive intelligence only. To validate exposure and
+            identify actionable vulnerabilities, sign up and register your domain
+            to proceed to a controlled Phase 2 external vulnerability scan.
+        </p>
+    </section>
+
+    <footer>
+        <img src="brocode_logo.png" class="brocode-logo" alt="BroCode logo">
+        <p>Developed by The BroCode</p>
+    </footer>
+</body>
+
+</html>

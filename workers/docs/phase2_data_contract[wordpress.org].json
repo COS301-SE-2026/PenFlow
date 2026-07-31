@@ -1,0 +1,442 @@
+{
+    "scan_id": "example-phase2-scan",
+    "target": "wordpress.org",
+    "workers": {
+        "target_resolution": {
+            "scan_id": "example-phase2-scan",
+            "source_name": "target_resolution",
+            "status": "completed",
+            "raw_result": {
+                "ipv4": [
+                    "66.6.42.252"
+                ],
+                "ipv6": [
+                    "2620:109:b00a::4206:2afc"
+                ]
+            },
+            "findings": [],
+            "assets": [
+                {
+                    "type": "ipv4",
+                    "value": "66.6.42.252"
+                },
+                {
+                    "type": "ipv6",
+                    "value": "2620:109:b00a::4206:2afc"
+                }
+            ]
+        },
+        "nmap": {
+            "scan_id": "example-phase2-scan",
+            "source_name": "nmap",
+            "status": "completed",
+            "raw_result": {
+                "ip": "66.6.42.252",
+                "profile": "standard",
+                "status": "up",
+                "hostnames": [
+                    "wordpress.org"
+                ],
+                "ports": [
+                    {
+                        "port": 80,
+                        "protocol": "tcp",
+                        "state": "open",
+                        "service": "http",
+                        "product": "nginx",
+                        "version": "",
+                        "extra_info": ""
+                    },
+                    {
+                        "port": 443,
+                        "protocol": "tcp",
+                        "state": "open",
+                        "service": "http",
+                        "product": "nginx",
+                        "version": "",
+                        "extra_info": ""
+                    }
+                ]
+            },
+            "findings": [],
+            "assets": [
+                {
+                    "type": "network_service",
+                    "value": "66.6.42.252:80",
+                    "metadata": {
+                        "protocol": "tcp",
+                        "service": "http",
+                        "product": "nginx",
+                        "version": "",
+                        "state": "open"
+                    }
+                },
+                {
+                    "type": "network_service",
+                    "value": "66.6.42.252:443",
+                    "metadata": {
+                        "protocol": "tcp",
+                        "service": "http",
+                        "product": "nginx",
+                        "version": "",
+                        "state": "open"
+                    }
+                }
+            ]
+        },
+        "http_security": {
+            "scan_id": "example-phase2-scan",
+            "source_name": "http_security",
+            "status": "completed",
+            "raw_result": {
+                "ip": "66.6.42.252",
+                "hostname": "wordpress.org",
+                "targets": [
+                    {
+                        "url": "http://wordpress.org",
+                        "port": 80,
+                        "protocol": "http",
+                        "status_code": 200,
+                        "security_headers": {
+                            "strict_transport_security": "max-age=3600",
+                            "content_security_policy": null,
+                            "content_security_policy_report_only": null,
+                            "x_frame_options": "SAMEORIGIN",
+                            "referrer_policy": null,
+                            "permissions_policy": null,
+                            "x_content_type_options": null
+                        },
+                        "server": "nginx",
+                        "powered_by": null,
+                        "headers": {
+                            "Server": "nginx",
+                            "Date": "Fri, 17 Jul 2026 22:07:07 GMT",
+                            "Content-Type": "text/html; charset=UTF-8",
+                            "Transfer-Encoding": "chunked",
+                            "Connection": "keep-alive",
+                            "Vary": "Accept-Encoding, accept, content-type",
+                            "Strict-Transport-Security": "max-age=3600",
+                            "X-Olaf": "\u00e2\u009b\u0084",
+                            "Link": "<https://wordpress.org/wp-json/>; rel=\"https://api.w.org/\", <https://wordpress.org/wp-json/wp/v2/pages/457>; rel=\"alternate\"; title=\"JSON\"; type=\"application/json\", <https://w.org/>; rel=shortlink",
+                            "X-Frame-Options": "SAMEORIGIN",
+                            "Content-Encoding": "br",
+                            "Alt-Svc": "clear",
+                            "X-nc": "HIT dca 1"
+                        }
+                    },
+                    {
+                        "url": "https://wordpress.org",
+                        "port": 443,
+                        "protocol": "https",
+                        "status_code": 200,
+                        "security_headers": {
+                            "strict_transport_security": "max-age=3600",
+                            "content_security_policy": null,
+                            "content_security_policy_report_only": null,
+                            "x_frame_options": "SAMEORIGIN",
+                            "referrer_policy": null,
+                            "permissions_policy": null,
+                            "x_content_type_options": null
+                        },
+                        "server": "nginx",
+                        "powered_by": null,
+                        "headers": {
+                            "Server": "nginx",
+                            "Date": "Fri, 17 Jul 2026 22:07:08 GMT",
+                            "Content-Type": "text/html; charset=UTF-8",
+                            "Transfer-Encoding": "chunked",
+                            "Connection": "keep-alive",
+                            "Vary": "Accept-Encoding, accept, content-type",
+                            "Strict-Transport-Security": "max-age=3600",
+                            "X-Olaf": "\u00e2\u009b\u0084",
+                            "Link": "<https://wordpress.org/wp-json/>; rel=\"https://api.w.org/\", <https://wordpress.org/wp-json/wp/v2/pages/457>; rel=\"alternate\"; title=\"JSON\"; type=\"application/json\", <https://w.org/>; rel=shortlink",
+                            "X-Frame-Options": "SAMEORIGIN",
+                            "Content-Encoding": "br",
+                            "Alt-Svc": "clear",
+                            "X-nc": "HIT dca 1"
+                        }
+                    }
+                ]
+            },
+            "findings": [
+                {
+                    "severity": "low",
+                    "title": "Missing Content-Security-Policy",
+                    "description": "No CSP nor CSP-Report-Only header is present.",
+                    "target": "http://wordpress.org"
+                },
+                {
+                    "severity": "low",
+                    "title": "Missing Referrer-Policy",
+                    "description": "Referrer-Policy header is not present.",
+                    "target": "http://wordpress.org"
+                },
+                {
+                    "severity": "low",
+                    "title": "Missing Permissions-Policy",
+                    "description": "Permissions-Policy header is not present.",
+                    "target": "http://wordpress.org"
+                },
+                {
+                    "severity": "low",
+                    "title": "Missing X-Content-Type-Options",
+                    "description": "X-Content-Type-Options header is not present.",
+                    "target": "http://wordpress.org"
+                },
+                {
+                    "severity": "low",
+                    "title": "Missing Content-Security-Policy",
+                    "description": "No CSP nor CSP-Report-Only header is present.",
+                    "target": "https://wordpress.org"
+                },
+                {
+                    "severity": "low",
+                    "title": "Missing Referrer-Policy",
+                    "description": "Referrer-Policy header is not present.",
+                    "target": "https://wordpress.org"
+                },
+                {
+                    "severity": "low",
+                    "title": "Missing Permissions-Policy",
+                    "description": "Permissions-Policy header is not present.",
+                    "target": "https://wordpress.org"
+                },
+                {
+                    "severity": "low",
+                    "title": "Missing X-Content-Type-Options",
+                    "description": "X-Content-Type-Options header is not present.",
+                    "target": "https://wordpress.org"
+                }
+            ],
+            "assets": []
+        },
+        "tls": {
+            "scan_id": "example-phase2-scan",
+            "source_name": "tls",
+            "status": "completed",
+            "raw_result": {
+                "ip": "66.6.42.252",
+                "targets": [
+                    {
+                        "port": 443,
+                        "tls_version": "TLSv1.3",
+                        "cipher": [
+                            "TLS_AES_256_GCM_SHA384",
+                            "TLSv1.3",
+                            256
+                        ],
+                        "certificate": {
+                            "subject": {
+                                "commonName": "wordpress.org"
+                            },
+                            "issuer": {
+                                "countryName": "US",
+                                "organizationName": "Let's Encrypt",
+                                "commonName": "E8"
+                            },
+                            "valid_from": "May 26 19:43:59 2026 GMT",
+                            "valid_until": "Aug 24 19:43:58 2026 GMT",
+                            "expired": false,
+                            "self_signed": false
+                        }
+                    }
+                ]
+            },
+            "findings": [],
+            "assets": [
+                {
+                    "type": "tls_certificate",
+                    "value": "66.6.42.252:443",
+                    "metadata": {
+                        "subject": {
+                            "commonName": "wordpress.org"
+                        },
+                        "issuer": {
+                            "countryName": "US",
+                            "organizationName": "Let's Encrypt",
+                            "commonName": "E8"
+                        },
+                        "valid_from": "May 26 19:43:59 2026 GMT",
+                        "valid_until": "Aug 24 19:43:58 2026 GMT",
+                        "tls_version": "TLSv1.3",
+                        "cipher": [
+                            "TLS_AES_256_GCM_SHA384",
+                            "TLSv1.3",
+                            256
+                        ]
+                    }
+                }
+            ]
+        },
+        "fingerprint": {
+            "scan_id": "example-phase2-scan",
+            "source_name": "fingerprint",
+            "status": "completed",
+            "raw_result": {
+                "target": "https://wordpress.org",
+                "fingerprint": {
+                    "software": [
+                        {
+                            "category": "web_server",
+                            "vendor": "f5",
+                            "product": "nginx",
+                            "version": null,
+                            "evidence_score": 100,
+                            "sources": [
+                                "header",
+                                "nmap"
+                            ],
+                            "confidence": "high",
+                            "cpe": "cpe:2.3:a:f5:nginx:*:*:*:*:*:*:*:*"
+                        },
+                        {
+                            "category": "cms",
+                            "vendor": "wordpress",
+                            "product": "wordpress",
+                            "version": "7.1",
+                            "evidence_score": 100,
+                            "sources": [
+                                "header",
+                                "meta",
+                                "script"
+                            ],
+                            "confidence": "high",
+                            "cpe": "cpe:2.3:a:wordpress:wordpress:7.1:*:*:*:*:*:*:*"
+                        }
+                    ]
+                },
+                "telemetry": {
+                    "unknown_server_strings": [],
+                    "unknown_powered_by": [],
+                    "unknown_generator": [],
+                    "unknown_headers": [],
+                    "unknown_cookies": [],
+                    "unknown_scripts": [],
+                    "unknown_meta": []
+                }
+            },
+            "findings": [],
+            "assets": [
+                {
+                    "type": "software",
+                    "value": "nginx",
+                    "metadata": {
+                        "category": "web_server",
+                        "vendor": "f5",
+                        "product": "nginx",
+                        "version": null,
+                        "evidence_score": 100,
+                        "sources": [
+                            "header",
+                            "nmap"
+                        ],
+                        "confidence": "high",
+                        "cpe": "cpe:2.3:a:f5:nginx:*:*:*:*:*:*:*:*"
+                    }
+                },
+                {
+                    "type": "software",
+                    "value": "wordpress",
+                    "metadata": {
+                        "category": "cms",
+                        "vendor": "wordpress",
+                        "product": "wordpress",
+                        "version": "7.1",
+                        "evidence_score": 100,
+                        "sources": [
+                            "header",
+                            "meta",
+                            "script"
+                        ],
+                        "confidence": "high",
+                        "cpe": "cpe:2.3:a:wordpress:wordpress:7.1:*:*:*:*:*:*:*"
+                    }
+                }
+            ]
+        },
+        "cpe_resolver": {
+            "scan_id": "example-phase2-scan",
+            "source_name": "cpe_resolver",
+            "status": "completed",
+            "raw_result": {
+                "resolved_inventory": [
+                    {
+                        "category": "web_server",
+                        "vendor": "f5",
+                        "product": "nginx",
+                        "version": null,
+                        "evidence_score": 100,
+                        "sources": [
+                            "header",
+                            "nmap"
+                        ],
+                        "confidence": "high",
+                        "cpe": "cpe:2.3:a:f5:nginx:*:*:*:*:*:*:*:*"
+                    },
+                    {
+                        "category": "cms",
+                        "vendor": "wordpress",
+                        "product": "wordpress",
+                        "version": "7.1",
+                        "evidence_score": 100,
+                        "sources": [
+                            "header",
+                            "meta",
+                            "script"
+                        ],
+                        "confidence": "high",
+                        "cpe": "cpe:2.3:a:wordpress:wordpress:7.1:*:*:*:*:*:*:*"
+                    }
+                ]
+            },
+            "findings": [],
+            "assets": [
+                {
+                    "type": "resolved_software",
+                    "value": "cpe:2.3:a:f5:nginx:*:*:*:*:*:*:*:*",
+                    "metadata": {
+                        "category": "web_server",
+                        "vendor": "f5",
+                        "product": "nginx",
+                        "version": null,
+                        "evidence_score": 100,
+                        "sources": [
+                            "header",
+                            "nmap"
+                        ],
+                        "confidence": "high",
+                        "cpe": "cpe:2.3:a:f5:nginx:*:*:*:*:*:*:*:*"
+                    }
+                },
+                {
+                    "type": "resolved_software",
+                    "value": "cpe:2.3:a:wordpress:wordpress:7.1:*:*:*:*:*:*:*",
+                    "metadata": {
+                        "category": "cms",
+                        "vendor": "wordpress",
+                        "product": "wordpress",
+                        "version": "7.1",
+                        "evidence_score": 100,
+                        "sources": [
+                            "header",
+                            "meta",
+                            "script"
+                        ],
+                        "confidence": "high",
+                        "cpe": "cpe:2.3:a:wordpress:wordpress:7.1:*:*:*:*:*:*:*"
+                    }
+                }
+            ]
+        },
+        "cve": {
+            "scan_id": "example-phase2-scan",
+            "source_name": "cve",
+            "status": "completed",
+            "raw_result": {
+                "vulnerabilities": []
+            },
+            "findings": [],
+            "assets": []
+        }
+    }
+}

@@ -3,9 +3,10 @@ from unittest.mock import patch
 from app.tasks.dns_tasks import run_dns_scan
 
 
+@patch("app.tasks.dns_tasks.send_source_callback")
 @patch("app.tasks.dns_tasks.collect_whois_raw_data")
 @patch("app.tasks.dns_tasks.collect_dns_raw_data")
-def test_dns_scan_happy_path(mock_dns, mock_whois):
+def test_dns_scan_happy_path(mock_dns, mock_whois, mock_send_callback):
     mock_dns.return_value = {
         "domain": "acorns.com",
         "mx_records": ["aspmx.l.google.com"],
@@ -94,11 +95,13 @@ def test_dns_scan_happy_path(mock_dns, mock_whois):
         "A.NS.ACORNS.COM",
         "B.NS.ACORNS.COM",
     ]
+    mock_send_callback.assert_called_once()
 
 
+@patch("app.tasks.dns_tasks.send_source_callback")
 @patch("app.tasks.dns_tasks.collect_whois_raw_data")
 @patch("app.tasks.dns_tasks.collect_dns_raw_data")
-def test_dns_scan_missing_email_security_records(mock_dns, mock_whois):
+def test_dns_scan_missing_email_security_records(mock_dns, mock_whois, mock_send_callback):
     mock_dns.return_value = {
         "domain": "acorns.com",
         "mx_records": [],
@@ -138,11 +141,13 @@ def test_dns_scan_missing_email_security_records(mock_dns, mock_whois):
     assert "Weak SPF configuration" in finding_titles
     assert "Weak or missing DMARC policy" in finding_titles
     assert "No MX records found" in finding_titles
+    mock_send_callback.assert_called_once()
 
 
+@patch("app.tasks.dns_tasks.send_source_callback")
 @patch("app.tasks.dns_tasks.collect_whois_raw_data")
 @patch("app.tasks.dns_tasks.collect_dns_raw_data")
-def test_dns_scan_detects_spf_fail_policy(mock_dns, mock_whois):
+def test_dns_scan_detects_spf_fail_policy(mock_dns, mock_whois, mock_send_callback):
     mock_dns.return_value = {
         "domain": "acorns.com",
         "mx_records": ["mail.acorns.com"],
@@ -182,3 +187,36 @@ def test_dns_scan_detects_spf_fail_policy(mock_dns, mock_whois):
 
     assert severities["Weak SPF configuration"] == "medium"
     assert severities["Weak or missing DMARC policy"] == "medium"
+    mock_send_callback.assert_called_once()
+
+
+@patch("app.tasks.dns_tasks.send_source_callback")
+@patch("app.tasks.dns_tasks.collect_dns_raw_data")
+def test_run_dns_exception(mock_collect_dns, mock_send_callback):
+    mock_collect_dns.side_effect = Exception("Some DNS exception")
+
+    result = run_dns_scan("scan-1234", "acorns.com")
+
+    assert result == {
+        "scan_id": "scan-1234",
+        "source_name": "dns",
+        "status": "failed",
+        "raw_result": {"error": "Some DNS exception"},
+        "findings": [],
+        "assets": [],
+        "services": [],
+        "technologies": [],
+        "error_message": "Some DNS exception",
+    }
+
+    mock_send_callback.assert_called_once_with(
+        scan_id = "scan-1234",
+        source_name = "dns",
+        status = "failed",
+        raw_result = {"error": "Some DNS exception"},
+        findings = [],
+        assets = [],
+        services = [],
+        technologies = [],
+        error_message = "Some DNS exception",
+    )

@@ -1,0 +1,908 @@
+# PenFlow 
+# Software Architecture Specification (SAS)
+
+## 1. Architectural Overview
+
+PenFlow is a cybersecurity platform designed to help organisations understand their external attack surface by progressing from passive exposure discovery to active security scanning.
+
+The project was originally developed around passive CTEM (Continuous Threat Exposure Management) principles, where information is gathered from publicly available sources without directly interacting with the target. During Phase 2 the architecture was extended to support active reconnaissance, allowing verified targets to be scanned using a distributed worker pipeline.
+
+The architecture therefore supports two primary operational phases.
+
+- **Phase 1 Passive CTEM**
+  - Asynchronous aggregation of multiple OSINT providers.
+  - Normalisation of collected intelligence.
+  - Exposure discovery without directly interacting with target infrastructure.
+
+
+- **Phase 2 Active Security Scanning**
+  - Target verification and resolution.
+  - Active network and web application scanning.
+  - Technology fingerprinting.
+  - Vulnerability correlation.
+  - Normalised Findings and Assets.
+  - Backend filtering and reporting.
+
+---
+
+### 1.1 Architectural Objectives
+
+Several architectural goals guided the design of PenFlow throughout both development phases.
+
+The architecture aims to:
+
+- keep the user interface responsive while long-running scans execute
+- separate presentation, business logic and persistence responsibilities
+- support asynchronous execution of expensive operations
+- allow scanning capabilities to evolve independently
+- provide a consistent representation of discovered security information
+- To reduce the coupling between major system components
+- remain maintainable for a small development team
+
+These objectives influenced many of the architectural decisions discussed throughout this specification.
+
+---
+
+### 1.2 Architecture Style: Client–Server + Layered Modular Monolith
+
+At a high level, PenFlow follows a **client–server** architecture:
+
+- **Client:** Next.js web application (Presentation Layer), which is responsible for all our user interactions.
+- **Server:** FastAPI backend (Application / Domain Layer), PostgreSQL (Data Layer), asynchronous workers (Integration Layer)
+
+PenFlow is implemented as a **Layered Modular Monolith** (n-tier), in the backend with strong separation of concerns. It is *not* microservices; instead, it is a single deployable system with internal modular boundaries.
+
+The major architectural layers are:
+
+- Presentation Layer
+    - Next.js frontend
+
+
+- Application Layer
+    - FastAPI API Gateway
+    - routing
+    - validation
+    - authentication
+    - orchestration
+
+
+- Domain Layer
+    - business logic
+    - scan lifecycle
+    - reporting
+
+
+- Integration Layer
+    - Celery workers
+    - RabbitMQ
+    - external security tools
+    - OSINT providers
+
+
+- Data Layer
+    - PostgreSQL
+    - AWS S3
+
+---
+
+### 1.3 Event-Driven / Asynchronous Extension
+
+PenFlow has many Long-running operations (OSINT scans, report generation, and active scans). They are implemented using an **event-driven + asynchronous task processing** model:
+
+When long-running work is required we have: 
+
+- The FastAPI API creates the scan record
+- The task is published to RabbitMQ
+- Celery workers consume the task
+- progress and scan state are persisted to the database while asynchronous workers continue processing in the background
+- the frontend receives status updates while processing continues in the background
+
+This hybrid architecture provides responsive UX (fast HTTP responses) while supporting heavy background workflows.
+
+---
+
+### 1.4 Phase 2 Architectural Evolution
+
+Phase 2 represents an architectural extension rather than a redesign.
+
+Instead of introducing one large active scanner, the scanning pipeline was decomposed into a collection of specialised workers responsible for individual scanning responsibilities.
+
+Examples include:
+
+- Target Resolution
+- Nmap
+- HTTP Security
+- TLS Analysis
+- Technology Fingerprinting
+- CPE Resolution
+- CVE Correlation
+
+Each worker performs one clearly defined responsibility before passing its results into the remainder of the pipeline.
+
+This improves maintainability, reduces coupling between scanning components and allows new workers to be introduced with minimal impact on the rest of the architecture.
+
+Every worker produces the same high-level output consisting of:
+
+- Raw Results
+- Findings
+- Assets
+- Status
+
+Because every worker follows the same contract, downstream systems such as persistence, reporting and frontend filtering remain independent from the implementation details of individual workers.
+
+The complete worker architecture is discussed in **Phase2-Worker-Architecture.md**, while the complete lifecycle of scan information is described in **Phase2-Data-Flow.md**.
+
+---
+
+## 2. Architecture Diagrams
+
+This section embeds the core architectural diagrams and explains **what each diagram represents**, **why it matters**, and **how it maps to PenFlow’s runtime behavior**.
+
+### 2.1 High-Level System Architecture
+![High-Level Architecture](/docs/Architecture/images/Architecture%20Diagram.jpg)
+
+**What this diagram shows**
+- The full layered view: **Presentation → API Application Tier → Event Broker Tier → Async Service Tier → Data Tier**, plus external systems.
+- The hybrid architecture: synchronous REST + asynchronous scan/report pipelines.
+
+**How it works in PenFlow**
+- The Next.js client initiates a scan via REST to FastAPI.
+- FastAPI validates input/auth (where applicable), creates scan records, and publishes scan work to RabbitMQ.
+- Celery workers consume jobs, call external OSINT providers, normalize results, and persist them.
+- Status transitions are written to Redis (and/or DB) and streamed back to the UI.
+
+**Architectural requirements proven**
+- Non-blocking scan execution (Performance)
+- Fault tolerance through isolation and retries (Reliability)
+- Modular monolith boundaries (Maintainability)
+
+---
+
+### 2.2 API Gateway (FastAPI) — Application Tier Detail
+![API Gateway Diagram](/docs/Architecture/images/API%20Gateway%20Diagram.jpg)
+
+**What this diagram shows**
+- Internal decomposition of the FastAPI backend into layers/modules: routing/validation, middleware/auth, domain logic, state management, repository/data access.
+
+**How it works in PenFlow**
+- Incoming requests go through request validation (Pydantic) and middleware (JWT verification where required).
+- Domain logic orchestrates scan creation and task publishing.
+- Repository layer isolates database details from orchestration logic.
+
+**Architectural requirements proven**
+- Input validation and sanitization (Security)
+- Request routing isolation through modular routers (Maintainability)
+- Automated API docs via OpenAPI/Swagger (Maintainability/Integrability)
+
+---
+
+### 2.3 Task Orchestration (RabbitMQ + Redis + Workers)
+![Task Orchestration](/docs/Architecture/images/Task%20Orchestration.jpg)
+
+**What this diagram shows**
+- The asynchronous workflow: queue consumption, state changes, retry/backoff decisions, normalization, database commits.
+
+**How it works in PenFlow**
+- Worker pulls a scan job from RabbitMQ.
+- Worker updates scan status to “processing” (DB).
+- Worker calls external OSINT APIs.
+- If the API fails due to timeout/rate limit, the task is delayed/retried with exponential backoff.
+- If successful, data is normalized and committed to PostgreSQL; status becomes “completed.”
+
+**Architectural requirements proven**
+- Fault tolerance (Reliability)
+- Non-blocking work (Performance)
+- Horizontal worker scaling (Scalability)
+
+---
+
+### 2.4 Celery Task Orchestration (Worker Execution Flow)
+![Celery Task Orchestration](/docs/Architecture/images/Celery%20Task%20Orchestration.jpg)
+
+**What this diagram shows**
+- The worker-side orchestration: how Celery tasks are structured and how scan/report tasks can be chained or separated.
+
+**How it works in PenFlow**
+- Celery provides routing + retries + durable background execution.
+- Workers implement OSINT adapters and normalization logic.
+- The system can add more worker containers to increase throughput without touching API capacity.
+
+**Architectural requirements proven**
+- Horizontal scalability
+- Reliability via retry policies
+- Maintainability via isolated adapters
+
+---
+
+### 2.5 Async OSINT Sequence Diagram (CTEM)
+![Async OSINT SD](/docs/Architecture/images/Async%20OSINT%20SD.jpg)
+
+**What this diagram shows**
+- End-to-end message flow across the system from user interaction to persistent results.
+
+**How it works in PenFlow**
+- User starts scan → UI calls API → API persists “pending” scan record → API enqueues scan job → returns 202 quickly.
+- Worker pulls job → sets status = “processing” → status is pushed to UI.
+- Worker queries external APIs → stores normalized results → sets status = “completed” → UI is notified → results can be retrieved.
+
+**Architectural requirements proven**
+- Responsiveness (API returns immediately)
+- Real-time progress visibility (UX requirement)
+- Clear separation between sync request and async execution
+
+---
+
+### 2.6 Deployment Diagram (Current Hosting Model)
+![Deployment Diagram](/docs/Architecture/images/Deployment%20Diagram.jpg)
+
+**What this diagram shows**
+- Container layout and networking: Next.js, FastAPI, RabbitMQ, Redis, PostgreSQL, workers, and AWS services.
+
+**How it works in PenFlow (Demo 1)**
+- Next.js and FastAPI run in separate containers.
+- RabbitMQ/Redis/Postgres are internal services in the same network.
+- Reports/artifacts are stored in AWS S3; the API controls access.
+
+**Architectural requirements proven**
+- Isolation and segregation between components
+- Clear runtime boundaries to support scaling
+- Cloud storage separation for sensitive artifacts
+
+---
+
+### 2.7 Design Pattern Diagrams — How They Appear in PenFlow
+
+#### Facade Pattern
+![Facade](/docs/Architecture/images/Facade.jpg)
+
+**How it maps to PenFlow**
+- The FastAPI gateway acts as a façade for the client: it hides queueing, orchestration, retries, normalization, and persistence behind a small set of API endpoints.
+
+#### Adapter Pattern
+![Adapter](/docs/Architecture/images/Adapter.jpg)
+
+**How it maps to PenFlow**
+- Each OSINT provider integration is an adapter that converts unstable third-party JSON into a stable internal “finding contract.”
+
+#### Observer Pattern
+![Observer](/docs/Architecture/images/Observer.jpg)
+
+**How it maps to PenFlow**
+- State updates propagate from worker execution → Redis/state manager → WebSocket/UI updates. The UI reacts to status changes without polling.
+
+---
+### 2.8 Phase 2 Worker Architecture
+
+Demo 2 introduces the first implementation of the Phase 2 worker pipeline.
+
+Rather than implementing a single large security scanner, the architecture follows a pipeline of specialised workers, each responsible for one stage of the scan.
+
+This decision follows the Single Responsibility Principle and improves maintainability by allowing workers to evolve independently.
+
+Each worker produces a standardised output consisting of:
+
+• Raw Results
+
+• Findings
+
+• Assets
+
+• Status
+
+Because every worker follows the same output contract, downstream systems such as reporting and frontend filtering remain independent of worker-specific implementations.
+
+Additional implementation details are documented in Phase2-Worker-Architecture.md.
+
+---
+
+## 3. Deployment Architecture (Demo 2)
+
+### 3.1 Deployment Overview
+
+While Demo 1 focused primarily on the software architecture of PenFlow, Demo 2 introduced the deployment architecture used to host and operate the platform.
+
+PenFlow is deployed using a containerised cloud architecture built on AWS services. The deployment separates application components into independent containers while maintaining a single logical application.
+
+This approach provides several advantages:
+
+- isolation between application components
+- simplified deployment and updates
+- horizontal scalability
+- improved fault tolerance
+- easier infrastructure management
+
+The deployment architecture supports both the passive CTEM functionality introduced during Phase 1 and the active security scanning pipeline introduced during Phase 2.
+
+---
+
+### 3.2 Deployment Components
+
+The current deployment architecture consists of the following major components.
+
+| Component | Technology |
+| --- | --- |
+| Frontend | Next.js |
+| Backend | FastAPI |
+| Workers | Celery |
+| Message Broker | RabbitMQ |
+| Database | PostgreSQL (Amazon RDS) |
+| Authentication | Keycloak |
+| Object Storage | Amazon S3 |
+| Containers | Docker |
+| Container Hosting | Amazon ECS (Fargate) |
+| Container Registry | Amazon ECR |
+
+---
+
+### 3.3 Deployment Characteristics
+
+#### Containerisation
+
+All major application components are packaged as Docker containers.
+
+Containerisation provides a consistent execution environment across development, testing and production environments while simplifying deployment and maintenance.
+
+---
+
+#### Scalability
+
+PenFlow separates the frontend, backend and worker services into independent deployment units.
+This allows individual components to scale according to demand without requiring the entire application to scale simultaneously.
+
+For example, additional worker instances can be deployed when scan volume increases without affecting frontend or backend capacity.
+
+---
+
+#### Reliability
+
+The deployment architecture incorporates several mechanisms that improve reliability.
+
+- Application Load Balancer health checks detect unhealthy services.
+- Amazon ECS automatically replaces failed containers.
+- RabbitMQ provides durable task queues for asynchronous processing.
+- PostgreSQL provides persistent storage for application data.
+
+These mechanisms help ensure that failures remain isolated and do not affect the entire platform.
+
+---
+
+#### Security
+
+Several deployment decisions were made to support secure operation of the platform.
+
+- HTTPS/TLS is used for client-server communication.
+- Keycloak provides authentication and identity management.
+- Secrets are stored using AWS Secrets Manager rather than within source code.
+- IAM roles and security groups restrict infrastructure access according to least-privilege principles.
+- Sensitive reports and artifacts are stored within Amazon S3.
+
+---
+
+#### Monitoring and Observability
+
+Operational visibility is provided through Amazon CloudWatch.
+
+Logs, metrics and service health information can be monitored to identify failures from there.
+
+---
+
+### 3.4 Relationship to Phase 2
+
+The deployment architecture introduced during Demo 2 directly supports the Phase 2 worker pipeline.
+
+The worker architecture described in **Phase2-Worker-Architecture.md** executes within the Celery worker tier, while the data lifecycle described in **Phase2-Data-Flow.md** is supported through RabbitMQ, PostgreSQL and the backend API.
+
+The deployment architecture therefore acts as the infrastructure foundation upon which the Phase 2 scanning architecture operates.
+
+---
+
+### 3.5 Deployment Environments
+
+PenFlow distinguishes between development and production environments.
+
+| Environment | Infrastructure | Purpose |
+| --- | --- | --- |
+| Development | Docker Compose / local services | Local development and testing by team members |
+| Production | AWS ECS, RDS, Amazon MQ, S3, ECR, ALB, Secrets Manager and CloudWatch | Publicly accessible deployment used for Demo 2 |
+
+The development environment run the PenFlow services locally using Docker Compose, providing equivalent application components without requiring the AWS infrastructure.
+
+The production environments is hosted on AWS and is publicly accessible at:
+
+**https://pen-flow.com**
+
+Authentication is provided through:
+
+**https://auth.pen-flow.com**
+
+The `main` branch is automatically deployed to the production environment after the PenFlow CI completes successfully.
+
+---
+
+### 3.6 Infrastructure as Code and Reproducibility
+
+PenFlow's AWS infrastructure is defined using Terraform. Infrasturcutre definitions are stored within the repository under `infra/`, allowing the required cloud resources to be recreated from a script rather than manual configuration.
+
+The Terraform configuration provides the required networking, ECS services & task definitions, Application Load Balancers, RDS database, Amazon MQ broker, etc.
+
+A bootstrap script is provided to automate initial infrastructure deployment. During bootstrap, the required Docker images are built and pushed to Amazon ECR, the database schema and keycloak database are intialized, and the ECS application services are started.
+
+Environment specific Terraform values are documented using `terraform.tfvars.example`, while sensitive values are supplied seperately and are not stored in version control.
+
+
+#### Fresh Infrastructure Deployment
+
+1. Clone the repository and configure `infra/terraform.tfvars` from `terraform.tfvars.example`.
+2. Configure AWS CLI credentials and the required external API credentials.
+3. Run `terraform init`, `terraform validate`, and `terraform plan`.
+4. Run `./scripts/bootstrap-infra.sh` with the required database, Keycloak and RabbitMQ passwords.
+5. Configure the generated DNS validation/application records.
+6. Verify the frontend, backend and authentication health endpoints.
+
+---
+
+### 3.7 Secrets Management
+
+Production runtime secrets, credentials and API keys are all stored in AWS Secrets Manager and supplied to ECS containers at runtime.
+
+GitHub Actions uses GitHub repository secrets for values required by the deployment pipeline. AWS authentication from GitHub Actions uses OpenID Connect (OIDC), allowing the workflow to assume an AWS IAM deployment role with limited permissions without storing AWS access keys in the repository.
+
+---
+
+### 3.8 Continuous Integration and Deployment
+
+PenFlow uses GitHub Actions for continuous integration and automated production deployment.
+
+The CI workflow is triggered by pushes and pull requests targeting the configured development and main branches. The pipeline validates the frontend, backend and worker components through linting, type checking, unit testing and builds.
+
+After these checks succeed, Docker images are built to verify containerisation. Integration tests and Docker health checks then verify communication between application components and supporting services.
+
+A successful CI run associated with a push to the `main` branch triggers the production deployment workflow.
+
+During production deployment:
+
+1. The commit that passed CI is resolved and checked out.
+2. GitHub Actions authenticates with AWS using OIDC.
+3. Production Docker Images for the frontend, backend and workers are built.
+4. Images are tagged using the deployment commit SHA and pushed to Amazon ECR.
+5. New ECS task definition revisions are created using the new images.
+6. The backend, workers and frontend ECS services are updated sequentially.
+7. ECS service stability is verified.
+8. Production smoke tests verify the frontend, backend API and Keycloak authentication endpoints.
+
+A failure during any stage of the pipeline will cause the workflow to fail.
+
+---
+
+### 3.9 Deployment Artifacts
+
+The primary production artifacts are Docker container images.
+
+| Artifact | Produced By | Storage / Deployment Target |
+| --- | --- | --- |
+| Frontend Docker image | Production deployment workflow | Amazon ECR → ECS Frontend Service |
+| Backend Docker image | Production deployment workflow | Amazon ECR → ECS Backend Service |
+| Worker Docker image | Production deployment workflow | Amazon ECR → ECS Worker Service |
+| Test coverage | CI workflows | Codecov |
+| PenFlow database schema | Database bootstrap image | Amazon RDS PostgreSQL |
+| Generated reports | Backend / workers | Amazon S3 |
+
+Production container images are tagged using the first 12 characters of the Git commit SHA. This provides traceability between deployed artifacts.
+
+---
+
+### 3.10 Rollback Strategy
+
+PenFlow production iamges are tagged using the Git commit SHA rather than relying solely on a mutable `latest` tag. ECS deployments create new task revisions referencing the corresponding image version.
+
+If a deployment introduces a failure, the affected ECS service can be rolled back to its previous task definition revision, which references the previously deployed container image stored in Amazon ECR.
+
+The rollback process therefore consists of:
+1. Identify the last known stable ECS task definition revision.
+2. Update the affected ECS service to use that revision.
+3. Wait for ECS service stability.
+4. Re-run the produciton health checks to verify recovery.
+
+Because previous image versions remain available in Amazon ECR, rollback does not require rebuilding the previous application version.
+
+---
+
+### 3.11 Deployment Architecture
+
+![Deployment Diagram](/docs/Architecture/images/Deployment-Diagram.jpg)
+
+Client requests first pass through **Cloudflare DNS**, which manages domain resolution and routes traffic to the **AWS Application Load Balancer (ALB)**.
+The Application Load Balancer distributes incoming requests to the appropriate application services hosted within **Amazon ECS**, where the **Next.js frontend** serves the user interface and the **FastAPI backend** processes API requests.
+When a user initiates a long-running operation, such as an active vulnerability scan, the backend publishes the task to **RabbitMQ**. One or more **Celery workers** consume these tasks asynchronously, execute the required scanning operations, and persist the results to **Amazon RDS (PostgreSQL)**.
+Generated reports and supporting artifacts are stored in **Amazon S3**, while completed scan results are retrieved through the backend and presented to users via the frontend.
+
+The deployment diagram below illustrates these infrastructure components and their relationships.
+
+---
+
+### 3.12 CI/CD Pipeline Diagrams
+
+![PenFlow CI](/docs/Architecture/images/PenFlow_CI.jpg)
+
+![PenFlow Prod](/docs/Architecture/images/PenFlow_Prod.jpg)
+
+## 4. Architectural Quality Requirements & Tactics
+
+This section defines the **architecturally significant requirements** and the **tactics** used to achieve them.
+
+--- 
+
+### 4.1 Availability
+
+PenFlow is expected to remain available even when individual application components fail.
+To support this, the frontend, backend and worker services are deployed independently within Amazon ECS. Application Load Balancer health checks detect unhealthy services while ECS automatically replaces failed containers. RabbitMQ separates user requests from long-running scan execution, ensuring that temporary worker failures do not prevent users from interacting with the API.
+As the platform grows, additional backend and worker instances can be deployed to further improve service availability by removing individual containers as single points of failure.
+
+---
+
+### 4.2 Scalability
+
+**Requirement:**  
+PenFlow must handle multiple concurrent scans and multiple concurrent users without degrading the responsiveness of the system, it was designed so we could scale the differing parts independently.
+The frontend, backend and Celery worker sections are all deployed as separate components allowing for workers to be added without needing to make changes to the frontend and backend.
+
+**Tactics:**
+- **Horizontal scaling of workers:** Celery worker processes/containers scale independently of the API.
+- **Queue-based load leveling:** RabbitMQ absorbs bursts of scan requests so the system remains stable during spikes.
+- **Stateless API instances (where possible):** Enables scale-out behind a load balancer/API gateway.
+
+**Implications:**  
+System throughput scales primarily by increasing worker capacity, not by increasing web server threads.
+
+**Phase2:**
+Phase 2 further reinforces this by decomposing scanning into multiple independent workers. Individual workers can be paralleled or replaced without affecting the remainder of the pipeline, allowing future expansion and or additions to our worker frameworks.
+
+---
+
+### 4.3 Performance (Responsiveness)
+
+**Requirement:**  
+User-facing operations must remain responsive even when scans are long-running or external services are slow.
+
+**Tactics:**
+- **Asynchronous task execution:** Scan logic runs off the request thread (via queue + workers).
+- **Fast acknowledgement:** API returns quickly (e.g., 202 Accepted) and provides a scan identifier for tracking.
+- **Near real-time progress updates:** UI is updated through event/state streaming (e.g., WebSockets) instead of polling.
+
+**Target behavior (Demo 1):**
+- API routes should typically respond within seconds, regardless of scan duration.
+- The user should see incremental progress/status transitions for CTEM scans.
+
+---
+
+### 4.4 Reliability & Fault Tolerance
+
+**Requirement:**  
+PenFlow must continue producing usable results even when OSINT sources are unavailable, rate-limited, or intermittent.
+If workers fail, they remain isolated from the API through our task queue, this prevents any singular failing worker from harming the reliability of the rest of the pipeline.
+
+**Tactics:**
+- **Partial failure tolerance:** Individual OSINT adapter failures do not fail the entire scan.
+- **Retry:** Worker tasks retry transient failures without cascading errors.
+- **Timeouts and bounded calls:** External calls are bounded to prevent stuck scans.
+- **Durable messaging:** RabbitMQ holds tasks until successfully consumed.
+
+**Result:**  
+PenFlow produces a “best-effort” report instead of failing hard due to a single upstream provider, The philosophy we used for PenFlow is to accept any usable data over no data at all from any given scan.
+
+---
+
+### 4.5 Maintainability & Evolvability
+
+**Requirement:**  
+PenFlow must support frequent change: adding/removing OSINT providers, adjusting normalized data structures, and refining report content without breaking the system.
+
+**Tactics:**
+- **Modular monolith boundaries:** Distinct modules (API/router layer, domain logic, adapters, persistence).
+- **High cohesion / low coupling:** OSINT adapters are isolated behind stable interfaces/contracts.
+- **Contract-based normalization:** Third-party output is mapped into a stable internal “finding contract.”
+- **Strong typing + validation:** Pydantic models and mypy enforce early error detection.
+- **Consistent quality gates:** Linting/formatting/testing in CI reduces long-term drift and regression risk.
+- **Standardised Outputs:** Standardised worker output further improves maintainability by ensuring that all downstream components consume a common data structure
+
+---
+
+### 4.6 Security (Core Requirement)
+
+**Requirement:**  
+PenFlow processes sensitive vulnerability and exposure data. The system must protect tenant data, credentials, and generated reports.
+
+**Tactics:**
+- **Authentication & Authorization:** JWT-based auth (Auth0) with role-based access control (RBAC).
+- **Information hiding:** External API keys and internal scanning logic are not exposed to the client.
+- **Transport security:** HTTPS/TLS for all client-server communication.
+- **Least privilege (AWS IAM):** Roles/policies scoped to minimum required access.
+- **Secure file delivery:** Reports stored in S3; access via controlled mechanisms (e.g., presigned URLs).
+
+As a cybersecurity platform, security forms a fundamental part of our architectural requirement.
+Authentication is handled through: 
+- **Keycloak**
+- **HTTPS/TLS**
+- **AWS Secrets Manager**
+
+Both Keycloak and The HTTPS/TLS protocols are our way of ensuring a safe environment while AWS Secrets manager is our way of ensure the safety of information outside our internal system.
+Infrastructure components are further protected using IAM roles and security groups, while generated reports and other persistent artifacts are stored within Amazon S3.
+These architectural decisions help protect both application infrastructure and user data.
+
+
+---
+
+### 4.7 Observability (Operational Quality)
+
+**Requirement:**  
+The team must be able to debug scan failures and verify progress across asynchronous boundaries.
+
+**Tactics:**
+- **Centralized structured logging:** Correlate request IDs with scan IDs and Celery task IDs.
+- **Audit-friendly scan state model:** Record state transitions consistently.
+- **Metrics readiness:** Queue depth, task runtime, failure rate, retries.
+
+---
+
+### 4.8 Quality Requirement Mapping
+
+The following table summarises how the architectural decisions made throughout PenFlow support the quality requirements identified in the Software Requirements Specification.
+
+| Quality Requirement | Architectural Decision                                                                                                                                                                                                                                  |
+|---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Performance | Long-running scans are executed asynchronously using RabbitMQ and Celery workers, allowing the FastAPI backend to respond immediately while scan processing continues in the background.                                                                |
+| Reliability | RabbitMQ provides durable task queues while Celery supports retry mechanisms for failures. Worker failures are isolated from the API, allowing scans to finish with partial results where possible.                                                     |
+| Scalability | The frontend, backend and worker services are deployed as independent components. Additional worker instances can be introduced without affecting the remainder of the application, while RabbitMQ buffers scan requests during periods of high demand. |
+| Security | Keycloak provides authentication and identity management, HTTPS/TLS secures client communication, AWS Secrets Manager protects sensitive credentials, and IAM roles restrict infrastructure access according to least-privilege principles.             |
+| Maintainability | PenFlow follows a layered modular architecture and decomposes Phase 2 scanning into specialised workers that communicate through a common data contract, allowing new scanning capabilities to be introduced with minimal architectural changes.        |
+---
+
+## 5. Architectural Patterns
+
+PenFlow combines several architectural patterns to satisfy the functional and quality requirements within our project.
+Rather than relying on a single architectural style, the system combines a layered modular monolith with asynchronous event-driven processing. 
+
+Together these patterns provide:
+- **Separation of Concerns**
+- **Maintainability**
+- **Scalability**
+- **Support for long-running scanning operations**
+
+The following sections describe the primary architectural patterns adopted throughout the platform.
+
+### 5.1 Layered Architecture (n-tier)
+
+PenFlow is structured as primarily a layered monolith:
+Our Responsibilities are mainly separated into 5 distinct layers:
+
+- **Presentation Layer:** Next.js Frontend responsible for all user interactions.
+- **Application Layer (API Gateway):** FastAPI routers, validation, auth, orchestration
+- **Domain Layer:** business logic for scan lifecycles, OSINT logic and reporting and vulnerability processing.
+- **Integration Layer:** Celery workers, RabbitMQ orchestrator and OSINT providers.
+- **Data Layer:** PostgreSQL for persistent storage in our DB, Amazon S3 for report and artifact storage for client and business use.
+
+Our layered approach allows us to modify and change workers independently without disrupting the standardised output and flow we have designed.
+
+---
+
+### 5.2 Event-Driven Architecture
+Long-Running scans are developed using the premise of an event-driven architecture
+Our data flow is orchestrated so the backend publishes scans to RabbitMQ that are then consumed by the Celery Workers.
+
+The typical workflow looks like this:
+
+- **ScanRequested** - published by FastAPI
+- **WorkerStarted** - Celery worker begins processing
+- **WorkerCompleted** - findings persisted
+- **ScanCompleted** - frontend updated
+
+---
+
+### 5.3 Repository Pattern (Data Access Isolation)
+
+PenFlow separates persistence logic from business logic through the Repository Pattern.
+Database operations are encapsulated within repository classes responsible for interacting with PostgreSQL, Thus workers dont need to directly write to the DB and the backend can take the responsibility for the action.
+
+This provides several benefits:
+
+- **Reduced coupling between business logic and persistence**
+- **Simplified testing**
+- **Easier database maintenance**
+- **Improved code reuse**
+
+The repository abstraction also ensures that our future database changes will have minimal impact on higher application layers.
+
+---
+
+### 5.4 Worker Pipeline Architecture (Phase 2)
+
+The Phase 2 vulnerability scanning system follows a pipeline architecture built around specialised scanning workers.
+Rather than implementing one monolithic vulnerability scanner, the scanning process is separated into multiple  async workers.
+
+The Pipeline stages include:
+
+- **Target Resolution**
+- **Nmap ports and services enumeration**
+- **HTTP Security Analysis**
+- **TLS Analysis**
+- **Technology Fingerprinting**
+- **CPE Resolution**
+- **CVE Correlation**
+
+Each worker consumes the output produced by previous stages before generating a standardised result consisting of:
+
+- **Raw Results**
+- **Findings**
+- **Assets**
+- **Status**
+
+Because every worker follows the same data contract, With this we can add many more workers without needing to change other backend/ frontend related architecture.
+This pipeline architecture significantly improves extensibility and our scalability.
+
+---
+
+## 6. Design Patterns
+
+PenFlow makes use of design patterns to improve our modularity and maintainability. These patterns help us add new features while not having to change much of the architecture to do it.
+
+## 6.1 Facade Pattern
+
+- **Facade:** FastAPI gateway hides subsystem complexity so as to not expose it to the frontend user interface. The gateway coordinates the underlying components on the users behalf.
+
+---
+
+## 6.2 Adapter Pattern
+
+- **Adapter:** We employ multiple OSINT providers and security tools, each of whichs results are normalized to confirm with a set data contract.
+
+---
+
+## 6.3 Observer Pattern
+
+- **Observer:** real-time state updates to show progress to users. As the workers are executed, their various stages are sent to the frontend, allowing for the users to efficiently monitor progress.
+
+---
+
+## 6.4 Repository Pattern
+
+- **Repository:** DB access is encapsulated within repository classes to isolate the persistence and business logic sections from one another.
+- The repo pattern also allowed us to provide an interface for storing the data in our subsequent sections; findings, assets, assets and reports while hiding the direct db access.
+
+---
+
+## 6.5 Pipes and Filter pattern (Phase 2)
+
+**Pipeline:** The phase 2 workers follow a pipeline where the scan is broken into a sequence of specialised workers responsible for their individual fields. 
+
+- **Target Resolution**
+- **Port Scanning**
+- **HTTP security scanning**
+- **TLS analysis**
+- **Tech stack fingerprinting**
+- **Cpe generation**
+- **CVE correlations**
+
+By standardising outputs into our common fields(findings, assets , etc..)New scanning stages can be introduced without much impact to the rest of the pipeline.
+
+---
+
+## 7. Architecture Constraints
+
+The following constraints influenced our design and way of implementing the PenFlow architecture.
+
+### 7.1 Technology Constraints
+
+The project architecture is constrained by these technologies.
+
+- The backend is implemented using **FastAPI**.
+- The frontend is implemented using **Next.js**.
+- Background processing is implemented using **Celery workers**.
+- **RabbitMQ** is used as the message broker for asynchronous task execution.
+- **PostgreSQL** is used as the relational database.
+- **Docker containers** are used to provide consistent execution environments.
+
+---
+
+### 7.2 External Provider Constraints
+
+PenFlow relies on numerous third-party services and public data sources:
+- **Shodan**
+- **Hunter.io**
+- **HaveIBeenPwned**
+- **crt.sh**
+- **Wappalyzer**
+- **CVE NVD queries**
+
+With these services the following constraints were introduced:
+- **API rate Limiting**
+- **Service Availability**
+- **Response time**
+- **Response Reliability**
+- **Differing Response Formats**
+
+---
+
+### 7.3 Regulatory / Ethical Constraints
+
+- Phase 1 scans remain passive (OSINT-only).
+- Phase 2 Introduced Domain Verification and more direct scans which could be deemed invasive, For navigating this we needed to endure we properly rate limited so as to not ddos Domains by accident.
+
+---
+
+### 7.4 Operational Constraints
+
+- Architecture must remain manageable for a small team (modular monolith, clear boundaries).
+
+---
+
+### 7.5 Worker Pipeline Constraints (Phase 2)
+
+The Phase 2 scanning architecture follows a fixed processing pipeline.
+Certain workers depend on information produced by earlier stages of the scan. For Example the Cpe resolver and CVE queries only work if we in the fingerprinting section come up with a technology used and or version.
+As a result, worker execution must respect the logical ordering of the pipeline while maintaining the standardised Findings and Assets data contract between each of our workers.
+
+---
+
+### 7.6 Deployment Constraints
+
+The production deployment targets a containerised cloud environment.
+Application components are deployed as Docker containers hosted within AWS servers, with RabbitMQ, PostgreSQL and supporting services.
+The architecture thus assumes reliable communication between distributed containers.
+
+---
+
+### 7.7 Team Constraints
+
+PenFlow was developed by a small student development team within fixed academic deadlines, Those being various demo timelines separated through the academic year.
+To reduce implementation complexity and simplify maintenance, the project adopts a layered modular monolith rather than a microservices architecture while still supporting asynchronous background processing through specialised workers, This was all in the aid of having members work on sections individually to produce workable units we later integrated together as a team
+
+---
+
+## 8. Architectural Responsibilities
+
+| Component | Architectural Responsibility                                                                                                                                                 |
+|-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **Next.js Frontend** | Provides the user interface, initiates scans, displays scan progress, presents findings, reports and historical scan data and acts as a lohin/singup medium.                 |
+| **FastAPI Backend** | Exposes the REST API, validates requests, manages authentication and authorisation, orchestrates scan workflows, persists application data and coordinates worker execution. |
+| **RabbitMQ** | Provides asynchronous message delivery between the backend and worker services, enabling long-running tasks to execute independently of user requests.                       |
+| **Celery Workers** | Execute asynchronous scanning tasks, perform security analysis, normalise results and produce the standard Findings and Assets data contract.                                |
+| **PostgreSQL** | Serves as the primary persistent data store for users, scans, findings, assets, reports and audit information.                                                               |
+| **Keycloak** | Manages user authentication, identity management and access control.                                                                                                         |
+| **Amazon S3** | Stores generated reports and other application artefacts for secure retrieval.                                                                                               |
+| **Docker & Amazon ECS** | Provide container orchestration and runtime environments for deploying and scaling application components.                                                                   |
+
+---
+
+## 9. Technology Stack
+
+The technologies selected for PenFlow were chosen to support the architectural objectives described throughout this specification.
+
+| Technology | Architectural Role |
+|------------|--------------------|
+| **Next.js** | Implements the presentation layer and provides the web-based user interface. |
+| **FastAPI** | Implements the application layer, exposing REST APIs and coordinating business logic. |
+| **Celery** | Executes asynchronous background tasks, enabling long-running scans without blocking user requests. |
+| **RabbitMQ** | Provides reliable message-based communication between the backend and worker services. |
+| **PostgreSQL** | Stores persistent application data, including scans, findings, assets and user information. |
+| **Keycloak** | Provides authentication, identity management and role-based access control. |
+| **Amazon S3** | Stores generated reports and other persistent artefacts. |
+| **Docker** | Packages application components into portable, reproducible execution environments. |
+| **Amazon ECS (Fargate)** | Hosts and manages containerised application services in the production environment. |
+| **Amazon ECR** | Stores container images used during deployment. |
+| **Cloudflare DNS** | Provides domain management and request routing to the deployed application. |
+| **AWS Application Load Balancer** | Distributes incoming requests across application services and performs health checks. |
+
+---
+
+---
+
+## 10. Supporting Architecture Documents
+
+The Software Architecture Specification provides the high-level architectural decisions that guide the design of PenFlow.
+
+The following supporting documents provide additional detail for the Phase 2 architecture introduced during Demo 2.
+
+| Document                                                                        | Purpose                                                                                                                                                      |
+|---------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [Phase 2 Worker Architecture](/docs/Architecture/phase2-worker-architecture.md) | Describes the worker pipeline, worker responsibilities, the standard worker contract, and architectural rationale for the distributed scanning architecture. |
+| [Phase 2 Data Flow](/docs/Architecture/phase2-data-flow.md)                     | Describes how scan information flows through the backend, workers, Findings, Assets and reporting pipeline.                                                  |

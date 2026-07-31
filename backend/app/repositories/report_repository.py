@@ -6,15 +6,15 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.base import ReportStatus
+from app.models.detected_technology import DetectedTechnology
 from app.models.report import Report
-from app.models.report_status import ReportStatus
 from app.models.scan import Scan
+from app.models.service import Service
 
 
 async def get_report_by_scan_id(db: AsyncSession, scan_id: str) -> Report | None:
-    result = await db.execute(
-        select(Report).where(Report.scan_id == UUID(scan_id))
-    )
+    result = await db.execute(select(Report).where(Report.scan_id == UUID(scan_id)))
     return result.scalar_one_or_none()
 
 
@@ -92,6 +92,7 @@ async def load_report_data(db: AsyncSession, scan_id: str) -> dict[str, Any]:
         .options(
             selectinload(Scan.findings),
             selectinload(Scan.sources),
+            selectinload(Scan.assets),
         )
         .where(Scan.id == UUID(scan_id))
     )
@@ -101,9 +102,28 @@ async def load_report_data(db: AsyncSession, scan_id: str) -> dict[str, Any]:
     if scan is None:
         raise ValueError(f"Scan not found: {scan_id}")
 
+    services_result = await db.execute(
+        select(Service)
+        .where(Service.scan_id == UUID(scan_id))
+        .order_by(Service.host, Service.port)
+    )
+
+    services = list(services_result.scalars().all())
+
+    technologies_result = await db.execute(
+        select(DetectedTechnology)
+        .where(DetectedTechnology.scan_id == UUID(scan_id))
+        .order_by(DetectedTechnology.product)
+    )
+
+    technologies = list(technologies_result.scalars().all())
+
     return {
         "scan": scan,
         "findings": scan.findings,
         "scan_sources": scan.sources,
+        "assets": scan.assets,
+        "services": services,
+        "technologies": technologies,
         "report": await get_or_create_report(db, scan_id),
     }
