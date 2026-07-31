@@ -8,6 +8,7 @@ from app.services.hibp_service import (
     normalize_data,
 )
 from app.utils.callback import send_source_callback
+
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
