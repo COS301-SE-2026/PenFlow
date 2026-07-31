@@ -640,3 +640,153 @@ def test_domain_verification_task_service_pipeline\
         "hackerone.com",
         "TXT",
     )
+
+
+
+# Fingerprint -> CPE -> CVE pipeline integration test
+@patch("app.tasks.cve_task.send_source_callback")
+@patch("app.tasks.cpe_resolver_task.send_source_callback")
+@patch("app.tasks.fingerprinting_task.send_source_callback")
+@patch("app.tasks.cpe_resolver_task.celery_app.send_task")
+@patch("app.services.cve_service.requests.get")
+@patch("app.tasks.fingerprinting_task.FingerprintingService")
+
+def test_fingerprint_to_cve_pipeline\
+(
+    mock_fingerprint_service,
+    mock_requests_get,
+    mock_send_task,
+    mock_fp_callback,
+    mock_cpe_callback,
+    mock_cve_callback,
+):
+
+    #mock inventory report from fingerprint service
+    service = MagicMock()
+    service.run.return_value = \
+    {
+        "target": "https://hackerone.com",
+        "fingerprint": \
+        {
+            "software": \
+            [
+                {
+                    "vendor": "nginx",
+                    "product": "nginx",
+                    "version": "1.27.0",
+                    "confidence": "high",
+                }
+            ]
+        },
+        "telemetry": {},
+    }
+    mock_fingerprint_service.return_value = service
+
+    #mock nvd response
+    response = MagicMock()
+    response.status_code = 200
+    response.json.return_value = \
+    {
+        "vulnerabilities": \
+        [
+            {
+                "cve": \
+                {
+                    "id": "CVE-2025-12345",
+                    "published": "2025-01-01T00:00:00.000",
+
+                    "descriptions": \
+                    [
+                        {
+                            "lang": "en",
+                            "value": "nginx vulnerability",
+                        }
+                    ],
+
+                    "metrics": \
+                    {
+                        "cvssMetricV31": \
+                        [
+                            {
+                                "cvssData": \
+                                {
+                                    "baseSeverity": "HIGH",
+                                    "baseScore": 9.8,
+                                }
+                            }
+                        ]
+                    },
+                }
+            }
+        ]
+    }
+    mock_requests_get.return_value = response
+
+    #run step 1 fingerprinting
+    fingerprint_result = run_fingerprinting_scan_task\
+    (
+        "scan-123",
+        "https://hackerone.com",
+        {},
+        None,
+    )
+
+    assert fingerprint_result["status"] == "completed"
+
+    #queue the next worker
+    mock_send_task.assert_called_once_with\
+    (
+        "scan.phase2_cpe_resolver",
+        args=\
+        [
+            "scan-123",
+            fingerprint_result["raw_result"]["fingerprint"]["software"],
+        ],
+    )
+
+    #run step 2 cpe resolver
+    cpe_result = run_cpe_resolver_task\
+    (
+        "scan-123",
+        fingerprint_result["raw_result"]["fingerprint"]["software"],
+    )
+
+    assert cpe_result["status"] == "completed"
+    resolved = cpe_result["raw_result"]["resolved_inventory"]
+    assert len(resolved) == 1
+    assert resolved[0]["vendor"] == "nginx"
+    assert resolved[0]["product"] == "nginx"
+    assert \
+    (
+        resolved[0]["cpe"]
+        == "cpe:2.3:a:nginx:nginx:1.27.0:*:*:*:*:*:*:*"
+    )
+
+    #queue next
+    mock_send_task.assert_called_with\
+    (
+        "scan.phase2_cve",
+        args=\
+        [
+            "scan-123",
+            resolved,
+        ],
+    )
+
+    #run step 3 cve
+    cve_result = run_cve_scan_task\
+    (
+        "scan-123",
+        resolved,
+    )
+    assert cve_result["status"] == "completed"
+    vulnerabilities = cve_result["raw_result"]["vulnerabilities"]
+    assert len(vulnerabilities) == 1
+    assert vulnerabilities[0]["cve_id"] == "CVE-2025-12345"
+    assert vulnerabilities[0]["severity"] == "HIGH"
+    assert vulnerabilities[0]["cvss_score"] == 9.8
+
+    mock_fp_callback.assert_called_once()
+    mock_cpe_callback.assert_called_once()
+    mock_cve_callback.assert_called_once()
+    mock_requests_get.assert_called_once()
