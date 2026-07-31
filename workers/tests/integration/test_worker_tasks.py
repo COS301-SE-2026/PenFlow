@@ -1,9 +1,10 @@
 from unittest.mock import MagicMock, patch
 
+from app.tasks.domain_verification_task import run_domain_verification_task
+
 from app.queue.celery_app import health_check
 from app.tasks.cpe_resolver_task import run_cpe_resolver_task
 from app.tasks.cve_task import run_cve_scan_task
-from app.tasks.domain_verification_task import run_domain_verification_task
 from app.tasks.fingerprinting_task import run_fingerprinting_scan_task
 from app.tasks.http_security_task import run_http_security_scan_task
 from app.tasks.nmap_task import run_nmap_scan
