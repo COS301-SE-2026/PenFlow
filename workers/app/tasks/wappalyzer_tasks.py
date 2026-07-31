@@ -15,9 +15,9 @@ JSONDict = dict[str, Any]
 @celery_app.task(name="scan.wappalyzer")
 def run_wappalyzer(scan_id: str, domain: str) -> JSONDict:
     try:
-        send_source_callback(scan_id=scan_id, source_name="wappalyser", status="running")
+        send_source_callback(scan_id=scan_id, source_name="wappalyzer", status="running")
     except Exception:
-        logger.warning("[Wappalyser_Task] Failed to send `running` callback for %s",scan_id)
+        logger.warning("[Wappalyzer_Task] Failed to send `running` callback for %s",scan_id)
 
     try:
         raw_data = collect_raw_data(domain)

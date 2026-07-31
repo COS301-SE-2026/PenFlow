@@ -27,7 +27,7 @@ def test_successful_scan(mock_scan, mock_callback):
     assert result["status"] == "completed"
     assert result["findings"] == []
 
-    mock_callback.assert_called_once()
+    assert mock_callback.call_count == 2
 
 #[Missing Security Headers]
 @patch("app.tasks.http_security_task.send_source_callback")
@@ -126,4 +126,4 @@ def test_scan_failure(mock_scan, mock_callback):
     assert result["status"] == "failed"
     assert "Unexpected HTTP failure" in result["error_message"]
 
-    mock_callback.assert_called_once()
+    assert mock_callback.call_count == 2

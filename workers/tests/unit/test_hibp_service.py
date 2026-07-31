@@ -36,7 +36,7 @@ def test_hibp_live_happy_path(mock_get, mock_send_callback):
     assert breach_data["pwned_accounts_count"] == 3
     assert "LinkedIn" in breach_data["known_breaches"]
     assert len(result["findings"]) == 1 #should generate a high-severity finding
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 #sad path for api outage
@@ -54,7 +54,7 @@ def test_hibp_live_api_failure(mock_get, mock_send_callback):
     #expect clean failure dict
     assert result["status"] == "failed"
     assert "error" in result["raw_result"]
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 #mock fallback path
 @patch("app.tasks.hibp_tasks.send_source_callback")
@@ -74,7 +74,7 @@ def test_hibp_fallback_to_mock(mock_get, mock_send_callback):
     assert "breach_data" in result["raw_result"]
     #mock data should load safely
     assert "pwned_accounts_count" in result["raw_result"]["breach_data"]
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 @patch("app.tasks.hibp_tasks.send_source_callback")
@@ -96,7 +96,8 @@ def test_hibp_exception(mock_raw_data, mock_send_callback):
         "error_message": "Some hibp exception",
     }
 
-    mock_send_callback.assert_called_once_with(
+    assert mock_send_callback.call_count == 2
+    mock_send_callback.assert_any_call(
         scan_id = "scan-1234",
         source_name = "hibp",
         status = "failed",

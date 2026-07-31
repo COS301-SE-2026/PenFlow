@@ -60,7 +60,8 @@ def test_run_target_resolution_success(
 
     mock_resolve.assert_called_once_with("hackerone.com")
 
-    mock_callback.assert_called_once_with(
+    assert mock_callback.call_count == 2
+    mock_callback.assert_any_call(
         scan_id="scan-123",
         source_name="target_resolution",
         status="completed",
@@ -127,7 +128,7 @@ def test_run_target_resolution_ipv4_only(
         "assets": expected_assets,
     }
 
-    mock_callback.assert_called_once()
+    assert mock_callback.call_count == 2
 
     mock_send_task.assert_called_once_with(
         "scan.phase2_nmap",
@@ -182,7 +183,7 @@ def test_run_target_resolution_ipv6_only(
         "assets": expected_assets,
     }
 
-    mock_callback.assert_called_once()
+    assert mock_callback.call_count == 2
 
     mock_send_task.assert_not_called()
 
@@ -227,7 +228,8 @@ def test_run_target_resolution_no_ips(
         "error_message": "No IPv4 or IPv6 addresses were resolved.",
     }
 
-    mock_callback.assert_called_once_with(
+    assert mock_callback.call_count == 2
+    mock_callback.assert_any_call(
         scan_id="scan-123",
         source_name="target_resolution",
         status="failed",
@@ -279,7 +281,8 @@ def test_run_target_resolution_exception(
         "error_message": "DNS exploded",
     }
 
-    mock_callback.assert_called_once_with(
+    assert mock_callback.call_count == 2
+    mock_callback.assert_any_call(
         scan_id="scan-123",
         source_name="target_resolution",
         status="failed",

@@ -37,7 +37,7 @@ def test_wappalyzer_live_happy_path(mock_wappalyzer_latest, mock_webpage, mock_s
     assert tech_stack["programmingLanguages"][0]["name"] == "PHP"
     assert tech_stack["frameworks"][0]["name"] == "React"
     assert len(result["findings"]) == 2
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 #sad path for engine outage
@@ -57,7 +57,7 @@ def test_wappalyzer_live_engine_failure(_mock_wappalyzer_latest, mock_webpage, m
     #expect clean failure dict
     assert result["status"] == "failed"
     assert "error" in result["raw_result"]["tech_stack"]
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 #mock fallback path
@@ -73,7 +73,7 @@ def test_wappalyzer_fallback_to_mock(mock_wappalyzer_latest, mock_webpage, mock_
     assert not mock_wappalyzer_latest.called
     assert not mock_webpage.called
     assert result["status"] == "completed"
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 @patch("app.tasks.wappalyzer_tasks.send_source_callback")
@@ -95,7 +95,8 @@ def test_hibp_exception(mock_raw_data, mock_send_callback):
         "error_message": "Some wappalyzer exception",
     }
 
-    mock_send_callback.assert_called_once_with(
+    assert mock_send_callback.call_count == 2
+    mock_send_callback.assert_any_call(
         scan_id = "scan-1234",
         source_name = "wappalyzer",
         status = "failed",
