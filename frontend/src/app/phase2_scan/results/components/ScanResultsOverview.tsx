@@ -131,7 +131,7 @@ const riskGaugeOptions: ChartOptions<"doughnut"> = {
 function RiskGauge({score}: {score: number}) {
     const clamped = Math.max(0, Math.min(100, score));
     return (
-        <div className="relative mx-auto mt-[10px] h-[105px] w-[180px] overflow-hidden">
+        <div className="relative mx-auto mt-[10px] h-[125px] w-[180px] overflow-hidden">
             <div className="absolute inset-x-0 top-0 h-[180px]">
                 <Doughnut
                     data={{

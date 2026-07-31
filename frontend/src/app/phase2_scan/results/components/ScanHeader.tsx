@@ -40,17 +40,11 @@ export default function ScanHeader({scanId}: {scanId: string}) {
                         href={getReportPdfUrl(scanId)}
                         target="_blank"
                         rel = "noopener noreferrer"
-                        className="min-h-[42px] rounded-lg border-brand-panel-border bg-brand-panel-deep px-4 py-2.5 text-foreground hover:bg-brand-panel"
+                        className="min-h-[42px] rounded-lg bg-brand-alert text-white px-4 py-2.5 hover:bg-brand-alert/85"
                     >
                         Download
                     </a>
-                        <button
-                            type = "button" 
-                            className="min-h-[42px] w-[42px] rounded-lg border border-brand-panel-border bg-brand-panel-deep p-0 text-xl text-foreground hover:bg-brand-panel"
-                            aria-label="More actions"
-                        >
-                            :
-                        </button>
+                        
                         </div>
                         </header>
 
