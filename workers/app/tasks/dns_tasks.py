@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from app.queue.celery_app import celery_app
@@ -9,10 +10,17 @@ from app.services.dns_service import (
 from app.services.whois_service import collect_whois_raw_data
 from app.utils.callback import send_source_callback
 
+logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
 @celery_app.task(name="scan.dns")
 def run_dns_scan(scan_id: str, domain: str) -> JSONDict:
+
+    try:
+        send_source_callback(scan_id=scan_id, source_name="dns", status="running")
+    except Exception:
+        logger.warning("[DNS_Task] Failed to send `running` callback for %s",ip_address)
+
     try:
         raw_dns = collect_dns_raw_data(domain)
         raw_whois = collect_whois_raw_data(domain)

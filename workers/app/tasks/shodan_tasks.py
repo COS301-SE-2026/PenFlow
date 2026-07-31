@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from app.queue.celery_app import celery_app
@@ -7,12 +8,17 @@ from app.services.shodan_service import (
     normalize_data,
 )
 from app.utils.callback import send_source_callback
-
+logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
 
 @celery_app.task(name="scan.shodan")
 def run_shodan(scan_id: str, domain: str) -> JSONDict:
+    try:
+        send_source_callback(scan_id=scan_id, source_name="shodan", status="running")
+    except Exception:
+        logger.warning("[SHODAN_Task] Failed to send `running` callback for %s",scan_id)
+
     try:
         raw_data = collect_raw_data(domain)
         normalized = normalize_data(raw_data)

@@ -30,6 +30,11 @@ def run_cve_scan_task(
     )
 
     try:
+        send_source_callback(scan_id=scan_id, source_name="cve", status="running")
+    except Exception:
+        logger.warning("[CVE_Task] Failed to send `running` callback for %s",scan_id)
+
+    try:
         vulnerabilities = run_cve_scan(resolved_inventory)
         findings = []
         for vulnerability in vulnerabilities:

@@ -26,6 +26,11 @@ def run_target_resolution(
     logger.info(f"[Target Resolution] Starting worker for the domain: {domain}")
 
     try:
+        send_source_callback(scan_id=scan_id, source_name="target_resolution", status="running")
+    except Exception:
+        logger.warning("[Target Resolution] Failed to send `running` callback for %s",scan_id)
+
+    try:
         ip_data = resolve_target_ips(domain)
         assets = [
             {
