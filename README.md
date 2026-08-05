@@ -1,9 +1,8 @@
 <p align="center">
   <img 
-    src="docs/images/logo-animated.gif" 
+    src="docs/images/logo-animated3.gif" 
     width="180" 
     alt="PenFlow animated logo"
-    style="border-radius: 24px; overflow: hidden;"
   />
 
 <h1 align="center">PenFlow</h1>
@@ -123,7 +122,7 @@ Detailed project documentation is available below.
 <table>
   <tr>
     <td align="center" valign="top" width="20%">
-      <img src="docs/images/team/franky-liu.jpg" width="96" height="96" style="border-radius:50%; object-fit:cover;" alt="Franky Liu" />
+      <img src="docs/images/team/franky-liu.png" width="100" height="100" alt="Franky Liu" />
       <h3 style="margin:10px 0 4px 0;">Franky<br/>Liu</h3>
       <div><sub>Backend / Data</sub></div>
       <br/>
@@ -136,7 +135,7 @@ Detailed project documentation is available below.
       </a>
     </td>
     <td align="center" valign="top" width="20%">
-      <img src="docs/images/team/jeandre-opperman.jpg" width="96" height="96" style="border-radius:50%; object-fit:cover;" alt="Jeandre Opperman" />
+      <img src="docs/images/team/jeandre-opperman.png" width="100" height="100" alt="Jeandre Opperman" />
       <h3 style="margin:10px 0 4px 0;">Jeandre<br/>Opperman</h3>
       <div><sub>Backend / Integrations</sub></div>
       <br/>
@@ -149,7 +148,7 @@ Detailed project documentation is available below.
       </a>
     </td>
     <td align="center" valign="top" width="20%">
-      <img src="docs/images/team/aaron-kim.jpg" width="96" height="96" style="border-radius:50%; object-fit:cover;" alt="Aaron Kim" />
+      <img src="docs/images/team/aaron-kim.png" width="100" height="100" alt="Aaron Kim" />
       <h3 style="margin:10px 0 4px 0;">Aaron<br/>Kim</h3>
       <div><sub>Frontend / UI/UX</sub></div>
       <br/>
@@ -162,8 +161,8 @@ Detailed project documentation is available below.
       </a>
     </td>
     <td align="center" valign="top" width="20%">
-      <img src="docs/images/team/ayrtonn-taljaard.png" width="108" height="135" alt="Ayrtonn Taljaard" />
-      <h3 style="margin:10px 0 4px 0;">Ayrtonn<br/>Taljaard</h3>cal
+      <img src="docs/images/team/ayrtonn-taljaard.png" width="100" height="100" alt="Ayrtonn Taljaard" />
+      <h3 style="margin:10px 0 4px 0;">Ayrtonn<br/>Taljaard</h3>
       <div><sub>Team Lead / Architecture</sub></div>
       <br/>
       <a href="https://github.com/AyrTal">
@@ -175,7 +174,7 @@ Detailed project documentation is available below.
       </a>
     </td>
     <td align="center" valign="top" width="20%">
-      <img src="docs/images/team/damian-moustakis.jpg" width="96" height="96" style="border-radius:50%; object-fit:cover;" alt="Damian Moustakis" />
+      <img src="docs/images/team/damian-moustakis.png" width="100" height="100" alt="Damian Moustakis" />
       <h3 style="margin:10px 0 4px 0;">Damian<br/>Moustakis</h3>
       <div><sub>Systems / Security</sub></div>
       <br/>
