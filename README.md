@@ -162,8 +162,8 @@ Detailed project documentation is available below.
       </a>
     </td>
     <td align="center" valign="top" width="20%">
-      <img src="docs/images/team/ayrtonn-taljaard.jpg" width="96" height="96" style="border-radius:50%; object-fit:cover;" alt="Ayrtonn Taljaard" />
-      <h3 style="margin:10px 0 4px 0;">Ayrtonn<br/>Taljaard</h3>
+      <img src="docs/images/team/ayrtonn-taljaard.png" width="108" height="135" alt="Ayrtonn Taljaard" />
+      <h3 style="margin:10px 0 4px 0;">Ayrtonn<br/>Taljaard</h3>cal
       <div><sub>Team Lead / Architecture</sub></div>
       <br/>
       <a href="https://github.com/AyrTal">
