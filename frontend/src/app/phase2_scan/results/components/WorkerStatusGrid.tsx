@@ -41,7 +41,7 @@ const WORKER_STATUS_CLASS_NAME: Record<string, string> = {
     completed: "border-brand-success bg-brand-success/10 text-brand-success",
     failed: "border-brand-alert bg-brand-alert/10 text-brand-alert",
     partial: "border-brand-yellow bg-brand-yellow/10 text-brand-yellow",
-    running: "border-brand-cyan bg-brand-cyan/10 text-brand-cyan",
+    running: "border-brand-yellow bg-brand-yellow/10 text-brand-yellow animate-pulse",
     pending: "border-muted-foreground/30 bg-muted/40 text-muted-foreground",
     skipped: "border-muted-foreground/30 bg-muted/40 text-muted-foreground",
 };

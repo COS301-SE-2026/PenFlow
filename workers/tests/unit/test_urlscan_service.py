@@ -36,7 +36,7 @@ def test_urlscan_live_happy_path(mock_post, mock_get, mock_download, mock_send_c
     assert result["source_name"] == "urlscan"
     assert result["raw_result"]["reputation"]["malicious_flags"] == 0
     assert result["raw_result"]["reputation"]["urlscan_uuid"] == "test-uuid-1234"
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 #Test sad path now connection
@@ -53,7 +53,7 @@ def test_urlscan_live_api_failure(mock_post, mock_send_callback):
     assert result["scan_id"] == "scan-123"
     assert result["status"] == "failed"
     assert "error" in result["raw_result"]["reputation"]
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 #Test mock mode to see if it loads
@@ -73,7 +73,7 @@ def test_urlscan_mock_mode_fallback(mock_get, mock_post, mock_send_callback):
     reputation = result["raw_result"]["reputation"]
     assert "malicious_flags" in reputation
     assert reputation["provider"] == "URLScan"
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 @patch("app.tasks.urlscan_tasks.send_source_callback")
@@ -95,7 +95,8 @@ def test_hibp_exception(mock_raw_data, mock_send_callback):
         "error_message": "Some urlscan exception",
     }
 
-    mock_send_callback.assert_called_once_with(
+    assert mock_send_callback.call_count == 2
+    mock_send_callback.assert_any_call(
         scan_id = "scan-1234",
         source_name = "urlscan",
         status = "failed",

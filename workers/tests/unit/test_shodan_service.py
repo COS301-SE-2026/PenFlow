@@ -40,7 +40,7 @@ def test_shodan_live_happy_path(mock_get, mock_socket, mock_send_callback):
     assert mock_socket.called #proves it resolved the IP
     assert result["raw_result"]["infrastructure"]["hosting_provider"] == "Fastly, Inc."
     assert len(result["raw_result"]["infrastructure"]["open_ports"]) == 2
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 #sad path for api outage
@@ -65,7 +65,7 @@ def test_shodan_live_api_failure(mock_get, mock_socket, mock_send_callback):
     assert result["status"] == "failed"
     assert result["scan_id"] == "scan-123"
     assert "error" in result["raw_result"]["infrastructure"]
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 #mock fallback path
@@ -88,7 +88,7 @@ def test_shodan_fallback_to_mock(mock_get, mock_socket, mock_send_callback):
     
     #mock data should load safely
     assert "hosting_provider" in result["raw_result"]["infrastructure"]
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 @patch("app.tasks.shodan_tasks.send_source_callback")
@@ -110,7 +110,8 @@ def test_hibp_exception(mock_raw_data, mock_send_callback):
         "error_message": "Some shodan exception",
     }
 
-    mock_send_callback.assert_called_once_with(
+    assert mock_send_callback.call_count == 2
+    mock_send_callback.assert_any_call(
         scan_id = "scan-1234",
         source_name = "shodan",
         status = "failed",

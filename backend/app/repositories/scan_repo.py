@@ -616,13 +616,25 @@ class ScanRepository:
             assets_breakdown[a_type] = count
             assets_breakdown["total"] += count
 
-        services_stmt = select(func.count(Service.id)).where(Service.scan_id == scan_id)
-        total_services = await db.scalar(services_stmt) or 0
+        services_rows = (await db.execute(
+            select(Service.protocol, func.count(Service.id))
+            .where(Service.scan_id == scan_id)
+            .group_by(Service.protocol)
+        )).all()
+        services_breakdown = {"total": 0}
+        for protocol, count in services_rows:
+            services_breakdown[protocol] = count
+            services_breakdown["total"] += count
 
-        tech_stmt = select(func.count(DetectedTechnology.id)).where(
-            DetectedTechnology.scan_id == scan_id
-        )
-        total_tech = await db.scalar(tech_stmt) or 0
+        tech_rows = (await db.execute(
+            select(DetectedTechnology.technology_type, func.count(DetectedTechnology.id))
+            .where(DetectedTechnology.scan_id == scan_id)
+            .group_by(DetectedTechnology.technology_type)
+        )).all()
+        tech_breakdown = {"total": 0}
+        for tech_type, count in tech_rows:
+            tech_breakdown[tech_type] = count
+            tech_breakdown["total"] += count
 
         weighted_score = (
             (findings_breakdown["critical"] * 25)
@@ -639,8 +651,8 @@ class ScanRepository:
             else ("MEDIUM RISK" if risk_score >= 40 else "LOW RISK"),
             "findings": findings_breakdown,
             "assets": assets_breakdown,
-            "services": {"total": total_services},
-            "technologies": {"total": total_tech},
+            "services": services_breakdown,
+            "technologies": tech_breakdown,
         }
 
     @staticmethod

@@ -1,0 +1,42 @@
+.hero {
+    position: relative;
+    overflow: hidden;
+    background: white;
+    margin: -32px -32px 0;
+}
+
+@media (max-width: 900px) {
+    .hero {
+        margin-top: 0;
+    }
+}
+
+@media (max-width: 700px) {
+    .hero {
+        margin-left: -20px;
+        margin-right: -20px;
+    }
+}
+
+.heroTextWrap {
+    padding: 28px 32px 0;
+}
+
+.heroTextWrap {
+    padding: 28px 32px 0;
+}
+
+.heroTextWrap h1 {
+    margin: 0;
+    font-size: clamp(2rem,4.5vw, 3.5rem);
+    line-height: 0.92;
+    color: #0a1628;
+    text-align: left;
+}
+
+.waterline {
+    position: relative;
+    height:  110px;
+    width: 100%;
+    overflow: hidden;
+}

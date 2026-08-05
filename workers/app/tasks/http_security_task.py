@@ -36,6 +36,11 @@ def run_http_security_scan_task(
     (logger.info(f"[HTTP_Task] Starting HTTP security scan for the ip address: {ip_address}"))
 
     try:
+        send_source_callback(scan_id=scan_id, source_name="http_security", status="running")
+    except Exception:
+        logger.warning("[HTTP_Task] Failed to send `running` callback for %s",ip_address)
+
+    try:
         scan_data = run_http_security_scan(
             hostname=hostname,
             ip_address=ip_address,

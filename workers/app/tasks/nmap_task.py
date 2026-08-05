@@ -30,6 +30,11 @@ def run_nmap_scan(
     (logger.info(f"[NMAP_Task] Starting '{profile}' scan for IP: {ip_address}"))
 
     try:
+        send_source_callback(scan_id=scan_id, source_name="nmap", status="running")
+    except Exception:
+        logger.warning("[NMAP_Task] Failed to send `running` callback for %s",scan_id)
+
+    try:
         scan_data = run_live_nmap_scan(
             ip_address=ip_address,
             profile=profile,
