@@ -1,7 +1,7 @@
 <p align="center">
   <img 
-    src="docs/images/logo-animated3.gif" 
-    width="180" 
+    src="docs/images/logo-animated.gif" 
+    width="360" 
     alt="PenFlow animated logo"
   />
 
