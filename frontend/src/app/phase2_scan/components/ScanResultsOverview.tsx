@@ -1,0 +1,319 @@
+"use client";
+import {useEffect, useState} from "react";
+import Link from "next/link";
+import { capitalize, cn } from "@/lib/utils";
+import{fetchScanMetrics, fetchScanFindings, fetchScanAssets,fetchScanRiskHistory,
+    type ScanMetrics,
+    type DashboardFindingItem,
+    type DashboardAssetItem,
+    type RiskHistoryItem,
+} from "@/lib/scanService";
+
+interface BreakdownItem {
+    label: string;
+    value: number;
+}
+
+interface SummaryCardProps {
+    title: string;
+    value: number;
+    items: BreakdownItem[];
+    donutGradient: string;
+}
+
+const severityClassName: record<string, string> = {
+    critical: "border-[#991b1b] text-brand-alert bg-brand-alert/10",
+    high: "border-brand-orange/70 text-brand-orange bg-brand-orange/10",
+    medium: "border-brand-yellow/70 text-brand-yellow bg-brand-yellow/10",
+    low: "border-[#1e40af] text-[#60a5fa] bg-[#1e40af]/10",
+};
+
+const DONUT_GRADIENTS = {
+    findings: "conic-gradient(#ef4444 0 35%, #f97316 35% 64%, #facc15 64% 90%, #3b82f6 90% 97%, #64748b 97% 100%)",
+    assets: "conic-gradient(#3b82f6 0 15%, #14b8a6 15% 45%, #22c55e 45% 78%, #64748b 78% 100%)",
+    services: "conic-gradient(#3b82f6 0 30%, #06b6d4 30% 64%, #14b8a6 64% 78%, #64748b 78% 100%)",
+    technologies: "conic-gradient(#3b82f6 0 33%, #0ea5e9 33% 55%, #38bdf8 55% 77%, #64748b 77% 100%)",
+};
+
+const PANEL_CLASS_NAME = "min-w-0 rounded-[10px] border-brand-panel-border bg-[#0b1625] p-[18px]";
+function SummaryCard({title, value, items, donutGradient}: SummaryCardProps) {
+    return (
+        <article className={cn(PANEL_CLASS_NAME, "min-h-[210px")}>
+            <div className="flex items-center justify-between gap-4">
+                <div>
+                    <span className="mb-2 block text-[11px] font-semibold text-[#cbd5e1] uppercase">{title}</span>
+                    <strong className="block text-[30px] leading-none text-foreground"> {value} </strong>
+                </div>
+                {items.length > 0 && (
+                    <div
+                        aria-hidden="true"
+                        className="size-[74px] shrink-0 rounded-full"
+                        style = {{
+                            background: donutGradient,
+                            mask: "radial-gradient(circle at center, trasparent 48%, #000 50%",
+                        }}
+                    />
+                )}
+            </div>
+
+            {items.length > 0 ? (
+                <ul className="mt-[15px] grid list-none gap-1.5 p-0">
+                    {items.map((item) => (
+                        <li key = {item.label} className="flex justify-between gap-3 text-[11px] text-muted-foreground">
+                            <span> {item.label} </span>
+                            <strong className="text-foreground"> {item.value} </strong>
+                        </li>
+                    ))}
+                </ul>
+            ): (
+                <p className="mt-[15px] text-xs text-muted-foreground">No breakdown available yet.</p>
+            )}
+        </article>
+    );
+}
+
+function riskLevelLabel(level: string): string {
+    return level.split("_").map((word) => capitalize(word.toLowerCase())).join("");
+}
+
+function BreakdownItems(breakdown: Record<string, number>) : BreakdownItem[] {
+    return Object.entries(breakdown).filter(([key]) => key !== "total").map(([Key, value]) => ({label:capitalize(key), value}));
+}
+
+function RiskHistoryChart({history}: {history: RiskHistoryItem[]}) {
+    if (history.length < 2) {
+        return <p className="mt-[15px] text-xs text-muted-foreground"> Not enough historical scans yet to chart a trend. </p>;
+    }
+
+    const width = 600;
+    const height = 220;
+    const step = width / (history.length -1);
+    const points = history.map((item, index) => {
+        const x = index * step;
+        const y = height - (item.risk_score / 100) * height;
+        return {x,y};
+    });
+
+    const linePoints = points.map((p) => `${p.x},${p.y}`).join(" ");
+    const fillPoints = `${linePoints} ${width}, ${height} 0,${height}`;
+
+    return (
+        <div className="flex h-[220px] gap-2.5">
+            <div className="flex flex-col justify-between pb-[22px] text-[10px] text-muted-foreground">
+                <span>100</span>
+                <span>75</span>
+                <span>50</span>
+                <span>25</span>
+                <span>0</span>
+            </div>
+
+            <div className="relative min-w-0 flex-1">
+                <div 
+                    className="absolute inset-x-0 top-0 bottom-[22px]"
+                    style = {{
+                        backgroundImage: "linear-gradient(to right, rgb(51 65 85 / 35%) 1px, transparent 1px), linear-gradient(to bottom, rgb(51 65 85 / 35%) 1px, transparent px",
+                        backgroundSize: "12.5% 25%",
+                    }}
+                />
+                    <svg
+                        viewBox={`0 0 ${width} ${height}`}
+                        preserveAspectRatio="none"
+                        aria-label = {`Risk score over the last ${history.length} scans`}
+                        className="absolute inset-x-0 top-0 bottom-[22px] h-[calc(100%-22px)] w-full overflow-visible"
+                    >
+                        <polyline
+                            points = {linePoints}
+                            className="fill-none stroke-[#ef4444]"
+                            style = {{strokeWidth: 4, vectorEffect: "non-scaling-stroke"}}
+                        />
+                        <polygon points={fillPoints} fill = "rgb(239 68 68 / 10%" />
+                        {points.map((p, index) => (
+                            <circle key = {`${p.x}-${p.y}`} cx={p.x} cy={p.y} r="5" fill="#ef4444">
+                                <title>{history[index].date}</title>
+                            </circle>
+                        ))}
+                    </svg>
+
+                    <div className="absolute inset-x-0 bottom-0 flex justify-between text-[9px] text-muted-foreground">
+                        {history.map((item) => (
+                            <span key = {item.date}>{item.date}</span>
+                        ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default function ScanResultsOverview({scanId}: {scanId: string}) {
+    const [metrics, setMetrics] = useState<ScanMetrics | null>(null);
+    const [topFindings, setTopFindings] = useState<DashboardFindingItem[]>([]);
+    const [topAssets, setTopAssets] = useState<DashboardAssetItem[]>([]);
+    const [riskHistory, setRiskHistory] = useState<RiskHistoryItem[]>([]);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        Promise.all([
+            fetchScanMetrics(scanId),
+            fetchScanFindings(scanId, {limit:5}),
+            fetchScanAssets(scanId, {limit:5}),
+            fetchScanRiskHistory(scanId),
+        ])
+        .then(([metricsResults, findingsResult, assetsResult, riskHistoryResult]) => {
+            setMetrics(metricsResults);
+            setTopFindings(findingsResult);
+            setTopAssets(assetsResult);
+            setRiskHistory(riskHistoryResult);
+
+        })
+        .catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to load scan results"));
+    }, [scanId]);
+    if (error) {
+        return (
+            <div className="min-w-0" data-scan-id={scanId}>
+                <p className="mt-[15px] text-xs text-muted-foreground"> {error} </p>
+            </div>
+        );
+    }
+
+    if(!metrics) {
+        return (
+            <div className="min-w-0" data-scan-id={scanId}>
+                <p className="mt-[15px] text-xs text-muted-foreground"> Loading scan results... </p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-w-0" data-scan-id={scanId}>
+            <section className="mb-4 grid grid-cols-[minmax(190px,1.15fr)_repeat(4,minmax(180px,1fr))] gap-3.5 max-[1300px]:grid-cols-3 max-[950px]:grid-cols-2 max-[650px]:grid-cols-1">
+                <article className={cn(PANEL_CLASS_NAME, "flex min-h-[210px] flex-col")}>
+                    <span className="mb-2 block text-[11px] font-semibold text-[#cbd5e1] uppercase">Risk Score</span>
+
+                    <div className="relative mx-auto mt-[18px] h-[78px] w-[150px] overflow-hidden">
+                        <div
+                            className="absolute inset-0 rounded-t-[150px] border-[13px] border-b-0"
+                            style={{ borderColor: "#ef4444 #ef4444 #f59e0b #facc15" }}
+                        />
+                        <div className="absolute right-0 bottom-[3px] left-0 text-center">
+                            <strong className="text-[30px] text-foreground">{metrics.risk_score}</strong>
+                            <span className="text-muted-foreground">/100</span>
+                        </div>
+                    </div>
+
+                    <p className="mt-2.5 text-center text-[11px] font-semibold text-brand-alert uppercase">
+                        {riskLevelLabel(metrics.risk_level)}
+                    </p>
+                </article>
+
+                <SummaryCard
+                    title = "Findings"
+                    value = {metrics.findings.total}
+                    items = {[
+                        {label: "Critical", value: metrics.findings.critical},
+                        {label: "High", value: metrics.findings.high},
+                        {label: "Medium", value: metrics.findings.medium},
+                        {label: "Low", value: metrics.findings.low},
+                        {label: "Info", value: metrics.findings.info},
+                    ]}
+                    donutGradient={DONUT_GRADIENTS.findings}
+                />
+
+                <SummaryCard
+                    title = "Assets"
+                    value = {metrics.assets.total ?? 0}
+                    items = {BreakdownItems(metrics.assets)}
+                    donutGradient = {DONUT_GRADIENTS.assets}
+                />
+
+                <SummaryCard
+                    title = "Services"
+                    value = {metrics.services.total ?? 0}
+                    items = {BreakdownItems(metrics.services)}
+                    donutGradient = {DONUT_GRADIENTS.services}
+                />
+
+                <SummaryCard
+                    title = "Technologies"
+                    value = {metrics.technologies.total ?? 0}
+                    items = {BreakdownItems(metrics.technologies)}
+                    donutGradient = {DONUT_GRADIENTS.technologies}
+                />
+            </section>
+
+            <section className="grid grid-cols-[1.15fr_1.1fr_1.15fr] gap-3.5 max-[1300px]:grid-cols-2 max-[950px]:grid-cols-1">
+                <article className = {cn(PANEL_CLASS_NAME, "min-h-[280px] max-[1300px]:col-span-full")}>
+                    <div className="mb-[18px] flex items-center justify-between gap-4">
+                        <h2 className="m-0 text-[13px] text-foreground uppercase">Risk Over Time</h2>
+                    </div>
+
+                    <RiskHistoryChart history={riskHistory} />
+                </article>
+
+                <article className={cn(PANEL_CLASS_NAME, "min-h-[280px]")}>
+                    <div className="mb-[18px] flex items-center justify-between gap-4">
+                        <h2 className="m-0 text-[13px] text-foreground uppercase">Top Critical Findings</h2>
+                        <Link href={`/phase2_scan/results/${scanId}/findings`} className="text-[11px] text-brand-cyan no-underline">
+                            View all findings
+                        </Link>
+                    </div>
+
+                    {topFindings.length === 0 ? (
+                        <p className="mt-[15px] text-xs text-muted-foreground">No findings yet.</p>  
+                    ): (
+                        <div className="grid">
+                            {topFindings.map((finding) => (
+                                <div className="grid min-h-[42px] grid-cols-[minmax(140px,1.7fr)_minmax(90px,1fr)_auto_34px] items-center gap-3 border-b border-brand-panel-border/70 text-[11px]
+                                                last: border-b-0 max-[650px]:grid-cols-[1fr_auto] max-[650px]:py-2.5"
+                                                key={finding.id}
+                                >
+                                    <span className="overflow-hidden text-ellipsis whitespace-nowrap text-foreground">
+                                        {finding.title}
+                                    </span>
+                                    <span className="text-muted-foreground max-[650px]:hidden">{finding.cve_id ?? "_"}</span>
+                                    <span
+                                        className={cn("justify-self-start rounded-[5px] border px-2 py-1 text-[9px] font-semibold uppercase",
+                                        severityClassName[finding.severity.toLowerCase()]
+                                )}
+                            >
+                                {capitalize(finding.severity)}
+                            </span>
+                            <strong className="text-foreground">{finding.cvss_score ?? "_"}</strong>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </article>
+        
+        <article className={cn(PANEL_CLASS_NAME, "min-h-[280px]")}>
+            <div className="mb-[18px] flex items-center justify-between gap-4">
+                <h2 className="m-0 text-[13px] text-foreground uppercase">Top Assets by Findings</h2>
+                <Link href={`/phase2_scan/results/${scanId}/assets`} className="text-[11px] text-brand-cyan no-underline">
+                    View all assets
+                </Link>
+            </div>
+
+            {topAssets.length === 0 ? (
+                <p className="mt-[15px] text-xs text-muted-foreground">No assets discovered yet.</p>
+            ): (
+                <div className="grid">
+                    {topAssets.map((asset)=> (
+                        <div className="grid min-h-[42px] grid-cols-[minmax(130px,1fr)_auto_80px] items-center gap-3 border-b border-brand-panel-border/70 text-[11px] last:border-b-0 max-[650px]:grid-cols-[1fr_auto] max-[650px]:py-2.5"
+                        key={asset.id}
+                    >
+                        <span className="overflow-hidden text-ellipsis whitespace-nowrap text-foreground">
+                            {asset.identifier}
+                        </span>
+                        <span className="justify-self-start rounded-[5px] border border-brand-panel-border px-2 py-1 text-[9px] font-semibold uppercase text-muted-foreground">
+                            {capitalize(asset.asset_type)}
+                        </span>
+                        <span className="text-right text-muted-foreground max-[650px]:col-span-full max-[650px]:text-left">
+                            {asset.findings_count} findings
+                        </span>
+                    </div>
+                    ))}
+                </div>
+            )}
+        </article>
+    </section>
+</div>
+);}
