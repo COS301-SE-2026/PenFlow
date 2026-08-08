@@ -217,6 +217,84 @@ export default function EngagementHome() {
                     </div>
                     </CardContent>
             </Card> 
+            {/* Asset declaration */}
+                <Card>
+                    <CardHeader>
+                            <CardTitle className="text-2xl">Asset Declaration</CardTitle>
+                             <CardDescription className="text-base">
+                                Declare every domain, IP, hostname, or URL that is in scope for this engagement.
+                             </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                            <div className="flex flex-col gap-2 sm:w-48">
+                            <Label className="text-base">Asset type</Label>
+                            <Select value={assetType} onValueChange={(v) => setAssetType(v as AssetType)}>
+                             <SelectTrigger className="h-11 text-lg">
+                                 <SelectValue/>
+                             </SelectTrigger>
+                             <SelectContent>
+                                {asset_type_options.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </SelectItem>
+                                ))}
+                             </SelectContent>
+                         </Select>
+                        </div>
+
+                        <div className="flex flex-1 flex-col gap-2">
+                            <Label className="text-base">Value</Label>
+                            <Input
+                                value={assetValue}
+                                onChange={(e) => setAssetValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        handle_add_asset();
+                                    }
+                                }}
+                                placeholder="e.g. app.example.com"
+                                className="h-11 text-lg"
+                            />
+                             </div>
+                            <Button type="button" size="lg" onClick={handle_add_asset} className="h-11 gap-2 text-base">
+                                 <Plus className="size-4" />
+                                 Add asset
+                            </Button>
+                             </div>
+
+
+                             <Separator />
+                                {assets.length === 0 ? (
+                        <p className="text-base text-muted-foreground">No assets declared yet.</p>
+                    ) : (
+                        <div className="flex flex-col gap-2">
+                            {assets.map((asset) => (
+                                <div
+                                    key={asset.id}
+                                    className="flex items-center justify-between rounded-lg border border-brand-panel-border bg-brand-panel-deep px-4 py-3"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Badge variant="outline" className="text-sm uppercase tracking-wide">
+                                            {asset_type_options.find((o) => o.value === asset.type)?.label}
+                                        </Badge>
+                                        <span className="font-mono text-lg text-foreground">{asset.value}</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => handle_remove_asset(asset.id)}
+                                        aria-label={`Remove ${asset.value}`}
+                                        className="text-muted-foreground transition-colors hover:text-brand-alert"
+                                    >
+                                        <Trash2 className="size-5" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}   
+                    </CardContent>
+                </Card>
         </div>
     )
 }
