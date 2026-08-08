@@ -94,8 +94,27 @@ export default function EngagementHome() {
      const can_submit = engagementType !== null && objective.trim().length > 0 && assets.length > 0;
 
     return(
-        
+        <div className="mx-auto flex max-w-4xl flex-col gap-8 px-4 py-10 text-lg">
+            <div className="flex flex-col gap-2">
+              <h1 className="text-4xl font-bold text-foreground">Engagement Request</h1>
+               <p className="text-lg text-muted-foreground">
+                Scope out a new penetration testing engagement — choose an engagement type, fill in the
+                scoping questionnaire, and declare the assets that are in scope.
+               </p>
+            </div>
 
-        
+            {submitted && (
+            <Card className = "border-brand-success/40 bg-brand-success/10">
+                <CardContent className="flex items-center gap-3 py-4">
+                    <CheckCircle2 className="size-6 shrink-0 text-brand-success" />
+                    <p className="text-lg text-foreground">
+                        Engagement request captured.
+                    </p>
+                </CardContent>
+            </Card>
+            
+            
+            )}
+        </div>
     )
 }
