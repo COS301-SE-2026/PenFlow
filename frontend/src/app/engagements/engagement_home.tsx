@@ -147,8 +147,76 @@ export default function EngagementHome() {
 
                 </CardContent>
              </Card>
-                    {/* Scoping questionnaire */}
+            {/* Scoping questionnaire */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-2xl">Scoping Questionnaire</CardTitle>
+                    <CardDescription className="text-base">
+                        Tell us about the goals, timeline, and any rules of engagement.
+                    </CardDescription>
+                </CardHeader>
+                    <CardContent className="flex flex-col gap-5">
+                        <div className="flex flex-col gap-2">
+                            <Label className="text-base" htmlFor="objective">Engagement objective</Label>
+                             <textarea
+                            id="objective"
+                            value={objective}
+                            onChange={(e) => setObjective(e.target.value)}
+                             placeholder="What are you hoping to learn or validate from this engagement?"
+                            rows={3}
+                            className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-lg outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                        />
+                         </div>
 
+                          <div className="grid gap-5 sm:grid-cols-2">
+                        <div className="flex flex-col gap-2">
+                            <Label className="text-base" htmlFor="start-date">Start date</Label>
+                            <Input
+                                id="start-date"
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="h-11 text-xl text-foreground [color-scheme:dark]"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <Label className="text-base" htmlFor="end-date">End date</Label>
+                            <Input
+                                id="end-date"
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="h-11 text-xl text-foreground [color-scheme:dark]"
+                            />
+                        </div>
+                    </div>
+
+
+                    <div className="flex flex-col gap-2">
+                        <Label className="text-base" htmlFor="constraints">Constraints / rules of engagement</Label>
+                        <textarea
+                            id="constraints"
+                            value={constraints}
+                            onChange={(e) => setConstraints(e.target.value)}
+                            placeholder="Blackout windows, systems to avoid, testing hours etc."
+                            rows={3}
+                            className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-lg outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                        />
+                    </div>
+
+
+                    <div className="flex flex-col gap-2">
+                        <Label className="text-base" htmlFor="primary-contact">Primary contact</Label>
+                        <Input
+                            id="primary-contact"
+                            value={primaryContact}
+                            onChange={(e) => setPrimaryContact(e.target.value)}
+                            placeholder="Name and email"
+                            className="h-11 text-lg"
+                        />
+                    </div>
+                    </CardContent>
+            </Card> 
         </div>
     )
 }
