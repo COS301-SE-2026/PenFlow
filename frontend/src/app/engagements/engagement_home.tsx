@@ -108,13 +108,47 @@ export default function EngagementHome() {
                 <CardContent className="flex items-center gap-3 py-4">
                     <CheckCircle2 className="size-6 shrink-0 text-brand-success" />
                     <p className="text-lg text-foreground">
-                        Engagement request captured.
+                        Engagement request captured. (frontend only )
                     </p>
                 </CardContent>
             </Card>
             
             
             )}
+             {/* Engagement type selection */}
+             <Card>
+                <CardHeader>
+                    <CardTitle className="text-2xl">Engagement Type</CardTitle>
+                    <CardDescription className="text-base">
+                        Select the level of access and knowledge testers should start with.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="grid gap-4 sm:grid-cols-3">
+                    {engagement_type_options.map(({ value, label, description, icon: Icon})=>{
+                        const selected = engagementType === value;
+                        return(
+                            <button
+                             key = {value}
+                             type = "button"
+                             onClick={()=> setEngagementType(value)}
+                             className={cn(
+                                "flex flex-col items-start gap-3 rounded-xl border p-4 text-left transition-colors",
+                                selected
+                                ? "border-brand-cyan bg-brand-cyan/10"
+                                : "border-brand-panel-border bg-brand-panel-deep hover:border-brand-cyan/50",
+                             )}
+                             >
+                             <Icon className={cn("size-6", selected ?"text-brand-cyan":"text-muted-foreground")} />
+                                <span className="text-xl font-semibold text-foreground">{label}</span>
+                                <span className="text-base text-muted-foreground">{description}</span>
+                            </button>
+                        );
+                    })}
+
+                </CardContent>
+             </Card>
+                    {/* Scoping questionnaire */}
+
         </div>
     )
 }
