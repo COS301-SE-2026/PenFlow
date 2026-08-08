@@ -4,6 +4,14 @@
 import { useState } from "react";
 import { Eye, EyeOff, Scan, Plus, Trash2, CheckCircle2 } from "lucide-react";
 
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/shared/components/ui/button";
+import { Separator } from "@/shared/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 
 //type declaration 
@@ -84,4 +92,10 @@ export default function EngagementHome() {
         setSubmitted(true);
     }
      const can_submit = engagementType !== null && objective.trim().length > 0 && assets.length > 0;
+
+    return(
+        
+
+        
+    )
 }
