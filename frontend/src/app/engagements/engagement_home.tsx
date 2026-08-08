@@ -295,6 +295,25 @@ export default function EngagementHome() {
                     )}   
                     </CardContent>
                 </Card>
+
+                 {/* Review & submit */}
+                 <div className="flex items-center justify-between gap-4">
+                 <p className="text-base text-muted-foreground">
+                    {can_submit
+                        ?"Ready to submit."
+                        :"Select an engagement type, fill in the objective, and declare at least one asset."
+                    }
+                 </p>
+                 <Button
+                 type = "button"
+                 size = "lg"
+                 disabled ={!can_submit}
+                 onClick={handle_submit}
+                 className="h-12 px-6 text-lg"
+                 >
+                    Submit Request
+                 </Button>
+                 </div>
         </div>
     )
 }
