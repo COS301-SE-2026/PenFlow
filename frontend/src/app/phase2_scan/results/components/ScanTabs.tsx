@@ -28,7 +28,7 @@ export default function ScanTabs({scanId}:{scanId:string}) {
                         href={tab.href}
                         className={cn("relative px-1 py-3.5 text-xs font-medium uppercase no-underline transition-colors",
                             isActive ? "text-brand-cyan after:absolute after:bottom-[-1px] after:left-0 after:h-0.5 after:bg-brand-cyan after:content-['']"
-                            : "text-muted-foreground hover:text-foreground"
+                            : "text-muted-foreground hover:text-brand-cyan"
                 )}
             >{tab.label}</Link>
             );

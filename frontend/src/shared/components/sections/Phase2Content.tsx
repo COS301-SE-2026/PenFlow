@@ -112,7 +112,7 @@ export default function Phase2Content() {
       giving organisations the ability to monitor their external attack surface continuosly and maintain an up-to-date 
       picture of their security posture.
     </p>
-    <a href="/register" className={styles.ctabtn}>VERIFY DOMAIN</a>
+
   </div>
   <div className={styles.phaseVisual}>
     <svg viewBox="0 0 320 220" xmlns="http://www.w3.org/2000/svg" style={{width:"100%",maxWidth:"360px"}}>

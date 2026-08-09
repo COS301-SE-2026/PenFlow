@@ -1,6 +1,7 @@
 import DashboardLayout from "@/shared/components/DashboardLayout";
 import ScanHeader from "../components/ScanHeader";
 import ScanTabs from "../components/ScanTabs";
+import PageHero from "@/shared/components/PageHero";
 
 interface PhaseTwoScanLayoutProps {
     children: React.ReactNode;
@@ -15,6 +16,7 @@ export default async function PhaseTwoScanLayout({
     return (
         <DashboardLayout>
             <div className="min-w-0">
+                <PageHero title="RESULTS" />
                 <ScanHeader scanId={scan_id} />
                 <ScanTabs scanId={scan_id} />
                 {children}

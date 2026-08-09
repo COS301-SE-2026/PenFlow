@@ -1,6 +1,8 @@
 "use client";
 import {useEffect, useState} from "react";
 import Link from "next/link";
+import { Chart as ChartJS, ArcElement, Tooltip, Legend, type ChartOptions} from "chart.js";
+import { Doughnut } from "react-chartjs-2";
 import { capitalize, cn } from "@/lib/utils";
 import{fetchScanMetrics, fetchScanFindings, fetchScanAssets,fetchScanRiskHistory,
     type ScanMetrics,
@@ -8,6 +10,8 @@ import{fetchScanMetrics, fetchScanFindings, fetchScanAssets,fetchScanRiskHistory
     type DashboardAssetItem,
     type RiskHistoryItem,
 } from "@/lib/scanService";
+
+ChartJS.register(ArcElement, Tooltip ,Legend);
 
 interface BreakdownItem {
     label: string;
@@ -18,7 +22,7 @@ interface SummaryCardProps {
     title: string;
     value: number;
     items: BreakdownItem[];
-    donutGradient: string;
+    colors: string[];
 }
 
 const severityClassName: Record<string, string> = {
@@ -28,15 +32,42 @@ const severityClassName: Record<string, string> = {
     low: "border-[#1e40af] text-[#60a5fa] bg-[#1e40af]/10",
 };
 
-const DONUT_GRADIENTS = {
-    findings: "conic-gradient(#ef4444 0 35%, #f97316 35% 64%, #facc15 64% 90%, #3b82f6 90% 97%, #64748b 97% 100%)",
-    assets: "conic-gradient(#3b82f6 0 15%, #14b8a6 15% 45%, #22c55e 45% 78%, #64748b 78% 100%)",
-    services: "conic-gradient(#3b82f6 0 30%, #06b6d4 30% 64%, #14b8a6 64% 78%, #64748b 78% 100%)",
-    technologies: "conic-gradient(#3b82f6 0 33%, #0ea5e9 33% 55%, #38bdf8 55% 77%, #64748b 77% 100%)",
+const FINDINGS_COLORS: Record<string, string> = {
+    critical: "#ef4444",
+    high: "#f97316",
+    medium: "#facc15",
+    low: "#3b82f6",
+    info: "#64748b",
+};
+
+const BREAKDOWN_PALETTE = ["#3b82f6", "#14b8a6", "#22c55e", "#f59e0b", "#a855f7", "#ec4899", "#64748b"];
+
+
+function paletteColors(count: number): string[] {
+    return Array.from({length: count}, (_, i) => BREAKDOWN_PALETTE[i % BREAKDOWN_PALETTE.length]);
+}
+
+const donutTooltipOptions: ChartOptions<"doughnut">["plugins"] = {
+    legend: {display: false},
+    tooltip: {
+        backgroundColor: "#091628",
+        borderColor: "rgba(43,180,220,0.3)",
+        borderWidth: 1,
+        titleColor: "#e5f3ff",
+        bodyColor: "#e5f3ff",
+        padding: 8,
+    },
+};
+
+const donutOptions: ChartOptions<"doughnut"> = {
+    cutout: "62%",
+    plugins: donutTooltipOptions,
+    maintainAspectRatio: false,
 };
 
 const PANEL_CLASS_NAME = "min-w-0 rounded-[10px] border-brand-panel-border bg-[#0b1625] p-[18px]";
-function SummaryCard({title, value, items, donutGradient}: SummaryCardProps) {
+function SummaryCard({title, value, items, colors}: SummaryCardProps) {
+    const total = items.reduce((sum, item) => sum + item.value, 0);
     return (
         <article className={cn(PANEL_CLASS_NAME, "min-h-[210px]")}>
             <div className="flex items-center justify-between gap-4">
@@ -44,23 +75,27 @@ function SummaryCard({title, value, items, donutGradient}: SummaryCardProps) {
                     <span className="mb-2 block text-[11px] font-semibold text-[#cbd5e1] uppercase">{title}</span>
                     <strong className="block text-[30px] leading-none text-foreground"> {value} </strong>
                 </div>
-                {items.length > 0 && (
-                    <div
-                        aria-hidden="true"
-                        className="size-[74px] shrink-0 rounded-full"
-                        style = {{
-                            background: donutGradient,
-                            mask: "radial-gradient(circle at center, transparent 48%, #000 50%)",
+                {total > 0 && (
+                    <div className="size-[74px] shrink-0">
+                        <Doughnut data = {{
+                            labels: items.map((item) => item.label),
+                            datasets: [{
+                                data: items.map((item) => item.value),
+                                backgroundColor: colors,
+                                borderWidth: 0,
+                            }],
                         }}
+                        options = {donutOptions}
                     />
+                    </div>
                 )}
             </div>
 
-            {items.length > 0 ? (
+            {total > 0 ? (
                 <ul className="mt-[15px] grid list-none gap-1.5 p-0">
-                    {items.map((item) => (
-                        <li key = {item.label} className="flex justify-between gap-3 text-[11px] text-muted-foreground">
-                            <span> {item.label} </span>
+                    {items.map((item, index) => (
+                        <li key = {item.label} className="flex justify-between gap-3 text-[11px]">
+                            <span style={{color: colors[index]}}> {item.label} </span>
                             <strong className="text-foreground"> {item.value} </strong>
                         </li>
                     ))}
@@ -74,6 +109,44 @@ function SummaryCard({title, value, items, donutGradient}: SummaryCardProps) {
 
 function riskLevelLabel(level: string): string {
     return level.split("_").map((word) => capitalize(word.toLowerCase())).join(" ");
+}
+
+function riskLevelColorClass(level: string): string {
+    const normalized = level.toUpperCase();
+    if (normalized === "HIGH") return "text-brand-alert";
+    if (normalized === "MEDIUM") return "text-brand-yellow";
+    return "text-brand-success";
+}
+
+const RISK_GAUGE_COLORS = {safe: "#4ade80", risk: "#ff5f4e"};
+
+const riskGaugeOptions: ChartOptions<"doughnut"> = {
+    rotation: -90,
+    circumference: 180,
+    cutout: "75%",
+    plugins: donutTooltipOptions,
+    maintainAspectRatio: false,
+};
+
+function RiskGauge({score}: {score: number}) {
+    const clamped = Math.max(0, Math.min(100, score));
+    return (
+        <div className="relative mx-auto mt-[10px] h-[125px] w-[180px] overflow-hidden">
+            <div className="absolute inset-x-0 top-0 h-[180px]">
+                <Doughnut
+                    data={{
+                        labels: ["Safe", "Risk"],
+                        datasets: [{
+                            data: [100 - clamped, clamped],
+                            backgroundColor: [RISK_GAUGE_COLORS.safe, RISK_GAUGE_COLORS.risk],
+                            borderWidth: 0,
+                        }],
+                    }}
+                    options={riskGaugeOptions}
+                />
+            </div>
+        </div>
+    );
 }
 
 function BreakdownItems(breakdown: Record<string, number>) : BreakdownItem[] {
@@ -183,24 +256,25 @@ export default function ScanResultsOverview({scanId}: {scanId: string}) {
         );
     }
 
+    const assetItems = BreakdownItems(metrics.assets);
+    const serviceItems = BreakdownItems(metrics.services);
+    const technologyItems = BreakdownItems(metrics.technologies);
+
     return (
         <div className="min-w-0" data-scan-id={scanId}>
             <section className="mb-4 grid grid-cols-[minmax(190px,1.15fr)_repeat(4,minmax(180px,1fr))] gap-3.5 max-[1300px]:grid-cols-3 max-[950px]:grid-cols-2 max-[650px]:grid-cols-1">
                 <article className={cn(PANEL_CLASS_NAME, "flex min-h-[210px] flex-col")}>
                     <span className="mb-2 block text-[11px] font-semibold text-[#cbd5e1] uppercase">Risk Score</span>
+                        <div className="relative">
+                            <RiskGauge score = {metrics.risk_score} />
+                            <div className="pointer-events-none absolute inset-x-0 bottom-[3px] text-center">
+                            <strong className={cn("text-[30px]", riskLevelColorClass(metrics.risk_level))}>{metrics.risk_score}</strong>
 
-                    <div className="relative mx-auto mt-[18px] h-[78px] w-[150px] overflow-hidden">
-                        <div
-                            className="absolute inset-0 rounded-t-[150px] border-[13px] border-b-0"
-                            style={{ borderColor: "#ef4444 #ef4444 #f59e0b #facc15" }}
-                        />
-                        <div className="absolute right-0 bottom-[3px] left-0 text-center">
-                            <strong className="text-[30px] text-foreground">{metrics.risk_score}</strong>
                             <span className="text-muted-foreground">/100</span>
                         </div>
                     </div>
 
-                    <p className="mt-2.5 text-center text-[11px] font-semibold text-brand-alert uppercase">
+                    <p className={cn("mt-2.5 text-center text-[11px] font-semibold text-brand-alert uppercase", riskLevelColorClass(metrics.risk_level))}>
                         {riskLevelLabel(metrics.risk_level)}
                     </p>
                 </article>
@@ -215,28 +289,28 @@ export default function ScanResultsOverview({scanId}: {scanId: string}) {
                         {label: "Low", value: metrics.findings.low},
                         {label: "Info", value: metrics.findings.info},
                     ]}
-                    donutGradient={DONUT_GRADIENTS.findings}
+                    colors={[FINDINGS_COLORS.critical, FINDINGS_COLORS.high, FINDINGS_COLORS.medium, FINDINGS_COLORS.low, FINDINGS_COLORS.info]}
                 />
 
                 <SummaryCard
                     title = "Assets"
                     value = {metrics.assets.total ?? 0}
-                    items = {BreakdownItems(metrics.assets)}
-                    donutGradient = {DONUT_GRADIENTS.assets}
+                    items = {assetItems}
+                    colors = {paletteColors(assetItems.length)}
                 />
 
                 <SummaryCard
                     title = "Services"
                     value = {metrics.services.total ?? 0}
-                    items = {BreakdownItems(metrics.services)}
-                    donutGradient = {DONUT_GRADIENTS.services}
+                    items = {serviceItems}
+                    colors = {paletteColors(serviceItems.length)}
                 />
 
                 <SummaryCard
                     title = "Technologies"
                     value = {metrics.technologies.total ?? 0}
-                    items = {BreakdownItems(metrics.technologies)}
-                    donutGradient = {DONUT_GRADIENTS.technologies}
+                    items = {technologyItems}
+                    colors = {paletteColors(technologyItems.length)}
                 />
             </section>
 

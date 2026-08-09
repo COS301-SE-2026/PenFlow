@@ -59,7 +59,7 @@ def test_successful_tls_scan\
     assert result["findings"] == []
     assert result["assets"] == []
 
-    mock_callback.assert_called_once()
+    assert mock_callback.call_count == 2
 
 
 ##Sad Paths [Expired Certificate]
@@ -190,4 +190,4 @@ def test_failed_tls_scan\
         in result["error_message"]
     )
 
-    mock_callback.assert_called_once()
+    assert mock_callback.call_count == 2

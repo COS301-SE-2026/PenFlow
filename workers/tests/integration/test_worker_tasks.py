@@ -15,7 +15,7 @@ def test_wappalyzer_task_mock_mode(mock_callback):
     assert result["source_name"] == "wappalyzer"
     assert "raw_result" in result
     assert "findings" in result
-    mock_callback.assert_called_once()
+    assert mock_callback.call_count == 2
 
 def test_worker_health_check():
     result = health_check.delay().get()

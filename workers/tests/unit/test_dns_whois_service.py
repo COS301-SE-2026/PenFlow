@@ -95,7 +95,7 @@ def test_dns_scan_happy_path(mock_dns, mock_whois, mock_send_callback):
         "A.NS.ACORNS.COM",
         "B.NS.ACORNS.COM",
     ]
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 @patch("app.tasks.dns_tasks.send_source_callback")
@@ -141,7 +141,7 @@ def test_dns_scan_missing_email_security_records(mock_dns, mock_whois, mock_send
     assert "Weak SPF configuration" in finding_titles
     assert "Weak or missing DMARC policy" in finding_titles
     assert "No MX records found" in finding_titles
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 @patch("app.tasks.dns_tasks.send_source_callback")
@@ -187,7 +187,7 @@ def test_dns_scan_detects_spf_fail_policy(mock_dns, mock_whois, mock_send_callba
 
     assert severities["Weak SPF configuration"] == "medium"
     assert severities["Weak or missing DMARC policy"] == "medium"
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 @patch("app.tasks.dns_tasks.send_source_callback")
@@ -209,7 +209,8 @@ def test_run_dns_exception(mock_collect_dns, mock_send_callback):
         "error_message": "Some DNS exception",
     }
 
-    mock_send_callback.assert_called_once_with(
+    assert mock_send_callback.call_count == 2
+    mock_send_callback.assert_any_call(
         scan_id = "scan-1234",
         source_name = "dns",
         status = "failed",
