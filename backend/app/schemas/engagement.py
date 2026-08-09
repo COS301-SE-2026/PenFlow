@@ -6,3 +6,6 @@ class EngagementMetric(BaseModel):
     total_views: int
     interaction_rate: float
     timestamp: datetime
+
+class EngagementHistoryResponse(BaseModel):
+    metrics: List[EngagementMetric]
