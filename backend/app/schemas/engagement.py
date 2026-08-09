@@ -21,5 +21,16 @@ class ActivityEventRead(BaseModel):
     badge: Optional[ActivityBadge] = None
     subtext: Optional[str] = None 
 
-class EngagementHistoryResponse(BaseModel):
-    metrics: List[EngagementMetric]
+    class Config:
+        from_attributes = True 
+
+class Engagementread(BaseModel): 
+    id: str
+    domain: str
+    status: EngagementStatus
+    pentester_name: str
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None 
+
+    class Config:
+        from_attributes = True 
