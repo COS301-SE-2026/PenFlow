@@ -24,7 +24,7 @@ class ActivityEventRead(BaseModel):
     class Config:
         from_attributes = True 
 
-class Engagementread(BaseModel): 
+class EngagementRead(BaseModel): 
     id: str
     domain: str
     status: EngagementStatus
@@ -34,3 +34,7 @@ class Engagementread(BaseModel):
 
     class Config:
         from_attributes = True 
+
+class EngagementWithActivity(EngagementRead):
+    activity_log: List[ActivityEventRead] = []
+    total_events: int = 0
