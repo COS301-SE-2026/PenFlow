@@ -13,6 +13,13 @@ class ActivityBadge(str, Enum):
     CRITICAL = "CRITICAL"
     INFO = "INFO"
 
+class ActivityEventRead(BaseModel):
+    id: str
+    engagement_id: str
+    timestamp: datetime
+    description: str
+    badge: Optional[ActivityBadge] = None
+    subtext: Optional[str] = None 
 
 class EngagementHistoryResponse(BaseModel):
     metrics: List[EngagementMetric]
