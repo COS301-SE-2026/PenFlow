@@ -12,3 +12,13 @@ async def get_engagement_summary(
     Fetch the internal state of the live dashboard.
     """
     return await service.get_dashboard_summary()
+
+@router.get("/history", response_model=EngagementHistoryResponse)
+async def get_engagement_history(
+    time_range: str = "24h",
+    service: EngagementService = Depends(get_engagement_service)
+):
+    """
+    Fetch historical data for dashboard charts.
+    """
+    return await service.get_historical_data(time_range)
