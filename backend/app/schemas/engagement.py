@@ -1,11 +1,18 @@
-from pydantic import BaseModel
-from typing import List
+from pydantic import BaseModel, Field
+from typing import List, Optional
 from datetime import datetime
-class EngagementMetric(BaseModel):
-    active_users: int
-    total_views: int
-    interaction_rate: float
-    timestamp: datetime
+from enum import Enum
+
+class EngagementStatus(str, Enum):
+    IN_PROGRESS = "in_progress"
+    SCHEDULED = "scheduled"
+    COMPLETED = "completed"
+
+class ActivityBadge(str, Enum):
+    IN_PROGRESS = "IN_PROGRESS"
+    CRITICAL = "CRITICAL"
+    INFO = "INFO"
+
 
 class EngagementHistoryResponse(BaseModel):
     metrics: List[EngagementMetric]
