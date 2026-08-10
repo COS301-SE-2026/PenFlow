@@ -906,3 +906,62 @@ The following supporting documents provide additional detail for the Phase 2 arc
 |---------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [Phase 2 Worker Architecture](/docs/Architecture/phase2-worker-architecture.md) | Describes the worker pipeline, worker responsibilities, the standard worker contract, and architectural rationale for the distributed scanning architecture. |
 | [Phase 2 Data Flow](/docs/Architecture/phase2-data-flow.md)                     | Describes how scan information flows through the backend, workers, Findings, Assets and reporting pipeline.                                                  |
+
+
+## Service Contracts
+
+The PenFlow system exposes REST-based service contracts between the frontend, backend, worker services, and supporting infrastructure. Each contract defines the HTTP endpoint, accepted inputs, authentication requirements, expected response structure, and error behaviour. Internal callback endpoints are also documented because they form explicit communication boundaries between the asynchronouos work subsystem and the backend.
+
+### Domain Verification Service
+
+The Domain Verification Service allows authenticated users to register domains, verify domain ownership, and remove domains that are no longer required.
+
+---
+
+### Add Domain for Verification
+
+**Endpoint** `POST /domains/`
+
+**Purpose**
+Registers a domain against the authenticated user and creates a domain verification record. The backend generates the information required for the subsequent ownership-verification process.
+
+**Authentication**
+Required. The authenticated user's provider identifier is obtained from the authentication token and mapped to the corresponding PenFlow user.
+
+**Request Body**
+
+```json
+{
+    "domain": "example.com"
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---:|---|
+| `domain` | string | Yes | Domain that the user wishes to register for verification. |
+
+**Success Response: `201 Created`**
+
+Returns a `VerifiedDomainResponse` describing the newly registered domain and its current verification state.
+
+Example:
+
+
+```json
+{
+    "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
+    "domain": "example.com",
+    "status": "pending",
+    "verification_method": "dns_txt",
+    "verification_token": "penflow-verification=...",
+    "verified_at": null
+}
+```
+
+**Error Responses:**
+
+- `401 Unauthorized` — The authenticated identity does not correspond to a PenFlow user.
+- `422 Unprocessable Entity` — The supplied request does not satisfy the required request schema.
+- Additional domain-validation erros may be returned by the Domain Service where the supplied domain cannot be registered.
+
+---
