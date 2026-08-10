@@ -65,6 +65,18 @@ CREATE TYPE domain_verification_code AS ENUM (
     'lookup_failed'
 );
 
+CREATE TYPE engagement_status AS ENUM (
+    'in_progress',
+    'scheduled',
+    'completed'
+);
+
+CREATE TYPE activity_badge AS ENUM (
+    'IN PROGRESS',
+    'CRITICAL',
+    'INFO'
+);
+
 CREATE TABLE organisations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
@@ -246,6 +258,26 @@ CREATE TABLE detected_technologies (
     CHECK (confidence is NULL OR (confidence >= 0 AND confidence <= 1))
 );
 
+CREATE TABLE engagements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    domain VARCHAR(255) NOT NULL,
+    status engagement_status NOT NULL DEFAULT 'scheduled',
+    pentester_name VarCHar(255) NOT NULL,
+    start_time TIMESTAMPTZ,
+    end_time TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE activity_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    engagement_id UUID NOT NULL REFERENCES engagements(id) ON DELETE CASCADE,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    description TEXT NOT NULL,
+    badge activity_badge,
+    subtext VARCHAR(255)
+);
+
 
 ALTER TABLE scans ADD COLUMN schedule_id UUID REFERENCES scan_schedules(id) ON DELETE SET NULL DEFAULT NULL;
 ALTER TABLE scans ADD COLUMN scheduled_for TIMESTAMPTZ DEFAULT NULL;
@@ -294,3 +326,6 @@ CREATE INDEX idx_detected_tech_scan_id ON detected_technologies(scan_id);
 CREATE INDEX idx_detected_tech_asset_id ON detected_technologies(asset_id);
 CREATE INDEX idx_detected_tech_service_id ON detected_technologies(service_id);
 CREATE INDEX idx_detected_tech_product_ver ON detected_technologies(product, version);
+
+CREATE INDEX idx_engagements_user_id ON engagements(user_id);
+CREATE INDEX idx_activity_events_engagement_id ON activity_events(engagement_id);
