@@ -1,29 +1,40 @@
+from typing import List
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
-from typing import List 
-from app.schemas.engagement import EngagementRead, ActivityEventRead
-from app.services.engagement_service import EngagementService
-from app.api.dependencies import get_engagement_service
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.api.middleware.auth import get_current_user
+from app.schemas.engagement import ActivityEventRead, EngagementRead
+from app.services.engagement_service import (
+    get_all_engagements,
+    get_engagement_activity,
+)
+from app.utils.db import get_db
 
 router = APIRouter()
 
 @router.get("/", response_model=List[EngagementRead])
-async def get_engagement_summary(
-    service: EngagementService = Depends(get_engagement_service)
+async def list_engagement(
+    db: AsyncSession = Depends(get_db),
+    user_id: UUID = Depends(get_current_user),
 ):
     """
-    Returns the list of all engagements to populate the dashboard view.
+    Returns the list of all engagements.
     """
-    return await service.get_all_engagements()
+    return await get_all_engagements(db, user_id)
 
 @router.get("/{engagement_id}/activity", response_model=List[ActivityEventRead])
 async def get_activity_log(
-    engagement_id: str,
-    service: EngagementService = Depends(get_engagement_service)
+    engagement_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user_id: UUID = Depends(get_current_user),
 ):
     """
-    Returns chronological activity log for a specific engagement when clicked.
+    Returns chronological activity log for a specific engagement.
     """
-    events = await service.get_engagement_activity(engagement_id)
+    events = await get_engagement_activity(db, engagement_id, user_id)
     if not events:
-        raise HTTPException(status__code=404, detail="Engagement not found or no activity.")
+        raise HTTPException(
+            status__code=404, detail="Engagement not found or access denied.")
     return events

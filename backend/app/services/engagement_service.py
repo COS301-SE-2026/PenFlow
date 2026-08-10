@@ -1,18 +1,26 @@
-from typing import List
-from app.schemas.engagement import EngagementRead, ActivityEventRead
+from typing import Sequence
+from uuid import UUID 
 
+from sqlalchemy.ext.asyncio import AsyncSession
 
-class EngagementService:
-    def __init__(self, repo):
-        self.repo = repo
+from app.models.activity_event import ActivityEvent
+from app.models.engagement import Engagement
+from app.repositories.engagement_repo import EngagementRepository 
 
-    async def get_all_engagements(self) -> List[EngagementRead]:
-        """
-        Fetch all engagements.
-        """
-        return await self.repo.get_all()
+async def get_all_engagements(
+        db: AsyncSession, user_id: UUID
+) -> Sequence[Engagement]:
+    """
+    Fetch all engagement.
+    """
+    return await EngagementRepository.list_engagements(db=db, user_id=user_id)
 
-    async def get_engagement_activity(self, engagement_id: str) -> List[ActivityEventRead]:
-        """
-        Fetch the chronological event log.
-        """
+async def get_engagement_activity(
+    db: AsyncSession, engagement_id: UUID, user_id: UUID
+) -> Sequence[ActivityEvent]:
+    """
+    Fetch chronological event log.
+    """
+    return await EngagementRepository.get_activity_by_engagement_id(
+        db=db, engagement_id=engagement_id, user_id=user_id 
+    )
