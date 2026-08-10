@@ -1,7 +1,9 @@
 # type: ignore
 from app.models.asset import Asset as Asset
+from app.models.activity_event import ActivityEvent
 from app.models.base import Base, ScanStatus, Severity
 from app.models.detected_technology import DetectedTechnology as DetectedTechnology
+from app.models.engagement import Engagement 
 from app.models.finding import Finding as Finding
 from app.models.report import Report as Report
 from app.models.scan import Scan as Scan
