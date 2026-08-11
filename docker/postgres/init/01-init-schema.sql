@@ -80,6 +80,19 @@ CREATE TYPE engagement_status AS ENUM (
     'cancelled'
 );
 
+CREATE TYPE finding_review_status AS ENUM (
+    'draft',
+    'ready_for_review',
+    'published'
+);
+
+CREATE TYPE retest_status AS ENUM (
+    'requested',
+    'in_progress',
+    'resolved',
+    'still_vulnerable'
+);
+
 CREATE TABLE organisations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
@@ -199,6 +212,18 @@ CREATE TABLE engagements (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE engagement_assets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    engagement_id UUID NOT NULL REFERENCES engagements(id) ON DELETE CASCADE,
+    identifier VARCHAR(255) NOT NULL,
+    asset_type VARCHAR(50) NOT NULL,
+    asset_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    verified_domain_id UUID REFERENCES verified_domains(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    UNIQUE(engagement_id, identifier, asset_type)
+);
+
 CREATE TABLE findings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     scan_id UUID REFERENCES scans(id) ON DELETE CASCADE,
@@ -213,6 +238,8 @@ CREATE TABLE findings (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     recommendation TEXT,
+    review_status finding_review_status,
+    engagement_asset_id UUID REFERENCES engagement_assets(id) ON DELETE SET NULL,
     evidence JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_by UUID REFERENCES users(id),
@@ -286,13 +313,6 @@ CREATE TABLE detected_technologies (
     CHECK (confidence is NULL OR (confidence >= 0 AND confidence <= 1))
 );
 
-CREATE TABLE engagement_assets (
-    engagement_id UUID NOT NULL REFERENCES engagements(id) ON DELETE CASCADE,
-    verified_domain_id UUID NOT NULL REFERENCES verified_domains(id) ON DELETE CASCADE,
-    
-    PRIMARY KEY(engagement_id, verified_domain_id)
-);
-
 CREATE TABLE engagement_comments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     engagement_id UUID NOT NULL REFERENCES engagements(id) ON DELETE CASCADE,
@@ -331,6 +351,17 @@ CREATE TABLE evidence_files (
     file_path TEXT NOT NULL,
     mime_type VARCHAR(100),
     uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE finding_retests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    finding_id UUID NOT NULL REFERENCES findings(id) ON DELETE CASCADE,
+    requested_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    assigned_to UUID REFERENCES users(id) ON DELETE SET NULL,
+    status retest_status NOT NULL DEFAULT 'requested',
+    notes TEXT,
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ
 );
 
 ALTER TABLE scans ADD COLUMN schedule_id UUID REFERENCES scan_schedules(id) ON DELETE SET NULL DEFAULT NULL;
@@ -390,3 +421,5 @@ CREATE INDEX idx_findings_engagement ON findings(engagement_id);
 CREATE INDEX idx_notification_user ON notifications(user_id);
 
 CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
+
+CREATE INDEX idx_finding_retests_finding_id ON finding_retests(finding_id);
