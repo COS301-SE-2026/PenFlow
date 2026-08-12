@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import DateTime, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,12 +24,12 @@ class User(Base):
         default=uuid.uuid4
     )
 
-    organisation_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("organisations.id", ondelete="SET NULL"),
-        nullable=True,
-        index=True,
-    )
+    #organisation_id: Mapped[uuid.UUID | None] = mapped_column(
+    #    UUID(as_uuid=True),
+    #    ForeignKey("organisations.id", ondelete="SET NULL"),
+    #    nullable=True,
+    #    index=True,
+    #)
 
     auth_provider: Mapped[str] = mapped_column(String(50), nullable=False)
 

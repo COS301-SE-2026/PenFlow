@@ -2,7 +2,9 @@ from datetime import datetime
 from uuid import UUID
 
 from pydantic import BaseModel
+
 from app.models.base import RetestStatus, Severity
+
 
 class RetestFindingSummary(BaseModel):
     id: UUID

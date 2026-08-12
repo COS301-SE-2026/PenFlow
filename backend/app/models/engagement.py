@@ -106,6 +106,19 @@ class Engagement(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
-    assets = relationship("EngagementAsset", back_populates="engagement", cascade="all, delete-orphan")
-    findings = relationship("Finding", back_populates="engagement")
-    comments = relationship("EngagementComment", back_populates="engagement", cascade="all, delete-orphan")
+    assets = relationship(
+        "EngagementAsset",
+        back_populates="engagement",
+        cascade="all, delete-orphan",
+    )
+
+    findings = relationship(
+        "Finding",
+        back_populates="engagement",
+    )
+
+    comments = relationship(
+        "EngagementComment", 
+        back_populates="engagement", 
+        cascade="all, delete-orphan",
+    )

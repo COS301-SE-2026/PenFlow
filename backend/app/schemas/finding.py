@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.models.base import FindingReviewStatus, FindingStatus, Severity
 
+
 class EvidenceFileResponse(BaseModel):
     id: UUID
     file_name: str
