@@ -64,3 +64,27 @@ class FindingStatus(str, enum.Enum):
     RESOLVED = "resolved"
     ACCEPTED_RISK = "accepted_risk"
     FALSE_POSITIVE = "false_positive"
+
+class EngagementType(str, enum.Enum):
+    BLACK_BOX = "black_box"
+    GREY_BOX = "grey_box"
+    WHITE_BOX = "white_box"
+
+class EngagementStatus(str, enum.Enum):
+    REQUESTED = "requested"
+    SCOPING = "scoping"
+    IN_PROGRESS = "in_progress"
+    REVIEW = "review"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+class FindingReviewStatus(str, enum.Enum):
+    DRAFT = "draft"
+    READY_FOR_REVIEW = "ready_for_review"
+    PUBLISHED = "published"
+
+class RetestStatus(str, enum.Enum):
+    REQUESTED = "requested"
+    IN_PROGRESS = "in_progress"
+    RESOLVED = "resolved"
+    STILL_VULNERABLE = "still_vulnerable"
