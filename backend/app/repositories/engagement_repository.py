@@ -1,0 +1,153 @@
+from datetime import date, datetime, timedelta
+from typing import Any, cast
+from uuid import UUID
+
+from sqlalchemy import Select, func, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
+from sqlalchemy.orm.attributes import InstrumentedAttribute
+
+from app.models.base import EngagementStatus
+from app.models.engagement import Engagement
+from app.models.engagement_asset import EngagementAsset
+from app.models.engagement_comment import EngagementComment
+from app.models.finding import Finding
+from app.models.finding_retest import FindingRetest
+from app.models.scan import Scan
+from app.models.user import User
+from app.schemas.engagement import EngagementSortField, SortOrder
+
+class EngagementRepository:
+    @staticmethod
+    async def get_by_id(db: AsyncSession, engagement_id: UUID) -> Engagement | None:
+        query = select(Engagement).where(Engagement.id == engagement_id)
+        result = await db.execute(query)
+        return result.scalar_one_or_none()
+
+
+    @staticmethod
+    async def get_assigned_by_id(
+        db: AsyncSession, 
+        engagement_id: UUID, 
+        user_id: UUID
+    ) -> Engagement | None:
+        query = select(Engagement).where(
+            Engagement.id == engagement_id, 
+            Engagement.assigned_to == user_id,
+        )
+
+        result = await db.execute(query)
+        return result.scalar_one_or_none()
+
+
+    @staticmethod
+    def sort_records(
+        query: Select[Any],
+        sort: EngagementSortField,
+        order: SortOrder,
+    ) -> Select[Any]:
+        sort_cols: dict[
+            EngagementSortField,
+            InstrumentedAttribute[Any],
+        ] = {
+            EngagementSortField.CREATED_AT: Engagement.created_at,
+            EngagementSortField.UPDATED_AT: Engagement.updated_at,
+            EngagementSortField.STATUS: Engagement.status,
+            EngagementSortField.REQUESTED_START_DATE: Engagement.requested_start_date,
+        }
+
+        if sort == EngagementSortField.CLIENT:
+            return query
+
+        sort_col = sort_cols[sort]
+
+        if order == SortOrder.ASC:
+            return query.order_by(sort_col.asc(), Engagement.id.asc())
+
+        return query.order_by(sort_col.desc(), Engagement.id.desc())
+
+
+    @staticmethod
+    async def list_assigned(
+        db: AsyncSession,
+        *,
+        user_id: UUID,
+        engagement_status: EngagementStatus | None,
+        search: str | None,
+        sort: EngagementSortField,
+        order: SortOrder,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[tuple[Engagement, str, int]], int]:
+        client = aliased(User)
+
+        asset_count_subquery = (
+            select(
+                EngagementAsset.engagement_id,
+                func.count(EngagementAsset.id).label("asset_count"),
+            ).group_by(EngagementAsset.engagement_id).subquery()
+        )
+
+        query = (
+            select(
+                Engagement,
+                client.full_name.label("client_name"),
+                func.coalesce(asset_count_subquery.c.asset_count, 0).label("asset_count"),
+            ).join(client, client.id == Engagement.requested_by).outerjoin(
+                asset_count_subquery,
+                asset_count_subquery.c.engagement_id == Engagement.id,
+            ).where(Engagement.assigned_to == user_id)
+        )
+
+        count_query = (
+            select(func.count(Engagement.id)).join(
+                client, client.id == Engagement.requested_by,
+            ).where(Engagement.assigned_to == user_id)
+        )
+
+        if engagement_status is not None:
+            query = query.where(Engagement.status == engagement_status)
+            count_query = count_query.where(Engagement.status == engagement_status)
+
+        stripped_search = search.strip() if search else None
+        if stripped_search:
+            search_filter = or_(
+                Engagement.title.ilike(f"%{stripped_search}%"),
+                client.full_name.ilike(f"%{stripped_search}%"),
+            )
+
+            query = query.where(search_filter)
+            count_query = count_query.where(search_filter)
+
+        if sort == EngagementSortField.CLIENT:
+            client_order = (
+                client.full_name.asc()
+                if order == SortOrder.ASC
+                else client.full_name.desc()
+            )
+            query = query.order_by(client_order, Engagement.id.asc())
+
+        else:
+            query = EngagementRepository.sort_records(
+                query,
+                sort=sort,
+                order=order,
+            )
+
+        query = query.limit(limit).offset(offset)
+
+        result = await db.execute(query)
+
+        rows = [
+            (
+                row[0],
+                row.client_name or "",
+                int(row.asset_count or 0),
+            ) for row in result.all()
+        ]
+
+        total = int(await db.scalar(count_query) or 0)
+        return rows, total
+
+
+    
