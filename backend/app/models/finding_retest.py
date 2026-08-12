@@ -4,7 +4,9 @@ from datetime import datetime, timezone
 from sqlalchemy import DateTime, Enum, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.models.base import Base, RetestStatus
+
 
 class FindingRetest(Base):
     __tablename__ = "finding_retests"

@@ -5,7 +5,9 @@ from typing import Any
 from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.models.base import Base
+
 
 class EngagementAsset(Base):
     __tablename__ = "engagement_assets"

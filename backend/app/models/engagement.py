@@ -5,7 +5,9 @@ from decimal import Decimal
 from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.models.base import Base, EngagementStatus, EngagementType
+
 
 class Engagement(Base):
     __tablename__ = "engagements"

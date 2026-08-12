@@ -7,6 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base
 
+
 class EngagementComment(Base):
     __tablename__ = "engagement_comments"
 
