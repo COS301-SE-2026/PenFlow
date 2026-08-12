@@ -64,3 +64,23 @@ class FindingStatus(str, enum.Enum):
     RESOLVED = "resolved"
     ACCEPTED_RISK = "accepted_risk"
     FALSE_POSITIVE = "false_positive"
+
+#initial set up for our engagement survey
+class EngagementStatus(str, enum.Enum):
+    SCOPING = "scoping"
+    IN_PROGRESS = "in_progress"
+    REVIEW = "review"
+    COMPLETED = "completed"
+
+
+class EngagementType(str, enum.Enum):
+    BLACK_BOX = "black_box"
+    GREY_BOX = "grey_box"
+    WHITE_BOX = "white_box"
+
+
+class EngagementAssetType(str, enum.Enum):
+    DOMAIN = "domain"
+    IP = "ip"
+    HOSTNAME = "hostname"
+    URL = "url"
