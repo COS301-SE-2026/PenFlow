@@ -150,4 +150,51 @@ class EngagementRepository:
         return rows, total
 
 
-    
+    @staticmethod
+    async def get_status_counts(db: AsyncSession, user_id: UUID) -> dict[EngagementStatus, int]:
+        query = (
+            select(
+                Engagement.status, func.count(Engagement.id),
+            ).where(Engagement.assigned_to == user_id).group_by(Engagement.status)
+        )
+
+        result = await db.execute(query)
+
+        counts = {
+            engagement_status: 0
+            for engagement_status in EngagementStatus
+        }
+
+        for engagement_status, count in result.all():
+            counts[engagement_status] = int(count)
+
+        return counts
+
+
+    @staticmethod
+    async def get_assets(db: AsyncSession, engagement_id: UUID) -> list[EngagementAsset]:
+        query = (
+            select(EngagementAsset).where(
+                EngagementAsset.engagement_id == engagement_id
+            ).order_by(EngagementAsset.created_at.asc(), EngagementAsset.id.asc())
+        )
+
+        result = await db.execute(query)
+
+        return list(result.scalars().all())
+
+
+    @staticmethod
+    async def get_asset_by_id(
+        db: AsyncSession,
+        engagement_id: UUID,
+        asset_id: UUID,
+    ) -> EngagementAsset | None:
+        query = select(EngagementAsset).where(
+            EngagementAsset.id == asset_id,
+            EngagementAsset.engagement_id == engagement_id,
+        )
+
+        result = await db.execute(query)
+        return result.scalar_one_or_none()
+
