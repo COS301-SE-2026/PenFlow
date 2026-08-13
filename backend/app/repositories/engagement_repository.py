@@ -198,3 +198,85 @@ class EngagementRepository:
         result = await db.execute(query)
         return result.scalar_one_or_none()
 
+
+    @staticmethod
+    async def get_overview_finding_counts(db: AsyncSession, engagement_id: UUID) -> tuple[int, int]:
+        manual_query = select(func.count(Finding.id)).where(
+            Finding.engagement_id == engagement_id,
+            func.lower(Finding.source) == "manual",
+        )
+
+        automated_query = select(func.count(Finding.id)).where(
+            Finding.engagement_id == engagement_id,
+            func.lower(Finding.source) != "manual",
+        )
+
+        manual_count = int(await db.scalar(manual_query) or 0)
+        automated_count = int(await db.scalar(automated_query) or 0)
+
+        return manual_count, automated_count
+
+
+    @staticmethod
+    async def get_recent_findings(
+        db: AsyncSession,
+        engagement_id: UUID,
+        limit: int = 5,
+    ) -> list[tuple[Finding, str | None]]:
+        query = (
+            select(Finding, EngagementAsset.identifier.label("asset_identifier"))
+            .outerjoin(EngagementAsset, EngagementAsset.id == Finding.engagement_asset_id)
+            .where(Finding.engagement_id == engagement_id)
+            .order_by(Finding.created_at.desc(), Finding.id.desc())
+            .limit(limit)
+        )
+
+        result = await db.execute(query)
+
+        return [
+            (
+                row[0],
+                row.asset_identifier,
+            ) for row in result.all()
+        ]
+
+
+    @staticmethod
+    async def get_previous_scan_summary(
+        db: AsyncSession,
+        engagement_id: UUID,
+    ) -> tuple[UUID, str, datetime | None, int] | None:
+        linked_scan_ids = (
+            select(Finding.scan_id).where(
+                Finding.engagement_id == engagement_id,
+                Finding.scan_id.is_not(None),
+            ).distinct().subquery()
+        )
+
+        scan_query = (
+            select(Scan.id, Scan.domain, Scan.completed_at).where(
+                Scan.id.in_(select(linked_scan_ids.c.scan_id))
+            ).order_by(
+                Scan.completed_at.desc().nullslast(),
+                Scan.created_at.desc(),
+            ).limit(1)
+        )
+
+        result = await db.execute(scan_query)
+        row = result.one_or_none()
+
+        if row is None:
+            return None
+
+        scan_id = cast(UUID, row[0])
+        domain = cast(str, row[1])
+        completed_at = cast(datetime | None, row[2])
+
+        finding_count_query = select(func.count(Finding.id)).where(
+            Finding.engagement_id == engagement_id,
+            Finding.scan_id == scan_id,
+        )
+
+        finding_count = int(await db.scalar(finding_count_query) or 0)
+
+        return (scan_id, domain, completed_at, finding_count)
