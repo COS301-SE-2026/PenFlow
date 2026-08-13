@@ -280,3 +280,71 @@ class EngagementRepository:
         finding_count = int(await db.scalar(finding_count_query) or 0)
 
         return (scan_id, domain, completed_at, finding_count)
+
+
+    @staticmethod
+    async def get_user_by_id(db: AsyncSession, user_id: UUID) -> User | None:
+        query = select(User).where(User.id == user_id)
+        result = await db.execute(query)
+        return result.scalar_one_or_none()
+
+
+    @staticmethod
+    async def get_users_by_ids(db: AsyncSession, user_ids: set[UUID]) -> dict[UUID, User]:
+        if not user_ids:
+            return {}
+
+        query = select(User).where(User.id.in_(user_ids))
+        result = await db.execute(query)
+
+        users = list(result.scalars().all())
+        return {user.id: user for user in users}
+
+
+    @staticmethod
+    async def get_related_entity_ids(db: AsyncSession, engagement_id: UUID) -> list[UUID]:
+        finding_result = await db.execute(select(Finding.id).where(
+                Finding.engagement_id == engagement_id
+            )
+        )
+
+        finding_ids = list(finding_result.scalars().all())
+
+        comment_result = await db.execute(
+            select(EngagementComment.id).where(
+                EngagementComment.engagement_id == engagement_id
+            )
+        )
+
+        comment_ids = list(comment_result.scalars().all())
+
+        retest_ids: list[UUID] = []
+
+        if finding_ids:
+            retest_result = await db.execute(
+                select(FindingRetest.id).where(
+                    FindingRetest.finding_id.in_(finding_ids)
+                )
+            )
+
+            retest_ids = list(retest_result.scalars().all())
+
+        return [
+            *finding_ids,
+            *comment_ids,
+            *retest_ids,
+        ]
+
+
+    @staticmethod
+    def calc_target_date(
+        requested_start_date: date | None,
+        estimated_duration_days: int | None,
+    ) -> date | None:
+        if (
+            requested_start_date is None
+            or estimated_duration_days is None
+        ):
+            return None
+
+        return requested_start_date + timedelta(days=estimated_duration_days)
