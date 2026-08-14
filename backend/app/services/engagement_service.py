@@ -477,3 +477,121 @@ class EngagementService:
                 for log in logs
             ]
         )
+
+
+    @staticmethod
+    async def list_messages(
+        db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+    ) -> EngagementMessageListResponse:
+        await EngagementService.require_assigned_engagement(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+
+        comments = await EngagementCommentRepository.list_by_engagement(
+            db,
+            engagement_id=engagement_id,
+        )
+
+        users = await EngagementRepository.get_users_by_ids(
+            db,
+            user_ids={comment.user_id for comment in comments},
+        )
+
+        return EngagementMessageListResponse(
+            items=[
+                EngagementMessageResponse(
+                    id=comment.id,
+                    engagement_id=comment.engagement_id,
+                    finding_id=comment.finding_id,
+                    user=EngagementService.user_summary(users[comment.user_id]),
+                    comment=comment.comment,
+                    created_at=comment.created_at,
+                )
+                for comment in comments
+                if comment.user_id in users
+            ]
+        )
+
+
+    @staticmethod
+    async def create_message(
+        db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+        request: EngagementMessageCreate
+    ) -> EngagementMessageResponse:
+        await EngagementService.require_assigned_engagement(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+
+        comment_text = request.comment.strip()
+        if not comment_text:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Message cannot be empty.",
+            )
+
+        if request.finding_id is not None:
+            finding = await FindingRepository.get_for_assigned_engagement(
+                db,
+                finding_id=request.finding_id,
+                engagement_id=engagement_id,
+            )
+
+            if finding is None:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="The selected finding does not belong to this engagement.",
+                )
+
+        comment = await EngagementCommentRepository.create_comment(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+            comment=comment_text,
+            finding_id=request.finding_id,
+        )
+
+        await AuditRepository.create_log(
+            db,
+            user_id=user_id,
+            action="engagement.comment_created",
+            entity_type="engagement_comment",
+            entity_id=comment.id,
+            metadata={
+                "engagement_id": str(engagement_id),
+                "finding_id": (
+                    str(request.finding_id)
+                    if request.finding_id is not None
+                    else None
+                ),
+            },
+        )
+
+        await db.refresh(comment)
+
+        user = await EngagementRepository.get_user_by_id(
+            db,
+            user_id=user_id,
+        )
+
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Message author could not be found.",
+            )
+
+        return EngagementMessageResponse(
+            id=comment.id,
+            engagement_id=comment.engagement_id,
+            finding_id=comment.finding_id,
+            user=EngagementService.user_summary(user),
+            comment=comment.comment,
+            created_at=comment.created_at,
+        )
