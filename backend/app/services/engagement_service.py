@@ -8,14 +8,21 @@ from app.models.engagement import Engagement
 from app.models.finding import Finding
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
+from app.repositories.engagement_comment_repository import EngagementCommentRepository
 from app.repositories.engagement_repository import EngagementRepository
 from app.repositories.finding_repository import FindingRepository
+from app.repositories.retest_repository import RetestRepository
 from app.schemas.engagement import (
+    ActivityItemResponse,
+    ActivityListResponse,
     EngagementAssetResponse,
     EngagementCounts,
     EngagementDetailResponse,
     EngagementListItem,
     EngagementListResponse,
+    EngagementMessageCreate,
+    EngagementMessageListResponse,
+    EngagementMessageResponse,
     EngagementOverviewCounts,
     EngagementPagination,
     EngagementSortField,
@@ -25,6 +32,7 @@ from app.schemas.engagement import (
 )
 
 from app.schemas.finding import FindingCreate, FindingListItem, FindingListResponse, FindingPagination
+from app.schemas.retest import RetestFindingSummary, RetestListItem, RetestListResponse
 
 class EngagementService:
     @staticmethod
@@ -376,4 +384,96 @@ class EngagementService:
         return EngagementService.finding_to_list_item(
             finding,
             asset_identifier=asset_identifier,
+        )
+
+
+    @staticmethod
+    async def list_retests(
+        db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+    ) -> RetestListResponse:
+        await EngagementService.require_assigned_engagement(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+
+        retests = await RetestRepository.list_by_engagement(
+            db,
+            engagement_id=engagement_id,
+        )
+
+        return RetestListResponse(
+            items = [
+                RetestListItem(
+                    id=retest.id,
+                    finding=RetestFindingSummary(
+                        id=retest.finding.id,
+                        title=retest.finding.title,
+                        severity=retest.finding.severity,
+                    ),
+                    requested_by=retest.requested_by,
+                    assigned_to=retest.assigned_to,
+                    status=retest.status,
+                    notes=retest.notes,
+                    requested_at=retest.requested_at,
+                    completed_at=retest.completed_at,
+                )
+                for retest in retests
+            ]
+        )
+    
+
+    @staticmethod
+    async def list_activity(
+        db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+        limit: int = 100,
+    ) -> ActivityListResponse:
+        await EngagementService.require_assigned_engagement(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+
+        related_ids = await EngagementRepository.get_related_entity_ids(
+            db,
+            engagement_id=engagement_id,
+        )
+
+        logs = await AuditRepository.list_for_engagement(
+            db,
+            engagement_id=engagement_id,
+            related_entity_ids=related_ids,
+            limit=limit,
+        )
+
+        users = await EngagementRepository.get_users_by_ids(
+            db,
+            user_ids = {
+                log.user_id
+                for log in logs
+                if log.user_id is not None   
+            },
+        )
+
+        return ActivityListResponse(
+            items=[
+                ActivityItemResponse(
+                    id=log.id,
+                    action=log.action,
+                    entity_type=log.entity_type,
+                    entity_id=log.entity_id,
+                    actor=(
+                        EngagementService.user_summary(users[log.user_id])
+                        if log.user_id is not None and log.user_id in users
+                        else None
+                    ),
+                    metadata=log.metadata_,
+                    created_at=log.created_at,
+                )
+                for log in logs
+            ]
         )
