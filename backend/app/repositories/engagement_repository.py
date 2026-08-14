@@ -329,11 +329,7 @@ class EngagementRepository:
 
             retest_ids = list(retest_result.scalars().all())
 
-        return [
-            *finding_ids,
-            *comment_ids,
-            *retest_ids,
-        ]
+        return [*finding_ids, *comment_ids, *retest_ids]
 
 
     @staticmethod
