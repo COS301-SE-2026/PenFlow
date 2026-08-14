@@ -2,13 +2,14 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.base import EngagementStatus
+from app.models.base import EngagementStatus, FindingReviewStatus, FindingStatus, Severity
 
 from app.models.engagement import Engagement
 from app.models.finding import Finding
 from app.models.user import User
+from app.repositories.audit_repository import AuditRepository
 from app.repositories.engagement_repository import EngagementRepository
-
+from app.repositories.finding_repository import FindingRepository
 from app.schemas.engagement import (
     EngagementAssetResponse,
     EngagementCounts,
@@ -23,7 +24,7 @@ from app.schemas.engagement import (
     UserSummary,
 )
 
-from app.schemas.finding import FindingListItem
+from app.schemas.finding import FindingCreate, FindingListItem, FindingListResponse, FindingPagination
 
 class EngagementService:
     @staticmethod
@@ -264,4 +265,115 @@ class EngagementService:
         )
 
 
-   
+    @staticmethod
+    async def list_findings(
+        db: AsyncSession,
+        *,
+        engagement_id: UUID,
+        user_id: UUID,
+        source: str | None,
+        severity: Severity | None,
+        finding_status: FindingStatus | None,
+        review_status: FindingReviewStatus | None,
+        search: str | None,
+        limit: int,
+        offset: int,
+    ) -> FindingListResponse:
+        await EngagementService.require_assigned_engagement(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+        
+        rows, total = await FindingRepository.list_by_engagement(
+            db,
+            engagement_id=engagement_id,
+            source=source,
+            severity=severity,
+            finding_status=finding_status,
+            review_status=review_status,
+            search=search,
+            limit=limit,
+            offset=offset,
+        )
+
+        items = [
+            EngagementService.finding_to_list_item(
+                finding,
+                asset_identifier=asset_identifier,
+            )
+            for finding, asset_identifier in rows
+        ]
+
+        return FindingListResponse(
+            items=items,
+            pagination=FindingPagination(
+                total=total,
+                limit=limit,
+                offset=offset,
+                has_more=offset + len(items) < total,
+            ),
+        )
+
+
+    @staticmethod
+    async def create_manual_finding(
+        db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+        request: FindingCreate,
+    ) -> FindingListItem:
+        await EngagementService.require_assigned_engagement(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+
+        if request.engagement_asset_id is not None:
+            asset = await EngagementRepository.get_asset_by_id(
+                db,
+                engagement_id=engagement_id,
+                asset_id=request.engagement_asset_id,
+            )
+
+            if asset is None:
+                raise HTTPException(
+                    status_code = status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="The selected asset does not belong to this engagement."
+                )
+
+        finding = await FindingRepository.create_manual_finding(
+            db,
+            engagement_id=engagement_id,
+            created_by=user_id,
+            request=request,
+        )
+
+        await AuditRepository.create_log(
+            db,
+            user_id=user_id,
+            action="finding.created",
+            entity_type="finding",
+            entity_id=finding.id,
+            metadata={
+                "engagement_id": str(engagement_id),
+                "source": "manual",
+            },
+        )
+
+        await db.refresh(finding)
+
+        asset_identifier = None
+
+        if finding.engagement_asset_id is not None:
+            asset = await EngagementRepository.get_asset_by_id(
+                db,
+                engagement_id=engagement_id,
+                asset_id=finding.engagement_asset_id,
+            )
+            asset_identifier = asset.identifier if asset is not None else None
+
+        return EngagementService.finding_to_list_item(
+            finding,
+            asset_identifier=asset_identifier,
+        )
