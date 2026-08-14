@@ -62,7 +62,7 @@ async def get_engagements(
 ) -> EngagementListResponse:
     user_id = await resolve_user_id(db, current_user)
 
-    return await EngagementService(
+    return await EngagementService.list_engagements(
         db,
         user_id=user_id,
         engagement_status=engagement_status,
@@ -121,4 +121,93 @@ async def get_engagement_findings(
         search=search,
         limit=limit,
         offset=offset,
+    )
+
+
+@router.post(
+    "/{engagement_id}/findings", 
+    response_model=FindingListItem, 
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_engagement_finding(
+    engagement_id: UUID,
+    request: FindingCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> FindingListItem:
+    user_id = await resolve_user_id(db, current_user)
+
+    return await EngagementService.create_manual_finding(
+        db,
+        engagement_id=engagement_id,
+        user_id=user_id,
+        request=request,
+    )
+
+
+@router.get("/{engagement_id}/retests", response_model=RetestListResponse)
+async def get_engagement_retests(
+    engagement_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> RetestListResponse:
+    user_id = await resolve_user_id(db, current_user)
+
+    return await EngagementService.list_retests(
+        db,
+        engagement_id=engagement_id,
+        user_id=user_id,
+    )
+
+
+@router.get("/{engagement_id}/messages", response_model=EngagementMessageListResponse)
+async def get_engagement_messages(
+    engagement_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> EngagementMessageListResponse:
+    user_id = await resolve_user_id(db, current_user)
+
+    return await EngagementService.list_messages(
+        db,
+        engagement_id=engagement_id,
+        user_id=user_id,
+    )
+
+
+@router.post(
+    "/{engagement_id}/messages", 
+    response_model=EngagementMessageResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_engagement_message(
+    engagement_id: UUID,
+    request: EngagementMessageCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> EngagementMessageResponse:
+    user_id = await resolve_user_id(db, current_user)
+
+    return await EngagementService.create_message(
+        db,
+        engagement_id=engagement_id,
+        user_id=user_id,
+        request=request,
+    )
+
+
+@router.get("/{engagement_id}/activity", response_model=ActivityListResponse)
+async def get_engagement_activity(
+    engagement_id: UUID,
+    limit: Annotated[int, Query(ge=1, le=200)] = 100,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> ActivityListResponse:
+    user_id = await resolve_user_id(db, current_user)
+
+    return await EngagementService.list_activity(
+        db,
+        engagement_id=engagement_id,
+        user_id=user_id,
+        limit=limit,
     )
