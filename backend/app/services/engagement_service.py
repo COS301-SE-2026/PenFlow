@@ -8,12 +8,17 @@ from app.models.engagement import Engagement
 from app.models.finding import Finding
 from app.models.user import User
 from app.repositories.engagement_repository import EngagementRepository
+
 from app.schemas.engagement import (
+    EngagementAssetResponse,
     EngagementCounts,
+    EngagementDetailResponse,
     EngagementListItem,
     EngagementListResponse,
+    EngagementOverviewCounts,
     EngagementPagination,
     EngagementSortField,
+    PreviousScanSummary,
     SortOrder,
     UserSummary,
 )
@@ -140,3 +145,123 @@ class EngagementService:
                 has_more = offset + len(items) < total,
             ),
         )
+
+
+    @staticmethod
+    async def get_engagement_detail(
+        db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+    ) -> EngagementDetailResponse:
+        engagement = await EngagementService.require_assigned_engagement(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+
+        assets = await EngagementRepository.get_assets(
+            db, 
+            engagement_id=engagement_id,
+        )
+
+        manual_count, automated_count = (
+            await EngagementRepository.get_overview_finding_counts(
+                db,
+                engagement_id=engagement_id,
+            )
+        )
+
+        recent_findings = await EngagementRepository.get_recent_findings(
+            db,
+            engagement_id=engagement_id,
+            limit = 5,
+        )
+
+        previous_scan_result = await EngagementRepository.get_previous_scan_summary(
+            db,
+            engagement_id=engagement_id,
+        )
+
+        client = await EngagementRepository.get_user_by_id(
+            db,
+            user_id=engagement.requested_by,
+        )
+
+        assigned_pentester = None
+        if engagement.assigned_to is not None:
+            assigned_pentester = await EngagementRepository.get_user_by_id(
+                db,
+                user_id=engagement.assigned_to,
+            )
+
+        if client is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Engagement client could not be found.",
+            )
+
+        previous_scan = None
+
+        if previous_scan_result is not None:
+            (
+                scan_id,
+                domain,
+                completed_at,
+                relevant_findings,
+            ) = previous_scan_result
+
+            previous_scan = PreviousScanSummary(
+                id=scan_id,
+                domain=domain,
+                completed_at=completed_at,
+                relevant_findings=relevant_findings,
+                reviewed_findings=0,
+            )
+
+        recent_items = [
+            EngagementService.finding_to_list_item(
+                finding,
+                asset_identifier=asset_identifier,
+            )
+            for finding, asset_identifier in recent_findings
+        ]
+
+        return EngagementDetailResponse(
+            id=engagement.id,
+            title=engagement.title,
+            engagement_type=engagement.engagement_type,
+            priority=engagement.priority,
+            status=engagement.status,
+            scope=engagement.scope,
+            estimated_quote=engagement.estimated_quote,
+            estimated_duration_days=engagement.estimated_duration_days,
+            requested_start_date=engagement.requested_start_date,
+            target_date=EngagementRepository.calc_target_date(
+                engagement.requested_start_date,
+                engagement.estimated_duration_days,
+            ),
+            started_at=engagement.started_at,
+            completed_at=engagement.completed_at,
+            created_at=engagement.created_at,
+            updated_at=engagement.updated_at,
+            client=EngagementService.user_summary(client),
+            assigned_pentester=(
+                EngagementService.user_summary(assigned_pentester)
+                if assigned_pentester is not None
+                else None
+            ),
+            assets=[
+                EngagementAssetResponse.model_validate(asset)
+                for asset in assets
+            ],
+            counts=EngagementOverviewCounts(
+                assets=len(assets),
+                manual_findings=manual_count,
+                automated_findings=automated_count,
+            ),
+            recent_findings=recent_items,
+            previous_scan=previous_scan,
+        )
+
+
+   
