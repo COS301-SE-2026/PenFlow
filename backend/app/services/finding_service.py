@@ -96,3 +96,120 @@ class FindingService:
                 for evidence in finding.evidence_files
             ],
         )
+
+
+    @staticmethod
+    async def update_finding(
+        db: AsyncSession,
+        finding_id: UUID,
+        user_id: UUID,
+        request: FindingUpdate,
+    ) -> FindingDetail:
+        finding = await FindingService.require_finding_access(
+            db,
+            finding_id=finding_id,
+            user_id=user_id,
+        )
+
+        engagement_id = finding.engagement_id
+
+        if engagement_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Finding was not found."
+            )
+
+        if request.engagement_asset_id is not None:
+            asset = await EngagementRepository.get_asset_by_id(
+                db,
+                engagement_id=engagement_id,
+                asset_id=request.engagement_asset_id,
+            )
+
+            if asset is None:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail="The selected asset does not belong to this engagement.",   
+                )
+
+        changed_fields = list(request.model_dump(exclude_unset=True).keys())
+
+        finding = await FindingRepository.update_finding(
+            db,
+            finding=finding,
+            request=request,
+        )
+
+        await AuditRepository.create_log(
+            db,
+            user_id=user_id,
+            action="finding.updated",
+            entity_type="finding",
+            entity_id=finding.id,
+            metadata={
+                "engagement_id": str(finding.engagement_id),
+                "changed_fields": changed_fields,
+            },
+        )
+
+        await db.refresh(finding)
+
+        return await FindingService.get_finding(
+            db,
+            finding_id=finding.id,
+            user_id=user_id,
+        )
+
+
+    @staticmethod
+    async def register_evidence(
+        db: AsyncSession,
+        *,
+        finding_id: UUID,
+        user_id: UUID,
+        file_name: str,
+        file_path: str,
+        mime_type: str | None,
+    ) -> EvidenceFileResponse:
+        finding = await FindingService.require_finding_access(
+            db,
+            finding_id=finding_id,
+            user_id=user_id,
+        )
+
+        engagement_id = finding.engagement_id
+        current_finding_id = finding.id
+
+        if engagement_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Finding was not found."
+            )
+
+        evidence = await FindingRepository.add_evidence_rec(
+            db,
+            finding_id=current_finding_id,
+            uploaded_by=user_id,
+            file_name=file_name,
+            file_path=file_path,
+            mime_type=mime_type,
+        )
+
+        evidence_id = evidence.id
+
+        await AuditRepository.create_log(
+            db,
+            user_id=user_id,
+            action="finding.evidence_uploaded",
+            entity_type="evidence_file",
+            entity_id=evidence_id,
+            metadata={
+                "engagement_id": str(engagement_id),
+                "finding_id": str(current_finding_id),
+                "file_name": file_name,
+            },
+        )
+
+        await db.refresh(evidence)
+
+        return EvidenceFileResponse.model_validate(evidence)
