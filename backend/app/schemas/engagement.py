@@ -13,28 +13,6 @@ class ActivityBadge(str, Enum):
     CRITICAL = "CRITICAL"
     INFO = "INFO"
 
-class ActivityEventRead(BaseModel):
-    id: str
-    engagement_id: str
-    timestamp: datetime
-    description: str
-    badge: Optional[ActivityBadge] = None
-    subtext: Optional[str] = None 
-
-    class Config:
-        from_attributes = True 
-
-class EngagementRead(BaseModel): 
-    id: str
-    domain: str
-    status: EngagementStatus
-    pentester_name: str
-    start_time: Optional[datetime] = None
-    end_time: Optional[datetime] = None 
-
-    class Config:
-        from_attributes = True 
-
 class EngagementWithActivity(EngagementRead):
     activity_log: List[ActivityEventRead] = []
     total_events: int = 0

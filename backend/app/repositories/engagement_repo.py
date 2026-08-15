@@ -5,7 +5,7 @@ from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.engagement import Engagement
-from app.models.activity_event import ActivityEvent
+from app.models.audit_log import AuditLog
 
 class EngagementRepository:
     @staticmethod
@@ -15,7 +15,7 @@ class EngagementRepository:
 
         query = (
             select(Engagement)
-            .where(Engagement.user_id == user_id)
+            .where(Engagement.trquested_by == user_id)
             .order_by(desc(Engagement.created_at))
         )
 
@@ -24,17 +24,16 @@ class EngagementRepository:
 
     @staticmethod 
     async def get_activity_by_engagement_id(
-        db: AsyncSession, engagement_id: UUID, user_id: UUID 
-    ) -> Sequence[ActivityEvent]:
+        db: AsyncSession, engagement_id: UUID
+    ) -> Sequence[ActivityLog]:
 
         query = (
-            select(ActivityEvent)
-            .join(Engagement, ActivityEvent.engagement_id == Engagement.id)
+            select(AuditLog)
             .where(
-                ActivityEvent.engagement_id == engagement_id,
-                Engagement.user_id == user_id 
+                AuditLog.entity_id == engagement_id,
+                AuditLog.entity_type == "engagement"
             )
-            .order_by(desc(ActivityEvent.timestamp))
+            .order_by(desc(AuditLog.created_at))
         )
 
         result = await db.execute(query)
