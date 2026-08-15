@@ -104,3 +104,14 @@ class EngagementRepository:
         total = int(await db.scalar(count_query) or 0)
 
         return engagements, total
+
+    @staticmethod
+    async def get_status_counts(db: AsyncSession) -> dict[EngagementStatus, int]:
+        query = select(Engagement.status, func.count(Engagement.id)).group_by(Engagement.status)
+        result = await db.execute(query)
+
+        counts = {status: 0 for status in EngagementStatus}
+        for status, count in result.all():
+            counts[status] int(count)
+
+        return
