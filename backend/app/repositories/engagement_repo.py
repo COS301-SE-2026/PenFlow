@@ -57,3 +57,50 @@ class EngagementRepository:
         if order == SortOrder.ASC:
             return query.order_by(sort_col.asc(), Engagement.id.asc())
         return query.order_by(sort_col.desc(), Engagement.id.desc())
+
+    @staticmethod
+    async def list_admin_engagements(
+        db: AsyncSession,
+        search: str | None,
+        status: EngagementStatus | None,
+        pentester_id: UUID | None,
+        assignment_status: str | None,
+        sort: EngagementSortField,
+        order: SortOrder,
+        limit: int,
+        offset: int,
+    ) -> tuple[Sequence[Engagement], int]:
+
+        query = select(Engagement)
+        count_query = select(func.count(Engagement.id))
+
+        stripped_search = search.strip() if search else None
+        if stripped_search:
+            search_filter = Engagement.title.ilike(f"%{stripped_search}%")
+            query = query.where(search_filter)
+            count_query = count_query.where(search_filter)
+
+        if status is not None:
+            query = query.where(Engagement.status == status)
+            count_query = count_query.where(Engagement.status == status)
+
+        if pentester_id is not None:
+            query = query.where(Engagement.assigned_to == pentested_id)
+            count_query = count_query.where(Engagement.assigned_to == pentester_id)
+
+        if assignment_status == "assigned":
+            query = query.where(Engagement.assigned_to.innot(None))
+            count_query = count_query.where(Engagement.assigned_to.isnot(None))
+        elif assignment_status == "unassigned":
+            query = query.where(Engagement.assigned_to.is_(None))
+            count_query = count_query.where(Engagement.assigned_to.is_(None))
+
+        query = EngagementRepository.sort_records(query,sort=sort, order=order)
+        query = query.limit(limit).offset(offset)
+
+        result = await db.execute(query)
+        engagement = result.scalars().all
+
+        total = int(await db.scalar(count_query) or 0)
+
+        return engagements, total
