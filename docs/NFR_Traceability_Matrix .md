@@ -4,9 +4,9 @@ This table joins each quantified quality requirement (SRS) to the architectural 
 
 | ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
 |----|------------------------|---------------|-------------|------------------|
-| QR-01 | P95 API response time under 2 seconds for all REST endpoints under normal load | Asynchronous task execution + fast acknowledgement (4.3 Performance) | Jmeter | <2s / TBD |
-| QR-02 | Phase 1 CTEM scan completes within 60 seconds for 90% of requests, bounded by slowest single OSINT lookup | Asynchronous aggregation of parallel OSINT providers (1, 4.3) | Jmeter / custom load script | <60s / TBD |
-| QR-03 | System remains stable at 100 concurrent users; response time degradation <50% under peak load vs. baseline | Horizontal scaling of workers + queue-based load leveling via RabbitMQ (4.2 Scalability) | Jmeter (sustained + burst load) | <50% degradation / TBD |
+| QR-01 | P95 API response time under 2 seconds for all REST endpoints under normal load | Asynchronous task execution + fast acknowledgement (4.3 Performance) | K6 | <2s / TBD |
+| QR-02 | Phase 1 CTEM scan completes within 60 seconds for 90% of requests, bounded by slowest single OSINT lookup | Asynchronous aggregation of parallel OSINT providers (1, 4.3) | K6 / custom load script | <60s / TBD |
+| QR-03 | System remains stable at 100 concurrent users; response time degradation <50% under peak load vs. baseline | Horizontal scaling of workers + queue-based load leveling via RabbitMQ (4.2 Scalability) | K6 (sustained + burst load) | <50% degradation / TBD |
 | QR-04 | No cross-client data leakage under concurrent Phase 2 scan execution | Isolated, short-lived worker containers destroyed on completion (4.6 Security, NFR-2) | pytest security suite | 0 leaks / TBD |
 | QR-05 | Unauthenticated requests to protected endpoints return 401; cross-user data access attempts (IDOR) return 403 | JWT-based auth (Auth0) with RBAC + information hiding (4.6 Security) | pytest security suite | 401 / 403 / TBD |
 | QR-06 | Phase 2 scan against unverified asset returns 403 | Domain ownership verification gate (1 Phase 2) | pytest security suite | 403 / TBD |
