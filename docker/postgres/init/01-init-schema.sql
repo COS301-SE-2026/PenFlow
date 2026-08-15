@@ -65,6 +65,26 @@ CREATE TYPE domain_verification_code AS ENUM (
     'lookup_failed'
 );
 
+CREATE TYPE engagement_status AS ENUM (
+    'scoping',
+    'in_progress',
+    'review',
+    'completed'
+);
+
+CREATE TYPE engagement_type AS ENUM (
+    'black_box',
+    'grey_box',
+    'white_box'
+);
+
+CREATE TYPE engagement_asset_type AS ENUM (
+    'domain',
+    'ip',
+    'hostname',
+    'url'
+);
+
 CREATE TABLE organisations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
@@ -82,6 +102,33 @@ CREATE TABLE users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     UNIQUE (auth_provider, auth_provider_id)
+);
+
+CREATE TABLE engagements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    client_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    assigned_pentester_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    status engagement_status NOT NULL DEFAULT 'scoping',
+    engagement_type engagement_type NOT NULL,
+    objective TEXT NOT NULL,
+    start_date DATE,
+    end_date DATE,
+    constraints TEXT,
+    primary_contact VARCHAR(255),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CHECK (start_date IS NULL OR end_date IS NULL OR start_date <= end_date)
+);
+
+CREATE TABLE engagement_assets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    engagement_id UUID NOT NULL REFERENCES engagements(id) ON DELETE CASCADE,
+    type engagement_asset_type NOT NULL,
+    value VARCHAR(2048) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CHECK (length(trim(value)) > 0)
 );
 
 CREATE TABLE verified_domains (
@@ -294,3 +341,10 @@ CREATE INDEX idx_detected_tech_scan_id ON detected_technologies(scan_id);
 CREATE INDEX idx_detected_tech_asset_id ON detected_technologies(asset_id);
 CREATE INDEX idx_detected_tech_service_id ON detected_technologies(service_id);
 CREATE INDEX idx_detected_tech_product_ver ON detected_technologies(product, version);
+
+CREATE INDEX idx_engagements_client_user_id ON engagements(client_user_id);
+CREATE INDEX idx_engagements_assigned_pentester_id ON engagements(assigned_pentester_id);
+CREATE INDEX idx_engagements_status ON engagements(status);
+CREATE INDEX idx_engagements_type ON engagements(engagement_type);
+CREATE INDEX idx_engagement_assets_engagement_id ON engagement_assets(engagement_id);
+CREATE INDEX idx_engagement_assets_type ON engagement_assets(type);
