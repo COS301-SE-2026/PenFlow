@@ -1,9 +1,9 @@
 from uuid import UUID
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.base import EngagementStatus, FindingReviewStatus, FindingStatus, Severity
-
 from app.models.engagement import Engagement
 from app.models.finding import Finding
 from app.models.user import User
@@ -30,9 +30,14 @@ from app.schemas.engagement import (
     SortOrder,
     UserSummary,
 )
-
-from app.schemas.finding import FindingCreate, FindingListItem, FindingListResponse, FindingPagination
+from app.schemas.finding import (
+    FindingCreate,
+    FindingListItem,
+    FindingListResponse,
+    FindingPagination,
+)
 from app.schemas.retest import RetestFindingSummary, RetestListItem, RetestListResponse
+
 
 class EngagementService:
     @staticmethod

@@ -17,6 +17,7 @@ from app.models.scan import Scan
 from app.models.user import User
 from app.schemas.engagement import EngagementSortField, SortOrder
 
+
 class EngagementRepository:
     @staticmethod
     async def get_by_id(db: AsyncSession, engagement_id: UUID) -> Engagement | None:
