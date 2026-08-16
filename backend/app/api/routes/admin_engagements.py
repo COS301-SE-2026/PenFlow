@@ -46,5 +46,28 @@ async def list_all_engagements_admin(
     total_all = sum(raw_counts.values())
     counts = EngagementCounts(
         all=total_all,
-        
+        requested=raw_counts.get("requested", 0),
+        scoping=raw_counts.get("scoping", 0),
+        in_progress=raw_counts.get("in_progress", 0),
+        review=raw_counts.get("review", 0),
+        completed=raw_counts.get("competed", 0),
+        cancelled=raw_counts.get("cancelled", 0),
     )
+
+    items = []
+    for eng in engagements:
+        items.append(EngagementListItem(
+            id=eng.id,
+            title=eng.title,
+            engagement_type=eng.engagement_type,
+            priority=eng.priority,
+            status=eng.status,
+            requested_start_date=eng.requested_start_date,
+            estimated_duration_days=eng.estimated_duration_days,
+            updated_at=eng.updated_at,
+            client_name="Client Name",
+            asset_count=0,
+            target_date=None 
+        ))
+
+    
