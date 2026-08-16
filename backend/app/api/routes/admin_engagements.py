@@ -70,4 +70,11 @@ async def list_all_engagements_admin(
             target_date=None 
         ))
 
-    
+    pagination = EngagementPagination(
+        total=total,
+        limit=limit,
+        offset=offset,
+        has_more=(offset + limit) < total
+    )
+
+    return EngagementListResponse(items=items, counts=counts, pagination=pagination)
