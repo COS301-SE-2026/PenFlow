@@ -72,3 +72,4 @@ async def get_activity_log(
             created_at=log.created_at
         ))
     return ActivityListResponse(items=items)
+
