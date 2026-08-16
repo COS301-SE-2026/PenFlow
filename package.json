@@ -19,7 +19,7 @@
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
     "test:e2e": "start-server-and-test dev:frontend http://localhost:3000 cypress:run",
-    "test:k6:load":"k6/ run tests/k6/load_test.js",
+    "test:k6:load": "k6 run tests/k6/load_test.js",
     "test:k6": "pnpm test:k6:load ",
     "build": "pnpm build:frontend && pnpm check:backend && pnpm check:workers",
     "test": "pnpm test:frontend && pnpm test:backend && pnpm test:workers",
