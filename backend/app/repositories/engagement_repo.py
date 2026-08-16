@@ -112,6 +112,6 @@ class EngagementRepository:
 
         counts = {status: 0 for status in EngagementStatus}
         for status, count in result.all():
-            counts[status] int(count)
+            counts[status] = int(count)
 
         return counts
