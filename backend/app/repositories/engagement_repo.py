@@ -3,7 +3,7 @@ from uuid import UUID
 
 from sqlalchemy import desc, func, Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalcemy.orm.attributes import InstrumentedAttribute
+from sqlalchemy.orm.attributes import InstrumentedAttribute
 
 from app.models.base import EngagementStatus
 from app.models.engagement import Engagement
@@ -19,7 +19,7 @@ class EngagementRepository:
 
         query = (
             select(Engagement)
-            .where(Engagement.trquested_by == user_id)
+            .where(Engagement.requested_by == user_id)
             .order_by(desc(Engagement.created_at))
         )
 
@@ -29,7 +29,7 @@ class EngagementRepository:
     @staticmethod 
     async def get_activity_by_engagement_id(
         db: AsyncSession, engagement_id: UUID
-    ) -> Sequence[ActivityLog]:
+    ) -> Sequence[AuditLog]:
 
         query = (
             select(AuditLog)
@@ -85,11 +85,11 @@ class EngagementRepository:
             count_query = count_query.where(Engagement.status == status)
 
         if pentester_id is not None:
-            query = query.where(Engagement.assigned_to == pentested_id)
+            query = query.where(Engagement.assigned_to == pentester_id)
             count_query = count_query.where(Engagement.assigned_to == pentester_id)
 
         if assignment_status == "assigned":
-            query = query.where(Engagement.assigned_to.innot(None))
+            query = query.where(Engagement.assigned_to.isnot(None))
             count_query = count_query.where(Engagement.assigned_to.isnot(None))
         elif assignment_status == "unassigned":
             query = query.where(Engagement.assigned_to.is_(None))
@@ -99,7 +99,7 @@ class EngagementRepository:
         query = query.limit(limit).offset(offset)
 
         result = await db.execute(query)
-        engagement = result.scalars().all
+        engagements = result.scalars().all
 
         total = int(await db.scalar(count_query) or 0)
 
@@ -114,4 +114,4 @@ class EngagementRepository:
         for status, count in result.all():
             counts[status] int(count)
 
-        return
+        return counts
