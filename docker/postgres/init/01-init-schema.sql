@@ -209,10 +209,11 @@ CREATE TABLE engagements (
     estimated_quote NUMERIC(12,2) NOT NULL DEFAULT 0.00,
     estimated_duration_days INTEGER,
     requested_start_date DATE,
+    requested_end_date DATE,
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CHECK (
         requested_start_date IS NULL
