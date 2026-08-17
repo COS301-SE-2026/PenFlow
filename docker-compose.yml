@@ -14,6 +14,7 @@ services:
       KEYCLOAK_INTERNAL_URL: http://keycloak:8080
       KEYCLOAK_REALM: penflow
       KEYCLOAK_CLIENT_ID: penflow-web
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
     depends_on:
       backend:
         condition: service_started
@@ -239,7 +240,7 @@ services:
       KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_HTTP_ENABLED: "true"
     volumes:
-      - ./docker/keycloak:/opt/keycloak/data/import
+      - ./docker/keycloak/penflow-realm.json:/opt/keycloak/data/import/penflow-realm.json:ro
     command:
       - start-dev
       - --import-realm
