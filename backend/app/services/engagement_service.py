@@ -1,14 +1,16 @@
 from uuid import UUID
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.models.engagement import Engagement
-from app.models.user import User # type: ignore[attr-defined]
+from app.models.user import User
 from app.repositories.engagement_repository import EngagementRepository
-from app.schemas.engagement import \
-(
+from app.schemas.engagement import (
     EngagementCreateRequest,
     EngagementCreateResponse,
-    EngagementDetailResponse,
+    EngagementRequestAssetResponse,
+    EngagementRequestDetailResponse,
 )
 
 
@@ -25,11 +27,11 @@ class EngagementService:
             id=engagement.id,
             status=engagement.status,
             engagement_type=engagement.engagement_type,
-            objective=engagement.objective,
-            start_date=engagement.start_date,
-            end_date=engagement.end_date,
+            objective=engagement.objective or engagement.scope,
+            start_date=engagement.requested_start_date,
+            end_date=engagement.requested_end_date,
             asset_count=asset_count,
-            assigned_pentester_id=engagement.assigned_pentester_id,
+            assigned_pentester_id=engagement.assigned_to,
             created_at=engagement.created_at,
         )
 
@@ -59,7 +61,7 @@ class EngagementService:
         db: AsyncSession,
         engagement_id: UUID,
         user_id: UUID,
-    ) -> EngagementDetailResponse:
+    ) -> EngagementRequestDetailResponse:
         user = await db.get(User, user_id)
 
         if user is None:
@@ -92,4 +94,23 @@ class EngagementService:
                 detail="Engagement request was not found",
             )
 
-        return EngagementDetailResponse.model_validate(engagement)
+        return EngagementRequestDetailResponse(
+            id=engagement.id,
+            status=engagement.status,
+            engagement_type=engagement.engagement_type,
+            objective=engagement.objective or engagement.scope,
+            start_date=engagement.requested_start_date,
+            end_date=engagement.requested_end_date,
+            constraints=engagement.constraints,
+            primary_contact=engagement.primary_contact,
+            assets=[
+                EngagementRequestAssetResponse(
+                    id=asset.id,
+                    type=asset.asset_type,
+                    value=asset.identifier,
+                )
+                for asset in engagement.assets
+            ],
+            assigned_pentester_id=engagement.assigned_to,
+            created_at=engagement.created_at,
+        )

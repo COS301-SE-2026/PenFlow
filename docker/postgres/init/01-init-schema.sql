@@ -65,24 +65,32 @@ CREATE TYPE domain_verification_code AS ENUM (
     'lookup_failed'
 );
 
-CREATE TYPE engagement_status AS ENUM (
-    'scoping',
-    'in_progress',
-    'review',
-    'completed'
-);
-
 CREATE TYPE engagement_type AS ENUM (
     'black_box',
     'grey_box',
     'white_box'
 );
 
-CREATE TYPE engagement_asset_type AS ENUM (
-    'domain',
-    'ip',
-    'hostname',
-    'url'
+CREATE TYPE engagement_status AS ENUM (
+    'requested',
+    'scoping',
+    'in_progress',
+    'review',
+    'completed',
+    'cancelled'
+);
+
+CREATE TYPE finding_review_status AS ENUM (
+    'draft',
+    'ready_for_review',
+    'published'
+);
+
+CREATE TYPE retest_status AS ENUM (
+    'requested',
+    'in_progress',
+    'resolved',
+    'still_vulnerable'
 );
 
 CREATE TABLE organisations (
@@ -102,33 +110,6 @@ CREATE TABLE users (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     UNIQUE (auth_provider, auth_provider_id)
-);
-
-CREATE TABLE engagements (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    client_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    assigned_pentester_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    status engagement_status NOT NULL DEFAULT 'scoping',
-    engagement_type engagement_type NOT NULL,
-    objective TEXT NOT NULL,
-    start_date DATE,
-    end_date DATE,
-    constraints TEXT,
-    primary_contact VARCHAR(255),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    CHECK (start_date IS NULL OR end_date IS NULL OR start_date <= end_date)
-);
-
-CREATE TABLE engagement_assets (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    engagement_id UUID NOT NULL REFERENCES engagements(id) ON DELETE CASCADE,
-    type engagement_asset_type NOT NULL,
-    value VARCHAR(2048) NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    CHECK (length(trim(value)) > 0)
 );
 
 CREATE TABLE verified_domains (
@@ -212,10 +193,51 @@ CREATE TABLE services (
     CHECK (port >= 1 AND port <= 65535)
 );
 
+CREATE TABLE engagements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organisation_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+    requested_by UUID NOT NULL REFERENCES users(id),
+    assigned_to UUID REFERENCES users(id),
+    engagement_type engagement_type NOT NULL,
+    priority VARCHAR(20) DEFAULT 'medium',
+    status engagement_status NOT NULL DEFAULT 'requested',
+    title VARCHAR(255) NOT NULL,
+    scope TEXT NOT NULL,
+    objective TEXT,
+    constraints TEXT,
+    primary_contact VARCHAR(255),
+    estimated_quote NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+    estimated_duration_days INTEGER,
+    requested_start_date DATE,
+    started_at TIMESTAMPTZ,
+    completed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+
+    CHECK (
+        requested_start_date IS NULL
+        OR requested_end_date IS NULL
+        OR requested_start_date <= requested_end_date
+    )
+);
+
+CREATE TABLE engagement_assets (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    engagement_id UUID NOT NULL REFERENCES engagements(id) ON DELETE CASCADE,
+    identifier VARCHAR(255) NOT NULL,
+    asset_type VARCHAR(50) NOT NULL,
+    asset_metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    verified_domain_id UUID REFERENCES verified_domains(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    
+    UNIQUE(engagement_id, identifier, asset_type)
+);
+
 CREATE TABLE findings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    scan_id UUID NOT NULL REFERENCES scans(id) ON DELETE CASCADE,
+    scan_id UUID REFERENCES scans(id) ON DELETE CASCADE,
     asset_id UUID REFERENCES assets(id) ON DELETE SET NULL,
+    engagement_id UUID REFERENCES engagements(id) ON DELETE CASCADE,
     source VARCHAR(100) NOT NULL,
     status finding_status NOT NULL DEFAULT 'open',
     cvss_score NUMERIC(3,1),
@@ -225,21 +247,28 @@ CREATE TABLE findings (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     recommendation TEXT,
+    review_status finding_review_status,
+    engagement_asset_id UUID REFERENCES engagement_assets(id) ON DELETE SET NULL,
     evidence JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_by UUID REFERENCES users(id),
 
-    CHECK (cvss_score IS NULL or (cvss_score >= 0 AND cvss_score <= 10))
+    CHECK (cvss_score IS NULL or (cvss_score >= 0 AND cvss_score <= 10)),
+    CHECK ((scan_id IS NOT NULL) OR (engagement_id IS NOT NULL))
 );
 
 CREATE TABLE reports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    scan_id UUID NOT NULL UNIQUE REFERENCES scans(id) ON DELETE CASCADE,
+    scan_id UUID UNIQUE REFERENCES scans(id) ON DELETE CASCADE,
+    engagement_id UUID REFERENCES engagements(id),
     task_id VARCHAR(255),
     status report_status NOT NULL DEFAULT 'pending',
     pdf_path TEXT,
     generated_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    error_message TEXT
+    error_message TEXT,
+
+    CHECK((scan_id IS NOT NULL) OR (engagement_id IS NOT NULL))
 );
 
 CREATE TABLE scan_schedules (
@@ -293,6 +322,56 @@ CREATE TABLE detected_technologies (
     CHECK (confidence is NULL OR (confidence >= 0 AND confidence <= 1))
 );
 
+CREATE TABLE engagement_comments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    engagement_id UUID NOT NULL REFERENCES engagements(id) ON DELETE CASCADE,
+    finding_id UUID REFERENCES findings(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id),
+    comment TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    type VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    engagement_id UUID REFERENCES engagements(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    action VARCHAR(100) NOT NULL,
+    entity_type VARCHAR(100) NOT NULL,
+    entity_id UUID,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE evidence_files (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    finding_id UUID NOT NULL REFERENCES findings(id) ON DELETE CASCADE,
+    uploaded_by UUID REFERENCES users(id),
+    file_name VARCHAR(255) NOT NULL,
+    file_path TEXT NOT NULL,
+    mime_type VARCHAR(100),
+    uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE finding_retests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    finding_id UUID NOT NULL REFERENCES findings(id) ON DELETE CASCADE,
+    requested_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    assigned_to UUID REFERENCES users(id) ON DELETE SET NULL,
+    status retest_status NOT NULL DEFAULT 'requested',
+    notes TEXT,
+    requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ
+);
 
 ALTER TABLE scans ADD COLUMN schedule_id UUID REFERENCES scan_schedules(id) ON DELETE SET NULL DEFAULT NULL;
 ALTER TABLE scans ADD COLUMN scheduled_for TIMESTAMPTZ DEFAULT NULL;
@@ -342,9 +421,16 @@ CREATE INDEX idx_detected_tech_asset_id ON detected_technologies(asset_id);
 CREATE INDEX idx_detected_tech_service_id ON detected_technologies(service_id);
 CREATE INDEX idx_detected_tech_product_ver ON detected_technologies(product, version);
 
-CREATE INDEX idx_engagements_client_user_id ON engagements(client_user_id);
-CREATE INDEX idx_engagements_assigned_pentester_id ON engagements(assigned_pentester_id);
-CREATE INDEX idx_engagements_status ON engagements(status);
-CREATE INDEX idx_engagements_type ON engagements(engagement_type);
+CREATE INDEX idx_engagement_status ON engagements(status);
+CREATE INDEX idx_engagement_requested_by ON engagements(requested_by);
+CREATE INDEX idx_engagement_assigned_to ON engagements(assigned_to);
 CREATE INDEX idx_engagement_assets_engagement_id ON engagement_assets(engagement_id);
-CREATE INDEX idx_engagement_assets_type ON engagement_assets(type);
+CREATE INDEX idx_engagement_assets_asset_type ON engagement_assets(asset_type);
+
+CREATE INDEX idx_findings_engagement ON findings(engagement_id);
+
+CREATE INDEX idx_notification_user ON notifications(user_id);
+
+CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
+
+CREATE INDEX idx_finding_retests_finding_id ON finding_retests(finding_id);

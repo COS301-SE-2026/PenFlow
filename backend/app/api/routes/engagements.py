@@ -1,18 +1,18 @@
 from typing import Any
 from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.api.middleware.auth import get_current_user
 from app.repositories.user_repo import get_user_id_by_provider_id
-from app.schemas.engagement import \
-(
+from app.schemas.engagement import (
     EngagementCreateRequest,
     EngagementCreateResponse,
-    EngagementDetailResponse,
+    EngagementRequestDetailResponse,
 )
 from app.services.engagement_service import EngagementService
 from app.utils.db import get_db
-
 
 router = APIRouter(prefix="/engagements", tags=["Engagement Requests"])
 
@@ -48,13 +48,13 @@ async def create_engagement_request\
 
 
 #Used for frontend and backend to receive details
-@router.get("/{engagement_id}", response_model=EngagementDetailResponse)
+@router.get("/{engagement_id}", response_model=EngagementRequestDetailResponse)
 async def get_engagement_request\
 (
     engagement_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
-) -> EngagementDetailResponse:
+) -> EngagementRequestDetailResponse:
 
     user_id = await get_user_id_by_provider_id\
     (
