@@ -83,7 +83,8 @@ CREATE TYPE engagement_status AS ENUM (
 CREATE TYPE finding_review_status AS ENUM (
     'draft',
     'ready_for_review',
-    'published'
+    'published',
+    'needs_revision'
 );
 
 CREATE TYPE retest_status AS ENUM (
@@ -92,6 +93,13 @@ CREATE TYPE retest_status AS ENUM (
     'resolved',
     'still_vulnerable'
 );
+
+CREATE TYPE finding_verification_status AS ENUM (
+    'pending',
+    'confirmed',
+    'false_positive'
+);
+
 
 CREATE TABLE organisations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -109,7 +117,9 @@ CREATE TABLE users (
     role VARCHAR(50) NOT NULL DEFAULT 'client',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    UNIQUE (auth_provider, auth_provider_id)
+    UNIQUE (auth_provider, auth_provider_id),
+
+    CHECK(role IN ('client', 'pentester', 'admin'))
 );
 
 CREATE TABLE verified_domains (
@@ -248,6 +258,10 @@ CREATE TABLE findings (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     recommendation TEXT,
+    verification_status finding_verification_status,
+    reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMPTZ,
+    review_note TEXT,
     review_status finding_review_status,
     engagement_asset_id UUID REFERENCES engagement_assets(id) ON DELETE SET NULL,
     evidence JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -435,3 +449,8 @@ CREATE INDEX idx_notification_user ON notifications(user_id);
 CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
 
 CREATE INDEX idx_finding_retests_finding_id ON finding_retests(finding_id);
+
+CREATE INDEX idx_finding_review_status ON findings(review_status);
+CREATE INDEX idx_finding_retest_status ON finding_retests(status);
+CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);
+CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
