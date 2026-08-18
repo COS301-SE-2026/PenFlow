@@ -17,6 +17,8 @@ from app.schemas.engagement import (
     ActivityListResponse,
     EngagementAssetResponse,
     EngagementCounts,
+    EngagementCreateRequest,
+    EngagementCreateResponse,
     EngagementDetailResponse,
     EngagementListItem,
     EngagementListResponse,
@@ -60,6 +62,65 @@ class EngagementService:
 
         return engagement
 
+    @staticmethod
+    async def require_viewable_engagement(
+        db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+    ) -> Engagement:
+        engagement = await EngagementRepository.get_by_id(
+            db,
+            engagement_id=engagement_id,
+        )
+
+        if engagement is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Engagement was not found.",
+            )
+
+        user = await EngagementRepository.get_user_by_id(
+            db,
+            user_id=user_id,
+        )
+
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not present.",
+            )
+
+        if (
+            engagement.requested_by == user_id
+            or engagement.assigned_to == user_id
+            or user.role in {"admin", "pentester"}
+        ):
+            return engagement
+
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Engagement was not found.",
+        )
+
+    @staticmethod
+    def build_create_response \
+                    (
+                    engagement: Engagement,
+                    asset_count: int,
+            ) -> EngagementCreateResponse:
+        # confirmation of request for ui
+        return EngagementCreateResponse \
+                (
+                id=engagement.id,
+                status=engagement.status,
+                engagement_type=engagement.engagement_type,
+                objective=engagement.objective or engagement.scope,
+                start_date=engagement.requested_start_date,
+                end_date=engagement.requested_end_date,
+                asset_count=asset_count,
+                assigned_pentester_id=engagement.assigned_to,
+                created_at=engagement.created_at,
+            )
 
     @staticmethod
     def finding_to_list_item(
@@ -91,7 +152,7 @@ class EngagementService:
             email=user.email,
             role=user.role,
         )
-    
+
 
     @staticmethod
     async def list_engagements(
@@ -137,7 +198,7 @@ class EngagementService:
                     engagement.estimated_duration_days,
                 ),
                 updated_at=engagement.updated_at,
-            ) 
+            )
             for engagement, client_name, asset_count in rows
         ]
 
@@ -167,14 +228,14 @@ class EngagementService:
         engagement_id: UUID,
         user_id: UUID,
     ) -> EngagementDetailResponse:
-        engagement = await EngagementService.require_assigned_engagement(
+        engagement = await EngagementService.require_viewable_engagement(
             db,
             engagement_id=engagement_id,
             user_id=user_id,
         )
 
         assets = await EngagementRepository.get_assets(
-            db, 
+            db,
             engagement_id=engagement_id,
         )
 
@@ -297,7 +358,7 @@ class EngagementService:
             engagement_id=engagement_id,
             user_id=user_id,
         )
-        
+
         rows, total = await FindingRepository.list_by_engagement(
             db,
             engagement_id=engagement_id,
@@ -328,6 +389,25 @@ class EngagementService:
             ),
         )
 
+    @staticmethod
+    async def create_engagement \
+                    (
+                    db: AsyncSession,
+                    request: EngagementCreateRequest,
+                    client_user_id: UUID,
+            ) -> EngagementCreateResponse:
+        # save the request first.
+        engagement = await EngagementRepository.create_engagement \
+                (
+                db,
+                request=request,
+                client_user_id=client_user_id,
+            )
+        return EngagementService.build_create_response \
+                (
+                engagement,
+                asset_count=len(request.assets),
+            )
 
     @staticmethod
     async def create_manual_finding(
@@ -428,7 +508,7 @@ class EngagementService:
                 for retest in retests
             ]
         )
-    
+
 
     @staticmethod
     async def list_activity(
@@ -460,7 +540,7 @@ class EngagementService:
             user_ids = {
                 log.user_id
                 for log in logs
-                if log.user_id is not None   
+                if log.user_id is not None
             },
         )
 
@@ -482,7 +562,6 @@ class EngagementService:
                 for log in logs
             ]
         )
-
 
     @staticmethod
     async def list_messages(

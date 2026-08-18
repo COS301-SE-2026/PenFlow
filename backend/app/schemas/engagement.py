@@ -1,10 +1,11 @@
 import enum
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from ipaddress import ip_address
+from typing import Any, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.base import EngagementStatus, EngagementType
 from app.schemas.finding import FindingListItem
@@ -20,6 +21,100 @@ class EngagementSortField(str, enum.Enum):
     CLIENT = "client"
     STATUS = "status"
     REQUESTED_START_DATE = "requested_start_date"
+
+#create request form use
+class EngagementAssetRequestType(str, enum.Enum):
+    DOMAIN = "domain"
+    IP = "ip"
+    HOSTNAME = "hostname"
+    URL = "url"
+
+# One asset row from the asset declaration section of the form.
+class EngagementAssetCreate(BaseModel):
+    type: EngagementAssetRequestType
+    value: str = Field(..., min_length=1, max_length=2048)
+
+    # Backend val matters cause this defines our legal pentest scope.
+    @model_validator(mode="after")
+    def validate_asset_value(self) -> Self:
+        stripped_value = self.value.strip()
+
+        if not stripped_value:
+            raise ValueError("Asset value cannot be empty.")
+
+        if self.type == EngagementAssetRequestType.IP:
+            try:
+                ip_address(stripped_value)
+            except ValueError as error:
+                raise ValueError("Asset value must be a valid IP address.") from error
+
+        if self.type == EngagementAssetRequestType.URL and not (
+            stripped_value.startswith("http://") or stripped_value.startswith("https://")
+        ):
+            raise ValueError("URL assets must start with http:// or https://.")
+
+        if self.type in {
+            EngagementAssetRequestType.DOMAIN,
+            EngagementAssetRequestType.HOSTNAME,
+        }:
+            if "/" in stripped_value or " " in stripped_value:
+                raise ValueError("Domain and hostname assets cannot contain spaces or paths.")
+
+        self.value = stripped_value
+        return self
+
+# Matching the Phase 3 engagement form.
+# It creates a scoping ticket, WE DO NOT RUN SCAN HERE.
+class EngagementCreateRequest(BaseModel):
+    engagement_type: EngagementType
+    objective: str = Field(..., min_length=1, max_length=5000)
+    start_date: date | None = None
+    end_date: date | None = None
+    constraints: str | None = Field(default=None, max_length=5000)
+    primary_contact: str | None = Field(default=None, max_length=255)
+    assets: list[EngagementAssetCreate] = Field(..., min_length=1)
+
+    @model_validator(mode="after")
+    def validate_date_range(self) -> Self:
+        if self.start_date and self.end_date and self.start_date > self.end_date:
+            raise ValueError("start_date cannot be after end_date.")
+
+        return self
+
+class EngagementCreateResponse(BaseModel):
+    id: UUID
+    status: EngagementStatus
+    engagement_type: EngagementType
+    objective: str
+    start_date: date | None = None
+    end_date: date | None = None
+    asset_count: int
+    assigned_pentester_id: UUID | None = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EngagementRequestAssetResponse(BaseModel):
+    id: UUID
+    type: str
+    value: str
+
+# Small detail response for the intake endpoint.
+# Dev has a bigger EngagementDetailResponse below for dashboard views.
+class EngagementRequestDetailResponse(BaseModel):
+    id: UUID
+    status: EngagementStatus
+    engagement_type: EngagementType
+    objective: str
+    start_date: date | None = None
+    end_date: date | None = None
+    constraints: str | None = None
+    primary_contact: str | None = None
+    assets: list[EngagementRequestAssetResponse]
+    assigned_pentester_id: UUID | None = None
+    created_at: datetime
+
 
 class UserSummary(BaseModel):
     id: UUID
@@ -37,7 +132,6 @@ class EngagementAssetResponse(BaseModel):
     asset_type: str
     asset_metadata: dict[str, Any]
     verified_domain_id: UUID | None = None
-
     model_config = ConfigDict(from_attributes=True)
 
 class EngagementCounts(BaseModel):
