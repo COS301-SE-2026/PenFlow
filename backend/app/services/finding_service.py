@@ -224,7 +224,7 @@ class FindingService:
     ) -> None:
         finding = await FindingRepository.get_by_id(
             db,
-            finding_id=finding,
+            finding_id=finding_id,
         )
 
         if finding is None:

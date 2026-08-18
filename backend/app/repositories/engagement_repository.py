@@ -451,3 +451,17 @@ class EngagementRepository:
         await db.commit()
 
         return result.rowcount or 0
+
+
+    @staticmethod
+    async def update_status(
+        db: AsyncSession,
+        engagement: Engagement,
+        new_status: EngagementStatus,
+    ) -> Engagement:
+        engagement.status = new_status
+
+        await db.commit()
+        await db.refresh(engagement)
+
+        return engagement

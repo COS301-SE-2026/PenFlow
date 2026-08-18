@@ -26,6 +26,7 @@ from app.schemas.engagement import (
     EngagementOverviewCounts,
     EngagementPagination,
     EngagementSortField,
+    EngagementStatusResponse,
     LatestMessageSummary,
     MarkMessagesReadResponse,
     MessageClientSummary,
@@ -670,3 +671,61 @@ class EngagementService:
         )
 
         return MarkMessagesReadResponse(marked_read=marked_read)
+
+
+    @staticmethod
+    async def submit_for_review(
+        db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+    ) -> EngagementStatusResponse:
+        engagement = await EngagementRepository.get_by_id(
+            db,
+            engagement_id=engagement_id,
+        )
+
+        if engagement is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Engagement not found.",
+            )
+
+        if engagement.assigned_to != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not assigned to this engagement.",
+            )
+
+        if engagement.status != EngagementStatus.IN_PROGRESS:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Only engagements in progress can be submitted for review.",
+            )
+
+        engagement = await EngagementRepository.update_status(
+            db,
+            engagement=engagement,
+            new_status=EngagementStatus.REVIEW,
+        )
+
+        response_id = engagement.id
+        response_status = engagement.status
+        response_updated_at = engagement.updated_at
+
+        await AuditRepository.create_log(
+            db,
+            user_id=user_id,
+            action="engagement.submitted_for_review",
+            entity_type="engagement",
+            entity_id=engagement.id,
+            metadata={
+                "previous_status": "in_progress",
+                "new_status": "review",
+            },
+        )
+
+        return EngagementStatusResponse(
+            id=response_id,
+            status=response_status,
+            updated_at=response_updated_at,
+        )

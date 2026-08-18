@@ -18,11 +18,11 @@ class Engagement(Base):
         default=uuid.uuid4,
     )
 
-    organisation_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("organisations.id", ondelete = "CASCADE"),
-        nullable=True,
-    )
+    #organisation_id: Mapped[uuid.UUID | None] = mapped_column(
+    #    UUID(as_uuid=True),
+    #    ForeignKey("organisations.id", ondelete = "CASCADE"),
+    #    nullable=True,
+    #)
 
     requested_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

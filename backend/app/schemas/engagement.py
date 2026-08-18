@@ -164,3 +164,9 @@ class PentesterConversationListResponse(BaseModel):
 
 class MarkMessagesReadResponse(BaseModel):
     marked_read: int
+
+
+class EngagementStatusResponse(BaseModel):
+    id: UUID
+    status: EngagementStatus
+    updated_at: datetime
