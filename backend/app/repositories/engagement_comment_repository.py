@@ -37,6 +37,7 @@ class EngagementCommentRepository:
             finding_id=finding_id,
             user_id=user_id,
             comment=comment,
+            is_read=True,
         )
 
         db.add(rec)

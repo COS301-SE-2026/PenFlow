@@ -26,6 +26,11 @@ from app.schemas.engagement import (
     EngagementOverviewCounts,
     EngagementPagination,
     EngagementSortField,
+    LatestMessageSummary,
+    MarkMessagesReadResponse,
+    MessageClientSummary,
+    PentesterConversationSummary,
+    PentesterConversationListResponse,
     PreviousScanSummary,
     SortOrder,
     UserSummary,
@@ -600,3 +605,68 @@ class EngagementService:
             comment=comment.comment,
             created_at=comment.created_at,
         )
+
+
+    @staticmethod
+    async def get_message_conversations(
+        db: AsyncSession,
+        user_id: UUID,
+    ) -> PentesterConversationListResponse:
+        rows = await EngagementRepository.get_pentester_conversation_summaries(
+            db, 
+            pentester_id=user_id,
+        )
+
+        items: list[PentesterConversationSummary] = []
+
+        for (engagement, client, latest_comment, sender, message_count, unread_count) in rows:
+            last_message = None
+
+            if latest_comment is not None:
+                last_message = LatestMessageSummary(
+                    id=latest_comment.id,
+                    comment=latest_comment.comment,
+                    sender_name=(
+                        sender.full_name
+                        if sender is not None
+                        else None
+                    ),
+                    sender_role=(
+                        sender.role
+                        if sender is not None
+                        else "unknown"
+                    ),
+                    created_at=latest_comment.created_at,
+                )
+
+            items.append(
+                PentesterConversationSummary(
+                    engagement_id=engagement.id,
+                    engagement_title=engagement.title,
+                    client=MessageClientSummary(
+                        id=client.id,
+                        full_name=client.full_name,
+                        email=client.email,
+                    ),
+                    last_message=last_message,
+                    message_count=message_count,
+                    unread_count=unread_count,
+                )
+            )
+
+        return PentesterConversationListResponse(items=items)
+
+
+    @staticmethod
+    async def mark_messages_read(
+        db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+    ) -> MarkMessagesReadResponse:
+        marked_read = await EngagementRepository.mark_messages_read(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+
+        return MarkMessagesReadResponse(marked_read=marked_read)
