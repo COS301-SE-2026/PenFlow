@@ -133,3 +133,34 @@ class ActivityItemResponse(BaseModel):
 
 class ActivityListResponse(BaseModel):
     items: list[ActivityItemResponse]
+
+
+class MessageClientSummary(BaseModel):
+    id: UUID
+    full_name: str | None
+    email: str
+
+
+class LatestMessageSummary(BaseModel):
+    id: UUID
+    comment: str
+    sender_name: str | None
+    sender_role: str
+    created_at: datetime
+
+
+class PentesterConversationSummary(BaseModel):
+    engagement_id: UUID
+    engagement_title: str
+    client: MessageClientSummary
+    last_message: LatestMessageSummary | None
+    message_count: int
+    unread_count: int
+
+
+class PentesterConversationListResponse(BaseModel):
+    items: list[PentesterConversationSummary]
+
+
+class MarkMessagesReadResponse(BaseModel):
+    marked_read: int
