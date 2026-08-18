@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user
 from app.models.base import EngagementStatus, FindingReviewStatus, FindingStatus, Severity
+from app.models.user import User
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.engagement import (
     ActivityListResponse,
@@ -15,9 +16,10 @@ from app.schemas.engagement import (
     EngagementMessageListResponse,
     EngagementMessageResponse,
     EngagementSortField,
+    MarkMessagesReadResponse,
     SortOrder,
 )
-from app.schemas.finding import FindingCreate, FindingListItem, FindingListResponse
+from app.schemas.finding import FindingListResponse
 from app.schemas.retest import RetestListResponse
 from app.services.engagement_service import EngagementService
 from app.utils.db import get_db
@@ -124,27 +126,6 @@ async def get_engagement_findings(
     )
 
 
-@router.post(
-    "/{engagement_id}/findings", 
-    response_model=FindingListItem, 
-    status_code=status.HTTP_201_CREATED,
-)
-async def create_engagement_finding(
-    engagement_id: UUID,
-    request: FindingCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict[str, Any] = Depends(get_current_user),
-) -> FindingListItem:
-    user_id = await resolve_user_id(db, current_user)
-
-    return await EngagementService.create_manual_finding(
-        db,
-        engagement_id=engagement_id,
-        user_id=user_id,
-        request=request,
-    )
-
-
 @router.get("/{engagement_id}/retests", response_model=RetestListResponse)
 async def get_engagement_retests(
     engagement_id: UUID,
@@ -210,4 +191,19 @@ async def get_engagement_activity(
         engagement_id=engagement_id,
         user_id=user_id,
         limit=limit,
+    )
+
+
+@router.patch("/{engagement_id}/messages/read", response_model=MarkMessagesReadResponse)
+async def mark_engagement_messages_read(
+    engagement_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),  
+) -> MarkMessagesReadResponse:
+    user_id = await resolve_user_id(db, current_user)
+
+    return await EngagementService.mark_messages_read(
+        db,
+        engagement_id=engagement_id,
+        user_id=user_id,
     )
