@@ -32,8 +32,16 @@ type NavItem =
     { label: "Scan History", href: "/history", kind: "link"},
     //{ label: "Settings", href: "/settings", kind: "link"},
     { label: "Help", kind: "help"},
+    { label: "Pentesting", href: "/pentesting/engagement", kind: "link"},
     { label: "Logout", href: "/api/auth/logout", kind: "external"},
   ];
+
+   const pentestingNavItems: NavItem[] = [
+    {label: "Home", href: "/", kind: "link"},
+    {label: "Live Engagement", href: "/pentesting/engagement", kind: "link"},
+    { label: "Help", kind: "help"},
+    { label: "Logout", href: "/api/auth/logout", kind: "external"},
+  ]
 
 export default function NavBar() {
   //fix hydation error for login
@@ -42,6 +50,7 @@ export default function NavBar() {
   const pathName = usePathname();
   const HelpTopics = getHelpTopics(pathName);
   const [activeTopic, setActiveTopic] = useState<HelpTopic | null>(null);
+  const navItems = pathName.startsWith("/pentesting") ? pentestingNavItems : loggedInNavItems;
 
   useEffect( ()=>{
     setLoggedIn(isLoggedIn());
@@ -71,7 +80,7 @@ export default function NavBar() {
 
       {loggedIn ? (
         <ul className = "topnav-list">
-          {loggedInNavItems.map((item) => {
+          {navItems.map((item) => {
             if (item.kind === "external") {
               return (
                 <li key={item.label}>
