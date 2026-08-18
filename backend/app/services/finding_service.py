@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.base import EngagementStatus
 from app.models.finding import Finding
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.engagement_repository import EngagementRepository
@@ -213,3 +214,78 @@ class FindingService:
         await db.refresh(evidence)
 
         return EvidenceFileResponse.model_validate(evidence)
+
+
+    @staticmethod
+    async def delete_manual_finding(
+        db: AsyncSession,
+        finding_id: UUID,
+        user_id: UUID,
+    ) -> None:
+        finding = await FindingRepository.get_by_id(
+            db,
+            finding_id=finding,
+        )
+
+        if finding is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Finding not found.",
+            )
+
+        if finding.source != "manual":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Automated findings cannot be deleted.",
+            )
+
+        if finding.engagement_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Only engagement findings can be deleted.",
+            )
+
+        engagement = await EngagementRepository.get_by_id(
+            db,
+            engagement_id=finding.engagement_id,
+        )
+
+        if engagement is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Engagement not found.",
+            )
+
+        if engagement.assigned_to != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not assigned to this engagement.",
+            )
+
+        if engagement.status != EngagementStatus.IN_PROGRESS:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Findings can only be deleted while the engagement is in progress.",
+            )
+
+        finding_title = finding.title
+        engagement_id = finding.engagement_id
+
+        await FindingRepository.delete_finding(
+            db,
+            finding=finding,
+        )
+
+        await AuditRepository.create_log(
+            db,
+            user_id=user_id,
+            action="finding.deleted",
+            entity_type="finding",
+            entity_id=finding_id,
+            metadata={
+                "engagement_id": str(engagement_id),
+                "title": finding_title,
+                "source": "manual",
+            },
+        )
+        

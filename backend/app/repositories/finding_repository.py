@@ -180,3 +180,12 @@ class FindingRepository:
         await db.refresh(evidence)
 
         return evidence
+
+
+    @staticmethod
+    async def delete_finding(
+        db: AsyncSession,
+        finding: Finding,
+    ) -> None:
+        await db.delete(finding)
+        await db.commit()
