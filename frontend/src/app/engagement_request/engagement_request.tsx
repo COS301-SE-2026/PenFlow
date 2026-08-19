@@ -73,6 +73,32 @@ function duration_in_days(startDate: string, endDate: string): number | null {
     const diffMs = end.getTime() - start.getTime();
     return Math.round(diffMs / (1000 * 60 * 60 * 24));
 }
+
+// extract error message and convert to UI user can see
+function extract_error_message(body: unknown): string {
+    const fallback = "Failed to submit engagement request.";
+    if (!body || typeof body !== "object" || !("detail" in body)) return fallback;
+    const detail = (body as { detail: unknown }).detail;
+
+    if (typeof detail === "string") return detail;
+
+    if (Array.isArray(detail)) {
+        return detail
+            .map((err) => {
+                if (err && typeof err === "object" && "msg" in err) {
+                    const loc = Array.isArray((err as { loc?: unknown[] }).loc)
+                        ? (err as { loc: unknown[] }).loc.join(".")
+                        : "";
+                    return loc ? `${loc}: ${(err as { msg: string }).msg}` : (err as { msg: string }).msg;
+                }
+                return String(err);
+            })
+            .join(" ")
+    }
+    return fallback;
+}
+
+
 export default function EngagementHome() {
     const[engagementType,setEngagementType] = useState<EngagementType | null>(null);
    
@@ -124,11 +150,10 @@ export default function EngagementHome() {
             });
             const body = await res.json().catch(() => null);
             if (!res.ok) {
-                setSubmitError(body?.detail ?? "Failed to submit engagement request.");
+                setSubmitError(extract_error_message(body));
                 return;
             }
             setEstimatedQuote(body.estimated_quote);
-            setSubmitted(true);
             setSubmitted(true);
         } catch {
             setSubmitError("Failed to submit engagement request.");
@@ -275,7 +300,7 @@ export default function EngagementHome() {
                             id="primary-contact"
                             value={primaryContact}
                             onChange={(e) => setPrimaryContact(e.target.value)}
-                            placeholder="Name and email"
+                            placeholder="email"
                             className="h-11 text-lg"
                         />
                     </div>
