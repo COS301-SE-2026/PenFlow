@@ -240,7 +240,7 @@ services:
       KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_HTTP_ENABLED: "true"
     volumes:
-      - ./docker/keycloak:/opt/keycloak/data/import
+      - ./docker/keycloak/penflow-realm.json:/opt/keycloak/data/import/penflow-realm.json:ro
     command:
       - start-dev
       - --import-realm

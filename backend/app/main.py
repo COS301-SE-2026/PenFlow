@@ -8,7 +8,17 @@ from slowapi.errors import RateLimitExceeded
 
 import app.models  # noqa: F401 — registers all SQLAlchemy mappers before any query runs
 from app.api.middleware.rate_limiter import limiter
-from app.api.routes import domains, engagements, health, internal, scans, summary, users
+from app.api.routes import (
+    domains,
+    engagements,
+    findings,
+    health,
+    internal,
+    retests,
+    scans,
+    summary,
+    users,
+)
 from app.realtime import stream
 
 app = FastAPI(
@@ -42,3 +52,8 @@ app.include_router(users.router, prefix=API_V1_PREFIX)
 app.include_router(summary.router, prefix=API_V1_PREFIX)
 app.include_router(domains.router, prefix=API_V1_PREFIX)
 app.include_router(engagements.router, prefix=API_V1_PREFIX)
+<<<<<<< HEAD
+=======
+app.include_router(findings.router, prefix=API_V1_PREFIX)
+app.include_router(retests.router, prefix=API_V1_PREFIX)
+>>>>>>> dev
