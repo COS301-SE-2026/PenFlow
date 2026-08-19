@@ -102,8 +102,40 @@ export default function EngagementHome() {
     function handle_remove_asset(id:string){
         setAssets((prev)=>prev.filter((a)=>a.id!==id));
     }
-    function handle_submit(){   
+    async function handle_submit(){   
+        if (!engagementType) return;
+
         setSubmitted(true);
+        setSubmitError(null);
+        
+        try {
+            const res = await fetch("/api/engagements", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    engagement_type: engagementType,
+                    objective,
+                    start_date: startDate || null,
+                    end_date: endDate || null,
+                    constraints: constraints || null,
+                    primary_contact: primaryContact || null,
+                    assets: assets.map(({ type, value }) => ({ type, value })),
+                }),
+            });
+            const body = await res.json().catch(() => null);
+            if (!res.ok) {
+                setSubmitError(body?.detail ?? "Failed to submit engagement request.");
+                return;
+            }
+            setEstimatedQuote(body.estimated_quote);
+            setSubmitted(true);
+            setSubmitted(true);
+        } catch {
+            setSubmitError("Failed to submit engagement request.");
+        } finally {
+            setSubmitting(false);
+        }
+        
     }
      const can_submit = engagementType !== null && objective.trim().length > 0 && assets.length > 0;
 
