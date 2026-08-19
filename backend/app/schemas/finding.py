@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.base import FindingReviewStatus, FindingStatus, Severity
+from app.models.base import FindingStatus, Severity
 
 
 class EvidenceFileResponse(BaseModel):
@@ -33,7 +33,7 @@ class FindingUpdate(BaseModel):
     description: str | None = None
     recommendation: str | None = None
     status: FindingStatus | None = None
-    review_status: FindingReviewStatus | None = None
+    is_verified: bool
 
 class FindingListItem(BaseModel):
     id: UUID
@@ -41,7 +41,7 @@ class FindingListItem(BaseModel):
     engagement_asset_id: UUID | None = None
     source: str
     status: FindingStatus
-    review_status: FindingReviewStatus | None = None
+    is_verified: bool
     severity: Severity
     cvss_score: Decimal | None = None
     cve_id: str | None = None

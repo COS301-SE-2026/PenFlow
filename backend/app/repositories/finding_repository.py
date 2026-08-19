@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.base import FindingReviewStatus, FindingStatus, Severity
+from app.models.base import FindingStatus, Severity
 from app.models.engagement_asset import EngagementAsset
 from app.models.evidence_file import EvidenceFile
 from app.models.finding import Finding
@@ -56,7 +56,6 @@ class FindingRepository:
         source: str | None,
         severity: Severity | None,
         finding_status: FindingStatus | None,
-        review_status: FindingReviewStatus | None,
         search: str | None,
         limit: int,
         offset: int,
@@ -86,10 +85,6 @@ class FindingRepository:
         if finding_status is not None:
             query = query.where(Finding.status == finding_status)
             count_query = count_query.where(Finding.status == finding_status)
-
-        if review_status is not None:
-            query = query.where(Finding.review_status == review_status)
-            count_query = count_query.where(Finding.review_status == review_status)
 
         stripped_search = search.strip() if search else None
 
@@ -123,7 +118,6 @@ class FindingRepository:
             engagement_asset_id=request.engagement_asset_id,
             source="manual",
             status=FindingStatus.OPEN,
-            review_status=FindingReviewStatus.DRAFT,
             severity=request.severity,
             cvss_score=request.cvss_score,
             cve_id=request.cve_id,
@@ -189,3 +183,14 @@ class FindingRepository:
     ) -> None:
         await db.delete(finding)
         await db.commit()
+
+
+    @staticmethod
+    async def mark_verified(
+        db: AsyncSession,
+        finding: Finding,
+    ) -> Finding:
+        finding.is_verified = True
+        await db.commit()
+        await db.refresh(finding)
+        return finding

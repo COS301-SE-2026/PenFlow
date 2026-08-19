@@ -78,11 +78,6 @@ class EngagementStatus(str, enum.Enum):
     COMPLETED = "completed"
     CANCELLED = "cancelled"
 
-class FindingReviewStatus(str, enum.Enum):
-    DRAFT = "draft"
-    READY_FOR_REVIEW = "ready_for_review"
-    PUBLISHED = "published"
-
 class RetestStatus(str, enum.Enum):
     REQUESTED = "requested"
     IN_PROGRESS = "in_progress"

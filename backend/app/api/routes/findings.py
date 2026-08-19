@@ -147,3 +147,16 @@ async def delete_finding(
         finding_id=finding_id,
         user_id=user.id,
     )
+
+
+@router.patch("/{finding_id}/verify", response_model=FindingDetail)
+async def verify_finding(
+    finding_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_pentester),
+) -> FindingDetail:
+    return await FindingService.verify_automated_finding(
+        db,
+        finding_id=finding_id,
+        user_id=user.id,
+    )
