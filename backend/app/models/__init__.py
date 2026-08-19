@@ -1,11 +1,5 @@
 # type: ignore
 from app.models.asset import Asset as Asset
-<<<<<<< HEAD
-from app.models.activity_event import ActivityEvent
-from app.models.base import Base, ScanStatus, Severity
-from app.models.detected_technology import DetectedTechnology as DetectedTechnology
-from app.models.engagement import Engagement 
-=======
 from app.models.audit_log import AuditLog as AuditLog
 from app.models.base import Base, ScanStatus, Severity
 from app.models.detected_technology import DetectedTechnology as DetectedTechnology
@@ -13,7 +7,6 @@ from app.models.engagement import Engagement as Engagement
 from app.models.engagement_asset import EngagementAsset as EngagementAsset
 from app.models.engagement_comment import EngagementComment as EngagementComment
 from app.models.evidence_file import EvidenceFile as EvidenceFile
->>>>>>> dev
 from app.models.finding import Finding as Finding
 from app.models.finding_retest import FindingRetest as FindingRetest
 from app.models.organisation import Organisation as Organisation
