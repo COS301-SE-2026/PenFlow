@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from app.models.base import EngagementStatus
+from app.models.base import EngagementStatus, EngagementType
 from app.models.engagement import Engagement
 from app.models.engagement_asset import EngagementAsset
 from app.models.engagement_comment import EngagementComment
@@ -16,8 +16,36 @@ from app.models.finding import Finding
 from app.models.finding_retest import FindingRetest
 from app.models.scan import Scan
 from app.models.user import User
-from app.schemas.engagement import EngagementCreateRequest, EngagementSortField, SortOrder
+from app.schemas.engagement import (
+    EngagementCreateRequest,
+    EngagementSortField,
+    SortOrder,
+)
 
+#Fixed base cost by engagement tier, charged once per engagement
+BASE_COST: dict[EngagementType, Decimal] = {
+    EngagementType.BLACK_BOX: Decimal("600.00"),
+    EngagementType.GREY_BOX: Decimal("800.00"),
+    EngagementType.WHITE_BOX: Decimal("1000.00"),
+}
+
+# Flat per-asset, per-day rate, same across all tiers
+ASSET_DAILY_RATE = Decimal("2.00")
+
+# day calculation 
+def calculate_duration_days(start_date: date | None, end_date: date | None) -> int:
+    if start_date is None or end_date is None:
+        return 0
+    return (end_date - start_date).days
+
+#calculate estimate quote
+def calculate_estimated_quote(
+    engagement_type: EngagementType,
+    duration_days: int,
+    asset_count: int,
+)-> Decimal:
+    # the  quote formula still need to confirm
+    return BASE_COST[engagement_type] + (ASSET_DAILY_RATE * asset_count * duration_days)
 
 #the engagement is the main ticket
 #assets are subsequent rows
@@ -30,6 +58,7 @@ class EngagementRepository:
         client_user_id: UUID,
     ) -> Engagement:
         objective = request.objective.strip()
+        duration_days = calculate_duration_days(request.start_date, request.end_date)
         engagement = Engagement\
         (
             requested_by=client_user_id,
@@ -40,8 +69,10 @@ class EngagementRepository:
             title=objective[:255],
             scope=objective,
             objective=objective,
-            estimated_quote=Decimal("0.00"),
-            estimated_duration_days=None,
+            estimated_quote=calculate_estimated_quote(
+                request.engagement_type, duration_days, len(request.assets)
+            ),
+            estimated_duration_days=duration_days or None,
             requested_start_date=request.start_date,
             requested_end_date=request.end_date,
             constraints=request.constraints.strip() if request.constraints else None,
