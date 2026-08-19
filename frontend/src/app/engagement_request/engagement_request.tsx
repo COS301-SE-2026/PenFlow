@@ -105,7 +105,7 @@ export default function EngagementHome() {
     async function handle_submit(){   
         if (!engagementType) return;
 
-        setSubmitted(true);
+        setSubmitting(true);
         setSubmitError(null);
         
         try {
@@ -137,7 +137,9 @@ export default function EngagementHome() {
         }
         
     }
-     const can_submit = engagementType !== null && objective.trim().length > 0 && assets.length > 0;
+    const durationDays = duration_in_days(startDate, endDate);
+    const duration_valid = durationDays !== null && durationDays >= MIN_ENGAGEMENT_DAYS;
+    const can_submit = engagementType !== null && objective.trim().length > 0 && assets.length > 0 && duration_valid;
 
     return(
         <div className="mx-auto flex max-w-4xl flex-col gap-8 px-4 py-10 text-lg">
@@ -154,12 +156,22 @@ export default function EngagementHome() {
                 <CardContent className="flex items-center gap-3 py-4">
                     <CheckCircle2 className="size-6 shrink-0 text-brand-success" />
                     <p className="text-lg text-foreground">
-                        Engagement request captured. (frontend only )
+                        Engagement request captured. 
+                            {estimatedQuote !== null && (
+                                <> Estimated quote : <span className="font-semibold">R{estimatedQuote}</span>.
+                                </>
+                            )}
                     </p>
                 </CardContent>
             </Card>
             
-            
+            )}
+            {submitError && (
+                <Card className="border-brand-alert/40 bg-brand-alert/10">
+                        <CardContent className="py-4">
+                            <p className="text-lg text-foreground">{submitError}</p>
+                        </CardContent>
+                </Card>
             )}
              {/* Engagement type selection */}
              <Card>
@@ -236,6 +248,12 @@ export default function EngagementHome() {
                             />
                         </div>
                     </div>
+                    {startDate && endDate && !duration_valid && (
+                         <p className="text-base text-brand-alert">
+                            Engagements must run for at least {MIN_ENGAGEMENT_DAYS} days. Selected duration: {durationDays} day{durationDays === 1 ? "" : "s"}.
+                         </p>
+
+                    )}
 
 
                     <div className="flex flex-col gap-2">
@@ -347,17 +365,17 @@ export default function EngagementHome() {
                  <p className="text-base text-muted-foreground">
                     {can_submit
                         ?"Ready to submit."
-                        :"Select an engagement type, fill in the objective, and declare at least one asset."
+                         :`Select an engagement type, fill in the objective, declare at least one asset, and choose a start/end date at least ${MIN_ENGAGEMENT_DAYS} days apart.`
                     }
                  </p>
                  <Button
                  type = "button"
                  size = "lg"
-                 disabled ={!can_submit}
+                 disabled ={!can_submit || submitting}
                  onClick={handle_submit}
                  className="h-12 px-6 text-lg"
                  >
-                    Submit Request
+                    {submitting ? "Submitting…" : "Submit Request"}
                  </Button>
                  </div>
         </div>
