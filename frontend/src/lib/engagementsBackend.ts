@@ -16,7 +16,7 @@ export async function proxyToEngagementsApi(path: string, init: RequestInit ={})
         ...init,
         headers: {
             ...init.headers,
-            ...BACKEND_URL(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         },
         cache: "no-store",
     });
@@ -28,6 +28,10 @@ export async function proxyToEngagementsApi(path: string, init: RequestInit ={})
     const body = await response.json().catch(() => null);
     if (response.status >= 500) {
         console.error(`[engagements proxy] backend ${response.status} for ${path}:`,  body);
-        return
+        return NextResponse.json(
+            { detail: "Something went wrong. Please try again later."},
+            { status: response.status }
+        );
     }
+    return NextResponse.json(body, { status: response.status });
 } 
