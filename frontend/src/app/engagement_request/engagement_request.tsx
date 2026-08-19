@@ -63,6 +63,16 @@ const asset_type_options:{value: AssetType; label:string } [] = [
 
 ];
 
+//control to have min 7 days for a request
+const MIN_ENGAGEMENT_DAYS = 7;
+function duration_in_days(startDate: string, endDate: string): number | null {
+     if (!startDate || !endDate) return null;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffMs = end.getTime() - start.getTime();
+    return Math.round(diffMs / (1000 * 60 * 60 * 24));
+}
 export default function EngagementHome() {
     const[engagementType,setEngagementType] = useState<EngagementType | null>(null);
    
@@ -77,6 +87,10 @@ export default function EngagementHome() {
     const [assets, setAssets] = useState<Asset[]>([]);
 
     const [submitted, setSubmitted] = useState(false) ;
+    const [submitting, setSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const [estimatedQuote, setEstimatedQuote] = useState<string | null>(null);
+
 
     function handle_add_asset(){
         const value =assetValue.trim();

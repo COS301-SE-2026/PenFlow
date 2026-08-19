@@ -89,6 +89,7 @@ class EngagementCreateResponse(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     asset_count: int
+    estimated_quote: Decimal
     assigned_pentester_id: UUID | None = None
     created_at: datetime
 
