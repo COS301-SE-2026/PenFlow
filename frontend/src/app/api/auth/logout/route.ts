@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
   res.cookies.delete("refresh_token");
   res.cookies.delete("id_token");
   res.cookies.delete("logged_in");
+  res.cookies.delete("access_token_expires_at");
   
   return res;
 }

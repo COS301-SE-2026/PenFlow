@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.base import EngagementStatus, FindingReviewStatus, FindingStatus, Severity
+from app.models.base import EngagementStatus, FindingStatus, Severity
 from app.models.engagement import Engagement
 from app.models.finding import Finding
 from app.models.user import User
@@ -68,6 +68,32 @@ class EngagementService:
 
 
     @staticmethod
+    async def require_engagement_participant(
+        db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+    ) -> Engagement:
+        engagement = await EngagementRepository.get_by_id(
+            db,
+            engagement_id=engagement_id,
+        )
+
+        if engagement is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Engagement not found.",
+            )
+
+        if engagement.requested_by != user_id and engagement.assigned_to != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Engagement not found.",
+            )
+
+        return engagement
+
+
+    @staticmethod
     def finding_to_list_item(
         finding: Finding,
         asset_identifier: str | None = None,
@@ -78,7 +104,7 @@ class EngagementService:
             engagement_asset_id=finding.engagement_asset_id,
             source=finding.source,
             status=finding.status,
-            review_status=finding.review_status,
+            is_verified=finding.is_verified,
             severity=finding.severity,
             cvss_score=finding.cvss_score,
             cve_id=finding.cve_id,
@@ -293,7 +319,6 @@ class EngagementService:
         source: str | None,
         severity: Severity | None,
         finding_status: FindingStatus | None,
-        review_status: FindingReviewStatus | None,
         search: str | None,
         limit: int,
         offset: int,
@@ -310,7 +335,6 @@ class EngagementService:
             source=source,
             severity=severity,
             finding_status=finding_status,
-            review_status=review_status,
             search=search,
             limit=limit,
             offset=offset,
@@ -342,11 +366,17 @@ class EngagementService:
         user_id: UUID,
         request: FindingCreate,
     ) -> FindingListItem:
-        await EngagementService.require_assigned_engagement(
+        engagement = await EngagementService.require_assigned_engagement(
             db,
             engagement_id=engagement_id,
             user_id=user_id,
         )
+
+        if engagement is None or engagement.status != EngagementStatus.IN_PROGRESS:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Findings can only be created while the engagement is in progress.",
+            )
 
         if request.engagement_asset_id is not None:
             asset = await EngagementRepository.get_asset_by_id(
@@ -496,7 +526,7 @@ class EngagementService:
         engagement_id: UUID,
         user_id: UUID,
     ) -> EngagementMessageListResponse:
-        await EngagementService.require_assigned_engagement(
+        await EngagementService.require_engagement_participant(
             db,
             engagement_id=engagement_id,
             user_id=user_id,
@@ -535,7 +565,7 @@ class EngagementService:
         user_id: UUID,
         request: EngagementMessageCreate
     ) -> EngagementMessageResponse:
-        await EngagementService.require_assigned_engagement(
+        await EngagementService.require_engagement_participant(
             db,
             engagement_id=engagement_id,
             user_id=user_id,
@@ -664,6 +694,12 @@ class EngagementService:
         engagement_id: UUID,
         user_id: UUID,
     ) -> MarkMessagesReadResponse:
+        await EngagementService.require_assigned_engagement(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+        
         marked_read = await EngagementRepository.mark_messages_read(
             db,
             engagement_id=engagement_id,

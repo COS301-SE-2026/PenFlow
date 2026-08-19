@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user
-from app.models.base import EngagementStatus, FindingReviewStatus, FindingStatus, Severity
+from app.models.base import EngagementStatus,  FindingStatus, Severity
 from app.models.user import User
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.engagement import (
@@ -100,7 +100,6 @@ async def get_engagement_findings(
         FindingStatus | None,
         Query(alias="status"),
     ] = None,
-    review_status: FindingReviewStatus | None = None,
     search: Annotated[
         str | None,
         Query(max_length=255),
@@ -119,7 +118,6 @@ async def get_engagement_findings(
         source=source,
         severity=severity,
         finding_status=finding_status,
-        review_status=review_status,
         search=search,
         limit=limit,
         offset=offset,
