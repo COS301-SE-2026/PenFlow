@@ -1,3 +1,5 @@
+import { authenticatedFetch } from "@/lib/authFetch"
+
 const API_BASE = "/api/domains";
 export type domain_verification_status = "pending" | "verified" | "failed" | "expired";
 export type DomainVerificationCode = | "verified" | "record_not_found" | "token_mismatch" | "lookup_failed";
@@ -69,13 +71,13 @@ export async function fetch_domains(params: ListDomainsParams = {}): Promise<Dom
     if (params.offset !== undefined) query.set("offset", String(params.offset));
 
     const qs = query.toString();
-    const response = await fetch(`${API_BASE}${qs ? `?${qs}` : ""}`);
+    const response = await authenticatedFetch(`${API_BASE}${qs ? `?${qs}` : ""}`);
     if(!response.ok) throw await parseError(response, "Failed to load domains");
     return response.json();
 }
 
 export async function add_domain(domain: string): Promise<VerifiedDomain> {
-    const response = await fetch(API_BASE, {
+    const response = await authenticatedFetch(API_BASE, {
         method: "POST",
         headers: {"Content-Type" : "application/json"},
         body: JSON.stringify({domain}),
@@ -85,13 +87,13 @@ export async function add_domain(domain: string): Promise<VerifiedDomain> {
 }
 
 export async function verify_domain(domainId: string): Promise<VerifiedDomain> {
-    const response = await fetch(`${API_BASE}/${domainId}/verify`, {method: "POST" });
+    const response = await authenticatedFetch(`${API_BASE}/${domainId}/verify`, {method: "POST" });
     if(!response.ok) throw await parseError(response, "Verification failed");
     return response.json();
 }
 
 export async function delete_domain(domainId: string): Promise<void> {
-    const response = await fetch(`${API_BASE}/${domainId}`,{method: "DELETE"});
+    const response = await authenticatedFetch(`${API_BASE}/${domainId}`,{method: "DELETE"});
     if(!response.ok && response.status !== 204) {
         throw await parseError(response, "Failed to remove domain");
     }
