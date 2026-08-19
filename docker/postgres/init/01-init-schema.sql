@@ -94,12 +94,6 @@ CREATE TYPE retest_status AS ENUM (
     'still_vulnerable'
 );
 
-CREATE TYPE finding_verification_status AS ENUM (
-    'pending',
-    'confirmed',
-    'false_positive'
-);
-
 
 CREATE TABLE organisations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -248,7 +242,7 @@ CREATE TABLE findings (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     recommendation TEXT,
-    verification_status finding_verification_status,
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
     reviewed_at TIMESTAMPTZ,
     review_note TEXT,

@@ -227,6 +227,7 @@ resource "aws_ecs_task_definition" "keycloak" {
 
       command = [
         "start",
+        "--optimized",
         "--import-realm"
       ]
 
@@ -247,6 +248,7 @@ resource "aws_ecs_task_definition" "keycloak" {
         { name = "KC_BOOTSTRAP_ADMIN_USERNAME", value = var.keycloak_bootstrap_admin_username },
         { name = "KC_PROXY_HEADERS", value = "xforwarded" },
         { name = "KC_HTTP_ENABLED", value = "true" },
+        { name = "KC_HOSTNAME_BACKCHANNEL_DYNAMIC", value = "true" },
         { name = "KC_HEALTH_ENABLED", value = "true" },
         { name = "KC_METRICS_ENABLED", value = "true" },
         { name = "KC_HTTP_MANAGEMENT_HEALTH_ENABLED", value = "false" },
