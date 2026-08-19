@@ -20,7 +20,7 @@ router = APIRouter()
 async def list_all_engagements_admin(
     search: str | None = Query(default=None, description="Search by engagement title"),
     status: str | None = Query(default=None, description="Filter by EngagementStatus"),
-    pentester_id: UUID | None = Query(default=None, description="Filter by specific pentester UUID")
+    pentester_id: UUID | None = Query(default=None, description="Filter by specific pentester UUID"),
     assignment_status: str | None = Query(default=None, description="'assigned', 'unassigned', or 'all'"),
     sort: EngagementSortField = Query(default=EngagementSortField.CREATED_AT),
     order: SortOrder = Query(default=SortOrder.DESC),
