@@ -21,3 +21,17 @@ export interface ActivityItemResponse {
     metadata: Record<string, any>;
     created_at: string;
 }
+
+export async function fetchEngagements(): Promise<EngagementListItem[]> {
+    const res = await fetch("/api/engagements");
+    if (!res.ok) throw new Error("Failed to fetch engagements");
+    const data = await res.json();
+    return data.item || [];
+}
+
+export async function fetchEngagementActivity(id: string): Promise<ActivityItemResponse[]> {
+    const res = await fetch(`/api/engagements/${id}/activity`);
+    if (!res.ok) throw new Error("Failed to fetch activity");
+    const data = await res.json();
+    return data.items || [];
+}
