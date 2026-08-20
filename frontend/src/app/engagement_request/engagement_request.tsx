@@ -26,7 +26,7 @@ interface Asset {
     value :string;
 }
 
-const engagement_type_options:{
+const engagementTypeOptions:{
     value: EngagementType;
     label: string;
     description: string;
@@ -55,7 +55,7 @@ const engagement_type_options:{
 
 ];
 
-const asset_type_options:{value: AssetType; label:string } [] = [
+const assetTypeOptions:{value: AssetType; label:string } [] = [
     { value: "domain", label: "Domain" },
     { value: "ip", label: "IP Address" },
     { value: "hostname", label: "Hostname" },
@@ -65,7 +65,7 @@ const asset_type_options:{value: AssetType; label:string } [] = [
 ];
 
 //hint for each asset type
-const asset_type_hints: Record<AssetType, string> = {
+const assetTypeHints: Record<AssetType, string> = {
     domain: "e.g. example.com",
     ip: "e.g. 10.0.0.1",
     hostname:"e.g. server.local",
@@ -105,7 +105,7 @@ function validateAssetValue(type: AssetType, value: string): string | null {
 
 //control to have min 7 days for a request
 const MIN_ENGAGEMENT_DAYS = 7;
-function duration_in_days(startDate: string, endDate: string): number | null {
+function durationInDays(startDate: string, endDate: string): number | null {
      if (!startDate || !endDate) return null;
 
     const start = new Date(startDate);
@@ -115,7 +115,7 @@ function duration_in_days(startDate: string, endDate: string): number | null {
 }
 
 // extract error message and convert to UI user can see
-function extract_error_message(body: unknown): string {
+function extractErrorMessage(body: unknown): string {
     const fallback = "Failed to submit engagement request.";
     if (!body || typeof body !== "object" || !("detail" in body)) return fallback;
     const detail = (body as { detail: unknown }).detail;
@@ -158,7 +158,7 @@ export default function EngagementHome() {
     const [estimatedQuote, setEstimatedQuote] = useState<string | null>(null);
 
 
-    function handle_add_asset(){
+    function handleAddAsset(){
         const value =assetValue.trim();
         if(!value)return;
 
@@ -172,10 +172,10 @@ export default function EngagementHome() {
         setAssetValue("");
         setAssetError(null);
     }
-    function handle_remove_asset(id:string){
+    function handleRemoveAsset(id:string){
         setAssets((prev)=>prev.filter((a)=>a.id!==id));
     }
-    async function handle_submit(){   
+    async function handleSubmit(){   
         if (!engagementType) return;
 
         setSubmitting(true);
@@ -199,7 +199,7 @@ export default function EngagementHome() {
             });
             const body = await res.json().catch(() => null);
             if (!res.ok) {
-                setSubmitError(extract_error_message(body));
+                setSubmitError(extractErrorMessage(body));
                 return;
             }
             setEstimatedQuote(body.estimated_quote);
@@ -211,9 +211,9 @@ export default function EngagementHome() {
         }
         
     }
-    const durationDays = duration_in_days(startDate, endDate);
-    const duration_valid = durationDays !== null && durationDays >= MIN_ENGAGEMENT_DAYS;
-    const can_submit = engagementType !== null && objective.trim().length > 0 && assets.length > 0 && duration_valid;
+    const durationDays = durationInDays(startDate, endDate);
+    const durationValid = durationDays !== null && durationDays >= MIN_ENGAGEMENT_DAYS;
+    const canSubmit = engagementType !== null && objective.trim().length > 0 && assets.length > 0 && durationValid;
 
     return(
         <div className="mx-auto flex max-w-4xl flex-col gap-8 px-4 py-10 text-lg">
@@ -256,7 +256,7 @@ export default function EngagementHome() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4 sm:grid-cols-3">
-                    {engagement_type_options.map(({ value, label, description, icon: Icon})=>{
+                    {engagementTypeOptions.map(({ value, label, description, icon: Icon})=>{
                         const selected = engagementType === value;
                         return(
                             <button
@@ -322,7 +322,7 @@ export default function EngagementHome() {
                             />
                         </div>
                     </div>
-                    {startDate && endDate && !duration_valid && (
+                    {startDate && endDate && !durationValid && (
                          <p className="text-base text-brand-alert">
                             Engagements must run for at least {MIN_ENGAGEMENT_DAYS} days. Selected duration: {durationDays} day{durationDays === 1 ? "" : "s"}.
                          </p>
@@ -373,7 +373,7 @@ export default function EngagementHome() {
                                  <SelectValue/>
                              </SelectTrigger>
                              <SelectContent>
-                                {asset_type_options.map((opt) => (
+                                {assetTypeOptions.map((opt) => (
                                     <SelectItem key={opt.value} value={opt.value}>
                                         {opt.label}
                                     </SelectItem>
@@ -392,17 +392,17 @@ export default function EngagementHome() {
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") {
                                         e.preventDefault();
-                                        handle_add_asset();
+                                        handleAddAsset();
                                     }
                                 }}
                                 placeholder="Enter value"
                                 className={cn("h-11 text-lg", assetError && "border-brand-alert")}
                             />
                              <p className={cn("text-sm", assetError ? "text-brand-alert" : "text-muted-foreground")}>
-                                {assetError ?? asset_type_hints[assetType]}
+                                {assetError ?? assetTypeHints[assetType]}
                             </p>
                              </div>
-                            <Button type="button" size="lg" onClick={handle_add_asset} className="h-11 gap-2 text-base">
+                            <Button type="button" size="lg" onClick={handleAddAsset} className="h-11 gap-2 text-base">
                                  <Plus className="size-4" />
                                  Add asset
                             </Button>
@@ -421,13 +421,13 @@ export default function EngagementHome() {
                                 >
                                     <div className="flex items-center gap-3">
                                         <Badge variant="outline" className="text-sm uppercase tracking-wide">
-                                            {asset_type_options.find((o) => o.value === asset.type)?.label}
+                                            {assetTypeOptions.find((o) => o.value === asset.type)?.label}
                                         </Badge>
                                         <span className="font-mono text-lg text-foreground">{asset.value}</span>
                                     </div>
                                     <button
                                         type="button"
-                                        onClick={() => handle_remove_asset(asset.id)}
+                                        onClick={() => handleRemoveAsset(asset.id)}
                                         aria-label={`Remove ${asset.value}`}
                                         className="text-muted-foreground transition-colors hover:text-brand-alert"
                                     >
@@ -443,7 +443,7 @@ export default function EngagementHome() {
                  {/* Review & submit */}
                  <div className="flex items-center justify-between gap-4">
                  <p className="text-base text-muted-foreground">
-                    {can_submit
+                    {canSubmit
                         ?"Ready to submit."
                          :`Select an engagement type, fill in the objective, declare at least one asset, and choose a start/end date at least ${MIN_ENGAGEMENT_DAYS} days apart.`
                     }
@@ -451,8 +451,8 @@ export default function EngagementHome() {
                  <Button
                  type = "button"
                  size = "lg"
-                 disabled ={!can_submit || submitting}
-                 onClick={handle_submit}
+                 disabled ={!canSubmit || submitting}
+                 onClick={handleSubmit}
                  className="h-12 px-6 text-lg"
                  >
                     {submitting ? "Submitting…" : "Submit Request"}
