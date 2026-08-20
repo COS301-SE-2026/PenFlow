@@ -28,6 +28,8 @@ class EngagementRepository:
         db: AsyncSession,
         request: EngagementCreateRequest,
         client_user_id: UUID,
+        estimated_quote: Decimal,
+        estimated_duration_days: int,
     ) -> Engagement:
         objective = request.objective.strip()
         engagement = Engagement\
@@ -40,8 +42,8 @@ class EngagementRepository:
             title=objective[:255],
             scope=objective,
             objective=objective,
-            estimated_quote=Decimal("0.00"),
-            estimated_duration_days=None,
+            estimated_quote=estimated_quote,
+            estimated_duration_days=estimated_duration_days,
             requested_start_date=request.start_date,
             requested_end_date=request.end_date,
             constraints=request.constraints.strip() if request.constraints else None,
