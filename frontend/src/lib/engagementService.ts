@@ -26,7 +26,7 @@ export async function fetchEngagements(): Promise<EngagementListItem[]> {
     const res = await fetch("/api/engagements");
     if (!res.ok) throw new Error("Failed to fetch engagements");
     const data = await res.json();
-    return data.item || [];
+    return data.items || [];
 }
 
 export async function fetchEngagementActivity(id: string): Promise<ActivityItemResponse[]> {
