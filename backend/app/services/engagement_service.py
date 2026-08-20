@@ -1,3 +1,4 @@
+from decimal import ROUND_HALF_UP, Decimal
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -103,6 +104,71 @@ class EngagementService:
         )
 
     @staticmethod
+    def calculate_indicative_quote(
+        request: EngagementCreateRequest,
+    ) -> tuple[Decimal, int]:
+        # just estimate prices for the moment
+
+        base_quotes: dict[str, Decimal] = \
+        {
+            "black_box": Decimal("8000.00"),
+            "grey_box": Decimal("12000.00"),
+            "white_box": Decimal("16000.00"),
+        }
+
+        base_duration_days: dict[str, int] = \
+        {
+            "black_box": 3,
+            "grey_box": 5,
+            "white_box": 7,
+        }
+
+        asset_quotes: dict[str, Decimal] = \
+        {
+            "domain": Decimal("1200.00"),
+            "hostname": Decimal("1200.00"),
+            "ip": Decimal("1000.00"),
+            "url": Decimal("900.00"),
+        }
+
+        engagement_type = request.engagement_type.value
+
+        estimated_quote = base_quotes[engagement_type]
+        estimated_duration = base_duration_days[engagement_type]
+
+        for asset in request.assets:
+            estimated_quote += asset_quotes.get\
+            (
+                asset.type.value,
+                Decimal("1000.00"),
+            )
+
+        # Every few extra assets adds practical testing/reporting time
+        #and thus has to be accounted for
+        extra_asset_days = max(0, len(request.assets) - 1) // 3
+        estimated_duration += extra_asset_days
+
+        #overhead we have to deal with
+        if request.constraints and request.constraints.strip():
+            estimated_quote += Decimal("1500.00")
+            estimated_duration += 1
+
+        # if we need to rush we add a multiplier to the base cost package
+        if request.start_date is not None and request.end_date is not None:
+            available_days = (request.end_date - request.start_date).days + 1
+
+            if available_days < estimated_duration:
+                estimated_quote *= Decimal("1.15")
+
+        estimated_quote = estimated_quote.quantize\
+        (
+            Decimal("0.01"),
+            rounding=ROUND_HALF_UP,
+        )
+
+        return estimated_quote, estimated_duration
+
+    @staticmethod
     def build_create_response \
                     (
                     engagement: Engagement,
@@ -118,9 +184,11 @@ class EngagementService:
                 start_date=engagement.requested_start_date,
                 end_date=engagement.requested_end_date,
                 asset_count=asset_count,
+                estimated_quote=engagement.estimated_quote,
+                estimated_duration_days=engagement.estimated_duration_days,
                 assigned_pentester_id=engagement.assigned_to,
                 created_at=engagement.created_at,
-            )
+                )
 
     @staticmethod
     def finding_to_list_item(
@@ -391,23 +459,29 @@ class EngagementService:
 
     @staticmethod
     async def create_engagement \
-                    (
-                    db: AsyncSession,
-                    request: EngagementCreateRequest,
-                    client_user_id: UUID,
-            ) -> EngagementCreateResponse:
+    (
+        db: AsyncSession,
+        request: EngagementCreateRequest,
+        client_user_id: UUID,
+    ) -> EngagementCreateResponse:
+        estimated_quote, estimated_duration_days = \
+        (
+            EngagementService.calculate_indicative_quote(request)
+        )
         # save the request first.
         engagement = await EngagementRepository.create_engagement \
-                (
-                db,
-                request=request,
-                client_user_id=client_user_id,
-            )
+        (
+            db,
+            request=request,
+            client_user_id=client_user_id,
+            estimated_quote=estimated_quote,
+            estimated_duration_days=estimated_duration_days,
+        )
         return EngagementService.build_create_response \
-                (
-                engagement,
-                asset_count=len(request.assets),
-            )
+        (
+            engagement,
+            asset_count=len(request.assets),
+        )
 
     @staticmethod
     async def create_manual_finding(
