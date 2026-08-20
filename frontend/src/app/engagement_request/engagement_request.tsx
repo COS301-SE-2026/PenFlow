@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import { cn } from "@/lib/utils";
+import { validateDomain } from "@/lib/domainValidator";
 
 
 //type declaration 
@@ -63,6 +64,45 @@ const asset_type_options:{value: AssetType; label:string } [] = [
 
 ];
 
+//hint for each asset type
+const asset_type_hints: Record<AssetType, string> = {
+    domain: "e.g. example.com",
+    ip: "e.g. 10.0.0.1",
+    hostname:"e.g. server.local",
+    url: "must start with http:// or https://, e.g. https://example.com",
+}
+
+//simple ip check for ip for 1-3 numbers
+const SIMPLE_IP_REGEX = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
+
+//sane rules for backend validate
+const HOSTNAME_REGEX = /^(?!-)[A-Za-z0-9-]{1,63}(?<!-)(\.(?!-)[A-Za-z0-9-]{1,63}(?<!-))*$/;
+
+//validate asset function
+function validateAssetValue(type: AssetType, value: string): string | null {
+    const trimmed = value.trim();
+    if (!trimmed) return "Value is required.";
+    switch (type) {
+        case "domain": {
+            const result = validateDomain(trimmed);
+            return result.valid ? null : result.error;
+        }
+        case "ip":
+            return SIMPLE_IP_REGEX.test(trimmed)
+                ? null
+                : "Asset value must be a valid IP address (e.g. 10.0.0.1).";
+        case "hostname":
+            return HOSTNAME_REGEX.test(trimmed)
+                ? null
+                : "Asset value must be a valid hostname (letters, digits, hyphens, and dots only).";
+        case "url":
+            return trimmed.startsWith("http://") || trimmed.startsWith("https://")
+                ? null
+                : "URL assets must start with http:// or https://.";
+    }
+}
+
+
 //control to have min 7 days for a request
 const MIN_ENGAGEMENT_DAYS = 7;
 function duration_in_days(startDate: string, endDate: string): number | null {
@@ -86,10 +126,9 @@ function extract_error_message(body: unknown): string {
         return detail
             .map((err) => {
                 if (err && typeof err === "object" && "msg" in err) {
-                    const loc = Array.isArray((err as { loc?: unknown[] }).loc)
-                        ? (err as { loc: unknown[] }).loc.join(".")
-                        : "";
-                    return loc ? `${loc}: ${(err as { msg: string }).msg}` : (err as { msg: string }).msg;
+                   
+                    //remove pydantic defualt message value error
+                    return (err as { msg: string }).msg.replace(/^Value error,\s*/, "");
                 }
                 return String(err);
             })
@@ -110,6 +149,7 @@ export default function EngagementHome() {
 
     const [assetType, setAssetType] = useState<AssetType>("domain");
     const [assetValue, setAssetValue] = useState("");
+    const [assetError, setAssetError] = useState<string | null>(null);
     const [assets, setAssets] = useState<Asset[]>([]);
 
     const [submitted, setSubmitted] = useState(false) ;
@@ -122,8 +162,15 @@ export default function EngagementHome() {
         const value =assetValue.trim();
         if(!value)return;
 
+        const error = validateAssetValue(assetType, value);
+        if (error) {
+            setAssetError(error);
+            return;
+        }
+
         setAssets((prev) => [...prev, { id: crypto.randomUUID(), type: assetType, value}]);
         setAssetValue("");
+        setAssetError(null);
     }
     function handle_remove_asset(id:string){
         setAssets((prev)=>prev.filter((a)=>a.id!==id));
@@ -133,6 +180,8 @@ export default function EngagementHome() {
 
         setSubmitting(true);
         setSubmitError(null);
+        setSubmitted(false);
+        setEstimatedQuote(null);
         
         try {
             const res = await fetch("/api/engagements", {
@@ -300,7 +349,7 @@ export default function EngagementHome() {
                             id="primary-contact"
                             value={primaryContact}
                             onChange={(e) => setPrimaryContact(e.target.value)}
-                            placeholder="email"
+                            placeholder="name"
                             className="h-11 text-lg"
                         />
                     </div>
@@ -318,7 +367,8 @@ export default function EngagementHome() {
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
                             <div className="flex flex-col gap-2 sm:w-48">
                             <Label className="text-base">Asset type</Label>
-                            <Select value={assetType} onValueChange={(v) => setAssetType(v as AssetType)}>
+                             <Select value={assetType} onValueChange={(v) => { setAssetType(v as AssetType); 
+                                setAssetError(null); }}>
                              <SelectTrigger className="h-11 text-lg">
                                  <SelectValue/>
                              </SelectTrigger>
@@ -330,22 +380,27 @@ export default function EngagementHome() {
                                 ))}
                              </SelectContent>
                          </Select>
+                                <p className="text-sm text-muted-foreground invisible">spacer</p>
                         </div>
 
                         <div className="flex flex-1 flex-col gap-2">
                             <Label className="text-base">Value</Label>
                             <Input
                                 value={assetValue}
-                                onChange={(e) => setAssetValue(e.target.value)}
+                                onChange={(e) => { setAssetValue(e.target.value); 
+                                    setAssetError(null); }}
                                 onKeyDown={(e) => {
                                     if (e.key === "Enter") {
                                         e.preventDefault();
                                         handle_add_asset();
                                     }
                                 }}
-                                placeholder="e.g. app.example.com"
-                                className="h-11 text-lg"
+                                placeholder="Enter value"
+                                className={cn("h-11 text-lg", assetError && "border-brand-alert")}
                             />
+                             <p className={cn("text-sm", assetError ? "text-brand-alert" : "text-muted-foreground")}>
+                                {assetError ?? asset_type_hints[assetType]}
+                            </p>
                              </div>
                             <Button type="button" size="lg" onClick={handle_add_asset} className="h-11 gap-2 text-base">
                                  <Plus className="size-4" />
