@@ -22,6 +22,8 @@ type NavItem =
   | { label: string; kind: "disabled"}
   | { label: string; kind: "help"};
 
+  const IS_PENTESTER = true;
+
   const loggedInNavItems: NavItem[] = [
     { label: "Home", href: "/", kind: "link"},
     //{ label: "Dashboard", href: "/dashboard", kind: "link"},
@@ -31,13 +33,21 @@ type NavItem =
     { label: "Scan History", href: "/history", kind: "link"},
     //{ label: "Settings", href: "/settings", kind: "link"},
     { label: "Help", kind: "help"},
-    { label: "Pentesting", href: "/pentesting/engagement", kind: "link"},
+    { label: "Pentesting", href: IS_PENTESTER ? "/pentesting/console/dashboard": "/pentesting/engagement", kind: "link"},
     { label: "Logout", href: "/api/auth/logout", kind: "external"},
   ];
 
    const pentestingNavItems: NavItem[] = [
     {label: "Home", href: "/", kind: "link"},
     {label: "Live Engagement", href: "/pentesting/engagement", kind: "link"},
+    { label: "Help", kind: "help"},
+    { label: "Logout", href: "/api/auth/logout", kind: "external"},
+  ]
+
+  const pentesterConsoleNavItems: NavItem[] = [
+    { label: "Home", href: "/", kind: "link"},
+    { label: "My Engagements", href: "/pentesting/console/my-engagements", kind: "link"},
+    { label: "Messages", href: "/pentesting/console/messages", kind: "link"},
     { label: "Help", kind: "help"},
     { label: "Logout", href: "/api/auth/logout", kind: "external"},
   ]
@@ -49,7 +59,7 @@ export default function NavBar() {
   const pathName = usePathname();
   const HelpTopics = getHelpTopics(pathName);
   const [activeTopic, setActiveTopic] = useState<HelpTopic | null>(null);
-  const navItems = pathName.startsWith("/pentesting") ? pentestingNavItems : loggedInNavItems;
+  const navItems = pathName.startsWith("/pentesting") ? (IS_PENTESTER ? pentesterConsoleNavItems:  pentestingNavItems ): loggedInNavItems;
 
   useEffect( ()=>{
     setLoggedIn(isLoggedIn());
