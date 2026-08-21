@@ -1,4 +1,5 @@
 from datetime import date
+from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -23,3 +24,8 @@ class AdminUserListItem(BaseModel):
 class AdminUserListResponse(BaseModel):
     items: list[AdminUserListItem]
     pagination: AdminPagination
+
+class AdminUserRoleFilter(str, Enum):
+    ADMIN = "admin"
+    CLIENT = "client"
+    PENTESTER = "pentester"
