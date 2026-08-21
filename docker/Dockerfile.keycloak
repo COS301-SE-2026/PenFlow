@@ -17,4 +17,4 @@ COPY docker/keycloak/themes/penflow \
     /opt/keycloak/themes/penflow
 
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
-CMD ["start", "--optimized"]
+CMD ["start", "--optimized", "--import-realm"]

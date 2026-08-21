@@ -4,6 +4,7 @@ from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import Select, func, or_, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.attributes import InstrumentedAttribute
@@ -428,7 +429,7 @@ class EngagementRepository:
     async def get_pentester_conversation_summaries(
         db: AsyncSession,
         pentester_id: UUID,
-    ) -> list[tuple]:
+    ) -> list[tuple[Any, ...]]:
         client = aliased(User)
         sender = aliased(User)
 
@@ -524,10 +525,10 @@ class EngagementRepository:
             ).values(is_read=True)
         )
 
-        result = await db.execute(stmt)
+        result = cast(CursorResult[Any], await db.execute(stmt))
         await db.commit()
 
-        return result.rowcount or 0
+        return max(result.rowcount, 0)
 
 
     @staticmethod

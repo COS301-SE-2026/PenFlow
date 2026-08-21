@@ -56,6 +56,12 @@ class FindingService:
             user_id=user_id,
         )
 
+        if finding.engagement_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Finding is not associated with engagement.",
+            )
+
         engagement = await EngagementRepository.get_by_id(
             db,
             engagement_id=finding.engagement_id,
