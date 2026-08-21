@@ -3,13 +3,14 @@ import os
 from typing import Any, cast
 
 import httpx
-from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from app.repositories.user_repo import get_user_id_by_provider_id
-from app.models.user import User
-from app.utils.db import get_db
 from jose import JWTError, jwt
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.user import User
+from app.repositories.user_repo import get_user_id_by_provider_id
+from app.utils.db import get_db
 
 logger = logging.getLogger(__name__)
 

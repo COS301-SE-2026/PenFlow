@@ -5,8 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user
-from app.models.base import EngagementStatus,  FindingStatus, Severity
-from app.models.user import User
+from app.models.base import EngagementStatus, FindingStatus, Severity
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.engagement import (
     ActivityListResponse,

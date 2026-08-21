@@ -6,8 +6,8 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User
 from app.api.middleware.auth import get_current_user, require_pentester
+from app.models.user import User
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.finding import EvidenceFileResponse, FindingDetail, FindingUpdate
 from app.services.finding_service import FindingService
