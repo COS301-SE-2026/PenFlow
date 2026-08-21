@@ -207,13 +207,23 @@ CREATE TABLE engagements (
     status engagement_status NOT NULL DEFAULT 'requested',
     title VARCHAR(255) NOT NULL,
     scope TEXT NOT NULL,
-    estimated_quote NUMERIC(12,2) NOT NULL,
+    objective TEXT,
+    constraints TEXT,
+    primary_contact VARCHAR(255),
+    estimated_quote NUMERIC(12,2) NOT NULL DEFAULT 0.00,
     estimated_duration_days INTEGER,
     requested_start_date DATE,
+    requested_end_date DATE,
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CHECK (
+        requested_start_date IS NULL
+        OR requested_end_date IS NULL
+        OR requested_start_date <= requested_end_date
+    )
 );
 
 CREATE TABLE engagement_assets (
@@ -424,6 +434,8 @@ CREATE INDEX idx_detected_tech_product_ver ON detected_technologies(product, ver
 CREATE INDEX idx_engagement_status ON engagements(status);
 CREATE INDEX idx_engagement_requested_by ON engagements(requested_by);
 CREATE INDEX idx_engagement_assigned_to ON engagements(assigned_to);
+CREATE INDEX idx_engagement_assets_engagement_id ON engagement_assets(engagement_id);
+CREATE INDEX idx_engagement_assets_asset_type ON engagement_assets(asset_type);
 
 CREATE INDEX idx_findings_engagement ON findings(engagement_id);
 

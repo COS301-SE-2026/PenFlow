@@ -9,6 +9,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, EngagementStatus, EngagementType
 
 
+# Main phase 3 request ticket.
+# admins/pentesters can review and work from this later
 class Engagement(Base):
     __tablename__ = "engagements"
 
@@ -24,6 +26,7 @@ class Engagement(Base):
     #    nullable=True,
     #)
 
+    #User submitted request
     requested_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id"),
@@ -65,8 +68,13 @@ class Engagement(Base):
     )
 
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-
     scope: Mapped[str] = mapped_column(Text, nullable=False)
+
+    objective: Mapped[str|None] = mapped_column\
+    (
+        Text,
+        nullable=False,
+    )
 
     estimated_quote: Mapped[Decimal] = mapped_column(
         Numeric(12,2),
@@ -80,6 +88,24 @@ class Engagement(Base):
 
     requested_start_date: Mapped[date | None] = mapped_column(
         Date,
+        nullable=True,
+    )
+
+    requested_end_date: Mapped[date | None] = mapped_column\
+    (
+        Date,
+        nullable=True,
+    )
+
+    constraints: Mapped[str | None] = mapped_column\
+    (
+        Text,
+        nullable=True,
+    )
+
+    primary_contact: Mapped[str | None] = mapped_column\
+    (
+        String(255),
         nullable=True,
     )
 

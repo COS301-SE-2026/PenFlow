@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 from typing import Any, cast
 from uuid import UUID
 
@@ -7,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from app.models.base import EngagementStatus
+from app.models.base import EngagementStatus, EngagementType
 from app.models.engagement import Engagement
 from app.models.engagement_asset import EngagementAsset
 from app.models.engagement_comment import EngagementComment
@@ -15,10 +16,86 @@ from app.models.finding import Finding
 from app.models.finding_retest import FindingRetest
 from app.models.scan import Scan
 from app.models.user import User
-from app.schemas.engagement import EngagementSortField, SortOrder
+from app.schemas.engagement import (
+    EngagementCreateRequest,
+    EngagementSortField,
+    SortOrder,
+)
 
+#Fixed base cost by engagement tier, charged once per engagement
+BASE_COST: dict[EngagementType, Decimal] = {
+    EngagementType.BLACK_BOX: Decimal("600.00"),
+    EngagementType.GREY_BOX: Decimal("800.00"),
+    EngagementType.WHITE_BOX: Decimal("1000.00"),
+}
 
+# Flat per-asset, per-day rate, same across all tiers
+ASSET_DAILY_RATE = Decimal("2.00")
+
+# day calculation 
+def calculate_duration_days(start_date: date | None, end_date: date | None) -> int:
+    if start_date is None or end_date is None:
+        return 0
+    return (end_date - start_date).days
+
+#calculate estimate quote
+def calculate_estimated_quote(
+    engagement_type: EngagementType,
+    duration_days: int,
+    asset_count: int,
+)-> Decimal:
+    # the  quote formula still need to confirm
+    return BASE_COST[engagement_type] + (ASSET_DAILY_RATE * asset_count * duration_days)
+
+#the engagement is the main ticket
+#assets are subsequent rows
 class EngagementRepository:
+    @staticmethod
+    async def create_engagement\
+    (
+        db: AsyncSession,
+        request: EngagementCreateRequest,
+        client_user_id: UUID,
+    ) -> Engagement:
+        objective = request.objective.strip()
+        duration_days = calculate_duration_days(request.start_date, request.end_date)
+        engagement = Engagement\
+        (
+            requested_by=client_user_id,
+            assigned_to=None,
+            engagement_type=request.engagement_type,
+            priority="medium",
+            status=EngagementStatus.SCOPING,
+            title=objective[:255],
+            scope=objective,
+            objective=objective,
+            estimated_quote=calculate_estimated_quote(
+                request.engagement_type, duration_days, len(request.assets)
+            ),
+            estimated_duration_days=duration_days or None,
+            requested_start_date=request.start_date,
+            requested_end_date=request.end_date,
+            constraints=request.constraints.strip() if request.constraints else None,
+            primary_contact=request.primary_contact.strip() if request.primary_contact else None,
+        )
+
+        engagement.assets = \
+        [
+            EngagementAsset\
+            (
+                identifier=asset.value.strip(),
+                asset_type=asset.type.value,
+                asset_metadata={},
+            )
+            for asset in request.assets
+        ]
+
+        db.add(engagement)
+        await db.commit()
+        await db.refresh(engagement)
+
+        return engagement
+
     @staticmethod
     async def get_by_id(db: AsyncSession, engagement_id: UUID) -> Engagement | None:
         query = select(Engagement).where(Engagement.id == engagement_id)
@@ -28,12 +105,12 @@ class EngagementRepository:
 
     @staticmethod
     async def get_assigned_by_id(
-        db: AsyncSession, 
-        engagement_id: UUID, 
+        db: AsyncSession,
+        engagement_id: UUID,
         user_id: UUID
     ) -> Engagement | None:
         query = select(Engagement).where(
-            Engagement.id == engagement_id, 
+            Engagement.id == engagement_id,
             Engagement.assigned_to == user_id,
         )
 
@@ -189,8 +266,8 @@ class EngagementRepository:
     async def get_asset_by_id(
         db: AsyncSession,
         engagement_id: UUID,
-        asset_id: UUID,
-    ) -> EngagementAsset | None:
+        asset_id:UUID,
+        )-> EngagementAsset | None:
         query = select(EngagementAsset).where(
             EngagementAsset.id == asset_id,
             EngagementAsset.engagement_id == engagement_id,

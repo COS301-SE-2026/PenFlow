@@ -65,11 +65,13 @@ class FindingStatus(str, enum.Enum):
     ACCEPTED_RISK = "accepted_risk"
     FALSE_POSITIVE = "false_positive"
 
+#Engagement type from form
 class EngagementType(str, enum.Enum):
     BLACK_BOX = "black_box"
     GREY_BOX = "grey_box"
     WHITE_BOX = "white_box"
 
+#initial set up for our engagement survey
 class EngagementStatus(str, enum.Enum):
     REQUESTED = "requested"
     SCOPING = "scoping"

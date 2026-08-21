@@ -9,6 +9,8 @@ from app.models.base import EngagementStatus, FindingStatus, Severity
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.engagement import (
     ActivityListResponse,
+    EngagementCreateRequest,
+    EngagementCreateResponse,
     EngagementDetailResponse,
     EngagementListResponse,
     EngagementMessageCreate,
@@ -27,8 +29,8 @@ router = APIRouter(prefix="/engagements", tags=["Engagements"])
 
 
 async def resolve_user_id(
-        db: AsyncSession,
-        current_user: dict[str, Any],
+    db: AsyncSession,
+    current_user: dict[str, Any],
 ) -> UUID:
     user_id = await get_user_id_by_provider_id(
         db,
@@ -44,7 +46,31 @@ async def resolve_user_id(
     return user_id
 
 
-@router.get("", response_model=EngagementListResponse)
+@router.post(
+    "/",
+    response_model=EngagementCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create client engagement request",
+)
+
+async def create_engagement_request(
+    request: EngagementCreateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> EngagementCreateResponse:
+    user_id = await resolve_user_id(db, current_user)
+
+    return await EngagementService.create_engagement(
+        db,
+        request=request,
+        client_user_id=user_id,
+    )
+
+@router.get(
+    "",
+    response_model=EngagementListResponse,
+    summary="List assigned engagements",
+)
 async def get_engagements(
     engagement_status: Annotated[
         EngagementStatus | None,
@@ -75,7 +101,11 @@ async def get_engagements(
     )
 
 
-@router.get("/{engagement_id}", response_model=EngagementDetailResponse)
+@router.get(
+    "/{engagement_id}",
+    response_model=EngagementDetailResponse,
+    summary="Get engagement detail",
+)
 async def get_engagement(
     engagement_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -90,7 +120,11 @@ async def get_engagement(
     )
 
 
-@router.get("/{engagement_id}/findings", response_model=FindingListResponse)
+@router.get(
+    "/{engagement_id}/findings",
+    response_model=FindingListResponse,
+    summary="List findings for an engagement",
+)
 async def get_engagement_findings(
     engagement_id: UUID,
     source: Annotated[str | None, Query(max_length=100)] = None,
@@ -123,7 +157,11 @@ async def get_engagement_findings(
     )
 
 
-@router.get("/{engagement_id}/retests", response_model=RetestListResponse)
+@router.get(
+    "/{engagement_id}/retests",
+    response_model=RetestListResponse,
+    summary="List retests for an engagement",
+)
 async def get_engagement_retests(
     engagement_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -138,7 +176,11 @@ async def get_engagement_retests(
     )
 
 
-@router.get("/{engagement_id}/messages", response_model=EngagementMessageListResponse)
+@router.get(
+    "/{engagement_id}/messages",
+    response_model=EngagementMessageListResponse,
+    summary="List engagement messages",
+)
 async def get_engagement_messages(
     engagement_id: UUID,
     db: AsyncSession = Depends(get_db),
@@ -154,9 +196,10 @@ async def get_engagement_messages(
 
 
 @router.post(
-    "/{engagement_id}/messages", 
+    "/{engagement_id}/messages",
     response_model=EngagementMessageResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Create engagement message",
 )
 async def create_engagement_message(
     engagement_id: UUID,
@@ -174,7 +217,11 @@ async def create_engagement_message(
     )
 
 
-@router.get("/{engagement_id}/activity", response_model=ActivityListResponse)
+@router.get(
+    "/{engagement_id}/activity",
+    response_model=ActivityListResponse,
+    summary="List engagement activity",
+)
 async def get_engagement_activity(
     engagement_id: UUID,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
@@ -191,7 +238,11 @@ async def get_engagement_activity(
     )
 
 
-@router.patch("/{engagement_id}/messages/read", response_model=MarkMessagesReadResponse)
+@router.patch(
+        "/{engagement_id}/messages/read", 
+        response_model=MarkMessagesReadResponse,
+        summary="Marks viewed messages as read",
+)
 async def mark_engagement_messages_read(
     engagement_id: UUID,
     db: AsyncSession = Depends(get_db),
