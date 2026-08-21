@@ -1,0 +1,33 @@
+env:
+  contexts:
+  - excludePaths: []
+    name: baseline
+    urls:
+    - https://pen-flow.com
+  parameters:
+    failOnError: true
+    progressToStdout: false
+jobs:
+- parameters:
+    enableTags: false
+    maxAlertsPerRule: 10
+  type: passiveScan-config
+- parameters:
+    maxDuration: 5
+    url: https://pen-flow.com
+  type: spider
+- parameters:
+    maxDuration: 5
+  type: passiveScan-wait
+- parameters:
+    format: Long
+    summaryFile: /home/zap/zap_out.json
+  rules: []
+  type: outputSummary
+- parameters:
+    reportDescription: ''
+    reportDir: /zap/wrk/
+    reportFile: report.html
+    reportTitle: ZAP Scanning Report
+    template: traditional-html
+  type: report

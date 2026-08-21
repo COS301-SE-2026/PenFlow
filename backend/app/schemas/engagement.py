@@ -1,4 +1,5 @@
 import enum
+import re
 from datetime import date, datetime
 from decimal import Decimal
 from ipaddress import ip_address
@@ -10,7 +11,18 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.models.base import EngagementStatus, EngagementType
 from app.schemas.finding import FindingListItem
 
+#regex for Label for hostname
+#don't lead and end with -
+# allows digit and character and charcter from 1-63
+_LABEL = r"(?!-)[A-Za-z0-9-]{1,63}(?<!-)"
 
+
+#regex:hostname must be labels separated by dots
+_HOSTNAME_PATTERN = re.compile(rf"^{_LABEL}(\.{_LABEL})*$")
+
+
+#regex:domain backend check
+_DOMAIN_PATTERN = re.compile(rf"^{_LABEL}(\.{_LABEL})*\.[A-Za-z]{{2,}}$")
 class SortOrder(str, enum.Enum):
     ASC = "asc"
     DESC = "desc"
@@ -53,12 +65,20 @@ class EngagementAssetCreate(BaseModel):
         ):
             raise ValueError("URL assets must start with http:// or https://.")
 
-        if self.type in {
-            EngagementAssetRequestType.DOMAIN,
-            EngagementAssetRequestType.HOSTNAME,
-        }:
-            if "/" in stripped_value or " " in stripped_value:
-                raise ValueError("Domain and hostname assets cannot contain spaces or paths.")
+        #error message for domain and hostname
+        if self.type == EngagementAssetRequestType.DOMAIN:
+                    if len(stripped_value) > 253 or not _DOMAIN_PATTERN.match(stripped_value):
+                        raise ValueError(
+                            "Asset value must be a valid domain (e.g. example.com)."
+                        )
+        
+        if self.type == EngagementAssetRequestType.HOSTNAME:
+                    if len(stripped_value) > 253 or not _HOSTNAME_PATTERN.match(stripped_value):
+                        raise ValueError(
+                            "Asset value must be a valid hostname "
+                            "(letters, digits, hyphens, and dots only)."
+                )
+        
 
         self.value = stripped_value
         return self
@@ -89,6 +109,7 @@ class EngagementCreateResponse(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     asset_count: int
+    estimated_quote: Decimal
     assigned_pentester_id: UUID | None = None
     created_at: datetime
 
