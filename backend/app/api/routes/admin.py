@@ -18,8 +18,25 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
     summary="List users for admin dashboard",
 )
 async def get_admin_users(
-    search: Annotated[str | None, Query(max_length=255)] = None,
-    role: AdminUserRoleFilter | None = None,
+    search: Annotated\
+    [
+        str | None,
+        Query\
+        (
+            max_length=255,
+            description="Optional search across user name and email.",
+        )
+    ] = None,
+
+    role: Annotated\
+    [
+        AdminUserRoleFilter | None,
+        Query\
+        (
+            description="Optional role filter. Leave empty to return all users.",
+        ),
+    ] = None,
+
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
     offset: Annotated[int, Query(ge=0)] = 0,
     db: AsyncSession = Depends(get_db),
