@@ -1,0 +1,235 @@
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&display=swap");
+
+:root {
+    --pf-navy: #060e1c;
+    --pf-deep: #091628;
+    --pf-abyss: #0d1e3a;
+    --pf-cyan: #2bd8f5;
+    --pf-alert: #ff5f4e;
+    --pf-text: #e5f3ff;
+    --pf-muted: #4a7a9b;
+    --pf-edge: rgba(43, 180, 220, 0.18);
+    --pf-edge-hot: rgba(43, 216, 245, 0.38);
+    --pf-shadow: 0 24px 64px rgba(0, 8, 24, 0.7);
+    --pf-glow: 0 0 28px rgba(43, 216, 245, 0.2);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+body,
+.login-pf body {
+    color: var(--pf-text);
+    font-family: "Rajdhani", "Trebuchet MS", system-ui, sans-serif;
+    background: 
+        radial-gradient(circle at 20% 38%, rgba(43, 216, 245, 0.09), transparent 26rem),
+        radial-gradient(circle at 82% 18%, rgba(79, 159, 255, 0.07, transparent 24rem)),
+        linear-gradient(135deg, var(--pf-navy), var(--pf-deep), var(--pf-abyss)) !important;
+    
+    -webkit-font-smoothing: antialiased;
+}
+
+@media (min-width: 821px) and (min-height: 701px) {
+    html,
+    body {
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    body,
+    .login-pf,
+    .login-pf body,
+    .login-pf-page,
+    .pf-v5-c-login,
+    .pf-v5-c-login__container,
+    .pf-v5-c-background-image {
+        height: 100vh;
+        min-height: 0 !important;
+        max-height: 100vh;
+    }
+
+    .login-pf-page,
+    .pf-v5-c-login__container {
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+}
+
+@media (max-width: 820px), (max-height: 700px) {
+    html,
+    body {
+        height: auto;
+        min-height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    body,
+    .login-pf,
+    .login-pf body,
+    .login-pf-page,
+    .pf-v5-c-login,
+    .pf-v5-c-login__container,
+    .pf-v5-c-background-image {
+        height: auto;
+        min-height: 100vh;
+        max-height: none;
+    }
+
+    .login-pf-page,
+    .pf-v5-c-login__container {
+        overflow: visible;
+    }
+}
+
+.login-pf-page::after,
+.pf-v5-c-login::after {
+    content: "";
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 105px;
+    z-index: -1;
+    pointer-events: none;
+    background: 
+        radial-gradient(120% 95px at 15% 5%, transparent 49%, rgba(43, 180, 220, 0.13) 50%, rgba(43, 180, 220, 0.13) 58%, transparent 59%),
+        radial-gradient(120% 95px at 65% 22%, transparent 49%, rgba(15, 37, 75, 0.62) 50%, rgba(15, 37, 75, 0.62) 68%, transparent 69%),
+        linear-gradient(to bottom, transparent 0%, rgba(9, 22, 40, 0.92) 82%);
+}
+
+.login-pf-page,
+.pf-v5-c-login,
+.pf-v5-c-login__container {
+    position: relative;
+    z-index: -1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width:100%;
+    min-height: 100vh;
+    padding: clamp(2rem, 6vw, 6rem) clamp(1.25rem, 7vw, 7rem);
+    background: transparent !important;
+}
+
+#kc-header,
+#kc-header-wrapper,
+.pf-v5-c-login__main-header {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+#kc-header-wrapper {
+    position: absolute;
+    top: clamp(2rem, 5vw, 4.75rem);
+    left: clamp(2rem, 7vw, 8rem);
+    width: auto;
+    padding: 0 !important;
+    color: var(--pf-text) !important;
+    font-family: "Bebas Neue", Impact, "Arial Narrow", sans-serif !important;
+    font-size: clamp(2.4rem, 5vw, 5.4rem) !important;
+    line-height: 0.95 !important;
+    letter-spacing: 0.09em !important;
+    text-transform: uppercase;
+    text-shadow: 0 0 40px rgba(43, 216, 245, 0.18);
+}
+
+.card-pf,
+.pf-v5-c-login__main,
+.pf-v5-c-card {
+    background: rgba(10, 20, 44, 0.86) !important;
+    border: 1px solid var(--pf-edge) !important;
+    border-radius: 18px !important;
+    box-shadow: var(--pf-shadow), 0 0 0 1px rgba(43, 216, 245, 0.04) inset !important;
+    backdrop-filter: blur(18px) saturate(135%);
+    
+    -webkit-backdrop-filter: blur(18px) saturate(135%);
+}
+
+.card-pf,
+.pf-v5-c-login__main {
+    position: relative !important;
+    width: min(100%, 470px);
+    padding: clamp(1.6rem, 3vw, 2.25rem) !important;
+    overflow: visible !important;
+}
+
+#kc-content-wrapper,
+.pf-v5-c-login__main-body {
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none;
+
+    -webkit-backdrop-filter: none;
+}
+
+#kc-content-wrapper,
+.pf-v5-c-login__main-body,
+#kc-content,
+#kc-form-wrapper {
+    overflow: visible !important;
+}
+
+#kc-page-title,
+#kc-content h1,
+#kc-content h2,
+.pf-v5-c-title,
+.pf-v5-c-login__main-header h1 {
+    margin: 0 0 0.7rem !important;
+    color: var(--pf-text) !important;
+    font-family: "Bebas Neue", Impact, "Arial Narrow", sans-serif !important;
+    font-size: clamp(2.3rem, 4vw, 3.4rem) !important;
+    font-weight: 400 !important;
+    line-height: 1 !important;
+    letter-spacing: 0.09em !important;
+    text-transform: uppercase;
+    text-shadow: 0 0 34px rgba(43, 216, 245, 0.14);
+}
+
+#kc-page-title::after {
+    content: "SECURE ACCESS TO PENFLOW";
+    display: block;
+    margin-top: 0.65rem;
+    color: var(--pf-muted);
+    font-family: "Rajdhani", sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.13rem;
+}
+
+label,
+.pf-v5-c-form__label,
+.control-label {
+    color: #93b8cf !important;
+    font-family: "Bebas Neue", Impact, sans-serif !important;
+    font-size: 0.82rem !important;
+    letter-spacing: 0.12em !important;
+    text-transform: uppercase;
+}
+
+#kc-form-options,
+#kc-registration,
+.instruction,
+.subtitle,
+.pf-v5-c-helper-text,
+.pf-v5-c-login__main-footer,
+.pf-v5-c-login__main-footer-band {
+    color: var(--pf-muted) !important;
+    font-family: "Rajdhani", sans-serif !important;
+}
+
+
+
