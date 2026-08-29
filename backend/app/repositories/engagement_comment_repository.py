@@ -3,6 +3,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.base import EngagementMessageChannel
 from app.models.engagement_comment import EngagementComment
 
 
@@ -10,10 +11,12 @@ class EngagementCommentRepository:
     @staticmethod
     async def list_by_engagement(
         db: AsyncSession, 
-        engagement_id: UUID
+        engagement_id: UUID,
+        channel: EngagementMessageChannel,
     ) -> list[EngagementComment]:
         query = select(EngagementComment).where(
-            EngagementComment.engagement_id == engagement_id
+            EngagementComment.engagement_id == engagement_id,
+            EngagementComment.channel == channel,
         ).order_by(
             EngagementComment.created_at.asc(), 
             EngagementComment.id.asc(),
@@ -29,6 +32,8 @@ class EngagementCommentRepository:
         *,
         engagement_id: UUID,
         user_id: UUID,
+        recipient_id: UUID,
+        channel: EngagementMessageChannel,
         comment: str,
         finding_id: UUID | None = None
     ) -> EngagementComment:
@@ -36,6 +41,8 @@ class EngagementCommentRepository:
             engagement_id=engagement_id,
             finding_id=finding_id,
             user_id=user_id,
+            recipient_id=recipient_id,
+            channel=channel,
             comment=comment,
             is_read=True,
         )

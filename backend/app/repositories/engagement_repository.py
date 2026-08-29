@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from app.models.base import EngagementStatus, EngagementType
+from app.models.base import EngagementMessageChannel, EngagementStatus, EngagementType
 from app.models.engagement import Engagement
 from app.models.engagement_asset import EngagementAsset
 from app.models.engagement_comment import EngagementComment
@@ -52,21 +52,20 @@ def calculate_estimated_quote(
 #assets are subsequent rows
 class EngagementRepository:
     @staticmethod
-    async def create_engagement\
-    (
+    async def create_engagement(
         db: AsyncSession,
         request: EngagementCreateRequest,
         client_user_id: UUID,
     ) -> Engagement:
         objective = request.objective.strip()
         duration_days = calculate_duration_days(request.start_date, request.end_date)
-        engagement = Engagement\
-        (
+        engagement = Engagement(
             requested_by=client_user_id,
+            service_delivery_id=None,
             assigned_to=None,
             engagement_type=request.engagement_type,
             priority="medium",
-            status=EngagementStatus.SCOPING,
+            status=EngagementStatus.REQUESTED,
             title=objective[:255],
             scope=objective,
             objective=objective,
@@ -430,7 +429,7 @@ class EngagementRepository:
         db: AsyncSession,
         pentester_id: UUID,
     ) -> list[tuple[Any, ...]]:
-        client = aliased(User)
+        service_delivery = aliased(User)
         sender = aliased(User)
 
         message_count_subquery = (
@@ -439,7 +438,11 @@ class EngagementRepository:
                 func.count(EngagementComment.id).label(
                     "message_count"
                 ),
-            ).group_by(EngagementComment.engagement_id)
+            )
+            .where(
+                EngagementComment.channel == EngagementMessageChannel.SERVICE_DELIVERY_PENTESTER
+            )
+            .group_by(EngagementComment.engagement_id)
             .subquery()
         )
 
@@ -449,7 +452,10 @@ class EngagementRepository:
                 func.max(EngagementComment.created_at).label(
                     "latest_created_at"
                 )
-            ).group_by(EngagementComment.engagement_id)
+            ).where(
+                EngagementComment.channel == EngagementMessageChannel.SERVICE_DELIVERY_PENTESTER
+            )
+            .group_by(EngagementComment.engagement_id)
             .subquery()
         )
 
@@ -460,7 +466,8 @@ class EngagementRepository:
                     "unread_count"
                 ),
             ).where(
-                EngagementComment.user_id != pentester_id,
+                EngagementComment.channel == EngagementMessageChannel.SERVICE_DELIVERY_PENTESTER,
+                EngagementComment.recipient_id == pentester_id,
                 EngagementComment.is_read.is_(False),
             ).group_by(
                 EngagementComment.engagement_id
@@ -470,7 +477,7 @@ class EngagementRepository:
         latest_comment = aliased(EngagementComment)
 
         stmt = (
-            select(Engagement, client, latest_comment, sender, 
+            select(Engagement, service_delivery, latest_comment, sender, 
                    func.coalesce(
                        message_count_subquery.c.message_count,
                        0,
@@ -480,8 +487,8 @@ class EngagementRepository:
                        0,
                    ).label("unread_count"),
             ).join(
-                client,
-                client.id == Engagement.requested_by,
+                service_delivery,
+                service_delivery.id == Engagement.service_delivery_id,
             ).outerjoin(
                 message_count_subquery,
                 message_count_subquery.c.engagement_id == Engagement.id,
@@ -494,7 +501,9 @@ class EngagementRepository:
             ).outerjoin(
                 latest_comment,
                 (latest_comment.engagement_id == Engagement.id) & (
-                latest_comment.created_at == latest_message_time_subquery.c.latest_created_at),
+                latest_comment.created_at == latest_message_time_subquery.c.latest_created_at) & (
+                    latest_comment.channel == EngagementMessageChannel.SERVICE_DELIVERY_PENTESTER
+                ),
             ).outerjoin(
                 sender,
                 sender.id == latest_comment.user_id,
@@ -516,11 +525,13 @@ class EngagementRepository:
         db: AsyncSession,
         engagement_id: UUID,
         user_id: UUID,
+        channel: EngagementMessageChannel,
     ) -> int:
         stmt = (
             update(EngagementComment).where(
                 EngagementComment.engagement_id == engagement_id,
-                EngagementComment.user_id != user_id,
+                EngagementComment.recipient_id == user_id,
+                EngagementComment.channel == channel,
                 EngagementComment.is_read.is_(False),
             ).values(is_read=True)
         )

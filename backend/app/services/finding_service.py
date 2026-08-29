@@ -329,21 +329,25 @@ class FindingService:
             finding=finding,
         )
 
+        current_finding_id = finding.id
+        engagement_id = finding.engagement_id
+        finding_source = finding.source
+
         await AuditRepository.create_log(
             db,
             user_id=user_id,
             action="finding.verified",
             entity_type="finding",
-            entity_id=finding.id,
+            entity_id=current_finding_id,
             metadata={
-                "engagement_id": str(finding.engagement_id),
-                "source": finding.source,
+                "engagement_id": str(engagement_id),
+                "source": finding_source,
             },
         )
 
         return await FindingService.get_finding(
             db,
-            finding_id=finding.id,
+            finding_id=current_finding_id,
             user_id=user_id,
         )
         

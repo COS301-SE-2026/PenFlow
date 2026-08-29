@@ -75,6 +75,7 @@ class EngagementType(str, enum.Enum):
 class EngagementStatus(str, enum.Enum):
     REQUESTED = "requested"
     SCOPING = "scoping"
+    SCHEDULED = "scheduled"
     IN_PROGRESS = "in_progress"
     REVIEW = "review"
     COMPLETED = "completed"
@@ -85,3 +86,13 @@ class RetestStatus(str, enum.Enum):
     IN_PROGRESS = "in_progress"
     RESOLVED = "resolved"
     STILL_VULNERABLE = "still_vulnerable"
+
+class UserRole(str, enum.Enum):
+    CLIENT = "client"
+    PENTESTER  = "pentester"
+    SERVICE_DELIVERY = "service_delivery"
+    ADMIN = "admin"
+
+class EngagementMessageChannel(str, enum.Enum):
+    CLIENT_SERVICE_DELIVERY = "client_service_delivery"
+    SERVICE_DELIVERY_PENTESTER = "service_delivery_pentester"

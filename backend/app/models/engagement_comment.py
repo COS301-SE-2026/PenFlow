@@ -1,11 +1,11 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Text
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base
+from app.models.base import Base, EngagementMessageChannel
 
 
 class EngagementComment(Base):
@@ -34,6 +34,22 @@ class EngagementComment(Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id"),
+        nullable=False,
+    )
+
+    recipient_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
+
+    channel: Mapped[EngagementMessageChannel] = mapped_column(
+        Enum(
+            EngagementMessageChannel,
+            values_callable=lambda e: [item.value for item in e],
+            name="engagement_message_channel",
+        ),
         nullable=False,
     )
 
