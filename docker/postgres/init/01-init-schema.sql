@@ -74,17 +74,11 @@ CREATE TYPE engagement_type AS ENUM (
 CREATE TYPE engagement_status AS ENUM (
     'requested',
     'scoping',
+    'scheduled',
     'in_progress',
     'review',
     'completed',
     'cancelled'
-);
-
-CREATE TYPE finding_review_status AS ENUM (
-    'draft',
-    'ready_for_review',
-    'published',
-    'needs_revision'
 );
 
 CREATE TYPE retest_status AS ENUM (
@@ -94,6 +88,19 @@ CREATE TYPE retest_status AS ENUM (
     'still_vulnerable'
 );
 
+CREATE TYPE engagement_message_channel AS ENUM (
+    'client_service_delivery',
+    'service_delivery_pentester'
+);
+
+CREATE TYPE assessment_type AS ENUM (
+    'web_application',
+    'mobile_application',
+    'api',
+    'network',
+    'cloud',
+    'other'
+);
 
 CREATE TABLE organisations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -113,7 +120,25 @@ CREATE TABLE users (
 
     UNIQUE (auth_provider, auth_provider_id),
 
-    CHECK(role IN ('client', 'pentester', 'admin'))
+    CHECK(role IN ('client', 'pentester', 'service_delivery', 'admin'))
+);
+
+CREATE TABLE pentester_profiles (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    company VARCHAR(255),
+    bio TEXT,
+    years_experience INTEGER,
+    specialisations assessment_type[] NOT NULL DEFAULT '{}',
+    certifications TEXT[] NOT NULL DEFAULT '{}',
+    timezone VARCHAR(64),
+    location VARCHAR(255),
+    availability_status VARCHAR(30) NOT NULL DEFAULT 'available',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CHECK (years_experience IS NULL OR years_experience >= 0),
+    CHECK (availability_status IN ('available', 'limited', 'unavailable'))
 );
 
 CREATE TABLE verified_domains (
@@ -201,8 +226,10 @@ CREATE TABLE engagements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organisation_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
     requested_by UUID NOT NULL REFERENCES users(id),
+    service_delivery_id UUID REFERENCES users(id),
     assigned_to UUID REFERENCES users(id),
     engagement_type engagement_type NOT NULL,
+    assessment_type assessment_type NOT NULL,
     priority VARCHAR(20) DEFAULT 'medium',
     status engagement_status NOT NULL DEFAULT 'requested',
     title VARCHAR(255) NOT NULL,
@@ -211,9 +238,15 @@ CREATE TABLE engagements (
     constraints TEXT,
     primary_contact VARCHAR(255),
     estimated_quote NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+    final_quote NUMERIC(12,2),
     estimated_duration_days INTEGER,
     requested_start_date DATE,
     requested_end_date DATE,
+    scheduled_start_date DATE,
+    scheduled_end_date DATE,
+    reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMPTZ,
+    review_note TEXT,
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -223,6 +256,12 @@ CREATE TABLE engagements (
         requested_start_date IS NULL
         OR requested_end_date IS NULL
         OR requested_start_date <= requested_end_date
+    ),
+
+    CHECK (
+        scheduled_start_date IS NULL
+        OR scheduled_end_date IS NULL
+        OR scheduled_start_date <= scheduled_end_date
     )
 );
 
@@ -253,10 +292,6 @@ CREATE TABLE findings (
     description TEXT,
     recommendation TEXT,
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
-    reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
-    reviewed_at TIMESTAMPTZ,
-    review_note TEXT,
-    review_status finding_review_status,
     engagement_asset_id UUID REFERENCES engagement_assets(id) ON DELETE SET NULL,
     evidence JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -336,6 +371,8 @@ CREATE TABLE engagement_comments (
     engagement_id UUID NOT NULL REFERENCES engagements(id) ON DELETE CASCADE,
     finding_id UUID REFERENCES findings(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id),
+    recipient_id UUID NOT NULL REFERENCES users(id),
+    channel engagement_message_channel NOT NULL,
     comment TEXT NOT NULL,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -445,7 +482,6 @@ CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
 
 CREATE INDEX idx_finding_retests_finding_id ON finding_retests(finding_id);
 
-CREATE INDEX idx_finding_review_status ON findings(review_status);
 CREATE INDEX idx_finding_retest_status ON finding_retests(status);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);
 CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
