@@ -206,5 +206,5 @@ variable "smtp_from" {
 variable "db_backup_retention_period" {
   type        = number
   description = "Number of days to retain automated RDS backups."
-  default     = 7
+  default     = 1
 }

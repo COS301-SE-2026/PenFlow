@@ -245,6 +245,7 @@ resource "aws_ecs_task_definition" "keycloak" {
         { name = "KC_DB", value = "postgres" },
         { name = "KC_DB_URL", value = "jdbc:postgresql://${aws_db_instance.main.address}:${aws_db_instance.main.port}/${var.keycloak_db_name}" },
         { name = "KC_DB_USERNAME", value = var.keycloak_db_username },
+        { name = "KC_CACHE", value = "local" },
         { name = "KC_BOOTSTRAP_ADMIN_USERNAME", value = var.keycloak_bootstrap_admin_username },
         { name = "KC_PROXY_HEADERS", value = "xforwarded" },
         { name = "KC_HTTP_ENABLED", value = "true" },
@@ -342,6 +343,8 @@ resource "aws_ecs_service" "keycloak" {
   task_definition = aws_ecs_task_definition.keycloak.arn
   desired_count   = var.keycloak_desired_count
   launch_type     = "FARGATE"
+
+  health_check_grace_period_seconds = 120
 
   network_configuration {
     subnets          = aws_subnet.public[*].id
