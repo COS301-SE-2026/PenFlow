@@ -57,13 +57,13 @@ class Engagement(Base):
         nullable=False,
     )
 
-    assessment_type: Mapped[AssessmentType | None] = mapped_column(
+    assessment_type: Mapped[AssessmentType] = mapped_column(
         Enum(
             AssessmentType,
             values_callable=lambda e: [item.value for item in e],
             name="assessment_type",
         ),
-        nullable=True,
+        nullable=False,
     )
 
     priority: Mapped[str] = mapped_column(

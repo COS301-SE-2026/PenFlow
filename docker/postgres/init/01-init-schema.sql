@@ -229,7 +229,7 @@ CREATE TABLE engagements (
     service_delivery_id UUID REFERENCES users(id),
     assigned_to UUID REFERENCES users(id),
     engagement_type engagement_type NOT NULL,
-    assessment_type assessment_type,
+    assessment_type assessment_type NOT NULL,
     priority VARCHAR(20) DEFAULT 'medium',
     status engagement_status NOT NULL DEFAULT 'requested',
     title VARCHAR(255) NOT NULL,
