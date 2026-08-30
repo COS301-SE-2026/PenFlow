@@ -54,7 +54,7 @@ export interface AdminDashboardResponse {
         review_actions: number;
     };
     engagement_status_counts: Record<EngagementStatus, number>;
-    eview_queue: {
+    review_queue: {
     engagements_awaiting_review: number;
     open_retests: number;
     reports_generating: number;
@@ -77,4 +77,56 @@ export interface AdminEngagementListItem {
     currency: string;
     created_at: string;
     updated_at: string;
+}
+
+export interface AdminEngagementListResponse {
+    items: AdminEngagementListItem[];
+    counts : { all: number; assigned: number; unassigned: number};
+    pagination: Pagination;
+}
+
+export interface PentesterListItem{
+    id: string;
+    name:string;
+    email:string;
+    active_engagements: number;
+}
+
+export interface PentesterListResponse{
+    items: PentesterListItem[];
+}
+
+export type AdminUserRole = "admin" | "pentester" | "client" | "service_delivery";
+
+export interface AdminUserListItem {
+    id: string;
+    provider_id: string;
+    name: string;
+    email: string;
+    role: AdminUserRole;
+    active_engagements: number;
+    created_at: string;
+}
+
+export interface AdminUserListResponse {
+    items: AdminUserListItem[];
+    counts: { all: number; admins: number; pentesters: number; clients: number;service_delivery:number };
+    pagination: Pagination;
+}
+
+export interface AdminAuditLogItem {
+    id: string;
+    actor: { user_id: string; name: string };
+    action: string;
+    category: string;
+    entity_type: string;
+    entity_id: string;
+    entity_label: string;
+    metadata: Record<string, unknown>;
+    created_at: string;
+}
+
+export interface AdminAuditLogListResponse {
+    items: AdminAuditLogItem[];
+    pagination: Pagination;
 }
