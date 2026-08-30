@@ -8,7 +8,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.models.base import EngagementStatus, EngagementType
+from app.models.base import AssessmentType, EngagementStatus, EngagementType
 from app.schemas.finding import FindingListItem
 
 #regex for Label for hostname
@@ -87,6 +87,7 @@ class EngagementAssetCreate(BaseModel):
 # It creates a scoping ticket, WE DO NOT RUN SCAN HERE.
 class EngagementCreateRequest(BaseModel):
     engagement_type: EngagementType
+    assessment_type: AssessmentType
     objective: str = Field(..., min_length=1, max_length=5000)
     start_date: date | None = None
     end_date: date | None = None
@@ -105,6 +106,7 @@ class EngagementCreateResponse(BaseModel):
     id: UUID
     status: EngagementStatus
     engagement_type: EngagementType
+    assessment_type: AssessmentType
     objective: str
     start_date: date | None = None
     end_date: date | None = None
@@ -127,6 +129,7 @@ class EngagementRequestDetailResponse(BaseModel):
     id: UUID
     status: EngagementStatus
     engagement_type: EngagementType
+    assessment_type: AssessmentType
     objective: str
     start_date: date | None = None
     end_date: date | None = None
@@ -204,6 +207,7 @@ class EngagementDetailResponse(BaseModel):
     id: UUID
     title: str
     engagement_type: EngagementType
+    assessment_type: AssessmentType
     priority: str
     status: EngagementStatus
     scope: str

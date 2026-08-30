@@ -6,7 +6,7 @@ from sqlalchemy import Date, DateTime, Enum, ForeignKey, Integer, Numeric, Strin
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, EngagementStatus, EngagementType
+from app.models.base import AssessmentType, Base, EngagementStatus, EngagementType
 
 
 # Main phase 3 request ticket.
@@ -46,6 +46,15 @@ class Engagement(Base):
             EngagementType, 
             values_callable=lambda e: [item.value for item in e], 
             name = "engagement_type"
+        ),
+        nullable=False,
+    )
+
+    assessment_type: Mapped[AssessmentType] = mapped_column(
+        Enum(
+            AssessmentType,
+            values_callable=lambda e: [item.value for item in e],
+            name="assessment_type",
         ),
         nullable=False,
     )
