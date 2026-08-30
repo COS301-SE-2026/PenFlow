@@ -64,6 +64,7 @@ class EngagementRepository:
             requested_by=client_user_id,
             assigned_to=None,
             engagement_type=request.engagement_type,
+            assessment_type=request.assessment_type,
             priority="medium",
             status=EngagementStatus.SCOPING,
             title=objective[:255],
