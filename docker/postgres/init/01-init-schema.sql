@@ -138,7 +138,7 @@ CREATE TABLE pentester_profiles (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CHECK (years_experience IS NULL OR years_experience >= 0),
-    CHECK (availability_status IN ('available', 'limited', 'unavailable'))
+    CHECK (availability_status IN ('available', 'engaged', 'unavailable'))
 );
 
 CREATE TABLE verified_domains (
@@ -304,7 +304,8 @@ CREATE TABLE findings (
 CREATE TABLE reports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     scan_id UUID UNIQUE REFERENCES scans(id) ON DELETE CASCADE,
-    engagement_id UUID REFERENCES engagements(id),
+    engagement_id UUID REFERENCES engagements(id) ON DELETE CASCADE,
+    version INTEGER NOT NULL DEFAULT 1,
     task_id VARCHAR(255),
     status report_status NOT NULL DEFAULT 'pending',
     pdf_path TEXT,
@@ -312,7 +313,13 @@ CREATE TABLE reports (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     error_message TEXT,
 
-    CHECK((scan_id IS NOT NULL) OR (engagement_id IS NOT NULL))
+    CHECK(
+        (scan_id IS NOT NULL AND engagement_id IS NULL) 
+        OR 
+        (scan_id IS NULL AND engagement_id IS NOT NULL)
+    ),
+
+    UNIQUE (engagement_id, version)
 );
 
 CREATE TABLE scan_schedules (
