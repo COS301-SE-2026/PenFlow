@@ -50,20 +50,20 @@ class Engagement(Base):
 
     engagement_type: Mapped[EngagementType] = mapped_column(
         Enum(
-            EngagementType, 
-            values_callable=lambda e: [item.value for item in e], 
+            EngagementType,
+            values_callable=lambda e: [item.value for item in e],
             name = "engagement_type"
         ),
         nullable=False,
     )
 
-    assessment_type: Mapped[AssessmentType] = mapped_column(
+    assessment_type: Mapped[AssessmentType | None] = mapped_column(
         Enum(
             AssessmentType,
             values_callable=lambda e: [item.value for item in e],
             name="assessment_type",
         ),
-        nullable=False,
+        nullable=True,
     )
 
     priority: Mapped[str] = mapped_column(
