@@ -1,13 +1,13 @@
-import os
 import json
-import magic
+import os
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
-from io import BytesIO
-from PIL import Image, UnidentifiedImageError
 
+import magic
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from PIL import Image, UnidentifiedImageError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user, require_pentester

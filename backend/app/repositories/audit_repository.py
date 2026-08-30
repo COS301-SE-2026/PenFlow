@@ -7,6 +7,7 @@ from sqlalchemy.sql.elements import ColumnElement
 from app.models.audit_log import AuditLog
 from app.models.engagement import Engagement
 
+
 class AuditRepository:
     @staticmethod
     async def list_for_engagement(

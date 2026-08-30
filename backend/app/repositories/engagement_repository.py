@@ -3,13 +3,20 @@ from decimal import Decimal
 from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import case, Select, func, or_, select, update
-from sqlalchemy.engine import CursorResult
+from sqlalchemy import Select, case, func, or_, select, update
+from sqlalchemy.engine import CursorResult, Row
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from app.models.base import AssessmentType, EngagementMessageChannel, EngagementStatus, EngagementType, RetestStatus, Severity
+from app.models.base import (
+    AssessmentType,
+    EngagementMessageChannel,
+    EngagementStatus,
+    EngagementType,
+    RetestStatus,
+    Severity,
+)
 from app.models.engagement import Engagement
 from app.models.engagement_asset import EngagementAsset
 from app.models.engagement_comment import EngagementComment
@@ -963,7 +970,7 @@ class EngagementRepository:
     async def get_service_delivery_conversation_summaries(
         db: AsyncSession,
         service_delivery_id: UUID,
-    ) -> list[tuple[Any, ...]]:
+    ) -> list[Row[Any]]:
 
         participant = aliased(User)
         sender = aliased(User)

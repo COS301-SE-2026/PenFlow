@@ -10,12 +10,12 @@ from app.models.evidence_file import EvidenceFile as EvidenceFile
 from app.models.finding import Finding as Finding
 from app.models.finding_retest import FindingRetest as FindingRetest
 from app.models.organisation import Organisation as Organisation
+from app.models.pentester_profile import PentesterProfile as PentesterProfile
 from app.models.report import Report as Report
 from app.models.scan import Scan as Scan
 from app.models.scan_schedule import ScanSchedule as ScanSchedule
 from app.models.scan_source import ScanSource as ScanSource
 from app.models.service import Service as Service
-from app.models.pentester_profile import PentesterProfile as PentesterProfile
 from app.models.user import User as User
 from app.models.verified_domain import VerifiedDomain as VerifiedDomain
 

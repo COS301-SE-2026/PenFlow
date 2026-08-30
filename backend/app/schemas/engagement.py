@@ -8,7 +8,12 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.models.base import AssessmentType, EngagementMessageChannel, EngagementStatus, EngagementType
+from app.models.base import (
+    AssessmentType,
+    EngagementMessageChannel,
+    EngagementStatus,
+    EngagementType,
+)
 from app.schemas.finding import FindingListItem
 
 #regex for Label for hostname

@@ -213,7 +213,7 @@ class ServiceDeliveryPentesterCreate(BaseModel):
 
 class ServiceDeliveryPentesterListItem(BaseModel):
     id: UUID
-    full_name: str
+    full_name: str | None
     email: str
 
     is_active: bool
@@ -231,7 +231,7 @@ class ServiceDeliveryPentesterListResponse(BaseModel):
 
 class ServiceDeliveryPentesterDetail(BaseModel):
     id: UUID
-    full_name: str
+    full_name: str | None
     email: str
 
     is_active: bool
