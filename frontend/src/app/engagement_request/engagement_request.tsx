@@ -13,6 +13,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { validateDomain } from "@/lib/domainValidator";
+import { start } from "repl";
 
 
 //type declaration 
@@ -116,6 +117,16 @@ function validateAssetValue(type: AssetType, value: string): string | null {
 
 //control to have min 7 days for a request
 const MIN_ENGAGEMENT_DAYS = 7;
+
+
+//local date restriction of no past input date
+function todayIsoDate(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth()+1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}        
 function durationInDays(startDate: string, endDate: string): number | null {
      if (!startDate || !endDate) return null;
 
@@ -151,7 +162,7 @@ function extractErrorMessage(body: unknown): string {
 
 export default function EngagementHome() {
     const[engagementType,setEngagementType] = useState<EngagementType | null>(null);
-   
+    const [assessmentType, setAssessmentType] = useState<AssessmentType | null>(null);
     const [objective ,setObjective] = useState("");
     const [startDate , setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
@@ -200,6 +211,7 @@ export default function EngagementHome() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     engagement_type: engagementType,
+                    assessment_type: assessmentType,
                     objective,
                     start_date: startDate || null,
                     end_date: endDate || null,
@@ -222,9 +234,17 @@ export default function EngagementHome() {
         }
         
     }
+    const minDate =  todayIsoDate();
+    const startDateValid  = !startDate || startDate >= minDate;
     const durationDays = durationInDays(startDate, endDate);
     const durationValid = durationDays !== null && durationDays >= MIN_ENGAGEMENT_DAYS;
-    const canSubmit = engagementType !== null && objective.trim().length > 0 && assets.length > 0 && durationValid;
+    const canSubmit =
+        engagementType !== null &&
+        assessmentType !== null &&
+        objective.trim().length > 0 &&
+        assets.length > 0 &&
+        startDateValid &&
+        durationValid;
 
     return(
         <div className="mx-auto flex max-w-4xl flex-col gap-8 px-4 py-10 text-lg">
