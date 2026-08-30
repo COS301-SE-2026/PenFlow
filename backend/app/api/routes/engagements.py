@@ -4,8 +4,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.base import EngagementMessageChannel
 from app.api.middleware.auth import get_current_user
+from app.models.base import EngagementMessageChannel
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.engagement import (
     EngagementCreateRequest,
