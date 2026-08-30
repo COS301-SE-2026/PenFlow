@@ -240,6 +240,7 @@ class EngagementService:
                 title = engagement.title,
                 client_name=client_name,
                 engagement_type=engagement.engagement_type,
+                assessment_type=engagement.assessment_type,
                 priority=engagement.priority,
                 status=engagement.status,
                 asset_count=asset_count,

@@ -4,8 +4,16 @@ from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
-from app.models.base import AssessmentType, EngagementStatus, EngagementType, Severity
-from app.models.finding import FindingStatus
+from typing import Self
+
+from app.models.base import \
+(
+    AssessmentType,
+    EngagementStatus,
+    EngagementType,
+    FindingStatus,
+    Severity,
+)
 from app.schemas.engagement import EngagementAssetResponse, EngagementPagination, UserSummary
 
 class ServiceDeliveryScopingUpdate(BaseModel):
@@ -24,7 +32,7 @@ class ServiceDeliveryScheduleRequest(BaseModel):
     scheduled_end_date: date
 
     @model_validator(mode="after")
-    def validate_dates(self):
+    def validate_dates(self) -> Self:
         if self.scheduled_start_date > self.scheduled_end_date:
             raise ValueError(
                 "scheduled_start_date cannot be after scheduled_end_date."
@@ -42,7 +50,7 @@ class ServiceDeliveryRescheduleRequest(BaseModel):
     reason: str = Field(..., min_length=1, max_length=2000)
 
     @model_validator(mode="after")
-    def validate_dates(self):
+    def validate_dates(self) -> Self:
         if self.scheduled_start_date > self.scheduled_end_date:
             raise ValueError(
                 "scheduled_start_date cannot be after scheduled_end_date."
