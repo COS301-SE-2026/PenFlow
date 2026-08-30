@@ -1,17 +1,23 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
-const BACKEND_URL = process.env.API_URL ?? "http://localhost:3001";
+export const BACKEND_URL = process.env.API_URL ?? "http://localhost:3001";
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export async function proxyToEngagementsApi(path: string, init: RequestInit = {}): Promise<NextResponse> {
+export function isValidEngagementId(value: string): boolean {
+    return UUID_PATTERN.test(value);
+}
 
-    const accessToken = (await cookies()).get("access_token")?.value;
+export async function proxyToEngagementsApi(path: string, init: RequestInit ={}): Promise<NextResponse> {
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get("access_token")?.value;
 
     if (!accessToken) {
-        return NextResponse.json({ detail: "Not authenticated"}, { status:401 }) ;            
+        return NextResponse.json({ detail: "Not authenticated" }, { status: 401 });
+
     }
 
-    const response = await fetch(`${BACKEND_URL}/api/v1/engagements${path}` , {
+    const response = await fetch(`${BACKEND_URL}/api/v1/engagements${path}`, {
         ...init,
         headers: {
             ...init.headers,
@@ -19,20 +25,18 @@ export async function proxyToEngagementsApi(path: string, init: RequestInit = {}
         },
         cache: "no-store",
     });
-     if (response.status === 204) {
-        return new NextResponse(null, {status: 204});
+
+    if (response.status === 204) {
+        return new NextResponse(null, { status: 204 });
     }
 
-
     const body = await response.json().catch(() => null);
-
-
     if (response.status >= 500) {
         console.error(`[engagements proxy] backend ${response.status} for ${path}:`, body);
         return NextResponse.json(
             { detail: "Something went wrong. Please try again later."},
-            { status: response.status}
+            { status: response.status }
         );
     }
-    return NextResponse.json(body, {status: response.status});
-}
+    return NextResponse.json(body, { status: response.status });
+} 
