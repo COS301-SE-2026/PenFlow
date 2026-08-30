@@ -33,6 +33,7 @@ type NavItem =
     //{ label: "Settings", href: "/settings", kind: "link"},
     { label: "Help", kind: "help"},
     { label: "Pentesting", href: "/pentesting/engagement", kind: "link"},
+    { label: "Admin", href: "/admin/dashboard", kind: "link"},
     { label: "Logout", href: "/api/auth/logout", kind: "external"},
   ];
 
