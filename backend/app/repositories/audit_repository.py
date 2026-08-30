@@ -1,11 +1,11 @@
 from uuid import UUID
 
-from sqlalchemy import or_, select
+from sqlalchemy import String, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.elements import ColumnElement
 
 from app.models.audit_log import AuditLog
-
+from app.models.engagement import Engagement
 
 class AuditRepository:
     @staticmethod
@@ -58,3 +58,36 @@ class AuditRepository:
         await db.refresh(rec)
 
         return rec
+
+
+    @staticmethod
+    async def list_for_service_delivery(
+        db: AsyncSession,
+        service_delivery_id: UUID,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[AuditLog]:
+        engagement_ids = (
+            select(Engagement.id)
+            .where(Engagement.service_delivery_id == service_delivery_id)
+        )
+
+        query = (
+            select(AuditLog)
+            .where(
+                or_(
+                    (AuditLog.entity_type == "engagement") &
+                    (AuditLog.entity_id.in_(engagement_ids))
+                ),
+                AuditLog.metadata_["engagement_id"].astext.in_(
+                    select(Engagement.id.cast(String))
+                    .where(Engagement.service_delivery_id == service_delivery_id)
+                ),
+            )
+        ).order_by(
+            AuditLog.created_at.desc(),
+            AuditLog.id.desc(),
+        ).limit(limit).offset(offset)
+
+        result = await db.execute(query)
+        return list(result.scalars().all())
