@@ -6,6 +6,11 @@ import httpx
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.user import User
+from app.repositories.user_repo import get_user_id_by_provider_id
+from app.utils.db import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -178,3 +183,29 @@ async def get_current_user_optional(
         return await get_current_user(request, credentials)
     except HTTPException:
         return None
+
+
+async def require_pentester(
+        db: AsyncSession = Depends(get_db),
+        current_user: dict[str, Any] = Depends(get_current_user),
+) -> User:
+    user_id = await get_user_id_by_provider_id(
+        db,
+        current_user["sub"],
+    )
+
+    user = await db.get(User, user_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    if user.role != "pentester":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Pentester access required.",
+        )
+
+    return user

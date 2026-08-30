@@ -32,7 +32,7 @@ class ReportStorageService:
                     Filename=str(path),
                     Bucket=REPORT_S3_BUCKET,
                     Key=storage_key,
-                    ExtraArgs={"Content-Type": "application/pdf"},
+                    ExtraArgs={"ContentType": "application/pdf"},
                 )
 
             except (BotoCoreError, ClientError) as err:

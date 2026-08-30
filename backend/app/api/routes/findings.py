@@ -6,7 +6,8 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.middleware.auth import get_current_user
+from app.api.middleware.auth import get_current_user, require_pentester
+from app.models.user import User
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.finding import EvidenceFileResponse, FindingDetail, FindingUpdate
 from app.services.finding_service import FindingService
@@ -62,14 +63,12 @@ async def update_finding(
     finding_id: UUID,
     request: FindingUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: dict[str, Any] = Depends(get_current_user),
+    user: User = Depends(require_pentester),
 ) -> FindingDetail:
-    user_id = await resolve_user_id(db, current_user)
-
     return await FindingService.update_finding(
         db,
         finding_id=finding_id,
-        user_id=user_id,
+        user_id=user.id,
         request=request,
     )
 
@@ -83,9 +82,8 @@ async def upload_finding_evidence(
     finding_id: UUID,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    current_user: dict[str, Any] = Depends(get_current_user),
+    user: User = Depends(require_pentester),
 ) -> EvidenceFileResponse:
-    user_id = await resolve_user_id(db, current_user)
 
     if file.content_type not in ALLOWED_TYPES:
         raise HTTPException(
@@ -127,7 +125,7 @@ async def upload_finding_evidence(
         return await FindingService.register_evidence(
             db,
             finding_id=finding_id,
-            user_id=user_id,
+            user_id=user.id,
             file_name=file.filename or stored_name,
             file_path=str(stored_path),
             mime_type=file.content_type,
@@ -136,3 +134,29 @@ async def upload_finding_evidence(
     except Exception:
         stored_path.unlink(missing_ok=True)
         raise
+
+
+@router.delete("/{finding_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_finding(
+    finding_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_pentester)
+) -> None:
+    await FindingService.delete_manual_finding(
+        db,
+        finding_id=finding_id,
+        user_id=user.id,
+    )
+
+
+@router.patch("/{finding_id}/verify", response_model=FindingDetail)
+async def verify_finding(
+    finding_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_pentester),
+) -> FindingDetail:
+    return await FindingService.verify_automated_finding(
+        db,
+        finding_id=finding_id,
+        user_id=user.id,
+    )

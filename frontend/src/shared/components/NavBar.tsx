@@ -138,7 +138,7 @@ export default function NavBar() {
         </ul>
       ) : (
         <div className="topnav">
-          <Link href = "/login" className="nav-link">
+          <Link href = "/api/auth/login" className="nav-link">
             LOGIN
           </Link>
           <Link href = "/" className="nav-link">

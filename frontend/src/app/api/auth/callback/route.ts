@@ -65,6 +65,7 @@ export async function GET(req: NextRequest) {
         resp.cookies.delete("refresh_token");
         resp.cookies.delete("id_token");
         resp.cookies.delete("logged_in");
+        resp.cookies.delete("access_token_expires_at");
 
         return resp;
     }

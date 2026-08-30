@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.base import EngagementStatus, FindingStatus
 from app.models.finding import Finding
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.engagement_repository import EngagementRepository
@@ -38,6 +39,38 @@ class FindingService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Finding was not found.",
+            )
+
+        return finding
+
+
+    @staticmethod
+    async def require_editable_finding(
+        db: AsyncSession,
+        finding_id: UUID,
+        user_id: UUID,
+    ) -> Finding:
+        finding = await FindingService.require_finding_access(
+            db, 
+            finding_id=finding_id,
+            user_id=user_id,
+        )
+
+        if finding.engagement_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Finding is not associated with engagement.",
+            )
+
+        engagement = await EngagementRepository.get_by_id(
+            db,
+            engagement_id=finding.engagement_id,
+        )
+
+        if engagement is None or engagement.status != EngagementStatus.IN_PROGRESS:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Findings can only be modified while the engagement is in progress.",
             )
 
         return finding
@@ -81,7 +114,7 @@ class FindingService:
             engagement_asset_id=finding.engagement_asset_id,
             source=finding.source,
             status=finding.status,
-            review_status=finding.review_status,
+            is_verified=finding.is_verified,
             severity=finding.severity,
             cvss_score=finding.cvss_score,
             cve_id=finding.cve_id,
@@ -105,7 +138,7 @@ class FindingService:
         user_id: UUID,
         request: FindingUpdate,
     ) -> FindingDetail:
-        finding = await FindingService.require_finding_access(
+        finding = await FindingService.require_editable_finding(
             db,
             finding_id=finding_id,
             user_id=user_id,
@@ -117,6 +150,12 @@ class FindingService:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Finding was not found."
+            )
+
+        if request.status == FindingStatus.FALSE_POSITIVE and finding.is_verified:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A verified finding cannot be marked as a false positive.",
             )
 
         if request.engagement_asset_id is not None:
@@ -171,7 +210,7 @@ class FindingService:
         file_path: str,
         mime_type: str | None,
     ) -> EvidenceFileResponse:
-        finding = await FindingService.require_finding_access(
+        finding = await FindingService.require_editable_finding(
             db,
             finding_id=finding_id,
             user_id=user_id,
@@ -213,3 +252,102 @@ class FindingService:
         await db.refresh(evidence)
 
         return EvidenceFileResponse.model_validate(evidence)
+
+
+    @staticmethod
+    async def delete_manual_finding(
+        db: AsyncSession,
+        finding_id: UUID,
+        user_id: UUID,
+    ) -> None:
+        finding = await FindingService.require_editable_finding(
+            db,
+            finding_id=finding_id,
+            user_id=user_id,
+        )
+
+        if finding.source != "manual":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Automated findings cannot be deleted.",
+            )
+
+        finding_title = finding.title
+        engagement_id = finding.engagement_id
+
+        await FindingRepository.delete_finding(
+            db,
+            finding=finding,
+        )
+
+        await AuditRepository.create_log(
+            db,
+            user_id=user_id,
+            action="finding.deleted",
+            entity_type="finding",
+            entity_id=finding_id,
+            metadata={
+                "engagement_id": str(engagement_id),
+                "title": finding_title,
+                "source": "manual",
+            },
+        )
+
+
+    @staticmethod
+    async def verify_automated_finding(
+        db: AsyncSession,
+        finding_id: UUID,
+        user_id: UUID,
+    ) -> FindingDetail:
+        finding = await FindingService.require_editable_finding(
+            db,
+            finding_id=finding_id,
+            user_id=user_id,
+        )
+
+        if finding.source == "manual":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Manual findings do not require verification.",
+            )
+
+        if finding.is_verified:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Finding has already been verified.",
+            )
+
+        if finding.status == FindingStatus.FALSE_POSITIVE:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A false positive cannot be verified.",
+            )
+
+        finding = await FindingRepository.mark_verified(
+            db,
+            finding=finding,
+        )
+
+        current_finding_id = finding.id
+        engagement_id = finding.engagement_id
+        finding_source = finding.source
+
+        await AuditRepository.create_log(
+            db,
+            user_id=user_id,
+            action="finding.verified",
+            entity_type="finding",
+            entity_id=current_finding_id,
+            metadata={
+                "engagement_id": str(engagement_id),
+                "source": finding_source,
+            },
+        )
+
+        return await FindingService.get_finding(
+            db,
+            finding_id=current_finding_id,
+            user_id=user_id,
+        )
+        

@@ -67,6 +67,14 @@ resource "aws_security_group" "backend" {
     security_groups = [aws_security_group.alb.id]
   }
 
+  ingress {
+    description     = "FastAPI callbacks from workers"
+    from_port       = 3001
+    to_port         = 3001
+    protocol        = "tcp"
+    security_groups = [aws_security_group.worker.id]
+  }
+
   egress {
     description = "Allow outbound traffic"
     from_port   = 0

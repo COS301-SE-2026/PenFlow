@@ -20,17 +20,24 @@ class Engagement(Base):
         default=uuid.uuid4,
     )
 
-    organisation_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("organisations.id", ondelete = "CASCADE"),
-        nullable=True,
-    )
+    #organisation_id: Mapped[uuid.UUID | None] = mapped_column(
+    #    UUID(as_uuid=True),
+    #    ForeignKey("organisations.id", ondelete = "CASCADE"),
+    #    nullable=True,
+    #)
 
     #User submitted request
     requested_by: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id"),
         nullable=False,
+        index=True,
+    )
+
+    service_delivery_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=True,
         index=True,
     )
 
@@ -73,12 +80,17 @@ class Engagement(Base):
     objective: Mapped[str|None] = mapped_column\
     (
         Text,
-        nullable=False,
+        nullable=True,
     )
 
     estimated_quote: Mapped[Decimal] = mapped_column(
         Numeric(12,2),
         nullable=False,
+    )
+
+    final_quote: Mapped[Decimal | None] = mapped_column(
+        Numeric(12, 2),
+        nullable=True,
     )
 
     estimated_duration_days: Mapped[int | None] = mapped_column(
@@ -94,6 +106,32 @@ class Engagement(Base):
     requested_end_date: Mapped[date | None] = mapped_column\
     (
         Date,
+        nullable=True,
+    )
+
+    scheduled_start_date: Mapped[date | None] = mapped_column(
+        Date,
+        nullable=True,
+    )
+
+    scheduled_end_date: Mapped[date | None] = mapped_column(
+        Date,
+        nullable=True,
+    )
+
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=True,
+    )
+
+    reviewed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    review_note: Mapped[str | None] = mapped_column(
+        Text,
         nullable=True,
     )
 

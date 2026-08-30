@@ -3,12 +3,13 @@ from decimal import Decimal
 from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, func, or_, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from app.models.base import EngagementStatus, EngagementType
+from app.models.base import EngagementMessageChannel, EngagementStatus, EngagementType
 from app.models.engagement import Engagement
 from app.models.engagement_asset import EngagementAsset
 from app.models.engagement_comment import EngagementComment
@@ -51,21 +52,20 @@ def calculate_estimated_quote(
 #assets are subsequent rows
 class EngagementRepository:
     @staticmethod
-    async def create_engagement\
-    (
+    async def create_engagement(
         db: AsyncSession,
         request: EngagementCreateRequest,
         client_user_id: UUID,
     ) -> Engagement:
         objective = request.objective.strip()
         duration_days = calculate_duration_days(request.start_date, request.end_date)
-        engagement = Engagement\
-        (
+        engagement = Engagement(
             requested_by=client_user_id,
+            service_delivery_id=None,
             assigned_to=None,
             engagement_type=request.engagement_type,
             priority="medium",
-            status=EngagementStatus.SCOPING,
+            status=EngagementStatus.REQUESTED,
             title=objective[:255],
             scope=objective,
             objective=objective,
@@ -422,3 +422,135 @@ class EngagementRepository:
             return None
 
         return requested_start_date + timedelta(days=estimated_duration_days)
+
+
+    @staticmethod
+    async def get_pentester_conversation_summaries(
+        db: AsyncSession,
+        pentester_id: UUID,
+    ) -> list[tuple[Any, ...]]:
+        service_delivery = aliased(User)
+        sender = aliased(User)
+
+        message_count_subquery = (
+            select(
+                EngagementComment.engagement_id,
+                func.count(EngagementComment.id).label(
+                    "message_count"
+                ),
+            )
+            .where(
+                EngagementComment.channel == EngagementMessageChannel.SERVICE_DELIVERY_PENTESTER
+            )
+            .group_by(EngagementComment.engagement_id)
+            .subquery()
+        )
+
+        latest_message_time_subquery = (
+            select(
+                EngagementComment.engagement_id,
+                func.max(EngagementComment.created_at).label(
+                    "latest_created_at"
+                )
+            ).where(
+                EngagementComment.channel == EngagementMessageChannel.SERVICE_DELIVERY_PENTESTER
+            )
+            .group_by(EngagementComment.engagement_id)
+            .subquery()
+        )
+
+        unread_count_subquery = (
+            select(
+                EngagementComment.engagement_id,
+                func.count(EngagementComment.id).label(
+                    "unread_count"
+                ),
+            ).where(
+                EngagementComment.channel == EngagementMessageChannel.SERVICE_DELIVERY_PENTESTER,
+                EngagementComment.recipient_id == pentester_id,
+                EngagementComment.is_read.is_(False),
+            ).group_by(
+                EngagementComment.engagement_id
+            ).subquery()
+        )
+
+        latest_comment = aliased(EngagementComment)
+
+        stmt = (
+            select(Engagement, service_delivery, latest_comment, sender, 
+                   func.coalesce(
+                       message_count_subquery.c.message_count,
+                       0,
+                   ).label("message_count"),
+                   func.coalesce(
+                       unread_count_subquery.c.unread_count,
+                       0,
+                   ).label("unread_count"),
+            ).join(
+                service_delivery,
+                service_delivery.id == Engagement.service_delivery_id,
+            ).outerjoin(
+                message_count_subquery,
+                message_count_subquery.c.engagement_id == Engagement.id,
+            ).outerjoin(
+                latest_message_time_subquery,
+                latest_message_time_subquery.c.engagement_id == Engagement.id,
+            ).outerjoin(
+                unread_count_subquery,
+                unread_count_subquery.c.engagement_id == Engagement.id,
+            ).outerjoin(
+                latest_comment,
+                (latest_comment.engagement_id == Engagement.id) & (
+                latest_comment.created_at == latest_message_time_subquery.c.latest_created_at) & (
+                    latest_comment.channel == EngagementMessageChannel.SERVICE_DELIVERY_PENTESTER
+                ),
+            ).outerjoin(
+                sender,
+                sender.id == latest_comment.user_id,
+            ).where(
+                Engagement.assigned_to == pentester_id,
+                message_count_subquery.c.message_count.is_not(None),
+            ).order_by(
+                latest_message_time_subquery.c.latest_created_at.desc().nullslast(),
+                Engagement.updated_at.desc(),
+            )
+        )
+
+        result = await db.execute(stmt)
+        return list(result.all())
+
+
+    @staticmethod
+    async def mark_messages_read(
+        db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+        channel: EngagementMessageChannel,
+    ) -> int:
+        stmt = (
+            update(EngagementComment).where(
+                EngagementComment.engagement_id == engagement_id,
+                EngagementComment.recipient_id == user_id,
+                EngagementComment.channel == channel,
+                EngagementComment.is_read.is_(False),
+            ).values(is_read=True)
+        )
+
+        result = cast(CursorResult[Any], await db.execute(stmt))
+        await db.commit()
+
+        return max(result.rowcount, 0)
+
+
+    @staticmethod
+    async def update_status(
+        db: AsyncSession,
+        engagement: Engagement,
+        new_status: EngagementStatus,
+    ) -> Engagement:
+        engagement.status = new_status
+
+        await db.commit()
+        await db.refresh(engagement)
+
+        return engagement

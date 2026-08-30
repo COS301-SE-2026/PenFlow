@@ -29,6 +29,13 @@ env:
 
   KEYCLOAK_CLIENT_SECRET: ${{ secrets.CI_KEYCLOAK_CLIENT_SECRET}}
 
+  AWS_REGION: af-south-1
+  AWS_ACCOUNT_ID: "428792079342"
+
+  BACKEND_ECR_REPOSITORY: penflow-production-backend
+  FRONTEND_ECR_REPOSITORY: penflow-production-frontend
+  WORKER_ECR_REPOSITORY: penflow-production-worker
+
 jobs:
   frontend:
     name: Frontend
@@ -43,23 +50,29 @@ jobs:
         with:
           version: ${{ env.PNPM_VERSION }}
 
+
       - name: Setup Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "pnpm"
 
+
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
+
 
       - name: Lint Frontend
         run: pnpm --filter penflow-frontend lint
 
+
       - name: Type Check Frontend
         run: pnpm --filter penflow-frontend type-check
 
+
       - name: Test Frontend
         run: pnpm --filter penflow-frontend test
+
 
       - name: Build Frontend
         run: pnpm --filter penflow-frontend build
@@ -81,24 +94,30 @@ jobs:
         with:
           enable-cache: true
 
+
       - name: Setup Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+
 
       - name: Install Dependencies
         run: |
           uv pip install --system -r requirements.txt
           uv pip install --system -r requirements-dev.txt
 
+
       - name: Compile Backend
         run: python -m compileall app
+
 
       - name: Type Check Backend
         run: mypy app
 
+
       - name: Lint Backend
         run: ruff check app tests
+
 
       - name: Run Backend Unit Tests
         env:
@@ -110,6 +129,7 @@ jobs:
           RABBITMQ_PASSWORD: guest
         run: |
           PYTHONPATH=. pytest tests/unit --cov=app --cov-report=xml
+
 
       - name: Upload Backend Coverage
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
@@ -135,24 +155,30 @@ jobs:
         with:
           enable-cache: true
 
+
       - name: Setup Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+
 
       - name: Install Dependencies
         run: |
           uv pip install --system -r requirements.txt
           uv pip install --system -r requirements-dev.txt
 
+
       - name: Compile Workers
         run: python -m compileall app
+
 
       - name: Type Check Workers
         run: mypy app
 
+
       - name: Lint Workers
         run: ruff check app tests
+
 
       - name: Run Worker Unit Tests
         env:
@@ -166,6 +192,7 @@ jobs:
         run: |
           PYTHONPATH=. pytest tests/unit --cov=app --cov-report=xml
 
+
       - name: Upload Worker Coverage
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
         with:
@@ -173,26 +200,55 @@ jobs:
           flags: workers
           fail_ci_if_error: true
 
-  docker-build:
-    name: Docker Build
+  docker-verify:
+    name: Docker Verification
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
+
     needs: [frontend, backend, workers]
+    permissions: 
+      contents: read
+      id-token: write
 
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
-      - name: Build Docker images
-        run: docker compose build
+      - name: Resolve Image Tag
+        id: image
+        shell: bash
+        run: |
+          IMAGE_TAG="${GITHUB_SHA:0:12}"
 
-  system-integration:
-    name: System Integration
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [docker-build]
+          echo "tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+          echo "Commit: $GITHUB_SHA"
+          echo "Image tag: $IMAGE_TAG"
 
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - name: Build Production Images
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+        run: |
+          docker build \
+            -f docker/Dockerfile.backend \
+            -t "penflow-backend:$IMAGE_TAG" \
+            .
+
+          docker build \
+            -f docker/Dockerfile.workers \
+            -t "penflow-worker:$IMAGE_TAG" \
+            .
+
+          docker build \
+            -f docker/Dockerfile.frontend \
+            -t "penflow-frontend:$IMAGE_TAG" \
+            .
+
+          echo ""
+          echo "Production images built:"
+          docker image ls | grep penflow
+
 
       - name: Build Test Images
         run: |
@@ -200,12 +256,14 @@ jobs:
             backend-test \
             workers-test
 
+
       - name: Start Integration Services
         run: |
           docker compose --profile test up -d \
             postgres-test \
             rabbitmq \
             workers-test
+
 
       - name: RabbitMQ Health Check
         run: |
@@ -217,6 +275,7 @@ jobs:
 
           docker compose logs rabbitmq
           exit 1
+
 
       - name: Run Backend Integration Tests
         run: |
@@ -230,12 +289,14 @@ jobs:
             --cov=app \
             --cov-report=xml:/coverage-output/coverage-integration.xml
 
+
       - name: Upload Backend Integration Coverage
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
         with:
           files: coverage/backend/coverage-integration.xml
           flags: backend
           fail_ci_if_error: true
+
 
       - name: Run Worker Integration Tests
         run: |
@@ -249,6 +310,7 @@ jobs:
             --cov=app \
             --cov-report=xml:/coverage-output/coverage-integration.xml
 
+
       - name: Upload Worker Integration Coverage
         uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
         with:
@@ -256,50 +318,177 @@ jobs:
           flags: workers
           fail_ci_if_error: true
 
-      - name: Show Docker Logs on Failure
-        if: failure()
-        run: docker compose logs
 
       - name: Stop Integration Services
         if: always()
-        run: docker compose down -v --remove-orphans
+        run: docker compose --profile test down -v --remove-orphans
 
-  docker-health:
-    name: Docker Health Checks
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    needs: [docker-build]
 
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - name: Start Full Stack with Production Images
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+          BACKEND_IMAGE: penflow-backend:${{ steps.image.outputs.tag }}
+          FRONTEND_IMAGE: penflow-frontend:${{ steps.image.outputs.tag }}
+          WORKER_IMAGE: penflow-worker:${{ steps.image.outputs.tag }}
+        run:  docker compose up -d --no-build
 
-      - name: Start Full Docker Stack
-        run: docker compose up -d --build
 
       - name: Check Backend Health
+        shell: bash
         run: |
           for i in {1..20}; do
-            curl -f http://localhost:3001/api/v1/health && exit 0
+            if curl --fail --silent --show-error \
+              http://localhost:3001/api/v1/health; then
+
+              echo ""
+              echo "Backend is healthy"
+              exit 0
+            fi
+
+            echo "Waiting for backend..."
             sleep 3
           done
 
+          echo "Backend failed health check"
           docker compose logs backend
           exit 1
 
-      - name: Check Frontend Responds
+
+      - name: Check Frontend Health
+        shell: bash
         run: |
           for i in {1..20}; do
-            curl -f http://localhost:3000 && exit 0
+            if curl --fail --silent --show-error \
+              http://localhost:3000; then
+
+              echo ""
+              echo "Frontend is healthy"
+              exit 0
+            fi
+
+            echo "Waiting for frontend..."
             sleep 3
           done
 
+          echo "Frontend failed health check"
           docker compose logs frontend
           exit 1
+
 
       - name: Show Docker Logs on Failure
         if: failure()
         run: docker compose logs
 
       - name: Stop Docker stack
+        if: always()
+        run: docker compose down -v --remove-orphans
+
+
+      - name: Show Tested Image IDs
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+        run: |
+          echo "Backend:"
+          docker image inspect \
+            "penflow-backend:$IMAGE_TAG" \
+            --format='{{.Id}}'
+
+          echo "Worker:"
+          docker image inspect \
+            "penflow-worker:$IMAGE_TAG" \
+            --format='{{.Id}}'
+
+          echo "Frontend:"
+          docker image inspect \
+            "penflow-frontend:$IMAGE_TAG" \
+            --format='{{.Id}}'
+
+
+      - name: Configure AWS Credentials
+        if: >
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/main'
+        uses: aws-actions/configure-aws-credentials@v6.1.1
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+
+      - name: Verify AWS Identity
+        if: >
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/main'
+        run: aws sts get-caller-identity
+
+
+      - name: Login to Amazon ECR
+        if: >
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          aws ecr get-login-password \
+            --region "$AWS_REGION" |
+          docker login \
+            --username AWS \
+            --password-stdin \
+            "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+
+
+      - name: Tag Tested Images for ECR
+        if: >
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+        run: |
+          REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+
+          docker tag \
+            "penflow-backend:$IMAGE_TAG" \
+            "$REGISTRY/$BACKEND_ECR_REPOSITORY:$IMAGE_TAG"
+
+          docker tag \
+            "penflow-worker:$IMAGE_TAG" \
+            "$REGISTRY/$WORKER_ECR_REPOSITORY:$IMAGE_TAG"
+
+          docker tag \
+            "penflow-frontend:$IMAGE_TAG" \
+            "$REGISTRY/$FRONTEND_ECR_REPOSITORY:$IMAGE_TAG"
+
+
+      - name: Push Tested Images to ECR
+        if: >
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+        run: |
+          REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+
+          docker push \
+            "$REGISTRY/$BACKEND_ECR_REPOSITORY:$IMAGE_TAG"
+
+          docker push \
+            "$REGISTRY/$WORKER_ECR_REPOSITORY:$IMAGE_TAG"
+
+          docker push \
+            "$REGISTRY/$FRONTEND_ECR_REPOSITORY:$IMAGE_TAG"
+
+          echo ""
+          echo "Tested production images published."
+          echo "Tag: $IMAGE_TAG"
+
+
+      - name: Show Docker Logs on Failure
+        if: failure()
+        run: docker compose logs
+
+
+      - name: Stop Docker Stack
         if: always()
         run: docker compose down -v --remove-orphans

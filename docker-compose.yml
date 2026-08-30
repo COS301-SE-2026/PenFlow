@@ -1,6 +1,7 @@
 services:
   frontend:
     container_name: penflow-frontend
+    image: ${FRONTEND_IMAGE:-penflow-frontend:local}
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
@@ -52,6 +53,7 @@ services:
 
   backend:
     container_name: penflow-backend
+    image: ${BACKEND_IMAGE:-penflow-backend:local}
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
@@ -122,6 +124,7 @@ services:
 
   workers:
     container_name: penflow-workers
+    image: ${WORKER_IMAGE:-penflow-worker:local}
     build:
       context: .
       dockerfile: docker/Dockerfile.workers
@@ -239,8 +242,11 @@ services:
       KEYCLOAK_BOOTSTRAP_ADMIN_USERNAME: admin
       KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: http://localhost:8080
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
     volumes:
       - ./docker/keycloak/penflow-realm.json:/opt/keycloak/data/import/penflow-realm.json:ro
+      - ./docker/keycloak/themes:/opt/keycloak/themes:ro
     command:
       - start-dev
       - --import-realm
