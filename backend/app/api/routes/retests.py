@@ -3,8 +3,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import User
 from app.api.middleware.auth import require_pentester
+from app.models.user import User
 from app.schemas.retest import RetestListItem, RetestUpdate
 from app.services.retest_service import RetestService
 from app.utils.db import get_db

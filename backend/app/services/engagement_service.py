@@ -822,7 +822,14 @@ class EngagementService:
 
         items: list[PentesterConversationSummary] = []
 
-        for (engagement, service_delivery, latest_comment, sender, message_count, unread_count) in rows:
+        for (
+            engagement, 
+            service_delivery, 
+            latest_comment, 
+            sender, 
+            message_count, 
+            unread_count
+        ) in rows:
             last_message = None
 
             if latest_comment is not None:
