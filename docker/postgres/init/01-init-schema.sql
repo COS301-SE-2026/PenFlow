@@ -65,12 +65,6 @@ CREATE TYPE domain_verification_code AS ENUM (
     'lookup_failed'
 );
 
-CREATE TYPE engagement_status AS ENUM (
-    'in_progress',
-    'scheduled',
-    'completed'
-);
-
 CREATE TYPE activity_badge AS ENUM (
     'IN PROGRESS',
     'CRITICAL',
@@ -151,6 +145,29 @@ CREATE TABLE verified_domains (
     UNIQUE (user_id, domain)
 );
 
+CREATE TABLE scan_schedules (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organisation_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    scan_type scan_type NOT NULL DEFAULT 'active_vulnerability',
+    verified_domain_id UUID NOT NULL REFERENCES verified_domains(id) ON DELETE CASCADE,
+    frequency scan_schedule_frequency NOT NULL,
+    run_time TIME NOT NULL,
+    day_of_week SMALLINT,
+    day_of_month SMALLINT,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    next_run_at TIMESTAMPTZ NOT NULL,
+    last_run_at TIMESTAMPTZ,
+    timezone VARCHAR(64) NOT NULL DEFAULT 'Africa/Johannesburg',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CHECK (day_of_week IS NULL OR day_of_week BETWEEN 0 AND 6),
+    CHECK (day_of_month IS NULL OR day_of_month BETWEEN 1 AND 28),
+
+    UNIQUE (verified_domain_id, scan_type)
+);
+
 CREATE TABLE scans (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organisation_id UUID REFERENCES organisations(id) ON DELETE SET NULL,
@@ -158,6 +175,8 @@ CREATE TABLE scans (
     task_id VARCHAR(255),
     domain VARCHAR(255) NOT NULL,
     verified_domain_id UUID REFERENCES verified_domains(id) ON DELETE SET NULL,
+    schedule_id UUID REFERENCES scan_schedules(id) ON DELETE SET NULL DEFAULT NULL,
+    scheduled_for TIMESTAMPTZ DEFAULT NULL,
     scan_type scan_type NOT NULL DEFAULT 'passive_ctem', 
     email VARCHAR(255),
     status scan_status NOT NULL DEFAULT 'queued',
@@ -167,7 +186,8 @@ CREATE TABLE scans (
     completed_at TIMESTAMPTZ,
     error_message TEXT,
 
-    CHECK (progress >= 0 AND progress <= 100)
+    CHECK (progress >= 0 AND progress <= 100),
+    CONSTRAINT uq_scans_schedule_occurrence UNIQUE (schedule_id, scheduled_for)
 );
 
 CREATE TABLE assets (
@@ -298,29 +318,6 @@ CREATE TABLE reports (
     CHECK((scan_id IS NOT NULL) OR (engagement_id IS NOT NULL))
 );
 
-CREATE TABLE scan_schedules (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    organisation_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    scan_type scan_type NOT NULL DEFAULT 'active_vulnerability',
-    verified_domain_id UUID NOT NULL REFERENCES verified_domains(id) ON DELETE CASCADE,
-    frequency scan_schedule_frequency NOT NULL,
-    run_time TIME NOT NULL,
-    day_of_week SMALLINT,
-    day_of_month SMALLINT,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    next_run_at TIMESTAMPTZ NOT NULL,
-    last_run_at TIMESTAMPTZ,
-    timezone VARCHAR(64) NOT NULL DEFAULT 'Africa/Johannesburg',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
-    CHECK (day_of_week IS NULL OR day_of_week BETWEEN 0 AND 6),
-    CHECK (day_of_month IS NULL OR day_of_month BETWEEN 1 AND 28),
-
-    UNIQUE (verified_domain_id, scan_type)
-);
-
 CREATE TABLE scan_differences (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     current_scan_id UUID NOT NULL REFERENCES scans(id) ON DELETE CASCADE,
@@ -347,17 +344,6 @@ CREATE TABLE detected_technologies (
     UNIQUE NULLS NOT DISTINCT (scan_id, product, version, technology_type, asset_id, service_id),
 
     CHECK (confidence is NULL OR (confidence >= 0 AND confidence <= 1))
-);
-
-CREATE TABLE engagements (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    domain VARCHAR(255) NOT NULL,
-    status engagement_status NOT NULL DEFAULT 'scheduled',
-    pentester_name VarCHar(255) NOT NULL,
-    start_time TIMESTAMPTZ,
-    end_time TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE activity_events (
@@ -420,10 +406,6 @@ CREATE TABLE finding_retests (
     completed_at TIMESTAMPTZ
 );
 
-ALTER TABLE scans ADD COLUMN schedule_id UUID REFERENCES scan_schedules(id) ON DELETE SET NULL DEFAULT NULL;
-ALTER TABLE scans ADD COLUMN scheduled_for TIMESTAMPTZ DEFAULT NULL;
-ALTER TABLE scans ADD CONSTRAINT uq_scans_schedule_occurrence UNIQUE (schedule_id, scheduled_for);
-
 CREATE INDEX idx_users_org_id ON users(organisation_id);
 
 CREATE INDEX idx_scans_org_id ON scans(organisation_id);
@@ -468,7 +450,6 @@ CREATE INDEX idx_detected_tech_asset_id ON detected_technologies(asset_id);
 CREATE INDEX idx_detected_tech_service_id ON detected_technologies(service_id);
 CREATE INDEX idx_detected_tech_product_ver ON detected_technologies(product, version);
 
-CREATE INDEX idx_engagements_user_id ON engagements(user_id);
 CREATE INDEX idx_activity_events_engagement_id ON activity_events(engagement_id);
 CREATE INDEX idx_engagement_status ON engagements(status);
 CREATE INDEX idx_engagement_requested_by ON engagements(requested_by);

@@ -52,8 +52,5 @@ app.include_router(users.router, prefix=API_V1_PREFIX)
 app.include_router(summary.router, prefix=API_V1_PREFIX)
 app.include_router(domains.router, prefix=API_V1_PREFIX)
 app.include_router(engagements.router, prefix=API_V1_PREFIX)
-<<<<<<< HEAD
-=======
 app.include_router(findings.router, prefix=API_V1_PREFIX)
 app.include_router(retests.router, prefix=API_V1_PREFIX)
->>>>>>> dev

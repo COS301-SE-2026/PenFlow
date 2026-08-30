@@ -1,14 +1,15 @@
-from typing import Sequence
+from typing import Any, Sequence
 from uuid import UUID
 
-from sqlalchemy import desc, func, Select, select
+from sqlalchemy import Select, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
+from app.models.audit_log import AuditLog
 from app.models.base import EngagementStatus
 from app.models.engagement import Engagement
-from app.models.audit_log import AuditLog
 from app.schemas.engagement import EngagementSortField, SortOrder
+
 
 class EngagementRepository:
 
@@ -44,7 +45,9 @@ class EngagementRepository:
         return result.scalars().all()
 
     @staticmethod
-    def sort_records(query: Select[Any], sort: EngagementSortField, order: SortOrder) -> Select[Any]:
+    def sort_records(
+        query: Select[Any], sort: EngagementSortField, order: SortOrder
+    ) -> Select[Any]:
         sort_cols: dict[EngagementSortField, InstrumentedAttribute[Any]] = {
             EngagementSortField.CREATED_AT: Engagement.created_at,
             EngagementSortField.UPDATED_AT: Engagement.updated_at,
