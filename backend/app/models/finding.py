@@ -3,11 +3,11 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Numeric, String, Text
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Enum, ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, FindingReviewStatus, FindingStatus, Severity
+from app.models.base import Base, FindingStatus, Severity
 
 
 class Finding(Base):
@@ -73,13 +73,10 @@ class Finding(Base):
         index=True,
     )
 
-    review_status: Mapped[FindingReviewStatus | None] = mapped_column(
-        Enum(
-            FindingReviewStatus,
-            values_callable=lambda e: [item.value for item in e],
-            name="finding_review_status",
-        ),
-        nullable=True,
+    is_verified: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
     )
 
     cvss_score: Mapped[Decimal | None] = mapped_column(Numeric(3, 1), nullable=True)

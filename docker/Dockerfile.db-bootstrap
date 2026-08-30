@@ -1,6 +1,6 @@
 FROM postgres:16-alpine
 
-COPY docker/postgres/init/schema.sql /bootstrap/schema.sql
+COPY docker/postgres/init/01-init-schema.sql /bootstrap/schema.sql
 COPY docker/postgres/bootstrap.sh /bootstrap/bootstrap.sh
 
 RUN chmod +x /bootstrap/bootstrap.sh

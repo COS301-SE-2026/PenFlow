@@ -2,17 +2,25 @@
   "realm": "penflow",
   "enabled": true,
 
+  "accessTokenLifespan": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
   "registrationAllowed": true,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "verifyEmail": false,
   "resetPasswordAllowed": true,
-
+  "loginTheme": "penflow",
+  
   "roles": {
     "realm": [
       {
         "name": "user",
         "description": "Standard PenFlow user"
+      },
+      {
+        "name": "pentester",
+        "description": "PenFlow penetration tester"
       },
       {
         "name": "admin",

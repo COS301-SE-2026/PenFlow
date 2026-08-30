@@ -151,9 +151,9 @@ variable "keycloak_image_tag" {
 }
 
 variable "access_token_lifespan_seconds" {
-  description = "Access token lifespan exposed to the frontend refesh logic."
+  description = "Fallback access token lifespan used only when access_token_expires_at is unavailable."
   type        = number
-  default     = 600
+  default     = 900
 }
 
 variable "keycloak_bootstrap_admin_username" {
@@ -206,5 +206,5 @@ variable "smtp_from" {
 variable "db_backup_retention_period" {
   type        = number
   description = "Number of days to retain automated RDS backups."
-  default     = 7
+  default     = 1
 }

@@ -7,6 +7,11 @@ on:
     branches: [main]
 
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Existing tested ECR image tag to deploy"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -18,27 +23,27 @@ concurrency:
 
 env:
   AWS_REGION: af-south-1
-  AWS_ACCOUNT_ID: "720546261277"
+  AWS_ACCOUNT_ID: "428792079342"
 
-  ECS_CLUSTER: penflow-cluster
+  ECS_CLUSTER: penflow-production-cluster
 
-  BACKEND_SERVICE: penflow-backend-service-lkjzgy8z
+  BACKEND_SERVICE: penflow-production-backend-service
   BACKEND_CONTAINER: penflow-backend
-  BACKEND_ECR_REPOSITORY: penflow-backend
+  BACKEND_ECR_REPOSITORY: penflow-production-backend
 
-  FRONTEND_SERVICE: penflow-frontend-service
+  FRONTEND_SERVICE: penflow-production-frontend-service
   FRONTEND_CONTAINER: penflow-frontend
-  FRONTEND_ECR_REPOSITORY: penflow-frontend
+  FRONTEND_ECR_REPOSITORY: penflow-production-frontend
 
-  WORKER_SERVICE: penflow-worker
+  WORKER_SERVICE: penflow-production-worker-service
   WORKER_CONTAINER: penflow-worker
-  WORKER_ECR_REPOSITORY: penflow-worker
+  WORKER_ECR_REPOSITORY: penflow-production-worker
 
 jobs:
   deploy:
     name: Deploy Production
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
 
     if: >
       github.event_name == 'workflow_dispatch' ||
@@ -49,82 +54,43 @@ jobs:
       )
 
     steps:
-      - name: Resolve deployment commit
-        id: commit
+      - name: Resolve deployment
+        id: deploy
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_SHA: ${{ github.event.workflow_run.head_sha }}
+          INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            SHA="${{ github.event.workflow_run.head_sha }}"
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            SHA="$WORKFLOW_SHA"
+            echo "tag=${SHA:0:12}" >> "$GITHUB_OUTPUT"
+            echo "ref=$SHA" >> "$GITHUB_OUTPUT"
           else
-              SHA="${{ github.sha }}"
+            if [[ ! "$INPUT_IMAGE_TAG" =~ ^[0-9a-f]{12}$ ]]; then
+              echo "Invalid image tag: expected a 12-character Git commit SHA"
+              exit 1
+            fi
+            echo "tag=$INPUT_IMAGE_TAG" >> "$GITHUB_OUTPUT"
           fi
 
-          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
-          echo "tag=${SHA:0:12}" >> "$GITHUB_OUTPUT"
 
-          echo "Deploying commit: $SHA"
-          echo "Image tag: ${SHA:0:12}"
-
-      - name: Checkout deployment commit
+      - name: Checkout deployment scripts
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
-          ref: ${{ steps.commit.outputs.sha }}
+          ref: ${{ steps.deploy.outputs.ref }}
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6.1.1
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Verify AWS identity
-        run: aws sts get-caller-identity
-
-      - name: Login to Amazon ECR 
-        shell: bash
-        run: |
-          aws ecr get-login-password --region "$AWS_REGION" |
-            docker login \
-              --username AWS \
-              --password-stdin \
-              "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
-          
-      - name: Build production images
-        shell: bash
-        env:
-          IMAGE_TAG: ${{ steps.commit.outputs.tag }}
-        run: |
-          REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
-
-          docker build \
-            -f docker/Dockerfile.backend \
-            -t "$REGISTRY/$BACKEND_ECR_REPOSITORY:$IMAGE_TAG" \
-            .
-
-          docker build \
-            -f docker/Dockerfile.workers \
-            -t "$REGISTRY/$WORKER_ECR_REPOSITORY:$IMAGE_TAG" \
-            .
-
-          docker build \
-            -f docker/Dockerfile.frontend \
-            -t "$REGISTRY/$FRONTEND_ECR_REPOSITORY:$IMAGE_TAG" \
-            .
-
-      - name: Push production images
-        shell: bash
-        env:
-          IMAGE_TAG: ${{ steps.commit.outputs.tag }}
-        run: |
-          REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
-
-          docker push "$REGISTRY/$BACKEND_ECR_REPOSITORY:$IMAGE_TAG"
-          docker push "$REGISTRY/$WORKER_ECR_REPOSITORY:$IMAGE_TAG"
-          docker push "$REGISTRY/$FRONTEND_ECR_REPOSITORY:$IMAGE_TAG"   
+ 
 
       - name: Deploy backend
         shell: bash        
         env: 
-          IMAGE_TAG: ${{ steps.commit.outputs.tag }}
+          IMAGE_TAG: ${{ steps.deploy.outputs.tag }}
         run: |
           IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$BACKEND_ECR_REPOSITORY:$IMAGE_TAG"
 
@@ -134,10 +100,11 @@ jobs:
             "$BACKEND_CONTAINER" \
             "$IMAGE"
 
+
       - name: Deploy worker
         shell: bash        
         env: 
-          IMAGE_TAG: ${{ steps.commit.outputs.tag }}
+          IMAGE_TAG: ${{ steps.deploy.outputs.tag }}
         run: |
           IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$WORKER_ECR_REPOSITORY:$IMAGE_TAG"
 
@@ -147,10 +114,11 @@ jobs:
             "$WORKER_CONTAINER" \
             "$IMAGE"
 
+
       - name: Deploy frontend
         shell: bash        
         env: 
-          IMAGE_TAG: ${{ steps.commit.outputs.tag }}
+          IMAGE_TAG: ${{ steps.deploy.outputs.tag }}
         run: |
           IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$FRONTEND_ECR_REPOSITORY:$IMAGE_TAG"
 
@@ -159,6 +127,7 @@ jobs:
             "$FRONTEND_SERVICE" \
             "$FRONTEND_CONTAINER" \
             "$IMAGE"
+
 
       - name: Production smoke tests
         shell: bash
