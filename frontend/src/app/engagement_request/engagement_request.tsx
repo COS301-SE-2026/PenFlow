@@ -13,7 +13,6 @@ import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { validateDomain } from "@/lib/domainValidator";
-import { start } from "repl";
 
 
 //type declaration 
@@ -320,6 +319,25 @@ export default function EngagementHome() {
                 </CardHeader>
                     <CardContent className="flex flex-col gap-5">
                         <div className="flex flex-col gap-2">
+                            <Label className="text-base" htmlFor="assessment-type">Assessment type</Label>
+                             <Select
+                                value={assessmentType ?? undefined}
+                                onValueChange = {(v) => setAssessmentType(v as AssessmentType)}
+                            >
+                                <SelectTrigger id="assessment-type" className="h-11 text-lg">
+                                     <SelectValue placeholder="What area should testers focus on?" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                     {assessmentTypeOptions.map((opt) => (
+                                        <SelectItem key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                             </Select>
+                            </div>
+
+                             <div className="flex flex-col gap-2">
                             <Label className="text-base" htmlFor="objective">Engagement objective</Label>
                              <textarea
                             id="objective"
@@ -337,6 +355,7 @@ export default function EngagementHome() {
                             <Input
                                 id="start-date"
                                 type="date"
+                                min={minDate}
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
                                 className="h-11 text-xl text-foreground [color-scheme:dark]"
@@ -348,12 +367,18 @@ export default function EngagementHome() {
                                 id="end-date"
                                 type="date"
                                 value={endDate}
+                                min={startDate || minDate}
                                 onChange={(e) => setEndDate(e.target.value)}
                                 className="h-11 text-xl text-foreground [color-scheme:dark]"
                             />
                         </div>
                     </div>
-                    {startDate && endDate && !durationValid && (
+                        {!startDateValid && (
+                        <p className="text-base text-brand-alert">
+                            Start date cannot be in the past.
+                        </p>
+                        )}
+                    {startDateValid && startDate && endDate && !durationValid && (
                          <p className="text-base text-brand-alert">
                             Engagements must run for at least {MIN_ENGAGEMENT_DAYS} days. Selected duration: {durationDays} day{durationDays === 1 ? "" : "s"}.
                          </p>
@@ -476,7 +501,7 @@ export default function EngagementHome() {
                  <p className="text-base text-muted-foreground">
                     {canSubmit
                         ?"Ready to submit."
-                         :`Select an engagement type, fill in the objective, declare at least one asset, and choose a start/end date at least ${MIN_ENGAGEMENT_DAYS} days apart.`
+                         :`Select an engagement type and assessment type, fill in the objective, declare at least one asset, and choose a start/end date at least ${MIN_ENGAGEMENT_DAYS} days apart.`
                     }
                  </p>
                  <Button
