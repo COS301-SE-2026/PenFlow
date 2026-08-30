@@ -1059,7 +1059,6 @@ class EngagementRepository:
                 & (unread_count_subquery.c.channel
                     == message_count_subquery.c.channel
                     ),
-                )
             ).outerjoin(
                 latest_comment,
                 (latest_comment.engagement_id == Engagement.id)
