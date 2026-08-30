@@ -20,6 +20,8 @@ type EngagementType  = "black_box" | "grey_box" | "white_box";
 
 type AssetType = "domain" | "ip" | "hostname" | "url";
 
+type AssessmentType = "web_application" | "mobile_application" | "api" | "network" | "cloud" | "other";
+
 interface Asset {
     id:string;
     type :AssetType;
@@ -53,6 +55,15 @@ const engagementTypeOptions:{
         icon: Scan,
     },
 
+];
+
+const assessmentTypeOptions: { value: AssessmentType; label: string }[] = [
+    { value: "web_application", label: "Web Application" },
+    { value: "mobile_application", label: "Mobile Application" },
+    { value: "api", label: "API" },
+    { value: "network", label: "Network" },
+    { value: "cloud", label: "Cloud" },
+    { value: "other", label: "Other" },
 ];
 
 const assetTypeOptions:{value: AssetType; label:string } [] = [
