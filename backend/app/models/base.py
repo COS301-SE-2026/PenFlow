@@ -71,6 +71,15 @@ class EngagementType(str, enum.Enum):
     GREY_BOX = "grey_box"
     WHITE_BOX = "white_box"
 
+    
+class AssessmentType(str, enum.Enum):
+    WEB_APPLICATION = "web_application"
+    MOBILE_APPLICATION = "mobile_application"
+    API = "api"
+    NETWORK = "network"
+    CLOUD = "cloud"
+    OTHER = "other"
+
 #initial set up for our engagement survey
 class EngagementStatus(str, enum.Enum):
     REQUESTED = "requested"

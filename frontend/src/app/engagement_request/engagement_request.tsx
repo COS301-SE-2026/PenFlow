@@ -20,6 +20,8 @@ type EngagementType  = "black_box" | "grey_box" | "white_box";
 
 type AssetType = "domain" | "ip" | "hostname" | "url";
 
+type AssessmentType = "web_application" | "mobile_application" | "api" | "network" | "cloud" | "other";
+
 interface Asset {
     id:string;
     type :AssetType;
@@ -53,6 +55,15 @@ const engagementTypeOptions:{
         icon: Scan,
     },
 
+];
+
+const assessmentTypeOptions: { value: AssessmentType; label: string }[] = [
+    { value: "web_application", label: "Web Application" },
+    { value: "mobile_application", label: "Mobile Application" },
+    { value: "api", label: "API" },
+    { value: "network", label: "Network" },
+    { value: "cloud", label: "Cloud" },
+    { value: "other", label: "Other" },
 ];
 
 const assetTypeOptions:{value: AssetType; label:string } [] = [
@@ -105,6 +116,16 @@ function validateAssetValue(type: AssetType, value: string): string | null {
 
 //control to have min 7 days for a request
 const MIN_ENGAGEMENT_DAYS = 7;
+
+
+//local date restriction of no past input date
+function todayIsoDate(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth()+1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}        
 function durationInDays(startDate: string, endDate: string): number | null {
      if (!startDate || !endDate) return null;
 
@@ -140,7 +161,7 @@ function extractErrorMessage(body: unknown): string {
 
 export default function EngagementHome() {
     const[engagementType,setEngagementType] = useState<EngagementType | null>(null);
-   
+    const [assessmentType, setAssessmentType] = useState<AssessmentType | null>(null);
     const [objective ,setObjective] = useState("");
     const [startDate , setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
@@ -189,6 +210,7 @@ export default function EngagementHome() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     engagement_type: engagementType,
+                    assessment_type: assessmentType,
                     objective,
                     start_date: startDate || null,
                     end_date: endDate || null,
@@ -211,9 +233,17 @@ export default function EngagementHome() {
         }
         
     }
+    const minDate =  todayIsoDate();
+    const startDateValid  = !startDate || startDate >= minDate;
     const durationDays = durationInDays(startDate, endDate);
     const durationValid = durationDays !== null && durationDays >= MIN_ENGAGEMENT_DAYS;
-    const canSubmit = engagementType !== null && objective.trim().length > 0 && assets.length > 0 && durationValid;
+    const canSubmit =
+        engagementType !== null &&
+        assessmentType !== null &&
+        objective.trim().length > 0 &&
+        assets.length > 0 &&
+        startDateValid &&
+        durationValid;
 
     return(
         <div className="mx-auto flex max-w-4xl flex-col gap-8 px-4 py-10 text-lg">
@@ -289,6 +319,25 @@ export default function EngagementHome() {
                 </CardHeader>
                     <CardContent className="flex flex-col gap-5">
                         <div className="flex flex-col gap-2">
+                            <Label className="text-base" htmlFor="assessment-type">Assessment type</Label>
+                             <Select
+                                value={assessmentType ?? undefined}
+                                onValueChange = {(v) => setAssessmentType(v as AssessmentType)}
+                            >
+                                <SelectTrigger id="assessment-type" className="h-11 text-lg">
+                                     <SelectValue placeholder="What area should testers focus on?" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                     {assessmentTypeOptions.map((opt) => (
+                                        <SelectItem key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                             </Select>
+                            </div>
+
+                             <div className="flex flex-col gap-2">
                             <Label className="text-base" htmlFor="objective">Engagement objective</Label>
                              <textarea
                             id="objective"
@@ -306,6 +355,7 @@ export default function EngagementHome() {
                             <Input
                                 id="start-date"
                                 type="date"
+                                min={minDate}
                                 value={startDate}
                                 onChange={(e) => setStartDate(e.target.value)}
                                 className="h-11 text-xl text-foreground [color-scheme:dark]"
@@ -317,12 +367,18 @@ export default function EngagementHome() {
                                 id="end-date"
                                 type="date"
                                 value={endDate}
+                                min={startDate || minDate}
                                 onChange={(e) => setEndDate(e.target.value)}
                                 className="h-11 text-xl text-foreground [color-scheme:dark]"
                             />
                         </div>
                     </div>
-                    {startDate && endDate && !durationValid && (
+                        {!startDateValid && (
+                        <p className="text-base text-brand-alert">
+                            Start date cannot be in the past.
+                        </p>
+                        )}
+                    {startDateValid && startDate && endDate && !durationValid && (
                          <p className="text-base text-brand-alert">
                             Engagements must run for at least {MIN_ENGAGEMENT_DAYS} days. Selected duration: {durationDays} day{durationDays === 1 ? "" : "s"}.
                          </p>
@@ -445,7 +501,7 @@ export default function EngagementHome() {
                  <p className="text-base text-muted-foreground">
                     {canSubmit
                         ?"Ready to submit."
-                         :`Select an engagement type, fill in the objective, declare at least one asset, and choose a start/end date at least ${MIN_ENGAGEMENT_DAYS} days apart.`
+                         :`Select an engagement type and assessment type, fill in the objective, declare at least one asset, and choose a start/end date at least ${MIN_ENGAGEMENT_DAYS} days apart.`
                     }
                  </p>
                  <Button
