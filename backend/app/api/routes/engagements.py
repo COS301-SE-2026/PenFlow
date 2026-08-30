@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user
 from app.models.base import EngagementStatus, FindingReviewStatus, FindingStatus, Severity
+from app.models.user import User 
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.engagement import (
     ActivityListResponse,
@@ -27,29 +28,29 @@ from app.utils.db import get_db
 router = APIRouter(prefix="/engagements", tags=["Engagements"])
 
 
-async def resolve_user_id(
+async def resolve_user(
     db: AsyncSession,
     current_user: dict[str, Any],
-) -> UUID:
+) -> User:
     user_id = await get_user_id_by_provider_id(
         db,
-        current_user["sub"],
+        current_user["sub"]
     )
 
-    if user_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not present.",
-        )
+    if user_id:
+        user = await EngagementService.require_viewable_engagement.__globals__["EngagementRepository"].get_user_by_id(db, user_id)
+        if user:
+            return user
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="User not present.",
+    )
 
-    return user_id
 
-
-@router.post(
-    "/",
-    response_model=EngagementCreateResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Create client engagement request",
+@router.get(
+    "",
+    response_model=EngagementListResponse,
+    summary="List engagements for user",
 )
 
 async def create_engagement_request(
@@ -68,7 +69,7 @@ async def create_engagement_request(
 @router.get(
     "",
     response_model=EngagementListResponse,
-    summary="List assigned engagements",
+    summary="List engagements for user",
 )
 async def get_engagements(
     engagement_status: Annotated[
@@ -86,11 +87,11 @@ async def get_engagements(
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> EngagementListResponse:
-    user_id = await resolve_user_id(db, current_user)
+    user = await resolve_user(db, current_user)
 
     return await EngagementService.list_engagements(
         db,
-        user_id=user_id,
+        user_id=user.id,
         engagement_status=engagement_status,
         search=search,
         sort=sort,

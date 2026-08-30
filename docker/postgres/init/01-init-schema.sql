@@ -80,6 +80,7 @@ CREATE TYPE engagement_type AS ENUM (
 CREATE TYPE engagement_status AS ENUM (
     'requested',
     'scoping',
+    'scheduled',
     'in_progress',
     'review',
     'completed',
@@ -91,6 +92,20 @@ CREATE TYPE finding_review_status AS ENUM (
     'ready_for_review',
     'published',
     'needs_revision'
+);
+
+CREATE TYPE engagement_message_channel AS ENUM (
+    'client_service_delivery',
+    'service_delivery_pentester'
+    );
+
+CREATE TYPE assessment_type AS ENUM (
+    'web_application',
+    'mobile_application',
+    'api',
+    'network',
+    'cloud',
+    'other'
 );
 
 CREATE TYPE retest_status AS ENUM (
@@ -125,7 +140,24 @@ CREATE TABLE users (
 
     UNIQUE (auth_provider, auth_provider_id),
 
-    CHECK(role IN ('client', 'pentester', 'admin'))
+    CHECK(role IN ('client', 'pentester', 'service_delivery', 'admin'))
+);
+
+CREATE TABLE pentester_profiles (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    company VARCHAR(255),
+    bio TEXT,
+    years_experience INTEGER,
+    specialisations assessment_type[] NOT NULL DEFAULT '{}',
+    certifications TEXT[] NOT NULL DEFAULT '{}',
+    timezone VARCHAR(64),
+    location VARCHAR(255),
+    availability_status VARCHAR(30) NOT NULL DEFAULT 'available',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CHECK (years_experience IS NULL OR years_experience >= 0),
+    CHECK (availability_status IN ('available', 'engaged', 'unavailable'))
 );
 
 CREATE TABLE verified_domains (
@@ -239,8 +271,10 @@ CREATE TABLE engagements (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organisation_id UUID REFERENCES organisations(id) ON DELETE CASCADE,
     requested_by UUID NOT NULL REFERENCES users(id),
+    service_delivery_id UUID REFERENCES users(id),
     assigned_to UUID REFERENCES users(id),
     engagement_type engagement_type NOT NULL,
+    assessment_type assessment_type NOT NULL,
     priority VARCHAR(20) DEFAULT 'medium',
     status engagement_status NOT NULL DEFAULT 'requested',
     title VARCHAR(255) NOT NULL,
@@ -249,9 +283,15 @@ CREATE TABLE engagements (
     constraints TEXT,
     primary_contact VARCHAR(255),
     estimated_quote NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+    final_quote NUMERIC(12,2),
     estimated_duration_days INTEGER,
     requested_start_date DATE,
     requested_end_date DATE,
+    scheduled_start_date DATE,
+    scheduled_end_date DATE,
+    reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMPTZ,
+    review_note TEXT,
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -261,6 +301,12 @@ CREATE TABLE engagements (
         requested_start_date IS NULL
         OR requested_end_date IS NULL
         OR requested_start_date <= requested_end_date
+    ),
+
+    CHECK (
+        scheduled_start_date IS NULL
+        OR scheduled_end_date IS NULL
+        OR scheduled_start_date <= scheduled_end_date
     )
 );
 
@@ -290,7 +336,7 @@ CREATE TABLE findings (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     recommendation TEXT,
-    verification_status finding_verification_status,
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
     reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
     reviewed_at TIMESTAMPTZ,
     review_note TEXT,
@@ -307,7 +353,8 @@ CREATE TABLE findings (
 CREATE TABLE reports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     scan_id UUID UNIQUE REFERENCES scans(id) ON DELETE CASCADE,
-    engagement_id UUID REFERENCES engagements(id),
+    engagement_id UUID REFERENCES engagements(id) ON DELETE CASCADE,
+    version INTEGER NOT NULL DEFAULT 1,
     task_id VARCHAR(255),
     status report_status NOT NULL DEFAULT 'pending',
     pdf_path TEXT,
@@ -315,7 +362,11 @@ CREATE TABLE reports (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     error_message TEXT,
 
-    CHECK((scan_id IS NOT NULL) OR (engagement_id IS NOT NULL))
+    CHECK(
+        (scan_id IS NOT NULL AND engagement_id IS NULL)
+        OR (scan_id IS NULL AND engagement_id IS NOT NULL)
+    ),
+    UNIQUE (engagement_id, version)
 );
 
 CREATE TABLE scan_differences (
@@ -360,7 +411,10 @@ CREATE TABLE engagement_comments (
     engagement_id UUID NOT NULL REFERENCES engagements(id) ON DELETE CASCADE,
     finding_id UUID REFERENCES findings(id) ON DELETE CASCADE,
     user_id UUID NOT NULL REFERENCES users(id),
+    recipient_id UUID NOT NULL REFERENCES users(id),
+    channel engagement_message_channel NOT NULL,
     comment TEXT NOT NULL,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -405,6 +459,10 @@ CREATE TABLE finding_retests (
     requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     completed_at TIMESTAMPTZ
 );
+
+ALTER TABLE scans ADD COLUMN schedule_id UUID REFERENCES scan_schedules(id) ON DELETE SET NULL DEFAULT NULL;
+ALTER TABLE scans ADD COLUMN scheduled_for TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE scans ADD CONSTRAINT uq_scans_schedule_occurrence UNIQUE (schedule_id, scheduled_for);
 
 CREATE INDEX idx_users_org_id ON users(organisation_id);
 
