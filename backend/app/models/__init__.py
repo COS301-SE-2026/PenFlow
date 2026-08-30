@@ -15,6 +15,7 @@ from app.models.scan import Scan as Scan
 from app.models.scan_schedule import ScanSchedule as ScanSchedule
 from app.models.scan_source import ScanSource as ScanSource
 from app.models.service import Service as Service
+from app.models.pentester_profile import PentesterProfile as PentesterProfile
 from app.models.user import User as User
 from app.models.verified_domain import VerifiedDomain as VerifiedDomain
 
@@ -35,6 +36,7 @@ __all__ = [
     "ScanSource",
     "ScanStatus",
     "Severity",
+    "PentesterProfile",
     "User",
     "VerifiedDomain",
 ]

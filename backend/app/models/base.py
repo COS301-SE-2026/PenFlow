@@ -96,3 +96,11 @@ class UserRole(str, enum.Enum):
 class EngagementMessageChannel(str, enum.Enum):
     CLIENT_SERVICE_DELIVERY = "client_service_delivery"
     SERVICE_DELIVERY_PENTESTER = "service_delivery_pentester"
+
+class AssessmentType(str, enum.Enum):
+    WEB_APPLICATION = "web_application"
+    MOBILE_APPLICATION = "mobile_application"
+    API = "api"
+    NETWORK = "network"
+    CLOUD = "cloud"
+    OTHER = "other"
