@@ -118,6 +118,7 @@ class EngagementService:
                 start_date=engagement.requested_start_date,
                 end_date=engagement.requested_end_date,
                 asset_count=asset_count,
+                estimated_quote=engagement.estimated_quote,
                 assigned_pentester_id=engagement.assigned_to,
                 created_at=engagement.created_at,
             )

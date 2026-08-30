@@ -12,11 +12,16 @@ export async function proxyToEngagementsApi(path: string, init: RequestInit ={})
     const cookieStore = await cookies();
     const accessToken = cookieStore.get("access_token")?.value;
 
-    const response = await fetch(`${BACKEND_URL}/api/v1${path}`, {
+    if (!accessToken) {
+        return NextResponse.json({ detail: "Not authenticated" }, { status: 401 });
+
+    }
+
+    const response = await fetch(`${BACKEND_URL}/api/v1/engagements${path}`, {
         ...init,
         headers: {
             ...init.headers,
-            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+            Authorization: `Bearer ${accessToken}`,
         },
         cache: "no-store",
     });
@@ -27,7 +32,7 @@ export async function proxyToEngagementsApi(path: string, init: RequestInit ={})
 
     const body = await response.json().catch(() => null);
     if (response.status >= 500) {
-        console.error(`[engagements proxy] backend ${response.status} for ${path}:`,  body);
+        console.error(`[engagements proxy] backend ${response.status} for ${path}:`, body);
         return NextResponse.json(
             { detail: "Something went wrong. Please try again later."},
             { status: response.status }
