@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isValidEngagementId, proxyToEngagementsApi } from "@/lib/engagementsBackend";
 
 export async function GET(
-    request: NextRequest,
+    _request: NextRequest,
     { params }: { params: { id: string } }
 ) {
     const id = params.id;
