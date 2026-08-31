@@ -1096,3 +1096,19 @@ class EngagementRepository:
 
         result = await db.execute(stmt)
         return list(result.all())
+
+
+    @staticmethod
+    async def get_service_delivery_users(
+        db: AsyncSession,
+    ) -> list[User]:
+        stmt = (
+            select(User).where(
+                User.role == "service_delivery",
+            ).order_by(
+                User.created_at.asc(),
+            )
+        )
+
+        result = await db.execute(stmt)
+        return list(result.scalars().all())
