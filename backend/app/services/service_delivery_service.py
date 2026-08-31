@@ -1423,3 +1423,183 @@ class ServiceDeliveryService:
             in_progress_engagements=counts[EngagementStatus.IN_PROGRESS],
             created_at=pentester.created_at,
         )
+
+
+    @staticmethod
+    async def require_findings_visible_engagement(
+        db: AsyncSession,
+        engagement_id: UUID,
+        service_delivery_id: UUID,
+    ) -> Engagement:
+        engagement = await ServiceDeliveryService.require_owned_engagement(
+            db,
+            engagement_id=engagement_id,
+            service_delivery_id=service_delivery_id,
+        )
+
+        allowed_statuses = {
+            EngagementStatus.IN_PROGRESS,
+            EngagementStatus.REVIEW,
+            EngagementStatus.COMPLETED,
+        }
+
+        if engagement.status not in allowed_statuses:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Findings are not available for this engagement.",
+            )
+
+        return engagement
+
+
+    @staticmethod
+    async def list_findings(
+        db: AsyncSession,
+        *,
+        engagement_id: UUID,
+        service_delivery_id: UUID,
+        severity: Severity | None,
+        finding_status: FindingStatus | None,
+        limit: int,
+        offset: int,
+    ) -> ServiceDeliveryFindingListResponse:
+        await ServiceDeliveryService.require_findings_visible_engagement(
+            db,
+            engagement_id=engagement_id,
+            service_delivery_id=service_delivery_id,
+        )
+
+        findings, total = await FindingRepository.list_by_engagement(
+            db,
+            engagement_id=engagement_id,
+            source=None,
+            severity=severity,
+            finding_status=finding_status,
+            search=None,
+            limit=limit,
+            offset=offset,
+        )
+
+        items = [
+            ServiceDeliveryFindingListItem(
+                id=finding.id,
+                title=finding.title,
+                severity=finding.severity,
+                status=finding.status,
+                engagement_asset_id=finding.engagement_asset_id,
+                asset_identifier=asset_identifier,
+                source=finding.source,
+                is_verified=finding.is_verified,
+                cvss_score=finding.cvss_score,
+                cve_id=finding.cve_id,
+                created_at=finding.created_at,
+            ) for finding, asset_identifier in findings
+        ]
+
+        return ServiceDeliveryFindingListResponse(
+            items=items,
+            pagination=EngagementPagination(
+                total=total,
+                limit=limit,
+                offset=offset,
+                has_more=offset + len(items) < total,
+            )
+        )
+
+
+    @staticmethod
+    async def get_finding(
+        db: AsyncSession,
+        *,
+        engagement_id: UUID,
+        finding_id: UUID,
+        service_delivery_id: UUID,
+    ) -> ServiceDeliveryFindingDetail:
+
+        await ServiceDeliveryService.require_findings_visible_engagement(
+            db,
+            engagement_id=engagement_id,
+            service_delivery_id=service_delivery_id,
+        )
+
+        finding = await FindingRepository.get_by_id_and_engagement(
+            db,
+            finding_id=finding_id,
+            engagement_id=engagement_id,
+        )
+
+        if finding is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Finding not found.",
+            )
+
+        asset_identifier = None
+
+        if finding.engagement_asset_id is not None:
+            asset = await EngagementRepository.get_asset_by_id(
+                db,
+                engagement_id=engagement_id,
+                asset_id=finding.engagement_asset_id,
+            )
+
+            if asset is not None:
+                asset_identifier = asset.identifier
+
+        return ServiceDeliveryFindingDetail(
+            id=finding.id,
+            engagement_id=engagement_id,
+            engagement_asset_id=finding.engagement_asset_id,
+            asset_identifier=asset_identifier,
+            source=finding.source,
+            title=finding.title,
+            description=finding.description,
+            recommendation=finding.recommendation,
+            severity=finding.severity,
+            status=finding.status,
+            is_verified=finding.is_verified,
+            cvss_score=finding.cvss_score,
+            cve_id=finding.cve_id,
+            created_by=finding.created_by,
+            created_at=finding.created_at,
+        )
+
+
+    @staticmethod
+    async def get_evidence_for_download(
+        db: AsyncSession,
+        evidence_id: UUID,
+        service_delivery_id: UUID,
+    ) -> EvidenceFile:
+
+        evidence = await FindingRepository.get_evidence_by_id(
+            db,
+            evidence_id=evidence_id,
+        )
+
+        if evidence is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Evidence file not found.",
+            )
+
+        finding = await FindingRepository.get_by_id(
+            db,
+            finding_id=evidence.finding_id,
+        )
+
+        if finding is None or finding.engagement_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Evidence file not found.",
+            )
+
+        await ServiceDeliveryService.require_findings_visible_engagement(
+            db,
+            engagement_id=finding.engagement_id,
+            service_delivery_id=service_delivery_id,
+        )
+
+
+
+    
