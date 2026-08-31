@@ -115,20 +115,6 @@ CREATE TYPE retest_status AS ENUM (
     'still_vulnerable'
 );
 
-CREATE TYPE engagement_message_channel AS ENUM (
-    'client_service_delivery',
-    'service_delivery_pentester'
-);
-
-CREATE TYPE assessment_type AS ENUM (
-    'web_application',
-    'mobile_application',
-    'api',
-    'network',
-    'cloud',
-    'other'
-);
-
 CREATE TABLE organisations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
@@ -163,10 +149,7 @@ CREATE TABLE pentester_profiles (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-<<<<<<< HEAD
-=======
 
->>>>>>> origin/dev
     CHECK (years_experience IS NULL OR years_experience >= 0),
     CHECK (availability_status IN ('available', 'engaged', 'unavailable'))
 );

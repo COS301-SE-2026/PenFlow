@@ -184,7 +184,10 @@ class EngagementRepository:
             )
         )
 
-        count_query = select(func.count(Engagement.id)).join(client, client.id == Engagement.requested_by)
+        count_query = (
+            select(func.count(Engagement.id))
+            .join(client, client.id == Engagement.requested_by)
+        )
 
         if user_role in {"pentester", "admin"}:
             query = query.where(Engagement.assigned_to == user_id)
@@ -239,7 +242,11 @@ class EngagementRepository:
 
 
     @staticmethod
-    async def get_status_counts(db: AsyncSession, user_id: UUID, user_role: str = "client") -> dict[EngagementStatus, int]:
+    async def get_status_counts(
+        db: AsyncSession, 
+        user_id: UUID, 
+        user_role: str = "client"
+        ) -> dict[EngagementStatus, int]:
         query = select(Engagement.status, func.count(Engagement.id))
 
         if user_role in {"pentester", "admin"}:
