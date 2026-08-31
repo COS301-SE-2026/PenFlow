@@ -257,7 +257,7 @@ async def mark_engagement_messages_read(
     channel: EngagementMessageChannel,
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
-) -> MarkMessageresponse:
+) -> MarkMessagesReadResponse:
     user = await resolve_user(db, current_user)
 
     return await EngagementService.mark_messages_read(
