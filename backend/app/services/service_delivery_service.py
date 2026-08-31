@@ -4,7 +4,14 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.base import AssessmentType, EngagementStatus, FindingStatus, ReportStatus, Severity
+from app.models.base import (
+    AssessmentType, 
+    EngagementStatus, 
+    FindingStatus, 
+    NotificationType,
+    ReportStatus, 
+    Severity
+)
 from app.models.engagement import Engagement
 from app.models.evidence_file import EvidenceFile
 from app.models.user import User
@@ -54,7 +61,7 @@ from app.schemas.service_delivery import (
     ServiceDeliveryScheduleRequest,
     ServiceDeliveryScopingUpdate,
 )
-
+from app.services.notification_service import NotificationService
 
 class ServiceDeliveryService:
 
@@ -386,6 +393,22 @@ class ServiceDeliveryService:
             },
         )
 
+        await NotificationService.notify(
+            db,
+            recipient_id=claimed_engagement.requested_by,
+            actor_id=service_delivery_id,
+            notification_type=NotificationType.ENGAGEMENT_CLAIMED,
+            title="Engagement request accepted",
+            message=(
+                f"{claimed_engagement.title} has been accepted "
+                "and is now being scoped."
+            ),
+            engagement_id=claimed_engagement.id,
+            metadata={
+                "status": EngagementStatus.SCOPING.value,
+            },
+        )
+
         return response
 
 
@@ -599,6 +622,19 @@ class ServiceDeliveryService:
             },
         )
 
+        await NotificationService.notify(
+            db,
+            recipient_id=pentester_id,
+            actor_id=service_delivery_id,
+            notification_type=NotificationType.ENGAGEMENT_ASSIGNED,
+            title="New engagement assignment",
+            message=f"You have been assigned to {engagement.title}.",
+            engagement_id=engagement.id,
+            metadata={
+                "assessment_type": assessment_type,
+            }
+        )
+
         return response
 
 
@@ -787,6 +823,41 @@ class ServiceDeliveryService:
             },
         )
 
+        notification_metadata={
+            "scheduled_start_date": str(request.scheduled_start_date),
+            "scheduled_end_date": str(request.scheduled_end_date),
+        }
+
+        await NotificationService.notify(
+            db,
+            recipient_id=engagement.requested_by,
+            actor_id=service_delivery_id,
+            notification_type=NotificationType.ENGAGEMENT_SCHEDULED,
+            title="Engagement scheduled",
+            message=(
+                f"{engagement.title} has been scheduled for "
+                f"{request.scheduled_start_date} to "
+                f"{request.scheduled_end_date}."
+            ),
+            engagement_id=engagement.id,
+            metadata=notification_metadata,
+        )
+
+        await NotificationService.notify(
+            db,
+            recipient_id=engagement.assigned_to,
+            actor_id=service_delivery_id,
+            notification_type=NotificationType.ENGAGEMENT_SCHEDULED,
+            title="Engagement scheduled",
+            message=(
+                f"{engagement.title} has been scheduled for "
+                f"{request.scheduled_start_date} to "
+                f"{request.scheduled_end_date}."
+            ),
+            engagement_id=engagement.id,
+            metadata=notification_metadata,
+        )
+
         return response
 
 
@@ -913,6 +984,32 @@ class ServiceDeliveryService:
             },
         )
 
+        await NotificationService.notify(
+            db,
+            recipient_id=previous_pentester_id,
+            actor_id=service_delivery_id,
+            notification_type=NotificationType.ENGAGEMENT_REASSIGNED,
+            title="Engagement reassigned",
+            message=f"You are no longer assigned to {engagement.title}.",
+            engagement_id=engagement.id,
+            metadata={
+                "assignment": "removed",
+            },
+        )
+
+        await NotificationService.notify(
+            db,
+            recipient_id=pentester.id,
+            actor_id=service_delivery_id,
+            notification_type=NotificationType.ENGAGEMENT_REASSIGNED,
+            title="New engagement assignment",
+            message=f"You have been assigned to {engagement.title}.",
+            engagement_id=engagement.id,
+            metadata={
+                "assignment": "assigned",
+            },
+        )   
+
         return response
 
     
@@ -1017,6 +1114,49 @@ class ServiceDeliveryService:
             },
         )
 
+        notification_metadata = {
+            "previous_start_date": (
+                str(previous_start_date)
+                if previous_start_date is not None
+                else None
+            ),
+            "previous_end_date": (
+                str(previous_end_date)
+                if previous_end_date is not None
+                else None
+            ),
+            "scheduled_start_date": str(request.scheduled_start_date),
+            "scheduled_end_date": str(request.scheduled_end_date),
+        }
+
+        notification_message = (
+            f"{engagement.title} has been rescheduled to "
+            f"{request.scheduled_start_date} to "
+            f"{request.scheduled_end_date}."
+        )
+
+        await NotificationService.notify(
+            db,
+            recipient_id=engagement.requested_by,
+            actor_id=service_delivery_id,
+            notification_type=NotificationType.ENGAGEMENT_RESCHEDULED,
+            title="Engagement rescheduled",
+            message=notification_message,
+            engagement_id=engagement.id,
+            metadata=notification_metadata
+        )
+
+        await NotificationService.notify(
+            db,
+            recipient_id=engagement.assigned_to,
+            actor_id=service_delivery_id,
+            notification_type=NotificationType.ENGAGEMENT_RESCHEDULED,
+            title="Engagement rescheduled",
+            message=notification_message,
+            engagement_id=engagement.id,
+            metadata=notification_metadata
+        )
+
         return response
 
 
@@ -1074,6 +1214,19 @@ class ServiceDeliveryService:
                 "new_status": EngagementStatus.IN_PROGRESS.value,
                 "pentester_id": str(engagement.assigned_to),
                 "review_note": request.review_note,
+            },
+        )
+
+        await NotificationService.notify(
+            db,
+            recipient_id=engagement.assigned_to,
+            actor_id=service_delivery_id,
+            notification_type=NotificationType.ENGAGEMENT_REVIEW_RETURNED,
+            title="Engagement returned for changes",
+            message=f"{engagement.title} requires further changes.",
+            engagement_id=engagement.id,
+            metadata={
+                "status": EngagementStatus.IN_PROGRESS.value,
             },
         )
 
@@ -1150,6 +1303,33 @@ class ServiceDeliveryService:
             },
         )
 
+        await NotificationService.notify(
+            db,
+            recipient_id=engagement.requested_by,
+            actor_id=service_delivery_id,
+            notification_type=NotificationType.ENGAGEMENT_COMPLETED,
+            title="Penetration test completed",
+            message=f"{engagement.title} has been completed.",
+            engagement_id=engagement.id,
+            metadata={
+                "status": EngagementStatus.COMPLETED.value,
+                "report_id": str(report_id),
+            },
+        )
+
+        await NotificationService.notify(
+            db,
+            recipient_id=engagement.assigned_to,
+            actor_id=service_delivery_id,
+            notification_type=NotificationType.ENGAGEMENT_COMPLETED,
+            title="Engagement completed",
+            message=f"{engagement.title} has completed review.",
+            engagement_id=engagement.id,
+            metadata={
+                "status": EngagementStatus.COMPLETED.value,
+            },
+        )    
+
         return response
 
 
@@ -1212,6 +1392,32 @@ class ServiceDeliveryService:
                 "previous_status": previous_status.value,
                 "new_status": EngagementStatus.CANCELLED.value,
                 "reason": request.reason,
+            },
+        )
+
+        await NotificationService.notify(
+            db,
+            recipient_id=engagement.requested_by,
+            actor_id=service_delivery_id,
+            notification_type=NotificationType.ENGAGEMENT_CANCELLED,
+            title="Engagement cancelled",
+            message=f"{engagement.title} has been cancelled.",
+            engagement_id=engagement.id,
+            metadata={
+                "previous_status": previous_status.value,
+            },
+        )
+
+        await NotificationService.notify(
+            db,
+            recipient_id=engagement.assigned_to,
+            actor_id=service_delivery_id,
+            notification_type=NotificationType.ENGAGEMENT_CANCELLED,
+            title="Engagement cancelled",
+            message=f"{engagement.title} has been cancelled.",
+            engagement_id=engagement.id,
+            metadata={
+                "previous_status": previous_status.value,
             },
         )
 
