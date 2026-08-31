@@ -1018,3 +1018,201 @@ class ServiceDeliveryService:
         )
 
         return response
+
+
+    @staticmethod
+    async def return_from_review(
+        db: AsyncSession,
+        engagement_id: UUID,
+        service_delivery_id: UUID,
+        request: ServiceDeliveryReviewReturnRequest
+    ) -> ServiceDeliveryEngagementActionResponse:
+        
+        engagement = await ServiceDeliveryService.require_owned_engagement(
+            db,
+            engagement_id=engagement_id,
+            service_delivery_id=service_delivery_id,
+        )
+
+        if engagement.status != EngagementStatus.REVIEW:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Only engagements in review can be returned to the pentester.",
+            )
+        
+        if engagement.assigned_to is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The engagement does not have an assigned pentester.",
+            )
+
+        reviewed_at = datetime.now(timezone.utc)
+
+        engagement = await EngagementRepository.update_fields(
+            db,
+            engagement=engagement,
+            changes={
+                "status": EngagementStatus.IN_PROGRESS,
+                "reviewed_by": service_delivery_id,
+                "reviewed_at": reviewed_at,
+                "review_note": request.review_note,
+            },
+        )
+
+        response = ServiceDeliveryService.action_response(
+            engagement,
+        )
+
+        await AuditRepository.create_log(
+            db,
+            user_id=service_delivery_id,
+            action="engagement.returned_to_pentester",
+            entity_type="engagement",
+            entity_id=engagement.id,
+            metadata={
+                "previous_status": EngagementStatus.REVIEW.value,
+                "new_status": EngagementStatus.IN_PROGRESS.value,
+                "pentester_id": str(engagement.assigned_to),
+                "review_note": request.review_note,
+            },
+        )
+
+        return response
+
+
+    @staticmethod
+    async def complete_review(
+        db: AsyncSession,
+        engagement_id: UUID,
+        service_delivery_id: UUID,
+    ) -> ServiceDeliveryEngagementActionResponse:
+        
+        engagement = await ServiceDeliveryService.require_owned_engagement(
+            db,
+            engagement_id=engagement_id,
+            service_delivery_id=service_delivery_id,
+        )
+
+        if engagement.status != EngagementStatus.REVIEW:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Only engagements in review can be completed.",
+            )
+
+        report = await get_latest_for_engagement(
+            db,
+            engagement_id=engagement.id,
+        )
+
+        if report is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Final report is not ready",
+            )
+
+        if report.status != ReportStatus.COMPLETED:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Final report is not ready.",
+            )
+
+        report_id = report.id
+        report_version = report.version
+
+        completed_at = datetime.now(timezone.utc)
+
+        engagement = await EngagementRepository.update_fields(
+            db,
+            engagement=engagement,
+            changes={
+                "status": EngagementStatus.COMPLETED,
+                "reviewed_by": service_delivery_id,
+                "reviewed_at": completed_at,
+                "completed_at": completed_at,
+            },
+        )
+
+        response = ServiceDeliveryService.action_response(
+            engagement,
+        )
+
+        await AuditRepository.create_log(
+            db,
+            user_id=service_delivery_id,
+            action="engagement.completed",
+            entity_type="engagement",
+            entity_id=engagement.id,
+            metadata={
+                "previous_status": EngagementStatus.REVIEW.value,
+                "new_status": EngagementStatus.COMPLETED.value,
+                "report_id": str(report_id),
+                "report_version": report_version,
+            },
+        )
+
+        return response
+
+
+    @staticmethod
+    async def cancel_engagement(
+        db: AsyncSession,
+        engagement_id: UUID,
+        service_delivery_id: UUID,
+        request: ServiceDeliveryCancelRequest
+    ) -> ServiceDeliveryEngagementActionResponse:
+        
+        engagement = await ServiceDeliveryService.require_engagement(
+            db,
+            engagement_id=engagement_id,
+        )
+
+        cancellable_statuses = {
+            EngagementStatus.REQUESTED,
+            EngagementStatus.SCOPING,
+            EngagementStatus.SCHEDULED,
+            EngagementStatus.IN_PROGRESS,
+        }
+
+        if engagement.status not in cancellable_statuses:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This engagement can no longer be cancelled.",
+            )
+        
+        if (
+            engagement.service_delivery_id is not None
+            and engagement.service_delivery_id != service_delivery_id
+        ):
+            raise HTTPException(
+                status_code = status.HTTP_403_FORBIDDEN,
+                detail="This engagement is not assigned to you.",
+            )
+
+        previous_status = engagement.status
+
+        engagement = await EngagementRepository.update_fields(
+            db,
+            engagement=engagement,
+            changes={
+                "status": EngagementStatus.CANCELLED,
+            },
+        )
+
+        response = ServiceDeliveryService.action_response(
+            engagement,
+        )
+
+        await AuditRepository.create_log(
+            db,
+            user_id=service_delivery_id,
+            action="engagement.cancelled",
+            entity_type="engagement",
+            entity_id=engagement.id,
+            metadata={
+                "previous_status": previous_status.value,
+                "new_status": EngagementStatus.CANCELLED.value,
+                "reason": request.reason,
+            },
+        )
+
+        return response
