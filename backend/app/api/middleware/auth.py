@@ -247,3 +247,29 @@ async def require_service_delivery(
         )
 
     return user
+
+
+async def require_user(
+        db: AsyncSession = Depends(get_db),
+        current_user: dict[str, Any] = Depends(get_current_user),
+) -> User:
+    user_id = await get_user_id_by_provider_id(
+        db,
+        current_user["sub"],
+    )
+
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not present."
+        )
+
+    user = await db.get(User, user_id)
+
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    return user
