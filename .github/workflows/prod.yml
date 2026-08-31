@@ -57,14 +57,21 @@ jobs:
       - name: Resolve deployment
         id: deploy
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_SHA: ${{ github.event.workflow_run.head_sha }}
+          INPUT_IMAGE_TAG: ${{ inputs.image_tag }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            SHA="${{ github.event.workflow_run.head_sha }}"
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            SHA="$WORKFLOW_SHA"
             echo "tag=${SHA:0:12}" >> "$GITHUB_OUTPUT"
             echo "ref=$SHA" >> "$GITHUB_OUTPUT"
           else
-            echo "tag=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
-            echo "ref=main" >> "$GITHUB_OUTPUT"
+            if [[ ! "$INPUT_IMAGE_TAG" =~ ^[0-9a-f]{12}$ ]]; then
+              echo "Invalid image tag: expected a 12-character Git commit SHA"
+              exit 1
+            fi
+            echo "tag=$INPUT_IMAGE_TAG" >> "$GITHUB_OUTPUT"
           fi
 
 
