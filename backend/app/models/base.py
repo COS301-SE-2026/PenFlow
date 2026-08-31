@@ -105,3 +105,9 @@ class UserRole(str, enum.Enum):
 class EngagementMessageChannel(str, enum.Enum):
     CLIENT_SERVICE_DELIVERY = "client_service_delivery"
     SERVICE_DELIVERY_PENTESTER = "service_delivery_pentester"
+
+class FindingReviewStatus(str, enum.Enum):
+    DRAFT = "draft"
+    READY_FOR_REVIEW = "ready_for_review"
+    PUBLISHED = "published"
+    NEEDS_REVISION = "needs_revision"
