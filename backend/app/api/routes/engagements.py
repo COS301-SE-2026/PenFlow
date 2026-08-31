@@ -8,6 +8,7 @@ from app.api.middleware.auth import get_current_user
 from app.models.base import EngagementStatus, FindingReviewStatus, FindingStatus, Severity
 from app.models.user import User 
 from app.repositories.user_repo import get_user_id_by_provider_id
+from app.repositories.engagement_repository import EngagementRepository
 from app.schemas.engagement import (
     ActivityListResponse,
     EngagementCreateRequest,
@@ -38,7 +39,7 @@ async def resolve_user(
     )
 
     if user_id:
-        user = await EngagementService.require_viewable_engagement.__globals__["EngagementRepository"].get_user_by_id(db, user_id)
+        user = await EngagementRepository.get_user_by_id(db, user_id)
         if user:
             return user
     raise HTTPException(
@@ -47,10 +48,11 @@ async def resolve_user(
     )
 
 
-@router.get(
-    "",
-    response_model=EngagementListResponse,
-    summary="List engagements for user",
+@router.post(
+    "/",
+    response_model=EngagementCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create client engagement request",
 )
 
 async def create_engagement_request(
@@ -58,12 +60,12 @@ async def create_engagement_request(
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> EngagementCreateResponse:
-    user_id = await resolve_user_id(db, current_user)
+    user = await resolve_user(db, current_user)
 
     return await EngagementService.create_engagement(
         db,
         request=request,
-        client_user_id=user_id,
+        client_user_id=user.id,
     )
 
 @router.get(
@@ -92,6 +94,7 @@ async def get_engagements(
     return await EngagementService.list_engagements(
         db,
         user_id=user.id,
+        user_role=user.role,
         engagement_status=engagement_status,
         search=search,
         sort=sort,
@@ -111,12 +114,12 @@ async def get_engagement(
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> EngagementDetailResponse:
-    user_id = await resolve_user_id(db, current_user)
+    user = await resolve_user(db, current_user)
 
     return await EngagementService.get_engagement_detail(
         db,
         engagement_id=engagement_id,
-        user_id=user_id,
+        user_id=user.id,
     )
 
 
@@ -143,12 +146,12 @@ async def get_engagement_findings(
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> FindingListResponse:
-    user_id = await resolve_user_id(db, current_user)
+    user = await resolve_user(db, current_user)
 
     return await EngagementService.list_findings(
         db,
         engagement_id=engagement_id,
-        user_id=user_id,
+        user_id=user.id,
         source=source,
         severity=severity,
         finding_status=finding_status,
@@ -171,12 +174,12 @@ async def create_engagement_finding(
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> FindingListItem:
-    user_id = await resolve_user_id(db, current_user)
+    user = await resolve_user(db, current_user)
 
     return await EngagementService.create_manual_finding(
         db,
         engagement_id=engagement_id,
-        user_id=user_id,
+        user_id=user.id,
         request=request,
     )
 
@@ -191,12 +194,12 @@ async def get_engagement_retests(
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> RetestListResponse:
-    user_id = await resolve_user_id(db, current_user)
+    user = await resolve_user(db, current_user)
 
     return await EngagementService.list_retests(
         db,
         engagement_id=engagement_id,
-        user_id=user_id,
+        user_id=user.id,
     )
 
 
@@ -210,12 +213,12 @@ async def get_engagement_messages(
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> EngagementMessageListResponse:
-    user_id = await resolve_user_id(db, current_user)
+    user = await resolve_user(db, current_user)
 
     return await EngagementService.list_messages(
         db,
         engagement_id=engagement_id,
-        user_id=user_id,
+        user_id=user.id,
     )
 
 
@@ -231,12 +234,12 @@ async def create_engagement_message(
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> EngagementMessageResponse:
-    user_id = await resolve_user_id(db, current_user)
+    user = await resolve_user(db, current_user)
 
     return await EngagementService.create_message(
         db,
         engagement_id=engagement_id,
-        user_id=user_id,
+        user_id=user.id,
         request=request,
     )
 
@@ -252,11 +255,11 @@ async def get_engagement_activity(
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> ActivityListResponse:
-    user_id = await resolve_user_id(db, current_user)
+    user = await resolve_user(db, current_user)
 
     return await EngagementService.list_activity(
         db,
         engagement_id=engagement_id,
-        user_id=user_id,
+        user_id=user.id,
         limit=limit,
     )
