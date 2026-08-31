@@ -307,3 +307,102 @@ export interface FindingDetail {
     evidence_files: EvidenceFileSummary[];
 }
 
+//retest
+export interface RetestListResponse {
+    items: Retest[];
+}
+
+export interface Retest {
+    id: string;
+    finding: {
+        id: string;
+        title: string;
+        severity: Severity;
+    };
+    requested_by?: string | null;
+    assigned_to?: string | null;
+    status: RetestStatus;
+    notes?: string | null;
+    requested_at: string;
+    completed_at?: string | null;
+}
+
+//Service Delivery conversation list
+
+export interface ConversationParticipant {
+    id: string;
+    full_name: string | null;
+    email: string;
+}
+
+export interface ConversationLastMessage {
+    id: string;
+    comment: string;
+    sender_name: string | null;
+    sender_role: string;
+    created_at: string;
+}
+
+export interface Conversation {
+    engagement_id: string;
+    engagement_title: string;
+    channel: EngagementMessageChannel;
+    participant: ConversationParticipant;
+    last_message: ConversationLastMessage | null;
+    message_count: number;
+    unread_count: number;
+}
+
+export interface ConversationListResponse {
+    items: Conversation[];
+}
+
+// 7.2 Conversation operations
+
+export interface EngagementMessageCreate {
+    comment: string;
+    finding_id?: string | null;
+    channel: EngagementMessageChannel;
+}
+
+export interface EngagementMessage {
+    id: string;
+    engagement_id: string;
+    finding_id?: string | null;
+    user: UserSummary;
+    recipient: UserSummary;
+    channel: EngagementMessageChannel;
+    comment: string;
+    is_read: boolean;
+    created_at: string;
+}
+
+export interface EngagementMessageListResponse {
+    items: EngagementMessage[];
+}
+
+export interface MarkReadResponse {
+    marked_read: number;
+}
+
+// 7.3 Audit
+
+export interface AuditListFilters {
+    limit?: number;
+    offset?: number;
+}
+
+export interface Activity {
+    id: string;
+    action: string;
+    entity_type: string;
+    entity_id?: string | null;
+    actor?: UserSummary | null;
+    metadata: Record<string, unknown>;
+    created_at: string;
+}
+
+export interface ActivityListResponse {
+    items: Activity[];
+}
+
