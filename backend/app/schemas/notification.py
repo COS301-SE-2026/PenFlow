@@ -9,7 +9,10 @@ from app.schemas.engagement import EngagementPagination
 
 
 class NotificationResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+    )
 
     id: UUID
     type: NotificationType

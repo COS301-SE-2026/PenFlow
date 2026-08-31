@@ -107,6 +107,7 @@ class AssessmentType(str, enum.Enum):
 
 class NotificationType(str, Enum):
     ENGAGEMENT_REQUESTED = "engagement.requested"
+    ENGAGEMENT_CLAIMED = "engagement.claimed"
     ENGAGEMENT_ASSIGNED = "engagement.assigned"
     ENGAGEMENT_SCHEDULED = "engagement.scheduled"
     ENGAGEMENT_REASSIGNED = "engagement.reassigned"
