@@ -15,7 +15,7 @@ async def build_phase3_report_context(
 
     result = await db.execute(
         select(Engagement)
-        .option(
+        .options(
             selectinload(Engagement.assets),
             selectinload(Engagement.findings).selectinload(Finding.evidence_files),
             selectinload(Engagement.findings).selectinload(Finding.retests),
@@ -25,7 +25,7 @@ async def build_phase3_report_context(
     engagement = result.scalar_one_or_none()
 
     if not engagement:
-        raise ValueError(f"Engagement not found: {end_uuid}")
+        raise ValueError(f"Engagement not found: {eng_uuid}")
 
     report_result = await db.execute(
         select(Report).where(
@@ -36,4 +36,28 @@ async def build_phase3_report_context(
     report = report_result.scalar_one_or_none()
 
     findings = engagement.findings or []
-    severity_counts
+    severity_counts = {
+        "critical": sum(1 for f in findings if f.severity == "critical"),
+        "high": sum(1 for f in findings if f.severity == "high"),
+        "medium": sum(1 for f in findings if f.severity == "medium"),
+        "low": sum(1 for f in findings if f.severity == "low"),
+        "info": sum(1 for f in findings if f.severity == "info"),
+    }
+    total_findings = len(findings)
+
+    return {
+        "engagement": engagement,
+        "client": engagement.primary_contact or "Valued Client",
+        "engagement_title": engagement.title,
+        "engagement_type": engagement.engagement_type,
+        "assessment_type": engagement.assessment_type,
+        "scope": engagement.scope,
+        "objective": engagement.objective,
+        "constraints": engagement.constraints,
+        "assets": engagement.assets,
+        "findings": findings,
+        "severity_counts": severity_counts,
+        "total_findings": total_findings,
+        "report_version": version,
+        "generated_at": report.generated_at if report else None,
+    }
