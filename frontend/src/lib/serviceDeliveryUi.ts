@@ -86,18 +86,50 @@ export function displayName(user: UserSummary | null | undefined, fallback = "Un
 }
 
 export function formatDate(value: string | null | undefined): string {
-    if (!value) return "—";
+    if (!value) return "-";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
     return date.toLocaleDateString("en-ZA", { month: "short", day: "numeric", year: "numeric" });
 }
 
 export function formatDateTime(value: string | null | undefined): string {
-    if (!value) return "—";
+    if (!value) return "-";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
     return date.toLocaleString("en-ZA", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+export function formatDateRange(start: string | null | undefined, end: string | null | undefined): string {
+     if(!start || !end) return "-";
+     return `${formatDate(start)} - ${formatDate(end)}`;
+}
 
+export function formatCurrency(value: string | null | undefined): string {
+    if (value === null || value === undefined || value === "") return "-";
+    const amount = Number(value);
+    if (Number.isNaN(amount)) return value;
+    return `R ${amount.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`;
+}
 
+export function downloadTextFile(filename: string, content: string): void {
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+export function downloadBlob(filename: string, blob: Blob): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+}
