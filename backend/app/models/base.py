@@ -1,7 +1,7 @@
 import enum
 
 from sqlalchemy.orm import DeclarativeBase
-
+from enum import Enum
 
 class Base(DeclarativeBase):
     pass
@@ -104,3 +104,19 @@ class AssessmentType(str, enum.Enum):
     NETWORK = "network"
     CLOUD = "cloud"
     OTHER = "other"
+
+class NotificationType(str, Enum):
+    ENGAGEMENT_REQUESTED = "engagement.requested"
+    ENGAGEMENT_ASSIGNED = "engagement.assigned"
+    ENGAGEMENT_SCHEDULED = "engagement.scheduled"
+    ENGAGEMENT_REASSIGNED = "engagement.reassigned"
+    ENGAGEMENT_RESCHEDULED = "engagement.rescheduled"
+    ENGAGEMENT_STARTED = "engagement.started"
+    ENGAGEMENT_REVIEW_REQUIRED = "engagement.review_required"
+    ENGAGEMENT_REVIEW_RETURNED = "engagement.review_returned"
+    ENGAGEMENT_COMPLETED = "engagement.completed"
+    ENGAGEMENT_CANCELLED = "engagement.cancelled"
+    MESSAGE_RECEIVED = "message.received"
+    RETEST_REQUESTED = "retest.requested"
+    RETEST_COMPLETED = "retest.completed"
+    REPORT_READY = "report.ready"
