@@ -86,3 +86,132 @@ export interface EngagementListResponse {
 }
 
 //engagement detail
+
+export interface EngagementAsset {
+    id: string;
+    identifier: string;
+    asset_type: string;
+    asset_metadata: Record<string, unknown>;
+    verified_domain_id?: string | null;
+}
+
+export interface FindingSummary {
+    total: number;
+    critical: number;
+    high: number;
+    medium: number;
+    low: number;
+    with_evidence: number;
+}
+
+export interface RetestSummary {
+    total: number;
+    requested: number;
+    in_progress: number;
+    resolved: number;
+    still_vulnerable: number;
+}
+
+export interface EngagementDetail {
+    id: string;
+    title: string;
+    engagement_type: EngagementType;
+    assessment_type: AssessmentType;
+    priority: string;
+    status: EngagementStatus;
+    scope: string;
+    objective?: string | null;
+    constraints?: string | null;
+    primary_contact?: string | null;
+    estimated_quote: string;
+    final_quote?: string | null;
+    estimated_duration_days?: number | null;
+    requested_start_date?: string | null;
+    requested_end_date?: string | null;
+    scheduled_start_date?: string | null;
+    scheduled_end_date?: string | null;
+    started_at?: string | null;
+    completed_at?: string | null;
+    reviewed_by?: UserSummary | null;
+    reviewed_at?: string | null;
+    review_note?: string | null;
+    client: UserSummary;
+    service_delivery?: UserSummary | null;
+    assigned_pentester?: UserSummary | null;
+    assets: EngagementAsset[];
+    finding_summary: FindingSummary;
+    retest_summary: RetestSummary;
+    created_at: string;
+    updated_at: string;
+}
+
+//Mutation request bodies
+export interface EngagementScopingUpdate {
+    assessment_type?: AssessmentType | null;
+    scope?: string | null;
+    objective?: string | null;
+    constraints?: string | null;
+    final_quote?: string | null;
+    estimated_duration_days?: number | null;
+}
+
+export interface AssignPentesterRequest {
+    pentester_id: string;
+}
+
+export interface ScheduleEngagementRequest {
+    scheduled_start_date: string;
+    scheduled_end_date: string;
+}
+export interface ReassignEngagementRequest {
+    pentester_id: string;
+    reason: string;
+}
+
+export interface RescheduleEngagementRequest {
+    scheduled_start_date: string;
+    scheduled_end_date: string;
+    reason: string;
+}
+
+export interface ReturnFromReviewRequest {
+    review_note: string;
+}
+
+export interface CancelEngagementRequest {
+    reason: string;
+}
+
+//dashboard
+export interface DashboardCounts {
+    requested: number;
+    scoping: number;
+    scheduled: number;
+    in_progress: number;
+    review: number;
+    completed: number;
+    cancelled: number;
+    needs_attention: number;
+}
+
+export interface DashboardEngagementItem {
+    id: string;
+    title: string;
+    status: EngagementStatus;
+    assessment_type: AssessmentType;
+    priority: string;
+    client: UserSummary;
+    service_delivery?: UserSummary | null;
+    assigned_pentester?: UserSummary | null;
+    scheduled_start_date?: string | null;
+    scheduled_end_date?: string | null;
+    updated_at: string;
+}
+
+export interface DashboardResponse {
+    counts: DashboardCounts;
+    unclaimed_requests: DashboardEngagementItem[];
+    awaiting_review: DashboardEngagementItem[];
+    upcoming_engagements: DashboardEngagementItem[];
+}
+
