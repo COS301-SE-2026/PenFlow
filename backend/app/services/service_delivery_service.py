@@ -1,25 +1,57 @@
+from datetime import date, datetime, timezone
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.base import AssessmentType, EngagementStatus
+from app.models.base import AssessmentType, EngagementStatus, FindingStatus, ReportStatus, Severity
 from app.models.engagement import Engagement
+from app.models.evidence_file import EvidenceFile
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.engagement_repository import EngagementRepository
+from app.repositories.finding_repository import FindingRepository
+from app.repositories.pentester_profile_repository import PentesterProfileRepository
+from app.repositories.report_repository import get_latest_for_engagement
+from app.repositories.retest_repository import RetestRepository
 from app.schemas.engagement import (
+    ActivityItemResponse,
+    ActivityListResponse,
     EngagementAssetResponse,
     EngagementPagination,
+    LatestMessageSummary,
+    MessageClientSummary,
+    ServiceDeliveryConversationListResponse,
+    ServiceDeliveryConversationSummary,
     UserSummary,
 )
+from app.schemas.retest import (
+    RetestFindingSummary,
+    RetestListItem,
+    RetestListResponse,
+)
 from app.schemas.service_delivery import (
+    ServiceDeliveryCancelRequest,
+    ServiceDeliveryDashboardCounts,
+    ServiceDeliveryDashboardEngagement,
+    ServiceDeliveryDashboardResponse,
     ServiceDeliveryEngagementActionResponse,
     ServiceDeliveryEngagementDetail,
     ServiceDeliveryEngagementListItem,
     ServiceDeliveryEngagementListResponse,
+    ServiceDeliveryFindingDetail,
+    ServiceDeliveryFindingListItem,
+    ServiceDeliveryFindingListResponse,
     ServiceDeliveryFindingSummary,
+    ServiceDeliveryPentesterAssignment,
+    ServiceDeliveryPentesterDetail,
+    ServiceDeliveryPentesterListItem,
+    ServiceDeliveryPentesterListResponse,
+    ServiceDeliveryReassignRequest,
+    ServiceDeliveryRescheduleRequest,
     ServiceDeliveryRetestSummary,
+    ServiceDeliveryReviewReturnRequest,
+    ServiceDeliveryScheduleRequest,
     ServiceDeliveryScopingUpdate,
 )
 
@@ -462,6 +494,526 @@ class ServiceDeliveryService:
                         else None
                     ) for key, value in changes.items()
                 },
+            },
+        )
+
+        return response
+
+
+    @staticmethod
+    async def assign_pentester(
+        db: AsyncSession,
+        engagement_id: UUID,
+        service_delivery_id: UUID,
+        request: ServiceDeliveryPentesterAssignment,
+    ) -> ServiceDeliveryEngagementActionResponse:
+        engagement = await ServiceDeliveryService.require_owned_engagement(
+            db,
+            engagement_id=engagement_id,
+            service_delivery_id=service_delivery_id,
+        )
+
+        if engagement.status != EngagementStatus.SCOPING:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A pentester can only be assigned while the engagement is in scoping.",
+            )
+
+        pentester = await EngagementRepository.get_user_by_id(
+            db,
+            user_id=request.pentester_id,
+        )
+
+        if pentester is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Pentester not found.",
+            )
+
+        if pentester.role != "pentester":
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="The selected user is not a pentester.",
+            )
+
+        profile = await PentesterProfileRepository.get_by_user_id(
+            db,
+            user_id=pentester.id,
+        )
+
+        if profile is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The selected pentester does not have a pentester profile.",
+            )
+
+        if not profile.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The selected pentester is inactive.",
+            )
+
+        if profile.availability_status == "unavailable":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The selected pentester is unavailable",
+            )
+
+        if engagement.assessment_type not in profile.specialisations:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The selected pentester does not support this assessment type.",
+            )
+
+        previous_pentester_id = engagement.assigned_to
+
+        assessment_type = engagement.assessment_type.value
+        pentester_id = pentester.id
+
+        engagement = await EngagementRepository.update_fields(
+            db,
+            engagement=engagement,
+            changes={
+                "assigned_to": pentester_id,
+            },
+        )
+
+        response = ServiceDeliveryService.action_response(
+            engagement,
+        )
+
+        await AuditRepository.create_log(
+            db,
+            user_id=service_delivery_id,
+            action="engagement.pentester_assigned",
+            entity_type="engagement",
+            entity_id=engagement.id,
+            metadata={
+                "previous_pentester_id": (
+                    str(previous_pentester_id)
+                    if previous_pentester_id is not None
+                    else None
+                ),
+                "pentester_id": str(pentester_id),
+                "assessment_type": assessment_type,
+            },
+        )
+
+        return response
+
+
+    @staticmethod
+    async def require_eligible_pentester(
+        db: AsyncSession,
+        pentester_id: UUID,
+        assessment_type: AssessmentType,
+    ) -> User:
+        pentester = await EngagementRepository.get_user_by_id(
+            db,
+            user_id=pentester_id,
+        )
+
+        if pentester is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Pentester not found.",
+            )
+
+        if pentester.role != "pentester":
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="The selected user is not a pentester.",
+            )
+
+        profile = await PentesterProfileRepository.get_by_user_id(
+            db,
+            user_id=pentester.id,
+        )
+
+        if profile is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The selected pentester does not have a profile.",
+            )
+
+        if not profile.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Pentester is not active.",
+            )
+
+        if profile.availability_status == "unavailable":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The selected pentester is unavailable.",
+            )
+
+        if assessment_type not in profile.specialisations:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The selected pentester does not support this assessment type.",
+            )
+
+        return pentester
+
+    
+    @staticmethod
+    async def schedule_engagement(
+        db: AsyncSession,
+        engagement_id: UUID,
+        service_delivery_id: UUID,
+        request: ServiceDeliveryScheduleRequest,
+    ) -> ServiceDeliveryEngagementActionResponse:
+
+        engagement = await ServiceDeliveryService.require_owned_engagement(
+            db,
+            engagement_id=engagement_id,
+            service_delivery_id=service_delivery_id,
+        )
+
+        if engagement.status != EngagementStatus.SCOPING:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Only engagements in scoping can be scheduled.",
+            )
+
+        if request.scheduled_start_date < date.today():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Scheduled start date cannot be in the past.",
+            )
+
+        if engagement.assigned_to is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A pentester must be assigned before scheduling.",
+            )
+
+        if engagement.final_quote is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A final quote must be set before scheduling.",
+            )
+
+        if not engagement.scope or not engagement.scope.strip():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Engagement scope must be confirmed before scheduling.",
+            )
+
+        pentester = await ServiceDeliveryService.require_eligible_pentester(
+            db,
+            pentester_id=engagement.assigned_to,
+            assessment_type=engagement.assessment_type,
+        )
+
+        if pentester is None or pentester.role != "pentester":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The assigned pentester is no longer valid.",
+            )
+
+        profile = await PentesterProfileRepository.get_by_user_id(
+            db,
+            user_id=pentester.id,
+        )
+
+        if profile is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The assigned pentester does not have a profile.",
+            )
+
+        if not profile.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The assigned pentester is inactive.",
+            )
+
+        if profile.availability_status == "unavailable":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The assigned pentester is unavailable.",
+            )
+
+        if engagement.assessment_type not in profile.specialisations:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The assigned pentester does not support this assessment type.",
+            )
+
+        has_conflict = await EngagementRepository.has_schedule_conflict(
+            db,
+            pentester_id=engagement.assigned_to,
+            scheduled_start_date=request.scheduled_start_date,
+            scheduled_end_date=request.scheduled_end_date,
+            exclude_engagement_id=engagement.id,
+        )
+
+        if has_conflict:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The assigned pentester has a scheduling conflict.",
+            )
+
+        previous_status = engagement.status
+
+        engagement = await EngagementRepository.update_fields(
+            db,
+            engagement=engagement,
+            changes={
+                "scheduled_start_date": request.scheduled_start_date,
+                "scheduled_end_date": request.scheduled_end_date,
+                "status": EngagementStatus.SCHEDULED,
+            },
+        )
+
+        response = ServiceDeliveryService.action_response(
+            engagement,
+        )
+
+        await AuditRepository.create_log(
+            db,
+            user_id=service_delivery_id,
+            action="engagement.scheduled",
+            entity_type="engagement",
+            entity_id=engagement.id,
+            metadata={
+                "previous_status": previous_status.value,
+                "new_status": EngagementStatus.SCHEDULED.value,
+                "pentester_id": str(engagement.assigned_to),
+                "scheduled_start_date": str(request.scheduled_start_date),
+                "scheduled_end_date": str(request.scheduled_end_date),
+            },
+        )
+
+        return response
+
+
+    @staticmethod
+    async def reassign_pentester(
+        db: AsyncSession,
+        engagement_id: UUID,
+        service_delivery_id: UUID,
+        request: ServiceDeliveryReassignRequest,
+    ) -> ServiceDeliveryEngagementActionResponse:
+
+        engagement = await ServiceDeliveryService.require_owned_engagement(
+            db,
+            engagement_id=engagement_id,
+            service_delivery_id=service_delivery_id,
+        )
+
+        if engagement.status != EngagementStatus.SCHEDULED:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Only scheduled engagements can have a pentester reassigned.",
+            )
+
+        if engagement.assigned_to is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="No pentester currently assigned.",
+            )
+
+        if request.pentester_id == engagement.assigned_to:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The selected pentester is already assigned to this engagement.",
+            )
+
+        pentester = await ServiceDeliveryService.require_eligible_pentester(
+            db,
+            pentester_id=request.pentester_id,
+            assessment_type=engagement.assessment_type,
+        )
+
+        if pentester is None or pentester.role != "pentester":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The assigned pentester is no longer valid.",
+            )
+
+        profile = await PentesterProfileRepository.get_by_user_id(
+            db,
+            user_id=pentester.id,
+        )
+
+        if profile is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The assigned pentester does not have a profile.",
+            )
+
+        if not profile.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The assigned pentester is inactive.",
+            )
+
+        if profile.availability_status == "unavailable":
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The assigned pentester is unavailable.",
+            )
+
+        if engagement.assessment_type not in profile.specialisations:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The assigned pentester does not support this assessment type.",
+            )
+
+        if (
+            engagement.scheduled_start_date is None 
+            or engagement.scheduled_end_date is None
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The engagement does not have valid scheduled dates.",
+            )
+
+        has_conflict = await EngagementRepository.has_schedule_conflict(
+            db,
+            pentester_id=pentester.id,
+            scheduled_start_date=engagement.scheduled_start_date,
+            scheduled_end_date=engagement.scheduled_end_date,
+            exclude_engagement_id=engagement.id,
+        )
+
+        if has_conflict:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The assigned pentester has a scheduling conflict.",
+            )
+
+        previous_pentester_id = engagement.assigned_to
+
+        engagement = await EngagementRepository.update_fields(
+            db,
+            engagement=engagement,
+            changes={
+                "assigned_to": pentester.id,
+            },
+        )
+
+        response = ServiceDeliveryService.action_response(
+            engagement,
+        )
+
+        await AuditRepository.create_log(
+            db,
+            user_id=service_delivery_id,
+            action="engagement.pentester_reassigned",
+            entity_type="engagement",
+            entity_id=engagement.id,
+            metadata={
+                "previous_pentester_id": str(previous_pentester_id),
+                "new_pentester_id": str(pentester.id),
+                "reason": request.reason.strip(),
+            },
+        )
+
+        return response
+
+    
+    @staticmethod
+    async def reschedule_engagement(
+        db: AsyncSession,
+        engagement_id: UUID,
+        service_delivery_id: UUID,
+        request: ServiceDeliveryRescheduleRequest,
+    ) -> ServiceDeliveryEngagementActionResponse:
+
+        engagement = await ServiceDeliveryService.require_owned_engagement(
+            db,
+            engagement_id=engagement_id,
+            service_delivery_id=service_delivery_id,
+        )
+
+        if engagement.status != EngagementStatus.SCHEDULED:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Only scheduled engagements can be rescheduled.",
+            )
+
+        if request.scheduled_start_date < date.today():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Scheduled start date cannot be in the past.",
+            )
+
+        if engagement.assigned_to is None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The engagement does not have an assigned pentester.",
+            )
+
+        if (
+            engagement.scheduled_start_date == request.scheduled_start_date 
+            and engagement.scheduled_end_date == request.scheduled_end_date
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The engagement is already scheduled for these dates.",
+            )
+
+        await ServiceDeliveryService.require_eligible_pentester(
+            db,
+            pentester_id=engagement.assigned_to,
+            assessment_type=engagement.assessment_type,
+        )
+
+        has_conflict = await EngagementRepository.has_schedule_conflict(
+            db,
+            pentester_id=engagement.assigned_to,
+            scheduled_start_date=request.scheduled_start_date,
+            scheduled_end_date=request.scheduled_end_date,
+            exclude_engagement_id=engagement.id,
+        )
+
+        if has_conflict:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The assigned pentester has a scheduling conflict.",
+            )
+
+        previous_start_date = engagement.scheduled_start_date
+        previous_end_date = engagement.scheduled_end_date
+
+        engagement = await EngagementRepository.update_fields(
+            db,
+            engagement=engagement,
+            changes={
+                "scheduled_start_date": request.scheduled_start_date,
+                "scheduled_end_date": request.scheduled_end_date,
+            },
+        )
+
+        response = ServiceDeliveryService.action_response(
+            engagement,
+        )
+
+        await AuditRepository.create_log(
+            db,
+            user_id=service_delivery_id,
+            action="engagement.rescheduled",
+            entity_type="engagement",
+            entity_id=engagement.id,
+            metadata={
+                "previous_start_date": (
+                    str(previous_start_date)
+                    if previous_start_date is not None
+                    else None
+                ),
+                "previous_end_date": (
+                    str(previous_end_date)
+                    if previous_end_date is not None
+                    else None
+                ),
+                "new_start_date": str(request.scheduled_start_date),
+                "new_end_date": str(request.scheduled_end_date),
+                "pentester_id": str(engagement.assigned_to),
+                "reason": request.reason
             },
         )
 
