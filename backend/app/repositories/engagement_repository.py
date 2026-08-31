@@ -151,14 +151,16 @@ class EngagementRepository:
         db: AsyncSession,
         *,
         user_id: UUID,
+        user_role: str,
         engagement_status: EngagementStatus | None,
         search: str | None,
         sort: EngagementSortField,
         order: SortOrder,
         limit: int,
         offset: int,
-    ) -> tuple[list[tuple[Engagement, str, int]], int]:
+    ) -> tuple[list[tuple[Engagement, str, int, str | None]], int]:
         client = aliased(User)
+        pentester = aliased(User)
 
         asset_count_subquery = (
             select(
@@ -172,17 +174,24 @@ class EngagementRepository:
                 Engagement,
                 client.full_name.label("client_name"),
                 func.coalesce(asset_count_subquery.c.asset_count, 0).label("asset_count"),
-            ).join(client, client.id == Engagement.requested_by).outerjoin(
-                asset_count_subquery,
-                asset_count_subquery.c.engagement_id == Engagement.id,
-            ).where(Engagement.assigned_to == user_id)
+                pentester.full_name.label("pentester_name")
+            ).join(client, client.id == Engagement.requested_by)
+            .outerjoin(
+                pentester, pentester.id == Engagement.assigned_to)
+                .outerjoin(
+                    asset_count_subquery,
+                    asset_count_subquery.c.engagement_id == Engagement.id,
+            )
         )
 
-        count_query = (
-            select(func.count(Engagement.id)).join(
-                client, client.id == Engagement.requested_by,
-            ).where(Engagement.assigned_to == user_id)
-        )
+        count_query = select(func.count(Engagement.id)).join(client, client.id == Engagement.requested_by)
+
+        if user_role in {"pentester", "admin"}:
+            query = query.where(Engagement.assigned_to == user_id)
+            count_query = count_query.where(Engagement.assigned_to == user_id)
+        else:
+            query = query.where(Engagement.requested_by == user_id)
+            count_query = count_query.where(Engagement.requested_by == user_id)
 
         if engagement_status is not None:
             query = query.where(Engagement.status == engagement_status)
@@ -230,12 +239,15 @@ class EngagementRepository:
 
 
     @staticmethod
-    async def get_status_counts(db: AsyncSession, user_id: UUID) -> dict[EngagementStatus, int]:
-        query = (
-            select(
-                Engagement.status, func.count(Engagement.id),
-            ).where(Engagement.assigned_to == user_id).group_by(Engagement.status)
-        )
+    async def get_status_counts(db: AsyncSession, user_id: UUID, user_role: str = "client") -> dict[EngagementStatus, int]:
+        query = select(Engagement.status, func.count(Engagement.id))
+
+        if user_role in {"pentester", "admin"}:
+            query = query.where(Engagement.assigned_to == user_id)
+        else:
+            query = query.where(Engagement.requested_by == user_id)
+
+        query = query.group_by(Engagement.status)
 
         result = await db.execute(query)
 
