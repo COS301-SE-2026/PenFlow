@@ -1600,6 +1600,212 @@ class ServiceDeliveryService:
             service_delivery_id=service_delivery_id,
         )
 
+        return evidence
+
+    @staticmethod
+    async def require_retests_visible_engagement(
+        db: AsyncSession,
+        engagement_id: UUID,
+        service_delivery_id: UUID,
+    ) -> Engagement:
+        engagement = await ServiceDeliveryService.require_owned_engagement(
+            db,
+            engagement_id=engagement_id,
+            service_delivery_id=service_delivery_id,
+        )
+
+        if engagement.status != EngagementStatus.COMPLETED:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Retests are only available for complete engagements.",
+            )
+
+        return engagement
 
 
-    
+    @staticmethod
+    async def list_retests(
+        db: AsyncSession,
+        engagement_id: UUID,
+        service_delivery_id: UUID,
+    ) -> RetestListResponse:
+        await ServiceDeliveryService.require_retests_visible_engagement(
+            db,
+            engagement_id=engagement_id,
+            service_delivery_id=service_delivery_id,
+        )
+
+        retests = await RetestRepository.list_by_engagement(
+            db,
+            engagement_id=engagement_id,
+        )
+
+        return RetestListResponse(
+            items=[
+                RetestListItem(
+                    id=retest.id,
+                    finding=RetestFindingSummary(
+                        id=retest.finding.id,
+                        title=retest.finding.title,
+                        severity=retest.finding.severity,
+                    ),
+                    requested_by=retest.requested_by,
+                    assigned_to=retest.assigned_to,
+                    status=retest.status,
+                    notes=retest.notes,
+                    requested_at=retest.requested_at,
+                    completed_at=retest.completed_at,
+                ) for retest in retests
+            ]
+        )
+
+
+    @staticmethod
+    async def get_retest(
+        db: AsyncSession,
+        retest_id: UUID,
+        service_delivery_id: UUID,
+    ) -> RetestListItem:
+        retest = await RetestRepository.get_by_id(
+            db,
+            retest_id=retest_id,
+        )
+
+        if retest is None or retest.finding.engagement_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Retest was not found.",
+            )
+
+        engagement_id = retest.finding.engagement_id
+
+        await ServiceDeliveryService.require_retests_visible_engagement(
+            db,
+            engagement_id=engagement_id,
+            service_delivery_id=service_delivery_id,
+        )
+
+        return RetestListItem(
+            id=retest.id,
+            finding=RetestFindingSummary(
+                id=retest.finding.id,
+                title=retest.finding.title,
+                severity=retest.finding.severity,
+            ),
+            requested_by=retest.requested_by,
+            assigned_to=retest.assigned_to,
+            status=retest.status,
+            notes=retest.notes,
+            requested_at=retest.requested_at,
+            completed_at=retest.completed_at,
+        )
+
+
+    @staticmethod
+    async def get_message_conversations(
+        db: AsyncSession,
+        service_delivery_id: UUID,
+    ) -> ServiceDeliveryConversationListResponse:
+
+        rows = await EngagementRepository.get_service_delivery_conversation_summaries(
+            db,
+            service_delivery_id=service_delivery_id,
+        )
+
+        items: list[ServiceDeliveryConversationSummary] = []
+
+        for (
+            engagement,
+            channel,
+            participant,
+            latest_comment,
+            sender,
+            message_count,
+            unread_count,
+        ) in rows:
+            last_message = None
+
+            if latest_comment is not None:
+                last_message = LatestMessageSummary(
+                    id=latest_comment.id,
+                    comment=latest_comment.comment,
+                    sender_name=(
+                        sender.full_name
+                        if sender is not None
+                        else None
+                    ),
+                    sender_role=(
+                        sender.role
+                        if sender is not None
+                        else "unknown"
+                    ),
+                    created_at=latest_comment.created_at,
+                )
+
+            items.append(
+                ServiceDeliveryConversationSummary(
+                    engagement_id=engagement.id,
+                    engagement_title=engagement.title,
+                    channel=channel,
+                    participant=MessageClientSummary(
+                        id=participant.id,
+                        full_name=participant.full_name,
+                        email=participant.email,
+                    ),
+                    last_message=last_message,
+                    message_count=message_count,
+                    unread_count=unread_count,
+                )
+            )
+
+        return ServiceDeliveryConversationListResponse(items=items)
+
+
+    @staticmethod
+    async def list_audit(
+        db: AsyncSession,
+        service_delivery_id: UUID,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> ActivityListResponse:
+
+        logs = await AuditRepository.list_for_service_delivery(
+            db,
+            service_delivery_id=service_delivery_id,
+            limit=limit,
+            offset=offset,
+        )
+
+        users = await EngagementRepository.get_users_by_ids(
+            db,
+            user_ids={
+                log.user_id
+                for log in logs
+                if log.user_id is not None
+            },
+        )
+
+        return ActivityListResponse(
+            items=[
+                ActivityItemResponse(
+                    id=log.id,
+                    action=log.action,
+                    entity_type=log.entity_type,
+                    entity_id=log.entity_id,
+                    actor=(
+                        UserSummary(
+                            id=users[log.user_id].id,
+                            full_name=users[log.user_id].full_name,
+                            email=users[log.user_id].email,
+                            role=users[log.user_id].role,
+                        )
+                        if (
+                            log.user_id is not None
+                            and log.user_id in users
+                        ) else None
+                    ),
+                    metadata=log.metadata_,
+                    created_at=log.created_at,
+                ) for log in logs
+            ]
+        )
