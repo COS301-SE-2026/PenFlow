@@ -1216,3 +1216,210 @@ class ServiceDeliveryService:
         )
 
         return response
+
+
+    @staticmethod
+    def dashboard_engagement(
+        engagement: Engagement,
+        client: User,
+        service_delivery: User | None,
+        pentester: User | None,
+    ) -> ServiceDeliveryDashboardEngagement:
+        return ServiceDeliveryDashboardEngagement(
+            id=engagement.id,
+            title=engagement.title,
+            status=engagement.status,
+            assessment_type=engagement.assessment_type,
+            priority=engagement.priority,
+            client=ServiceDeliveryService.user_summary(client),
+            service_delivery=(
+                ServiceDeliveryService.user_summary(service_delivery)
+                if service_delivery is not None
+                else None
+            ),
+            assigned_pentester=(
+                ServiceDeliveryService.user_summary(pentester)
+                if pentester is not None
+                else None
+            ),
+            scheduled_start_date=engagement.scheduled_start_date,
+            scheduled_end_date=engagement.scheduled_end_date,
+            updated_at=engagement.updated_at,
+        )
+
+
+    @staticmethod
+    async def get_dashboard(
+        db: AsyncSession
+    ) -> ServiceDeliveryDashboardResponse:
+        counts = await EngagementRepository.get_service_delivery_dashboard_counts(db)
+
+        unclaimed_rows = (
+            await EngagementRepository.list_for_service_delivery_dashboard(
+                db,
+                engagement_status=EngagementStatus.REQUESTED,
+                unclaimed_only=True,
+                limit=5,
+            )
+        )
+
+        review_rows = (
+            await EngagementRepository.list_for_service_delivery_dashboard(
+                db,
+                engagement_status=EngagementStatus.REVIEW,
+                limit=5,
+            )
+        )
+
+        upcoming_rows = (
+            await EngagementRepository.list_for_service_delivery_dashboard(
+                db,
+                engagement_status=EngagementStatus.SCHEDULED,
+                limit=5,
+            )
+        )
+
+        return ServiceDeliveryDashboardResponse(
+            counts=ServiceDeliveryDashboardCounts(
+                requested=counts[EngagementStatus.REQUESTED],
+                scoping=counts[EngagementStatus.SCOPING],
+                scheduled=counts[EngagementStatus.SCHEDULED],
+                in_progress=counts[EngagementStatus.IN_PROGRESS],
+                review=counts[EngagementStatus.REVIEW],
+                completed=counts[EngagementStatus.COMPLETED],
+                cancelled=counts[EngagementStatus.CANCELLED],
+                needs_attention=(
+                    counts[EngagementStatus.REQUESTED] 
+                    + counts[EngagementStatus.REVIEW]
+                ),
+            ),
+            unclaimed_requests=[
+                ServiceDeliveryService.dashboard_engagement(
+                    engagement,
+                    client,
+                    service_delivery,
+                    pentester,
+                ) 
+                for engagement, client, service_delivery, pentester
+                in unclaimed_rows
+            ],
+            awaiting_review=[
+                ServiceDeliveryService.dashboard_engagement(
+                    engagement,
+                    client,
+                    service_delivery,
+                    pentester
+                )
+                for engagement, client, service_delivery, pentester
+                in review_rows
+            ],
+            upcoming_engagements=[
+                ServiceDeliveryService.dashboard_engagement(
+                    engagement,
+                    client,
+                    service_delivery,
+                    pentester
+                )
+                for engagement, client, service_delivery, pentester
+                in upcoming_rows
+            ],
+        )
+
+
+    @staticmethod
+    async def list_pentesters(
+        db: AsyncSession,
+        *,
+        search: str | None,
+        assessment_type: AssessmentType | None,
+        availability_status: str | None,
+        is_active: bool | None,
+        limit: int,
+        offset: int,
+    ) -> ServiceDeliveryPentesterListResponse:
+
+        rows, total = await PentesterProfileRepository.list_for_service_delivery(
+            db,
+            search=search,
+            assessment_type=assessment_type,
+            availability_status=availability_status,
+            is_active=is_active,
+            limit=limit,
+            offset=offset,
+        )
+
+        items = [
+            ServiceDeliveryPentesterListItem(
+                id=user.id,
+                full_name=user.full_name,
+                email=user.email,
+                is_active=profile.is_active,
+                availability_status=profile.availability_status,
+                specialisations=profile.specialisations,
+                assigned_engagements=assigned_count,
+                created_at=user.created_at,
+            ) for user, profile, assigned_count in rows
+        ]
+
+        return ServiceDeliveryPentesterListResponse(
+            items=items,
+            pagination=EngagementPagination(
+                total=total,
+                limit=limit,
+                offset=offset,
+                has_more=offset + len(items) < total,
+            ),
+        )
+
+
+    @staticmethod
+    async def get_pentester(
+        db: AsyncSession,
+        pentester_id: UUID,
+    ) -> ServiceDeliveryPentesterDetail:
+
+        pentester = await EngagementRepository.get_user_by_id(
+            db,
+            user_id=pentester_id,
+        )
+
+        if pentester is None or pentester.role != "pentester":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Pentester not found.",
+            )
+
+        profile = await PentesterProfileRepository.get_by_user_id(
+            db,
+            user_id=pentester_id,
+        )
+
+        if profile is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Pentester profile not found.",
+            )
+
+        counts = await PentesterProfileRepository.get_engagement_counts(
+            db,
+            pentester_id=pentester.id,
+        )
+
+        assigned_engagements = (
+            counts[EngagementStatus.SCHEDULED]
+            + counts[EngagementStatus.IN_PROGRESS]
+            + counts[EngagementStatus.REVIEW]
+        )
+
+        return ServiceDeliveryPentesterDetail(
+            id=pentester.id,
+            full_name=pentester.full_name,
+            email=pentester.email,
+            is_active=profile.is_active,
+            availability_status=profile.availability_status,
+            specialisations=profile.specialisations,
+            assigned_engagements=assigned_engagements,
+            scheduled_engagements=counts[EngagementStatus.SCHEDULED],
+            in_progress_engagements=counts[EngagementStatus.IN_PROGRESS],
+            created_at=pentester.created_at,
+        )
