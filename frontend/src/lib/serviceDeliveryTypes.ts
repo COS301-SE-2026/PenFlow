@@ -215,3 +215,95 @@ export interface DashboardResponse {
     upcoming_engagements: DashboardEngagementItem[];
 }
 
+//Pentesters
+export interface PentesterListFilters {
+    search?: string;
+    assessment_type?: AssessmentType;
+    availability_status?: string;
+    is_active?: boolean;
+    limit?: number;
+    offset?: number;
+}
+
+export interface PentesterListItem {
+    id: string;
+    full_name: string | null;
+    email: string;
+    is_active: boolean;
+    availability_status: string;
+    specialisations: AssessmentType[];
+    assigned_engagements: number;
+    created_at: string;
+}
+
+export interface PentesterListResponse {
+    items: PentesterListItem[];
+    pagination: Pagination;
+}
+
+export interface PentesterDetail extends Omit<PentesterListItem, "assigned_engagements"> {
+    assigned_engagements: number;
+    scheduled_engagements: number;
+    in_progress_engagements: number;
+}
+
+//Create pentester - route is not active server side
+export interface PentesterCreateRequest {
+    email: string;
+    full_name: string;
+    specialisations: AssessmentType[];
+}
+
+//findings
+export interface FindingListFilters {
+    severity?: Severity;
+    status?: FindingStatus;
+    limit?: number;
+    offset?: number;
+}
+
+export interface FindingListItem {
+    id: string;
+    title: string;
+    severity: Severity;
+    status: FindingStatus;
+    engagement_asset_id?: string | null;
+    asset_identifier?: string | null;
+    source: string;
+    is_verified: boolean;
+    cvss_score?: string | null;
+    cve_id?: string | null;
+    created_at: string;
+}
+
+export interface FindingListResponse {
+    items: FindingListItem[];
+    pagination: Pagination;
+}
+
+export interface EvidenceFileSummary {
+    id: string;
+    file_name: string;
+    mime_type: string | null;
+    uploaded_at: string;
+}
+
+export interface FindingDetail {
+    id: string;
+    engagement_id: string;
+    engagement_asset_id?: string | null;
+    asset_identifier?: string | null;
+    source: string;
+    title: string;
+    description?: string | null;
+    recommendation?: string | null;
+    severity: Severity;
+    status: FindingStatus;
+    is_verified: boolean;
+    cvss_score?: string | null;
+    cve_id?: string | null;
+    created_by?: string | null;
+    created_at: string;
+    evidence_files: EvidenceFileSummary[];
+}
+
