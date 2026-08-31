@@ -195,3 +195,9 @@ class Engagement(Base):
         back_populates="engagement", 
         cascade="all, delete-orphan",
     )
+
+    reports = relationship(
+        "Report",
+        back_populates="engagement",
+        cascade="all, delete-orphan"
+    )
