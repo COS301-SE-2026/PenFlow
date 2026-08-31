@@ -161,6 +161,7 @@ class EngagementService:
         db: AsyncSession,
         *,
         user_id: UUID,
+        user_role: str,
         engagement_status: EngagementStatus | None,
         search: str | None,
         sort: EngagementSortField,
@@ -171,6 +172,7 @@ class EngagementService:
         rows, total = await EngagementRepository.list_assigned(
             db,
             user_id=user_id,
+            user_role=user_role,
             engagement_status=engagement_status,
             search=search,
             sort=sort,
@@ -182,6 +184,7 @@ class EngagementService:
         status_counts = await EngagementRepository.get_status_counts(
             db,
             user_id=user_id,
+            user_role=user_role,
         )
 
         items = [
@@ -200,8 +203,11 @@ class EngagementService:
                     engagement.estimated_duration_days,
                 ),
                 updated_at=engagement.updated_at,
+                estimated_quote=engagement.estimated_quote,
+                assigned_pentester_name=pentester_name,
+                user_role=user_role,
             )
-            for engagement, client_name, asset_count in rows
+            for engagement, client_name, asset_count, pentester_name in rows
         ]
 
         return EngagementListResponse(
