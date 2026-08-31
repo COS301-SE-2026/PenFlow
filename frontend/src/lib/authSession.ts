@@ -37,4 +37,13 @@ export function setAuthCookies(res: NextResponse, tokens: TokenResponse): void {
     maxAge: tokens.refresh_expires_in,
     path: "/",
   });
+
+  const accessTokenExpiresAt = Date.now() + tokens.expires_in * 1000;
+  res.cookies.set("access_token_expires_at", accessTokenExpiresAt.toString(), {
+    httpOnly: false,
+    secure: isProduction,
+    sameSite: "lax",
+    maxAge: tokens.refresh_expires_in,
+    path: "/",
+  });
 }

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user
-from app.models.base import EngagementStatus, FindingReviewStatus, FindingStatus, Severity
+from app.models.base import EngagementMessageChannel, EngagementStatus, FindingReviewStatus, FindingStatus, Severity
 from app.models.user import User 
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.repositories.engagement_repository import EngagementRepository
@@ -19,10 +19,11 @@ from app.schemas.engagement import (
     EngagementMessageListResponse,
     EngagementMessageResponse,
     EngagementSortField,
+    MarkMessagesReadResponse,
     SortOrder,
 )
 from app.schemas.finding import FindingCreate, FindingListItem, FindingListResponse
-from app.schemas.retest import RetestListResponse
+from app.schemas.retest import RetestListResponse 
 from app.services.engagement_service import EngagementService
 from app.utils.db import get_db
 
@@ -210,6 +211,7 @@ async def get_engagement_retests(
 )
 async def get_engagement_messages(
     engagement_id: UUID,
+    channel: EngagementMessageChannel,
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
 ) -> EngagementMessageListResponse:
@@ -219,6 +221,7 @@ async def get_engagement_messages(
         db,
         engagement_id=engagement_id,
         user_id=user.id,
+        channel=channel,
     )
 
 
@@ -243,6 +246,26 @@ async def create_engagement_message(
         request=request,
     )
 
+
+@router.patch(
+        "/{engagement_id}/messages/read", 
+        response_model=MarkMessagesReadResponse,
+        summary="Marks viewed messages as read",
+)
+async def mark_engagement_messages_read(
+    engagement_id: UUID,
+    channel: EngagementMessageChannel,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> MarkMessageresponse:
+    user = await resolve_user(db, current_user)
+
+    return await EngagementService.mark_messages_read(
+        db,
+        engagement_id=engagement_id,
+        user_id=user.id,
+        channel=channel,
+    )
 
 @router.get(
     "/{engagement_id}/activity",

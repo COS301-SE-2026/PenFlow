@@ -11,7 +11,13 @@ export async function POST(req:NextRequest) {
     const refreshToken = req.cookies.get("refresh_token")?.value;
     
     if(!refreshToken){
-        return NextResponse.json({error: "No refresh token"},{status:401}); 
+        const res = NextResponse.json({error: "No refresh token"},{status:401}); 
+        res.cookies.delete("access_token");
+        res.cookies.delete("refresh_token");
+        res.cookies.delete("logged_in");
+        res.cookies.delete("id_token");
+        res.cookies.delete("access_token_expires_at");
+        return res;
     }
 
     try{
@@ -31,6 +37,7 @@ export async function POST(req:NextRequest) {
         res.cookies.delete("refresh_token");
         res.cookies.delete("logged_in");
         res.cookies.delete("id_token");
+        res.cookies.delete("access_token_expires_at");
         return res;
     }
 }

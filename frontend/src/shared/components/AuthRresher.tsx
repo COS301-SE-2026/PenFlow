@@ -14,33 +14,109 @@ import { useEffect } from "react";
 
 //access token configure
 
-const ACCESS_TOKEN_LIFESPAN_SECONDS =
-    Number(process.env.NEXT_PULIC_ACCESS_TOKEN_LIFESPAN_SECONDS) || 900;
+const REFRESH_BUFFER_MS = 60 * 1000;
+
+const FALLBACK_LIFESPAN_SECONDS =
+    Number(process.env.NEXT_PUBLIC_ACCESS_TOKEN_LIFESPAN_SECONDS) || 900;
     
-const REFRESH_INTERVAL_MS = ACCESS_TOKEN_LIFESPAN_SECONDS *1000*0.8;;
+function getCookie(name: string): string | null {
+    const cookie = document.cookie.split("; ")
+    .find((item) => item.startsWith(`${name}=`));
+
+    return cookie ? cookie.substring(name.length + 1): null;
+}
 
 
 function isLoggedIn(): boolean{
+    return getCookie("logged_in") !== null;
+}
 
-    return document.cookie.split("; ").some((cookie) =>
-      cookie.startsWith("logged_in=")  
-    );
+function getAccessTokenExpiry(): number | null {
+    const value = getCookie("access_token_expires_at");
+
+    if(!value) {
+        return null;
+    }
+
+    const expiry = Number(value);
+
+    return Number.isFinite(expiry) ? expiry : null;
 }
 //keep users alive with user interacting
 export default function AuthRefresher(){
     useEffect(()=>{
-        const tick = () =>{
-            if(!isLoggedIn()) return;
-            //silent failure- will retry on next interval
-            fetch("/api/auth/refresh",{method:"POST"}).catch(()=>{});
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+        let cancelled = false;
 
-            
-        }
-            const id = setInterval(tick,REFRESH_INTERVAL_MS);
-            return () => clearInterval(id);
+        const refresh = async () => {
+            if(cancelled || !isLoggedIn()) {
+                return;
+            }
 
+            try {
+                await navigator.locks.request(
+                    "penflow-auth-refresh",
+                    async () => {
+                        if(cancelled || !isLoggedIn()) {
+                            return;
+                        }
+
+                        const expiresAt = getAccessTokenExpiry();
+
+                        if(expiresAt !== null && expiresAt - Date.now() > REFRESH_BUFFER_MS) {
+                            scheduleRefresh();
+                            return;
+                        }
+
+                        const response = await fetch("/api/auth/refresh", {method: "POST"});
+
+                        if(!response.ok) {
+                            window.location.href = "/api/auth/logout";
+                            return;
+                        }
+
+                        scheduleRefresh();
+                    }                
+                );
+            } catch {
+                window.location.href = "/api/auth/logout";
+            }
+        };
+
+        const scheduleRefresh = () => {
+            if(cancelled || !isLoggedIn()) {
+                return;
+            }
+
+            if(timeoutId !== null) {
+                clearTimeout(timeoutId);
+            }
+
+            const expiresAt = getAccessTokenExpiry();
+
+            let delay: number;
+
+            if(expiresAt !== null) {
+                delay = Math.max(expiresAt - Date.now() - REFRESH_BUFFER_MS, 0);
+            }
+            else {
+                delay = FALLBACK_LIFESPAN_SECONDS * 1000 * 0.8;
+            }
+
+            timeoutId = setTimeout(refresh, delay);
+        };
+
+
+        scheduleRefresh();
+
+        return () => {
+            cancelled = true;
+
+            if(timeoutId !== null) {
+                clearTimeout(timeoutId);
+            }
+        };
     } , []);
-    
-    return null;
 
+    return null;
 }

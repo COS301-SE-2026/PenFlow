@@ -115,12 +115,19 @@ CREATE TYPE retest_status AS ENUM (
     'still_vulnerable'
 );
 
-CREATE TYPE finding_verification_status AS ENUM (
-    'pending',
-    'confirmed',
-    'false_positive'
+CREATE TYPE engagement_message_channel AS ENUM (
+    'client_service_delivery',
+    'service_delivery_pentester'
 );
 
+CREATE TYPE assessment_type AS ENUM (
+    'web_application',
+    'mobile_application',
+    'api',
+    'network',
+    'cloud',
+    'other'
+);
 
 CREATE TABLE organisations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -156,6 +163,10 @@ CREATE TABLE pentester_profiles (
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+<<<<<<< HEAD
+=======
+
+>>>>>>> origin/dev
     CHECK (years_experience IS NULL OR years_experience >= 0),
     CHECK (availability_status IN ('available', 'engaged', 'unavailable'))
 );
@@ -523,7 +534,6 @@ CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
 
 CREATE INDEX idx_finding_retests_finding_id ON finding_retests(finding_id);
 
-CREATE INDEX idx_finding_review_status ON findings(review_status);
 CREATE INDEX idx_finding_retest_status ON finding_retests(status);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);
 CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);

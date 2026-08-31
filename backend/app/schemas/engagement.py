@@ -8,7 +8,12 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.models.base import AssessmentType, EngagementStatus, EngagementType
+from app.models.base import (
+    AssessmentType,
+    EngagementMessageChannel,
+    EngagementStatus,
+    EngagementType,
+)
 from app.schemas.finding import FindingListItem
 
 #regex for Label for hostname
@@ -112,6 +117,7 @@ class EngagementCreateResponse(BaseModel):
     end_date: date | None = None
     asset_count: int
     estimated_quote: Decimal
+    service_delivery_id: UUID | None = None
     assigned_pentester_id: UUID | None = None
     created_at: datetime
 
@@ -136,6 +142,7 @@ class EngagementRequestDetailResponse(BaseModel):
     constraints: str | None = None
     primary_contact: str | None = None
     assets: list[EngagementRequestAssetResponse]
+    service_delivery_id: UUID | None = None
     assigned_pentester_id: UUID | None = None
     created_at: datetime
 
@@ -162,6 +169,7 @@ class EngagementCounts(BaseModel):
     all: int
     requested: int
     scoping: int
+    scheduled: int
     in_progress: int
     review: int
     completed: int
@@ -215,14 +223,21 @@ class EngagementDetailResponse(BaseModel):
     status: EngagementStatus
     scope: str
     estimated_quote: Decimal
+    final_quote: Decimal | None = None
     estimated_duration_days: int | None = None
     requested_start_date: date | None = None
+    requested_end_date: date | None = None
+    scheduled_start_date: date | None = None
+    scheduled_end_date: date | None = None
     target_date: date | None = None
     started_at: datetime | None = None
     completed_at: datetime | None = None
+    reviewed_at: datetime | None = None
+    review_note: str | None = None
     created_at: datetime
     updated_at: datetime
     client: UserSummary
+    service_delivery: UserSummary | None = None
     assigned_pentester: UserSummary | None = None
     assets: list[EngagementAssetResponse]
     counts: EngagementOverviewCounts
@@ -230,15 +245,19 @@ class EngagementDetailResponse(BaseModel):
     previous_scan: PreviousScanSummary | None = None
 
 class EngagementMessageCreate(BaseModel):
-    comment: str
+    comment: str = Field(..., min_length=1)
     finding_id: UUID | None = None
+    channel: EngagementMessageChannel
 
 class EngagementMessageResponse(BaseModel):
     id: UUID
     engagement_id: UUID
     finding_id: UUID | None = None
     user: UserSummary
+    recipient: UserSummary
+    channel: EngagementMessageChannel
     comment: str
+    is_read: bool
     created_at: datetime
 
 class EngagementMessageListResponse(BaseModel):
@@ -255,3 +274,40 @@ class ActivityItemResponse(BaseModel):
 
 class ActivityListResponse(BaseModel):
     items: list[ActivityItemResponse]
+
+
+class MessageClientSummary(BaseModel):
+    id: UUID
+    full_name: str | None
+    email: str
+
+
+class LatestMessageSummary(BaseModel):
+    id: UUID
+    comment: str
+    sender_name: str | None
+    sender_role: str
+    created_at: datetime
+
+
+class PentesterConversationSummary(BaseModel):
+    engagement_id: UUID
+    engagement_title: str
+    service_delivery: MessageClientSummary
+    last_message: LatestMessageSummary | None
+    message_count: int
+    unread_count: int
+
+
+class PentesterConversationListResponse(BaseModel):
+    items: list[PentesterConversationSummary]
+
+
+class MarkMessagesReadResponse(BaseModel):
+    marked_read: int
+
+
+class EngagementStatusResponse(BaseModel):
+    id: UUID
+    status: EngagementStatus
+    updated_at: datetime
