@@ -37,6 +37,49 @@ export default function ServiceDeliverySidebar() {
             })
             .catch(console.error);
     }, []);
+     return (
+        <nav className="topbar">
+            <div className="logoPanel">
+                <Image
+                    src={bluevisionLogo}
+                    alt="Bluevision"
+                    width={80}
+                    height={48}
+                    style={{ width: "auto", height: 48 }}
+                />
+                <div className="logoDivider" />
+                <Image
+                    src={brocodeLogo}
+                    alt="BroCode"
+                    width={80}
+                    height={48}
+                    style={{ width: "auto", height: 48 }}
+                />
+            </div>
 
-    
+            <ul className="topnav-list">
+                 {serviceDeliveryNavItems.map((item) => {
+                    const isActive = pathName === item.href || pathName.startsWith(`${item.href}/`);
+                    const badge = badges[item.label];
+                    return (
+                        <li key={item.href}>
+                            <Link
+                                href={item.href}
+                                className={isActive ? "nav-link nav-link-active" : "nav-link"}
+                            >
+                                {item.label}
+                                {!!badge&& (
+                                    <span className="float-right rounded-full bg-brand-blue px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                                        {badge}
+                                    </span>
+                                )}
+                            </Link>
+                        </li>
+                    );
+                })}
+
+            </ul>
+            <SidebarProfileFooter name="Maya Chen" role="Service Delivery" />
+        </nav>
+     );
 }
