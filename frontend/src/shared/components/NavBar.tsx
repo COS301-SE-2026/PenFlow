@@ -35,6 +35,7 @@ type NavItem =
     //{ label: "Settings", href: "/settings", kind: "link"},
     { label: "Help", kind: "help"},
     { label: "Pentesting", href: IS_PENTESTER ? "/pentesting/console/my-engagements": "/pentesting/engagement", kind: "link"},
+    { label: "Service Delivery", href: "/service-delivery/dashboard", kind: "link"},
     { label: "Logout", href: "/api/auth/logout", kind: "external"},
   ];
 
