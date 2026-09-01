@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import func, select, update
+from sqlalchemy.engine import CursorResult
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.base import NotificationType
@@ -147,7 +148,11 @@ class NotificationRepository:
             )
         )
 
-        result = await db.execute(stmt)
+        result = cast(
+            CursorResult[Any],
+            await db.execute(stmt),
+        )
+
         await db.commit()
 
         return result.rowcount or 0

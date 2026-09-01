@@ -4,11 +4,11 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.base import (
-    EngagementMessageChannel, 
-    EngagementStatus, 
-    FindingStatus, 
-    NotificationType, 
-    Severity
+    EngagementMessageChannel,
+    EngagementStatus,
+    FindingStatus,
+    NotificationType,
+    Severity,
 )
 from app.models.engagement import Engagement
 from app.models.finding import Finding

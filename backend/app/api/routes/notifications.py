@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.utils.db import get_db
+from app.api.middleware.auth import require_user
 from app.models.user import User
 from app.schemas.notification import (
     MarkNotificationsReadResponse,
@@ -12,7 +12,7 @@ from app.schemas.notification import (
     NotificationResponse,
 )
 from app.services.notification_service import NotificationService
-from app.api.middleware.auth import require_user
+from app.utils.db import get_db
 
 router = APIRouter(
     prefix="/notifications",

@@ -5,12 +5,12 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.base import (
-    AssessmentType, 
-    EngagementStatus, 
-    FindingStatus, 
+    AssessmentType,
+    EngagementStatus,
+    FindingStatus,
     NotificationType,
-    ReportStatus, 
-    Severity
+    ReportStatus,
+    Severity,
 )
 from app.models.engagement import Engagement
 from app.models.evidence_file import EvidenceFile
@@ -62,6 +62,7 @@ from app.schemas.service_delivery import (
     ServiceDeliveryScopingUpdate,
 )
 from app.services.notification_service import NotificationService
+
 
 class ServiceDeliveryService:
 

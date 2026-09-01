@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base
 
+
 class Notification(Base):
     __tablename__ = "notifications"
 

@@ -43,7 +43,6 @@ from app.schemas.service_delivery import (
 from app.services.service_delivery_service import ServiceDeliveryService
 from app.utils.db import get_db
 
-
 router = APIRouter(
     prefix = "/service-delivery",
     tags=["Service Delivery"],

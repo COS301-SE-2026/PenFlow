@@ -1,13 +1,11 @@
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Self
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
-from typing import Self
-
-from app.models.base import \
-(
+from app.models.base import (
     AssessmentType,
     EngagementStatus,
     EngagementType,
@@ -15,6 +13,7 @@ from app.models.base import \
     Severity,
 )
 from app.schemas.engagement import EngagementAssetResponse, EngagementPagination, UserSummary
+
 
 class ServiceDeliveryScopingUpdate(BaseModel):
     assessment_type: AssessmentType | None = None
