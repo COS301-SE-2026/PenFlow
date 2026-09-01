@@ -8,8 +8,8 @@ export default function SidebarProfileFooter ({ name, role }: SidebarProfileFoot
         <div
              style={{
                     marginTop: "auto",
-                    marginLeft: "auto",
-                    marginRight: "auto",
+                    marginLeft: "16px",
+                    marginRight: "16px",
                     marginBottom: "16px",
                     padding: "12px",
                     borderRadius: "9px",
