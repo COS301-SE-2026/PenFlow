@@ -201,6 +201,66 @@ services:
     networks:
       - penflow-network
 
+  schedule-worker:
+    container_name: penflow-schedule-worker
+    image: ${BACKEND_IMAGE:-penflow-backend:local}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    command:
+      [
+        "celery",
+        "-A",
+        "app.queue.celery_app:celery_app",
+        "worker",
+        "--loglevel=info",
+        "--queues=schedules",
+        "--concurrency=1"
+      ]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_PROTOCOL: amqp
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - penflow-network
+
+  celery-beat:
+    container_name: penflow-celery-beat
+    image: ${BACKEND_IMAGE:-penflow-backend:local}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    command:
+      [
+        "celery",
+        "-A",
+        "app.queue.celery_app:celery_app",
+        "beat",
+        "--loglevel=info",
+        "--schedule=/tmp/celerybeat-schedule"
+      ]
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_PROTOCOL: amqp
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - penflow-network
+
   rabbitmq:
     container_name: penflow-rabbitmq
     image: rabbitmq:3-management

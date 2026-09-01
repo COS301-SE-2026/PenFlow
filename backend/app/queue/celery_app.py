@@ -37,11 +37,19 @@ EMAIL_QUEUE = Queue(
     queue_arguments={"x-queue-type": "quorum"},
 )
 
+SCHEDULE_QUEUE = Queue(
+    "schedules",
+    routing_key="schedules",
+    durable=True,
+    queue_arguments={"x-queue-type": "quorum"},
+)
+
 celery_app = Celery(
     "penflow_backend",
     broker=build_broker_url(),
     include=[
         "app.tasks.email_tasks",
+        "app.tasks.schedule_tasks",
     ],
 )
 
@@ -51,6 +59,7 @@ celery_app.conf.update(
     task_queues=(
         SCAN_QUEUE,
         EMAIL_QUEUE,
+        SCHEDULE_QUEUE,
     ),
     broker_transport_options={
         "confirm_publish": True,
@@ -64,7 +73,18 @@ celery_app.conf.update(
             "queue": "email",
             "routing_key": "email",
         },
+        "schedules.*": {
+            "queue": "schedules",
+            "routing_key": "schedules",
+        },
     },
+    beat_schedule = {
+        "dispatch-due-scan-schedules": {
+            "task": "schedules.dispatch_due",
+            "schedule": 60.0,
+        },
+    },
+    timezone="UTC",
 )
 
 if os.getenv("RABBITMQ_PROTOCOL", "amqps") == "amqps":

@@ -183,6 +183,20 @@ CREATE TABLE scan_schedules (
 
     CHECK (day_of_week IS NULL OR day_of_week BETWEEN 0 AND 6),
     CHECK (day_of_month IS NULL OR day_of_month BETWEEN 1 AND 28),
+    CHECK (frequency IN('weekly', 'monthly')),
+    CHECK (
+        (
+            frequency = 'weekly'
+            AND day_of_week IS NOT NULL
+            AND day_of_month IS NULL
+        )
+        OR 
+        (
+            frequency = 'monthly'
+            AND day_of_month IS NOT NULL
+            AND day_of_week IS NULL
+        )
+    ),
 
     UNIQUE (verified_domain_id, scan_type)
 );

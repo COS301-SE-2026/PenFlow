@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     Enum,
@@ -22,6 +23,33 @@ class ScanSchedule(Base):
     __tablename__ = "scan_schedules"
 
     __table_args__ = (
+
+        CheckConstraint(
+            "frequency IN ('weekly', 'monthly')",
+            name="ck_scan_schedule_supported_frequency",
+        ),
+        CheckConstraint(
+            "day_of_week IS NULL OR day_of_week BETWEEN 0 AND 6",
+            name="ck_scan_schedule_day_of_week_range",
+        ),
+        CheckConstraint(
+            "day_of_month IS NULL OR day_of_month BETWEEN 1 AND 28",
+            name="ck_scan_schedule_day_of_month_range",
+        ),
+        CheckConstraint(
+            """
+            (
+                frequency='weekly' AND day_of_week IS NOT NULL
+                AND day_of_month IS NULL
+            )
+            OR
+            (
+                frequency='monthly' AND day_of_month IS NOT NULL
+                AND day_of_week IS NULL
+            )
+            """,
+            name="ck_scan_schedule_recurrence_fields",
+        ),
         UniqueConstraint(
             "verified_domain_id",
             "scan_type",
