@@ -34,6 +34,8 @@ import type {
 
 } from "@/lib/serviceDeliveryTypes";
 import { waapi } from "animejs";
+import { Filter } from "lucide-react";
+import build from "next/dist/build";
 import { URLSearchParams } from "next/dist/compiled/@edge-runtime/primitives/url";
 
 type QueryValue = string | number | boolean | undefined | null ;
@@ -152,4 +154,54 @@ export async function cancelEngagement(engagementId: string, body: CancelEngagem
 // GET /dashboard
 export async function getDashboard(): Promise<DashboardResponse> {
     return apiFetch("/api/service-delivery/dashboard");
+}
+
+// GET /pentester
+export async function listPentesters(filters: PentesterListFilters = {}): Promise<PentesterListResponse> {
+    const query = buildQuery({
+        search: filters.search,
+        assessment_type: filters.assessment_type,
+        availability_status: filters.availability_status,
+        is_active: filters.is_active,
+        limit: filters.limit,
+        offset: filters.offset,
+    });
+    return apiFetch(`/api/service-delivery/pentesters${query}`);
+}
+
+// GET /pentesters/{pentester_id}
+export async function getPentesterDetail(pentesterId:string): Promise<PentesterDetail> {
+    return apiFetch(`/api/service-delivery/pentesters/${pentesterId}`);
+}
+
+//need implement
+//post /pentesters  backend still till need to be up
+export async function createPentester(_input: PentesterCreateRequest): Promise<PentesterDetail> {
+    throw new Error("create pentester not up yet");
+}
+
+//GET /engagements/{engagement_id}/findings
+export async function listEngagementFindings(engagementId: string, filters: FindingListFilters = {}): Promise<FindingListResponse>{
+    const query = buildQuery({
+        severity: filters.severity,
+        status: filters.status,
+        limit: filters.limit,
+        offset: filters.offset,
+    });
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}/findings${query}`);
+}
+
+//GET /engagements/{engagement_id}/findings/{finding_id}
+export async function getEngagementFinding(engagementId: string, findingId: string): Promise<FindingDetail>{
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}/findings/${findingId}`);
+}
+
+//GET /evidence/{evidence_id}/download
+export async function downloadEvidence(evidenceId: string,_fileName: string):Promise<Blob> {
+const response = await fetch(`/api/service-delivery/evidence/${evidenceId}/download`);
+if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(typeof body?.detail === "string" ? body.detail : "Failed to download evidence.");
+    }
+    return response.blob();
 }
