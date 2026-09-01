@@ -1,6 +1,15 @@
 //styling for service delivery 
 
-import type { EngagementStatus, FindingStatus, RetestStatus, Severity, UserSummary } from "@/lib/serviceDeliveryTypes";
+import type { AssessmentType, EngagementStatus, FindingStatus, RetestStatus, Severity, UserSummary } from "@/lib/serviceDeliveryTypes";
+
+export const assessmentTypeLabels: Record<AssessmentType, string> = {
+     web_application: "Web Application",
+    mobile_application: "Mobile Application",
+    api: "API",
+    network: "Network",
+    cloud: "Cloud",
+    other: "Other",
+};
 
 export const statusLabels: Record<EngagementStatus, string> = {
     requested: "Requested",

@@ -205,3 +205,42 @@ if (!response.ok) {
     }
     return response.blob();
 }
+
+// GET /engagements/{engagement_id}/retests
+export async function listEngagementRetests(engagementId: string): Promise<RetestListResponse> {
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}/retests`);
+}
+
+// GET /retests/{retest_id}
+export async function getRetestDetail(retestId: string): Promise<Retest> {
+    return apiFetch(`/api/service-delivery/retests/${retestId}`);
+}
+
+// GET /messages
+export async function listConversations(): Promise<ConversationListResponse> {
+    return apiFetch("/api/service-delivery/messages");
+}
+
+// GET /api/v1/engagements/{engagement_id}/messages?channel=
+export async function listConversationMessages(engagementId: string, channel: EngagementMessageChannel): Promise<EngagementMessageListResponse> {
+    return apiFetch(`/api/engagements/${engagementId}/messages${buildQuery({ channel })}`);
+}
+
+// POST /api/v1/engagements/{engagement_id}/messages
+export async function sendConversationMessage(engagementId: string, body: EngagementMessageCreate): Promise<EngagementMessage> {
+    return apiFetch(`/api/engagements/${engagementId}/messages`, {
+        method: "POST",
+        body: JSON.stringify(body),
+    });
+}
+
+// PATCH /api/v1/engagements/{engagement_id}/messages/read?channel=
+export async function markConversationRead(engagementId: string, channel: EngagementMessageChannel): Promise<MarkReadResponse> {
+    return apiFetch(`/api/engagements/${engagementId}/messages/read${buildQuery({ channel })}`, { method: "PATCH" });
+}
+
+// GET /audit
+export async function listAuditActivity(filters: AuditListFilters = {}): Promise<ActivityListResponse> {
+    const query = buildQuery({ limit: filters.limit, offset: filters.offset });
+    return apiFetch(`/api/service-delivery/audit${query}`);
+}
