@@ -216,7 +216,7 @@ async def update_scan_source_callback(
             detail="Failed to process source callback",
         )
 
-@router.put("/reports/enaggement/{engagement_id}/version/{version}/callback", status_code=status.HTTP_200_OK)
+@router.put("/reports/engagement/{engagement_id}/version/{version}/callback", status_code=status.HTTP_200_OK)
 async def update_engagement_report_status_callback(
     engagement_id: UUID, 
     version: int,

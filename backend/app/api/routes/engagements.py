@@ -2,8 +2,6 @@ from typing import Annotated, Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import FileResponse
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user
@@ -15,7 +13,6 @@ from app.models.base import (
     Severity,
 )
 from app.models.user import User
-from app.models.report import Report
 from app.repositories.engagement_repository import EngagementRepository
 from app.repositories.report_repository import get_by_engagement_and_version 
 from app.repositories.user_repo import get_user_id_by_provider_id
@@ -35,7 +32,6 @@ from app.schemas.engagement import (
 from app.schemas.finding import FindingCreate, FindingListItem, FindingListResponse
 from app.schemas.retest import RetestListResponse
 from app.services.engagement_service import EngagementService
-from app.services.report_storage_service import ReportStorageService 
 from app.services.report_service import queue_engagement_report_generation
 from app.utils.db import get_db
 
@@ -306,12 +302,22 @@ async def get_engagement_activity(
 async def get_engagement_report(
     engagement_id: UUID, 
     version: int = 1,
-    db: AsyncSession = Depends(get_db)
-):
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user)):
+
+    user = await resolve_user(db, current_user)
+
     report = await get_by_engagement_and_version(db, engagement_id, version) 
     if not report:
         raise HTTPException(status_code=404, detail="Report not found for this engagement.")
-    return report 
+    return {
+        "id": report.id, 
+        "engagement_id": report.engagement_id, 
+        "version": report.version, 
+        "status": report.status, 
+        "pdf_path": report.pdf_path, 
+        "generated_at": report.generated_at,
+    }
 
 @router.post(
     "/{engagement_id}/report/retry",
@@ -320,30 +326,12 @@ async def get_engagement_report(
 async def retry_engagement_report(
     engagement_id: UUID,
     version: int = 1, 
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),
 ):
+    user = await resolve_user(db, current_user)
+
     try:
         return await queue_engagement_report_generation(db, engagement_id, version)
     except Exception as e: 
         raise HTTPException(status_code=500, detail=str(e))
-
-@router.get(
-    "/../reports/{report_id}/download",
-    summary="Download engagement report"
-)
-async def download_report(
-    report_id: UUID, 
-    db: AsyncSession = Depends(get_db) 
-):
-    result = await db.execute(select(Report).where(Report.id == report_id))
-    report = result.scalar_one_or_none() 
-
-    if not report or not report.pdf_path: 
-        raise HTTPException(status_code=404, detail="Report PDF not found") 
-
-    file_path = ReportStorageService.get_local_report_storage(report.pdf_path) 
-    return FileResponse( 
-        path=file_path, 
-        filename=f"engagement_report_v{report.version}.pdf",
-        media_type="application/pdf"
-    )

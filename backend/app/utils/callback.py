@@ -1,9 +1,13 @@
 import logging 
+import os 
+import time
 from typing import Any 
 
 import httpx 
 
 from app.core.config import settings 
+
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3000")
 
 logger = logging.getLogger(__name__) 
 
@@ -39,6 +43,7 @@ def send_engagement_report_callback(
         status: str, 
         pdf_path: str | None = None, 
         error_message: str | None = None,
+        max_retries: int = 3,
 ) ->dict[str, Any] | None:
     """
     Sends a callback to the API indicating that a Phase 3  manualengagement 
@@ -50,15 +55,17 @@ def send_engagement_report_callback(
         "error_message": error_message,
     }
 
-    url = f"{settings.API_BASE_URL}/api/v1/reports/engagement/{engagement_id}/version/{version}/callback"
+    url = f"{API_BASE_URL}/internal/reports/engagement/{engagement_id}/version/{version}/callback"
 
-    try:
-        response = httpx.put(url, json=payload, timeout=10.0)
-        response.raise_for_status() 
-        return response.json()
-    except Exception as error: 
-        logger.error(
-            "Failed to send engagement report callback for %s (v%s): %s", 
-            engagement_id, version, error
-        )
-        return None
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            response = httpx.put(url, json=payload, timeout=10.0)
+            response.raise_for_status() 
+            return response.json()
+        except httpx.HTTPError as error: 
+            logger.warning(
+            "Callback attempt {attempt} failed: {error}")
+            if attempt == max_retries: 
+                return None
+            time.sleep(2 ** attempt)
