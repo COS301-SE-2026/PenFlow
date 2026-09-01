@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import brocodeLogo from "@/app/images/images/BroCode logo.png";
 import bluevisionLogo from "@/app/images/images/Bluevision logo.png";
 import SidebarProfileFooter from "@/shared/components/SidebarProfileFooter";
-import { getDashboard, listConversations } from "@/lib/serviceDeliveryService";
+import {listConversations } from "@/lib/serviceDeliveryService";
 
 type ServiceDeliveryNavItem = {
     label: string;
@@ -27,9 +27,6 @@ export default function ServiceDeliverySidebar() {
     const [badges, setBadges] = useState<Record<string, number>>({});
 
     useEffect(() => {
-        getDashboard()
-            .then((dashboard) => setBadges((prev) => ({ ...prev, Engagements: dashboard.counts.needs_attention })))
-            .catch(console.error);
         listConversations()
             .then((res) => {
                 const unread = res.items.reduce((sum, c) => sum + c.unread_count, 0);
