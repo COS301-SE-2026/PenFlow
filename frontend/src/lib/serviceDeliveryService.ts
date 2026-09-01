@@ -63,3 +63,35 @@ async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
     }
     return body as T;
 }
+
+//GET /engagements
+export async function listEngagements(filters: EngagementListFilters = {}): Promise<EngagementListResponse> {
+    const query = buildQuery({
+        status: filters.status,
+        assessment_type: filters.assessment_type,
+        search: filters.search,
+        pentester_id: filters.pentester_id,
+        assigned: filters.assigned,
+        limit: filters.limit,
+        offset: filters.offset,
+    });
+    return apiFetch(`/api/service-delivery/engagements${query}`);
+}
+
+// GET /engagements/{engagement_id}
+export async function getEngagementDetail(engagementId: string): Promise<EngagementDetail> {
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}`);
+}
+
+// POST /engagements/{engagement_id}/claim
+export async function claimEngagement(engagementId: string): Promise<EngagementActionResponse> {
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}/claim`, { method: "POST" });
+}
+
+//PATCH /engagements/{engagement_id}/scoping
+export async function updateEngagementScoping((engagementId: string, body: EngagementScopingUpdate): Promise<EngagementActionResponse> {
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}/scoping`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+    });
+}
