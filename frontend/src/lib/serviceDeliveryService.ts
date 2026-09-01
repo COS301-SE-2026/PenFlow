@@ -78,20 +78,78 @@ export async function listEngagements(filters: EngagementListFilters = {}): Prom
     return apiFetch(`/api/service-delivery/engagements${query}`);
 }
 
-// GET /engagements/{engagement_id}
+//GET /engagements/{engagement_id}
 export async function getEngagementDetail(engagementId: string): Promise<EngagementDetail> {
     return apiFetch(`/api/service-delivery/engagements/${engagementId}`);
 }
 
-// POST /engagements/{engagement_id}/claim
+//POST /engagements/{engagement_id}/claim
 export async function claimEngagement(engagementId: string): Promise<EngagementActionResponse> {
     return apiFetch(`/api/service-delivery/engagements/${engagementId}/claim`, { method: "POST" });
 }
 
 //PATCH /engagements/{engagement_id}/scoping
-export async function updateEngagementScoping((engagementId: string, body: EngagementScopingUpdate): Promise<EngagementActionResponse> {
+export async function updateEngagementScoping(engagementId: string, body: EngagementScopingUpdate): Promise<EngagementActionResponse> {
     return apiFetch(`/api/service-delivery/engagements/${engagementId}/scoping`, {
         method: "PATCH",
         body: JSON.stringify(body),
     });
+}
+
+// PUT /engagements/{engagement_id}/pentester
+export async function assignPentester(engagementId: string, body: AssignPentesterRequest): Promise<EngagementActionResponse> {
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}/pentester`, {
+        method: "PUT",
+        body: JSON.stringify(body),    
+    });    
+}
+
+//POST /engagements/{engagement_id}/schedule
+export async function scheduleEngagement(engagementId: string, body: ScheduleEngagementRequest): Promise<EngagementActionResponse> {
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}/schedule`, {
+        method: "POST",
+        body: JSON.stringify(body), 
+    });
+}
+
+// POST /engagements/{engagement_id}/reassign
+export async function reassignEngagement(engagementId: string, body: ReassignEngagementRequest): Promise<EngagementActionResponse> {
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}/reassign`, {
+        method: "POST",
+        body: JSON.stringify(body),
+    });
+}
+
+// POST /engagements/{engagement_id}/reschedule
+export async function rescheduleEngagement(engagementId: string, body: RescheduleEngagementRequest): Promise<EngagementActionResponse> {
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}/reschedule`, {
+        method: "POST",
+        body: JSON.stringify(body),
+    });
+}
+
+// POST /engagements/{engagement_id}/review/return
+export async function returnEngagementFromReview(engagementId: string, body: ReturnFromReviewRequest): Promise<EngagementActionResponse> {
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}/review/return`, {
+        method: "POST",
+        body: JSON.stringify(body),
+    });
+}
+
+// POST /engagements/{engagement_id}/review/complete
+export async function completeEngagementReview(engagementId: string): Promise<EngagementActionResponse> {
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}/review/complete`, { method: "POST" });
+}
+
+// POST /engagements/{engagement_id}/cancel
+export async function cancelEngagement(engagementId: string, body: CancelEngagementRequest): Promise<EngagementActionResponse> {
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}/cancel`, {
+        method: "POST",
+        body: JSON.stringify(body),
+    });
+}
+
+// GET /dashboard
+export async function getDashboard(): Promise<DashboardResponse> {
+    return apiFetch("/api/service-delivery/dashboard");
 }
