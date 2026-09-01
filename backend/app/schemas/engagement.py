@@ -185,6 +185,7 @@ class EngagementListItem(BaseModel):
     id: UUID
     title: str
     engagement_type: EngagementType
+    assessment_type: AssessmentType
     priority: str
     status: EngagementStatus
     requested_start_date: date | None = None
@@ -308,3 +309,15 @@ class EngagementStatusResponse(BaseModel):
     id: UUID
     status: EngagementStatus
     updated_at: datetime
+
+class ServiceDeliveryConversationSummary(BaseModel):
+    engagement_id: UUID
+    engagement_title: str
+    channel: EngagementMessageChannel
+    participant: MessageClientSummary
+    last_message: LatestMessageSummary | None
+    message_count: int
+    unread_count: int
+
+class ServiceDeliveryConversationListResponse(BaseModel):
+    items: list[ServiceDeliveryConversationSummary]

@@ -127,3 +127,19 @@ async def load_report_data(db: AsyncSession, scan_id: str) -> dict[str, Any]:
         "technologies": technologies,
         "report": await get_or_create_report(db, scan_id),
     }
+
+
+async def get_latest_for_engagement(
+        db: AsyncSession,
+        engagement_id: UUID,
+) -> Report | None:
+    stmt = (select(Report).where(
+        Report.engagement_id == engagement_id,
+        ).order_by(
+            Report.version.desc(),
+            Report.created_at.desc(),
+        ).limit(1)
+    )
+
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()

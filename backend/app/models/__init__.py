@@ -10,6 +10,7 @@ from app.models.evidence_file import EvidenceFile as EvidenceFile
 from app.models.finding import Finding as Finding
 from app.models.finding_retest import FindingRetest as FindingRetest
 from app.models.organisation import Organisation as Organisation
+from app.models.pentester_profile import PentesterProfile as PentesterProfile
 from app.models.report import Report as Report
 from app.models.scan import Scan as Scan
 from app.models.scan_schedule import ScanSchedule as ScanSchedule
@@ -35,6 +36,7 @@ __all__ = [
     "ScanSource",
     "ScanStatus",
     "Severity",
+    "PentesterProfile",
     "User",
     "VerifiedDomain",
 ]

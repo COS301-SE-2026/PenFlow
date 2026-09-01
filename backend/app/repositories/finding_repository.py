@@ -194,3 +194,31 @@ class FindingRepository:
         await db.commit()
         await db.refresh(finding)
         return finding
+
+
+    @staticmethod
+    async def get_by_id_and_engagement(
+        db: AsyncSession,
+        finding_id: UUID,
+        engagement_id: UUID,
+    ) -> Finding | None:
+        stmt = select(Finding).where(
+            Finding.id == finding_id,
+            Finding.engagement_id == engagement_id,
+        )
+
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+
+
+    @staticmethod
+    async def get_evidence_by_id(
+        db: AsyncSession,
+        evidence_id: UUID,
+    ) -> EvidenceFile | None:
+        stmt = select(EvidenceFile).where(
+            EvidenceFile.id == evidence_id,
+        )
+
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()

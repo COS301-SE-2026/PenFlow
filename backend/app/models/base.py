@@ -1,4 +1,5 @@
 import enum
+from enum import Enum
 
 from sqlalchemy.orm import DeclarativeBase
 
@@ -105,3 +106,21 @@ class UserRole(str, enum.Enum):
 class EngagementMessageChannel(str, enum.Enum):
     CLIENT_SERVICE_DELIVERY = "client_service_delivery"
     SERVICE_DELIVERY_PENTESTER = "service_delivery_pentester"
+
+
+class NotificationType(str, Enum):
+    ENGAGEMENT_REQUESTED = "engagement.requested"
+    ENGAGEMENT_CLAIMED = "engagement.claimed"
+    ENGAGEMENT_ASSIGNED = "engagement.assigned"
+    ENGAGEMENT_SCHEDULED = "engagement.scheduled"
+    ENGAGEMENT_REASSIGNED = "engagement.reassigned"
+    ENGAGEMENT_RESCHEDULED = "engagement.rescheduled"
+    ENGAGEMENT_STARTED = "engagement.started"
+    ENGAGEMENT_REVIEW_REQUIRED = "engagement.review_required"
+    ENGAGEMENT_REVIEW_RETURNED = "engagement.review_returned"
+    ENGAGEMENT_COMPLETED = "engagement.completed"
+    ENGAGEMENT_CANCELLED = "engagement.cancelled"
+    MESSAGE_RECEIVED = "message.received"
+    RETEST_REQUESTED = "retest.requested"
+    RETEST_COMPLETED = "retest.completed"
+    REPORT_READY = "report.ready"
