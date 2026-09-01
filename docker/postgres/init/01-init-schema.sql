@@ -410,7 +410,9 @@ CREATE TABLE notifications (
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    read_at TIMESTAMPTZ,
     engagement_id UUID REFERENCES engagements(id) ON DELETE CASCADE,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -507,3 +509,6 @@ CREATE INDEX idx_finding_retests_finding_id ON finding_retests(finding_id);
 CREATE INDEX idx_finding_retest_status ON finding_retests(status);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);
 CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
+
+CREATE INDEX idx_notifications_user_id_created_at ON notifications(user_id, created_at DESC);
+CREATE INDEX idx_notifications_user_id_is_read ON notifications(user_id, is_read);

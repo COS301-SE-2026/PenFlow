@@ -1,9 +1,13 @@
+import json
 import os
+from io import BytesIO
 from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
+import magic
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from PIL import Image, UnidentifiedImageError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user, require_pentester
@@ -24,6 +28,59 @@ ALLOWED_TYPES = {
     "application/json",
     "application/pdf",
 }
+
+MIME_EXTENSIONS = {
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "text/plain": ".txt",
+    "application/json": ".json",
+    "application/pdf": ".pdf",
+}
+
+def validate_image(contents: bytes) -> None:
+    try:
+        with Image.open(BytesIO(contents)) as image:
+            image.verify()
+
+    except (UnidentifiedImageError, OSError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid or corrupted image",
+        ) from exc
+
+
+def validate_evidence_file(
+        contents: bytes,
+        declared_mime_type: str | None,
+) -> str:
+    detected_mime = magic.from_buffer(
+        contents,
+        mime=True,
+    )
+
+    if detected_mime not in ALLOWED_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Unsupported evidence file type.",
+        )
+
+    if (declared_mime_type is not None and declared_mime_type != detected_mime):
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="File content does not match its declared type.",
+        )
+
+    if detected_mime == "application/json":
+        try:
+            json.loads(contents)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Invalid JSON evidence file.",
+            )
+
+    return detected_mime
+
 
 async def resolve_user_id(
         db: AsyncSession,
@@ -105,6 +162,14 @@ async def upload_finding_evidence(
             detail="Evidence file cannot be empty.",
         )
 
+    detected_mime = validate_evidence_file(
+        contents,
+        declared_mime_type=file.content_type,
+    )
+
+    if detected_mime in {"image/png", "image/jpeg"}:
+        validate_image(contents)
+    
     storage_root = Path(
         os.getenv(
             "EVIDENCE_STORAGE_DIR",
@@ -115,7 +180,7 @@ async def upload_finding_evidence(
     finding_dir = storage_root / str(finding_id)
     finding_dir.mkdir(parents=True, exist_ok=True)
 
-    suffix = Path(file.filename or "").suffix.lower()
+    suffix = MIME_EXTENSIONS[detected_mime]
     stored_name = f"{uuid4()}{suffix}"
     stored_path = finding_dir / stored_name
 
@@ -128,7 +193,7 @@ async def upload_finding_evidence(
             user_id=user.id,
             file_name=file.filename or stored_name,
             file_path=str(stored_path),
-            mime_type=file.content_type,
+            mime_type=detected_mime,
         )
 
     except Exception:

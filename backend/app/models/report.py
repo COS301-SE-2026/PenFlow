@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Text
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -12,13 +12,29 @@ class Report(Base):
     __tablename__ = "reports"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
     scan_id = Column(
         UUID(as_uuid=True),
         ForeignKey("scans.id", ondelete="CASCADE"),
         unique=True,
-        nullable=False,
+        nullable=True,
     )
+
+    engagement_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("engagements.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+
+    version = Column(
+        Integer,
+        nullable=False,
+        default=1,
+    )
+
     task_id = Column(String(255))
+
     status: Column[str] = Column(
         Enum(
             ReportStatus,
@@ -28,8 +44,11 @@ class Report(Base):
         nullable=False,
         default=ReportStatus.PENDING,
     )
+
     pdf_path = Column(Text)
+
     generated_at = Column(DateTime(timezone=True))
+    
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -38,3 +57,8 @@ class Report(Base):
     error_message = Column(Text)
 
     scan = relationship("Scan", back_populates="report")
+
+    engagement = relationship(
+        "Engagement",
+        back_populates="reports",
+    )

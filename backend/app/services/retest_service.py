@@ -4,11 +4,12 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.base import RetestStatus
+from app.models.base import NotificationType, RetestStatus
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.engagement_repository import EngagementRepository
 from app.repositories.retest_repository import RetestRepository
 from app.schemas.retest import RetestFindingSummary, RetestListItem, RetestUpdate
+from app.services.notification_service import NotificationService
 
 
 class RetestService:
@@ -30,9 +31,12 @@ class RetestService:
                 detail="Retest was not found.",
             )
 
+        previous_status = retest.status
+        engagement_id = retest.finding.engagement_id
+
         engagement = await EngagementRepository.get_assigned_by_id(
             db,
-            engagement_id=retest.finding.engagement_id,
+            engagement_id=engagement_id,
             user_id=user_id,
         )
 
@@ -68,6 +72,43 @@ class RetestService:
         )
 
         await db.refresh(retest)
+
+        completed_statuses = {
+            RetestStatus.RESOLVED,
+            RetestStatus.STILL_VULNERABLE,
+        }
+
+        if (
+            previous_status not in completed_statuses
+            and retest.status in completed_statuses
+        ):
+            notification_metadata = {
+                "retest_id": str(retest.id),
+                "finding_id": str(retest.finding_id),
+                "status": retest.status.value,
+            }
+
+            await NotificationService.notify(
+                db,
+                recipient_id=engagement.requested_by,
+                actor_id=user_id,
+                notification_type=NotificationType.RETEST_COMPLETED,
+                title="Re-test completed",
+                message=f"A re-test for {engagement.title} has been completed.",
+                engagement_id=engagement.id,
+                metadata=notification_metadata,
+            )
+
+            await NotificationService.notify(
+                db,
+                recipient_id=engagement.service_delivery_id,
+                actor_id=user_id,
+                notification_type=NotificationType.RETEST_COMPLETED,
+                title="Re-test completed",
+                message=f"A re-test for {engagement.title} has been completed.",
+                engagement_id=engagement.id,
+                metadata=notification_metadata,
+            )
 
         return RetestListItem(
             id=retest.id,

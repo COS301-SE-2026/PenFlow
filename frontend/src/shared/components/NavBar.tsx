@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { getHelpTopics } from "../helpContext";
 import type { HelpTopic } from "../helpContext";
 import HelpTopicModal from "./HelpTopicModal";
+import NotificationMenu from "./NotificationMenu";
 
 function isLoggedIn(): boolean {
   if (typeof document === "undefined") return false;
@@ -91,6 +92,10 @@ export default function NavBar() {
 
       {loggedIn ? (
         <ul className = "topnav-list">
+          <li>
+            <NotificationMenu />
+          </li>
+          
           {navItems.map((item) => {
             if (item.kind === "external") {
               return (
