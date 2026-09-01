@@ -62,23 +62,17 @@ class ScanService:
 
         # fire off Celery task to the RabbitMQ queue
         try:
-            if scan_data.scan_type == ScanTypeEnum.ACTIVE_VULNERABILITY:
-                task = celery_app.send_task(
-                    "scan.phase2_full",
-                    args=[str(scan_record.id), scan_data.domain]
-                )
-                logger.info(
-                    "Queued Active Phase 2 workflow %s for scan %s", 
-                    task.id, 
-                    scan_record.id,
-                )
-            else:
-                task = celery_app.send_task(
-                    "scan.full",
-                    args=[str(scan_record.id), scan_data.domain],
-                )
-                logger.info("Queued OSINT worker task %s for scan %s", task.id, scan_record.id)
+            await ScanService.publish_scan_task(
+                db,
+                scan_record,
+            )
+
+            await db.commit()
+            await db.refresh(scan_record)
+
         except Exception as exc:
+            await db.rollback()
+
             logger.exception("Failed to push task to queue for scan %s", scan_record.id)
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -86,3 +80,46 @@ class ScanService:
             ) from exc
 
         return scan_record
+
+
+    @staticmethod
+    async def publish_scan_task(
+        db: AsyncSession,
+        scan_record: Any,
+    ) -> str:
+        scan_type = (
+            scan_record.scan_type.value
+            if hasattr(scan_record.scan_type, "value")
+            else str(scan_record.scan_type)
+        )
+
+        if scan_type == ScanTypeEnum.ACTIVE_VULNERABILITY.value:
+            task_name="scan.phase2_full"
+
+        elif scan_type == ScanTypeEnum.PASSIVE_CTEM.value:
+            task_name="scan.full"
+
+        else:
+            raise ValueError(
+                f"Unsupported scan type: {scan_type}"
+            )
+
+        task = celery_app.send_task(
+            task_name,
+            args=[
+                str(scan_record.id),
+                scan_record.domain,
+            ],
+        )
+
+        scan_record.task_id = str(task.id)
+
+        await db.flush()
+        logger.info(
+            "Queued %s task %s for scan %s",
+            scan_type,
+            task.id,
+            scan_record.id,
+        )
+
+        return str(task.id)
