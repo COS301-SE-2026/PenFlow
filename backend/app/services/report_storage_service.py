@@ -69,3 +69,37 @@ class ReportStorageService:
     @staticmethod
     def is_s3() -> bool:
         return REPORT_STORAGE == "s3"
+
+
+    @staticmethod
+    def get_report_bytes(storage_ref: str) -> bytes:
+        if REPORT_STORAGE == "local":
+            path = ReportStorageService.get_local_report_storage(storage_ref)
+
+            try:
+                return path.read_bytes()
+            except OSError as err:
+                raise Exception(
+                    f"Failed to read local report: {storage_ref}"
+                ) from err
+
+
+        if REPORT_STORAGE == "s3":
+            response = ReportStorageService.get_s3_object(storage_ref)
+
+            body = response.get("Body")
+            if body is None:
+                raise Exception(
+                    f"S3 report response has no body: {storage_ref}"
+                )
+
+            try:
+                return cast(bytes, body.read())
+            except (BotoCoreError, ClientError, OSError) as err:
+                raise Exception(
+                    f"Failed to read report from S3: {storage_ref}"
+                ) from err
+
+        raise Exception(
+            f"Unsupported REPORT_STORAGE mode: {REPORT_STORAGE}"
+        )

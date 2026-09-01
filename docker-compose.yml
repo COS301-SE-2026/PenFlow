@@ -158,6 +158,49 @@ services:
     networks:
       - penflow-network
 
+
+  email-worker:
+    container_name: penflow-email-worker
+    image: ${BACKEND_IMAGE:-penflow-backend:local}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    command:
+      [
+        "celery",
+        "-A",
+        "app.queue.celery_app:celery_app",
+        "worker",
+        "--loglevel=info",
+        "--queues=email",
+        "--concurrency=2"
+      ]
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_PROTOCOL: amqp
+
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+
+      REPORT_STORAGE: ${REPORT_STORAGE:-local}
+      REPORT_OUTPUT_DIR: ${REPORT_OUTPUT_DIR:-/app/generated_reports}
+      REPORT_S3_BUCKET: ${REPORT_S3_BUCKET:-}
+      AWS_REGION: ${AWS_REGION:-af-south-1}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - report-files:/app/generated_reports
+    restart: unless-stopped
+    networks:
+      - penflow-network
+
   rabbitmq:
     container_name: penflow-rabbitmq
     image: rabbitmq:3-management

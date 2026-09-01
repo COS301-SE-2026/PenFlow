@@ -1,6 +1,7 @@
 import os
 import ssl
 from urllib.parse import quote
+from kombu import Queue
 
 from celery import Celery
 
@@ -22,6 +23,13 @@ def build_broker_url() -> str:
         f"{host}:{port}//"
     )
 
+
+SCAN_QUEUE = Queue(
+    "scans",
+    routing_key="scans",
+    durable=True,
+    queue_arguments={"x-queue-type": "quorum"},
+)
 
 celery_app = Celery(
     "penflow_workers",
@@ -46,8 +54,15 @@ celery_app = Celery(
 )
 
 celery_app.conf.update(
-    task_default_queue="celery",
+    task_default_queue="scans",
     task_default_queue_type="quorum",
+    task_queues=(SCAN_QUEUE,),
+    task_routes={
+        "scan.*": {
+            "queue": "scans",
+            "routing_key": "scans",
+        },
+    },
     worker_detect_quorum_queues=True,
     broker_transport_options={
         "confirm_publish": True,

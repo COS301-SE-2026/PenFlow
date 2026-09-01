@@ -78,7 +78,11 @@ class ScanService:
                     args=[str(scan_record.id), scan_data.domain],
                 )
                 logger.info("Queued OSINT worker task %s for scan %s", task.id, scan_record.id)
-        except Exception:
+        except Exception as exc:
             logger.exception("Failed to push task to queue for scan %s", scan_record.id)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="The scan queue is temporarily unavailable.",
+            ) from exc
 
         return scan_record

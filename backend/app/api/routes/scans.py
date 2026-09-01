@@ -25,9 +25,9 @@ from app.schemas.scan import (
     ScanHistoryItem,
     ServiceListResponse,
 )
-from app.services.email_service import send_report_email
 from app.services.report_storage_service import ReportStorageService
 from app.services.scan_service import ScanService
+from app.tasks.email_tasks import send_report_email_task
 from app.utils.db import get_db
 
 logger = logging.getLogger(__name__)
@@ -87,12 +87,16 @@ async def initiate_ctem_scan(
 
         return InitiateScanResponse(scan_id=new_scan.id, status=new_scan.status)
 
-    except Exception:
+    except HTTPException:
+        raise
+
+    except Exception as exc:
         logger.exception("Failed to initiate scan for domain %s", payload.domain)
+
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to initiate scan",
-        )
+        ) from exc
 
 
 @router.get("/{scan_id}/status")
@@ -214,10 +218,10 @@ async def email_scan_report(
     if not report or report.status.value != "completed" or not report.pdf_path:
         raise HTTPException(status_code=400, detail="Report is not ready yet")
 
-    send_report_email(
+    send_report_email_task.delay(
         to_email=payload.email,
         domain=str(scan.domain),
-        pdf_path=str(report.pdf_path),
+        storage_ref=str(report.pdf_path),
     )
 
     return {"message": "Report emailed successfully"}
