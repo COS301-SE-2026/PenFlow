@@ -2,7 +2,7 @@ from typing import Any
 from uuid import UUID 
 
 from fastapi import APIRouter, Depends, HTTPException, status 
-from fastapi.responses import FileResponse 
+from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import select 
 from sqlalchemy.ext.asyncio import AsyncSession 
 
@@ -27,7 +27,7 @@ async def resolve_user(db: AsyncSession, current_user: dict[str, Any]):
     )
 
 @router.get(
-    "/reports/{report_id}/download",
+    "/{report_id}/download",
     summary="Download engagement report"
 )
 async def download_report(
@@ -43,11 +43,18 @@ async def download_report(
     if not report or not report.pdf_path: 
         raise HTTPException(status_code=404, detail="Report PDF not found") 
 
-    if not ReportStorageService.is_local(): 
-        raise HTTPException(status_code=501, detail="Direct download only supports local storage.")
+    if ReportStorageService.is_s3():
+        try:
+            s3_obj = ReportStorageService.get_s3_object(report.pdf_path) 
+            return StreamingResponse(
+                content=s3_obj["Body"],
+                media_type="application/pdf",
+                headers={"Content-Disposition": f'attachment; filename="engagement_report_v{report.version}.pdf"'}
+            )
+        except Exception as e: 
+            raise HTTPException(status_code=500, detail=str(e))
 
     file_path = ReportStorageService.get_local_report_storage(report.pdf_path) 
-
     return FileResponse( 
         path=str(file_path), 
         filename=f"engagement_report_v{report.version}.pdf",

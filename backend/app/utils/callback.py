@@ -5,8 +5,6 @@ from typing import Any
 
 import httpx 
 
-from app.core.config import settings 
-
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3000")
 
 logger = logging.getLogger(__name__) 
@@ -27,7 +25,7 @@ def send_report_callback(
         "error_message": error_message,
     }
 
-    url = f"{settings.API_BASE_URL}/api/v1/reports/scan/{scan_id}/callback" 
+    url = f"{API_BASE_URL}/api/v1/reports/scan/{scan_id}/callback" 
 
     try:
         response = httpx.put(url, json=payload, timeout=10.0)
@@ -55,7 +53,7 @@ def send_engagement_report_callback(
         "error_message": error_message,
     }
 
-    url = f"{API_BASE_URL}/internal/reports/engagement/{engagement_id}/version/{version}/callback"
+    url = f"{API_BASE_URL}/api/v1/internal/reports/engagement/{engagement_id}/version/{version}/callback"
 
 
     for attempt in range(1, max_retries + 1):
@@ -64,8 +62,7 @@ def send_engagement_report_callback(
             response.raise_for_status() 
             return response.json()
         except httpx.HTTPError as error: 
-            logger.warning(
-            "Callback attempt {attempt} failed: {error}")
+            logger.warning(f"Callback attempt {attempt} failed: {error}")
             if attempt == max_retries: 
                 return None
             time.sleep(2 ** attempt)
