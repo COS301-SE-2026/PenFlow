@@ -147,6 +147,32 @@ export default function EngagementFindingsPage() {
                                     <th className="pb-2 font-medium" />
                                 </tr>
                             </thead>
+
+                             <tbody>
+                                {isLoading ? (
+                                    <tr><td colSpan={8} className="py-4 text-brand-text/70">Loading findings...</td></tr>
+                                ) : visibleRows.length === 0 ? (
+                                    <tr><td colSpan={8} className="py-4 text-brand-text/70">No findings match these filters.</td></tr>
+                                ) : (
+                                    visibleRows.map((f) => (
+                                        <tr key={f.id} className="border-t border-brand-panel-border/65">
+                                            <td className="py-2.5 font-medium text-brand-text">{f.title}</td>
+                                            <td className="py-2.5">{f.asset_identifier ?? "-"}</td>
+                                            <td className="py-2.5">{f.source}</td>
+                                            <td className={cn("py-2.5", severityClass[f.severity])}>{formatLabel(f.severity)}</td>
+                                            <td className="py-2.5">{formatLabel(f.status)}</td>
+                                            <td className="py-2.5">{f.is_verified ? "Yes" : "No"}</td>
+                                            <td className="py-2.5 text-right">
+                                                <Button variant="outline" size="sm" className={whiteOutlineButtonClass} onClick={() => openFinding(f.id)}>Inspect</Button>
+                                            </td>
+                                            <td className="py-2.5 text-right">
+                                                <Button variant="outline" size="sm" className={whiteOutlineButtonClass} onClick={() => downloadFindingEvidence(f)}>Download</Button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+
                             
                         </table>
                     </div>
