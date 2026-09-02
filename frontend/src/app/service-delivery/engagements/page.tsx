@@ -105,12 +105,57 @@ function ServiceDeliveryEngagementsPageInner(){
                         </SelectContent>
                         </Select>
                 </Select>
-            </div>
-
+            </div> 
+                    <div className="mt-6 overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Engagement</TableHead>
+                                        <TableHead>Client</TableHead>
+                                        <TableHead>Assessment</TableHead>
+                                        <TableHead>Type</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Pentester</TableHead>
+                                        <TableHead>Target</TableHead>
+                                        <TableHead/>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {isLoading ? (
+                                        <TableRow><TableCell colSpan={8} className="text-brand-text/70">Loading engagements…</TableCell></TableRow>
+                                    ) : engagements.length === 0 ? (
+                                        <TableRow><TableCell colSpan={8} className="text-brand-text/70">No engagements match these filters.</TableCell></TableRow>
+                                    ) : (
+                                        engagements.map((e) => (
+                                            <TableRow key={e.id}>
+                                                <TableCell className="font-medium">{e.title}</TableCell>
+                                                <TableCell>{displayName(e.client)}</TableCell>
+                                                <TableCell>{assessmentTypeLabels[e.assessment_type]}</TableCell>
+                                                <TableCell className="capitalize">{e.engagement_type.replace("_", " ")}</TableCell>
+                                                <TableCell>
+                                                    <span className={cn("rounded-md border px-2 py-0.5 text-[10px] font-semibold", statusPillClass[e.status])}>
+                                                        {statusLabels[e.status].toUpperCase()}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell>{displayName(e.assigned_pentester, "—")}</TableCell>
+                                                <TableCell>
+                                                    {e.status === "requested" || e.status === "scoping"
+                                                        ? formatDateRange(e.requested_start_date, e.requested_end_date)
+                                                        : formatDateRange(e.scheduled_start_date, e.scheduled_end_date)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Link href={`/service-delivery/engagements/${e.id}`}>
+                                                        <Button variant="outline" size="sm" className={whiteOutlineButtonClass}>Open</Button>
+                                                    </Link>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
         </CardContent>
-
         </Card>
-
         
     </>
     )
