@@ -31,7 +31,7 @@ type NavItem =
     { label: "Domains", href: "/domains", kind: "link"},
     { label: "Scans", href: "/phase2_scan", kind: "link"},
     { label: "Engagements Request", href: "/engagement_request", kind: "link"},
-    //{ label: "Scheduled Scans", href: "/scheduled-scans", kind: "link"},
+    { label: "Scheduled Scans", href: "/scheduled-scans", kind: "link"},
     { label: "Scan History", href: "/history", kind: "link"},
     //{ label: "Settings", href: "/settings", kind: "link"},
     { label: "Help", kind: "help"},

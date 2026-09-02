@@ -482,6 +482,18 @@ class EngagementService:
                 client_user_id=client_user_id,
             )
 
+        await AuditRepository.create_log(
+            db,
+            user_id=client_user_id,
+            action="engagement.created",
+            entity_type="engagement",
+            entity_id=engagement.id,
+            metadata={
+                "status": EngagementStatus.REQUESTED.value,
+                "asset_count": len(request.assets),
+            },
+        )
+
         service_delivery_users = (
             await EngagementRepository.get_service_delivery_users(db)
         )
