@@ -5,9 +5,47 @@ from typing import Any
 
 import httpx 
 
-API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3000")
+API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3001")
 
 logger = logging.getLogger(__name__) 
+
+def send_scan_callback(
+        scan_id: str, 
+        status: str, 
+        error_message: str | None = None
+) -> dict[str, Any] | None: 
+    """
+    Updates main scan status in the backend.
+    """
+    payload = {"status": status, "error_message": error_message} 
+    url = f"{API_BASE_URL}/api/v1/internal/scans/{scan_id}/status" 
+
+    try: 
+        response = httpx.patch(url, json=payload, timeout=10.0)
+        response.raise_for_status() 
+        return response.json() 
+    except Exception as error: 
+        logger.error("Failed to send scan callback for %s: %s", scan_id, error)
+        return None 
+
+def send_source_callback(
+        scan_id: str, 
+        source_name: str, 
+        payload: dict[str, Any]
+) -> dict[str, Any] | None: 
+    """ 
+    Updates the status of a specific scan source/tool. 
+    """
+
+    url = f"{API_BASE_URL}/api/v1/internal/scans/{scan_id}/sources/{source_name}"
+
+    try: 
+        response = httpx.patch(url, json=payload, timeout=10.0) 
+        response.raise_for_status() 
+        return response.json() 
+    except Exception as error: 
+        logger.error("Failed to send source callback for %s source %s: %s", scan_id, source_name, error)
+        return None 
 
 def send_report_callback(
         scan_id: str,
@@ -25,10 +63,9 @@ def send_report_callback(
         "error_message": error_message,
     }
 
-    url = f"{API_BASE_URL}/api/v1/reports/scan/{scan_id}/callback" 
-
+    url = f"{API_BASE_URL}/api/v1/internal/reports/{scan_id}/status"
     try:
-        response = httpx.put(url, json=payload, timeout=10.0)
+        response = httpx.patch(url, json=payload, timeout=10.0)
         response.raise_for_status()
         return response.json() 
     except Exception as error: 
