@@ -6,7 +6,6 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import brocodeLogo from "@/app/images/images/BroCode logo.png";
 import bluevisionLogo from "@/app/images/images/Bluevision logo.png";
-import SidebarProfileFooter from "@/shared/components/SidebarProfileFooter";
 import {listConversations } from "@/lib/serviceDeliveryService";
 
 type ServiceDeliveryNavItem = {
@@ -76,7 +75,7 @@ export default function ServiceDeliverySidebar() {
                 })}
 
             </ul>
-            <SidebarProfileFooter name="Maya Chen" role="Service Delivery" />
+            {/* <SidebarProfileFooter name="Maya Chen" role="Service Delivery" /> */}
         </nav>
      );
 }
