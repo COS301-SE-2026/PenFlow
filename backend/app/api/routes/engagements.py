@@ -164,7 +164,6 @@ async def get_engagement_findings(
         source=source,
         severity=severity,
         finding_status=finding_status,
-        review_status=review_status,
         search=search,
         limit=limit,
         offset=offset,
@@ -303,7 +302,8 @@ async def get_engagement_report(
     engagement_id: UUID, 
     version: int = 1,
     db: AsyncSession = Depends(get_db),
-    current_user: dict[str, Any] = Depends(get_current_user)):
+    current_user: dict[str, Any] = Depends(get_current_user), 
+) -> dict[str, Any]:
 
     report = await get_by_engagement_and_version(db, engagement_id, version) 
     if not report:
@@ -326,7 +326,7 @@ async def retry_engagement_report(
     version: int = 1, 
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
-):
+) -> dict[str, Any]:
 
     try:
         return await queue_engagement_report_generation(db, engagement_id, version)

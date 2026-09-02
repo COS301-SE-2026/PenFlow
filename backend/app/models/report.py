@@ -16,6 +16,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, ReportStatus
 
+__all__=["Report", "ReportStatus"]
+
 
 class Report(Base):
     __tablename__ = "reports"

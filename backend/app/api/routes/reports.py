@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user
 from app.models.report import Report, ReportStatus
+from app.models.user import User
 from app.queue.celery_app import celery_app
 from app.repositories.engagement_repository import EngagementRepository
 from app.repositories.user_repo import get_user_id_by_provider_id
@@ -16,7 +17,7 @@ from app.utils.db import get_db
 
 router = APIRouter(prefix="", tags=["Reports"])
 
-async def resolve_user(db: AsyncSession, current_user: dict[str, Any]):
+async def resolve_user(db: AsyncSession, current_user: dict[str, Any]) -> User:
     user_id = await get_user_id_by_provider_id(db, current_user["sub"])
     if user_id: 
         user = await EngagementRepository.get_user_by_id(db, user_id) 
@@ -35,7 +36,7 @@ async def download_report(
     report_id: UUID, 
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
-):
+) -> FileResponse | StreamingResponse:
 
     result = await db.execute(select(Report).where(Report.id == report_id))
     report = result.scalar_one_or_none() 
@@ -71,7 +72,7 @@ async def get_service_delivery_engagement_report(
     engagement_id: UUID, 
     db: AsyncSession = Depends(get_db), 
     current_user: dict[str, Any] = Depends(get_current_user),
-):
+) -> dict[str, Any]:
 
     result = await db.execute(
         select(Report)
@@ -99,7 +100,7 @@ async def service_delivery_download_report(
     report_id: UUID, 
     db: AsyncSession = Depends(get_db), 
     current_user: dict[str, Any] = Depends(get_current_user),
-): 
+) -> FileResponse | StreamingResponse:
     return await download_report(report_id=report_id, db=db, current_user=current_user)
 
 @router.post(
@@ -111,7 +112,7 @@ async def service_delivery_retry_report(
     version: int =1, 
     db: AsyncSession = Depends(get_db), 
     current_user: dict[str, Any] = Depends(get_current_user),
-):
+) -> dict[str, Any]:
 
     result = await db.execute(
         select(Report).where(Report.engagement_id == engagement_id, Report.version == version)

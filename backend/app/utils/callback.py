@@ -1,7 +1,7 @@
 import logging
 import os
 import time
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -23,7 +23,7 @@ def send_scan_callback(
     try: 
         response = httpx.patch(url, json=payload, timeout=10.0)
         response.raise_for_status() 
-        return response.json() 
+        return cast(dict[str, Any], response.json()) 
     except Exception as error: 
         logger.error("Failed to send scan callback for %s: %s", scan_id, error)
         return None 
@@ -42,7 +42,7 @@ def send_source_callback(
     try: 
         response = httpx.patch(url, json=payload, timeout=10.0) 
         response.raise_for_status() 
-        return response.json() 
+        return cast(dict[str, Any], response.json())
     except Exception as error: 
         logger.error(
             "Failed to send source callback for %s source %s: %s", 
@@ -69,7 +69,7 @@ def send_report_callback(
     try:
         response = httpx.patch(url, json=payload, timeout=10.0)
         response.raise_for_status()
-        return response.json() 
+        return cast(dict[str, Any], response.json()) 
     except Exception as error: 
         logger.error("Failed to send scan report callback for %s: %s", scan_id, error)
         return None 
@@ -101,9 +101,11 @@ def send_engagement_report_callback(
         try:
             response = httpx.put(url, json=payload, timeout=10.0)
             response.raise_for_status() 
-            return response.json()
+            return cast(dict[str, Any], response.json())
         except httpx.HTTPError as error: 
             logger.warning(f"Callback attempt {attempt} failed: {error}")
             if attempt == max_retries: 
                 return None
             time.sleep(2 ** attempt)
+
+    return None

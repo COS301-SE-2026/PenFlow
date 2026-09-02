@@ -236,17 +236,20 @@ class EngagementRepository:
 
         result = await db.execute(query)
 
-        rows = [
-            (
-                row[0],
-                row.client_name or "",
-                int(row.asset_count or 0),
-            ) for row in result.all()
-        ]
+        rows = cast(
+            list[tuple[Engagement, str, int, str | None]],
+            [
+                (
+                    row[0],
+                    row.client_name or "",
+                    int(row.asset_count or 0),
+                    row.pentester_name,
+                ) for row in result.all()
+            ]
+        )
 
         total = int(await db.scalar(count_query) or 0)
         return rows, total
-
 
     @staticmethod
     async def get_status_counts(
