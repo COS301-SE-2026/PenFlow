@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import { listAuditActivity } from "@/lib/serviceDeliveryService";
 import type { Activity } from "@/lib/serviceDeliveryTypes";
 import { controlFieldClass, displayName, formatDateTime, formatLabel } from "@/lib/serviceDeliveryUi";
-import { log } from "console";
 
 export default function ServiceDeliveryAuditPage(){
     const [logs, setLogs] = useState<Activity[]>([]);
@@ -59,6 +58,47 @@ export default function ServiceDeliveryAuditPage(){
                     </SelectContent>
                 </Select>
            </div>
+
+           <div className="mt-6 overflow-x-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                                <TableHead>Time</TableHead>
+                                <TableHead>Actor</TableHead>
+                                <TableHead>Action</TableHead>
+                                <TableHead>Entity</TableHead>
+                        </TableRow>           
+                    </TableHeader>
+                    <TableBody>
+                                {filtered.length === 0 ? (
+                                 <TableRow><TableCell colSpan={4} className="text-brand-text/70">No activity matches these filters.</TableCell></TableRow>
+                                ):(
+                                    filtered.map((log)=> (
+                                        <TableRow key={log.id}>
+                                        <TableCell>{formatDateTime(log.created_at)}</TableCell>
+                                        <TableCell>{displayName(log.actor, "System")}</TableCell>
+                                        <TableCell className="font-mono text-xs">{log.action}</TableCell>
+                                        <TableCell className="capitalize">{formatLabel(log.entity_type)}</TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
+
+                    </TableBody>
+
+                </Table>
+                                
+
+           </div>
+
+
+
+
+
+
+
+
+
+
 
             </CardContent>
         </Card>
