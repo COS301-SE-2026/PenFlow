@@ -92,3 +92,14 @@ async def get_service_delivery_engagement_report(
         "pdf_path": report.pdf_path,
     }
 
+@router.get(
+    "/service-delivery/reports/{report_id}/download",
+    summary="Service delivery download report endpoint"
+)
+async def service_delivery_download_report(
+    report_id: UUID, 
+    db: AsyncSession = Depends(get_db), 
+    current_user: dict[str, Any] = Depends(get_current_user),
+): 
+    return await download_report(report_id=report_id, db=db, current_user=current_user)
+
