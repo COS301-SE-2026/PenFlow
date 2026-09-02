@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.base import EngagementMessageChannel, EngagementStatus, FindingStatus, Severity
 from app.models.engagement import Engagement
 from app.models.finding import Finding
+from app.models.report import Report, ReportStatus
 from app.models.user import User
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.engagement_comment_repository import EngagementCommentRepository
@@ -45,6 +46,8 @@ from app.schemas.finding import (
     FindingPagination,
 )
 from app.schemas.retest import RetestFindingSummary, RetestListItem, RetestListResponse
+from app.tasks.report_tasks import render_engagement_report_pdf_task 
+
 
 
 class EngagementService:
@@ -948,6 +951,21 @@ class EngagementService:
                 "previous_status": "in_progress",
                 "new_status": "review",
             },
+        )
+
+        version = 1
+
+        new_report = Report(
+            engagement_id=engagement_id, 
+            version=version,
+            status=ReportStatus.PENDING,
+        )
+        db.add(new_report)
+        await db.commit() 
+
+        render_engagement_report_pdf_task.delay(
+            engagement_id=str(engagement_id),
+            version=version,
         )
 
         return EngagementStatusResponse(
