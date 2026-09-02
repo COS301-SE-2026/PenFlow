@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {  useEffect, useState } from "react";
 import Link from "next/link";
 
 import ServiceDeliveryPageTitle from "@/shared/components/ServiceDeliveryPageTitle";
@@ -162,9 +162,91 @@ export default function ServiceDeliveryDashboardPage() {
                         )}
                     </CardContent>
                 </Card>
-            </div>
+            </div>  
+            <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-[1.25fr_1fr]">
+               <Card className="border-brand-panel-border bg-brand-panel">
+                    <CardContent>
+                        <h2 className="mb-4 text-sm font-semibold text-brand-text">Engagements Requiring Attention</h2>
+                        {attention.length === 0 ? (
+                            <p className="text-sm text-brand-text/70">Nothing needs attention right now.</p>
+                            ): (
+                                <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead>
+                                        <tr className="text-[11px] text-brand-text/70">
+                                            <th  className="pb-2 font-medium">Engagement</th>
+                                            <th  className="pb-2 font-medium">Client</th>
+                                            <th  className="pb-2 font-medium">Status</th>
+                                            <th  className="pb-2 font-medium">Reason</th>
+                                            <th className="pb-2 font-medium" />
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {attention.map(({ engagement, reason }) => (
+                                            <tr key={engagement.id} className="border-t border-brand-panel-border/65">
+                                                <td className="py-2.5">{engagement.title}</td>
+                                                <td className="py-2.5">{displayName(engagement.client)}</td>
+                                                <td className="py-2.5">
+                                                    <span className={cn("rounded-md border px-2 py-0.5 text-[10px] font-semibold",statusPillClass[engagement.status])}>
+                                                        {statusLabels[engagement.status].toUpperCase()}
+                                                    </span>     
+                                                </td>
+                                                <td className="py-2.5 text-brand-text/70">{reason}</td>
+                                                <td className="py-2.5 text-right">
+                                                    <Link href = {`/service-delivery/engagements/${engagement.id}`}>
+                                                        <Button variant= "outline" size = "sm" className={whiteOutlineButtonClass}>Open</Button>
+                                                    </Link>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>    
+                            </div>
+                        )}
+                    </CardContent>
+               </Card>
+                    <Card className="border-brand-panel-border bg-brand-panel">
+                        <CardContent>
+                            <h2 className="mb-4 text-sm font-semibold text-brand-text">Recent Activity</h2>
+                            {! activity ? (
+                                <p className="text-sm text-brand-text/70">Loading...</p>
+                            ) :  activity.length === 0?(
+                                <p className="text-sm text-brand-text/70">No recent activity.</p>
+                            ): (
+                                <div className="space-y-1">
+                                {activity.map((item) => {
+                                    const inner = (
+                                    <>
+                                        <p className="text-[13px] text-brand-text">
+                                            {displayName(item.actor, "System")} | {formatLabel(item.action)}
+                                        </p>
+                                        <p className="mt-1 text-[11px] text-brand-text/70">{formatLabel(item.entity_type)}</p>
+                                    </>
+                                    );
+                                    const isEngagement = item.entity_type === "engagement" && item.entity_id;
+                                    return isEngagement ?(
+                                        <Link 
+                                            key = {item.id}
+                                            href={`/service-delivery/engagements/${item.entity_id}`}
+                                            className="flex items-start justify-between gap-3 rounded-lg px-2 py-2 hover:bg-white/5"
+                                        >
+                                            <div>{inner}</div>
+                                            <span className="shrink-0 text-[11px] text-brand-text/70">{formatDateTime(item.created_at)}</span>
+                                        </Link>
+                                    ) : (
+                                        <div key = {item.id} className="flex items-start justify-between gap-3 rounded-lg px-2 py-2">
+                                        <div>{inner}</div>
+                                        <span className="shrink-0 text-[11px] text-brand-text/70">{formatDateTime(item.created_at)}</span> 
+                                        </div>
+                                    );
+                                })}
 
-            
+                                </div>
+                            ) 
+                            }
+                        </CardContent>
+                    </Card>
+            </div>      
         </>
     );
 }
