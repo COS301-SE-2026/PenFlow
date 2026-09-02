@@ -6,12 +6,13 @@ from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_db
+from app.api.middleware.auth import get_current_user
 from app.models.report import Report, ReportStatus
+from app.queue.celery_app import celery_app
 from app.repositories.engagement_repository import EngagementRepository
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.services.report_storage_service import ReportStorageService
-from app.tasks.report_tasks import render_engagement_report_pdf_task
+from app.utils.db import get_db
 
 router = APIRouter(prefix="", tags=["Reports"])
 
@@ -130,9 +131,9 @@ async def service_delivery_retry_report(
 
     await db.commit() 
 
-    render_engagement_report_pdf_task.delay(
-        engagement_id=str(engagement_id), 
-        version=version,
+    celery_app.send_task(
+        "engagement.render_report", 
+        args=[str(engagement_id), version]
     )
 
     return {

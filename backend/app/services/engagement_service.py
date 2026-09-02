@@ -8,6 +8,7 @@ from app.models.engagement import Engagement
 from app.models.finding import Finding
 from app.models.report import Report, ReportStatus
 from app.models.user import User
+from app.queue.celery_app import celery_app
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.engagement_comment_repository import EngagementCommentRepository
 from app.repositories.engagement_repository import EngagementRepository
@@ -46,7 +47,6 @@ from app.schemas.finding import (
     FindingPagination,
 )
 from app.schemas.retest import RetestFindingSummary, RetestListItem, RetestListResponse
-from app.tasks.report_tasks import render_engagement_report_pdf_task
 
 
 class EngagementService:
@@ -962,9 +962,9 @@ class EngagementService:
         db.add(new_report)
         await db.commit() 
 
-        render_engagement_report_pdf_task.delay(
-            engagement_id=str(engagement_id),
-            version=version,
+        celery_app.send_task(
+            "engagement.render_report",
+            args=[str(engagement_id), version],
         )
 
         return EngagementStatusResponse(

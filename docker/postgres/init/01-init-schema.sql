@@ -454,7 +454,7 @@ CREATE TABLE finding_retests (
     completed_at TIMESTAMPTZ
 );
 
-ALTER TABLE scans ADD COLUMN schedule_id UUID REFERENCES scan_schedules(id) ON DELETE SET NULL DEFAULT NULL;
+ALTER TABLE scans ADD COLUMN IF NOT EXISTS schedule_id UUID REFERENCES scan_schedules(id) ON DELETE SET NULL DEFAULT NULL;
 ALTER TABLE scans ADD COLUMN scheduled_for TIMESTAMPTZ DEFAULT NULL;
 ALTER TABLE scans ADD CONSTRAINT uq_scans_schedule_occurrence UNIQUE (schedule_id, scheduled_for);
 
