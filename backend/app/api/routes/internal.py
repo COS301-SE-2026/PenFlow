@@ -240,10 +240,14 @@ async def update_engagement_report_status_callback(
             raise HTTPException(status_code=400, detail="Invalid report status")
 
         await db.commit() 
+        await db.refresh(report) 
+
+        status_val = report.status.value if hasattr(report.status, "value") else report.status 
+
         return {
             "engagement_id": str(engagement_id), 
             "version": version, 
-            "report_status": report.status.value,
+            "report_status": status_val,
         }
 
     except HTTPException: 
