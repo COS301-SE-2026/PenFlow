@@ -95,8 +95,69 @@ export default function EngagementFindingsPage() {
             <ServiceDeliveryPageTitle title={`${engagement.title} · Findings`} />
             <p className="mt-2 text-sm text-brand-text/80">Inspect large finding sets without crowding the engagement overview.</p>
 
-            
+            <Card className="mt-6 border-brand-panel-border bg-brand-panel">
+                <CardContent>
+                    <div className="flex flex-wrap gap-3">
+                        <Input
+                            placeholder="Search findings on this page..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className={cn("min-w-[240px] flex-1", controlFieldClass)}
+                        />
+                        <Select value={severity} onValueChange={(v) => { setSeverity(v as Severity | "all"); setPage(1); }}>
+                            <SelectTrigger className={cn("w-[170px]", controlFieldClass)}><SelectValue placeholder="All severities" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All severities</SelectItem>
+                                {SEVERITY_OPTIONS.map((s) => (
+                                    <SelectItem key={s} value={s}>{formatLabel(s)}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Select value={status} onValueChange={(v) => { setStatus(v as FindingStatus | "all"); setPage(1); }}>
+                            <SelectTrigger className={cn("w-[170px]", controlFieldClass)}><SelectValue placeholder="All statuses" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All statuses</SelectItem>
+                                {STATUS_OPTIONS.map((s) => (
+                                    <SelectItem key={s} value={s}>{formatLabel(s)}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
 
+                    <div className="mt-4 flex flex-wrap gap-2">
+                        <StatChip label="total" value={engagement.finding_summary.total} />
+                        <StatChip label="critical" value={engagement.finding_summary.critical} />
+                        <StatChip label="high" value={engagement.finding_summary.high} />
+                        <StatChip label="medium" value={engagement.finding_summary.medium} />
+                        <StatChip label="low" value={engagement.finding_summary.low} />
+                        <StatChip label="with evidence" value={engagement.finding_summary.with_evidence} />
+                    </div>
+
+                    <div className="mt-4 overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead>
+                                <tr className="text-[11px] text-brand-text/70">
+                                    <th className="pb-2 font-medium">Finding</th>
+                                    <th className="pb-2 font-medium">Asset</th>
+                                    <th className="pb-2 font-medium">Source</th>
+                                    <th className="pb-2 font-medium">Severity</th>
+                                    <th className="pb-2 font-medium">Status</th>
+                                    <th className="pb-2 font-medium">Verified</th>
+                                    <th className="pb-2 font-medium" />
+                                    <th className="pb-2 font-medium" />
+                                </tr>
+                            </thead>
+                            
+                        </table>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between text-sm text-brand-text/70">
+                        <Button variant="outline" size="sm" className={whiteOutlineButtonClass} disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← Previous</Button>
+                        <span>Page {page} of {pages} · {total} findings</span>
+                        <Button variant="outline" size="sm" className={whiteOutlineButtonClass} disabled={page === pages} onClick={() => setPage((p) => p + 1)}>Next →</Button>
+                    </div>
+                </CardContent>
+            </Card>
             {inspectFinding && (
                 <FindingInspectModal finding={inspectFinding} onClose={() => setInspectFinding(null)} />
             )}
