@@ -85,7 +85,7 @@ async def get_service_delivery_engagement_report(
         raise HTTPException(status_code=404, detail="Report not found for this engagement")
 
     return {
-        "repord_id": report.id, 
+        "report_id": report.id, 
         "engagement_id": report.engagement_id, 
         "version": report.version, 
         "status": report.status.value if hasattr(report.status, "value") else report.status,
@@ -102,4 +102,45 @@ async def service_delivery_download_report(
     current_user: dict[str, Any] = Depends(get_current_user),
 ): 
     return await download_report(report_id=report_id, db=db, current_user=current_user)
+
+@router.post(
+    "/service-delivery/engagements/{engagement_id}/report/retry", 
+    summary="Retry or trigger report generation for service delivery"
+)
+async def service_delivery_retry_report(
+    engagement_id: UUID, 
+    version: int =1, 
+    db: AsyncSession = Depends(get_db), 
+    current_user: dict[str, Any] = Depends(get_current_user),
+):
+    user = await resolve_user(db, current_user)
+
+    result = await db.execute(
+        select(Report).where(Report.engagement_id == engagement_id, Report.version == version)
+    )
+    report = result.scalar_one_or_none() 
+
+    if not report: 
+        report = Report(
+            engagement_id=engagement_id,
+            version=version,
+            status=ReportStatus.PENDING,
+        )
+        db.add(report)
+    else:
+        report.status = ReportStatus.PENDING 
+        report.error_message = None 
+
+    await db.commit() 
+
+    render_engagement_report_pdf_task.delay(
+        engagement_id=str(engagement_id), 
+        version=version,
+    )
+
+    return {
+        "message": "Report generation task queued successfully", 
+        "engagement_id": str(engagement_id), 
+        "version": version,
+    }
 
