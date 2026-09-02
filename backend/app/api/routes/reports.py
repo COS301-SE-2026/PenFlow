@@ -30,7 +30,8 @@ async def resolve_user(db: AsyncSession, current_user: dict[str, Any]) -> User:
 
 @router.get(
     "/reports/{report_id}/download",
-    summary="Download engagement report"
+    summary="Download engagement report",
+    response_model=None,
 )
 async def download_report(
     report_id: UUID, 
@@ -94,7 +95,8 @@ async def get_service_delivery_engagement_report(
 
 @router.get(
     "/service-delivery/reports/{report_id}/download",
-    summary="Service delivery download report endpoint"
+    summary="Service delivery download report endpoint", 
+    response_model=None,
 )
 async def service_delivery_download_report(
     report_id: UUID, 
