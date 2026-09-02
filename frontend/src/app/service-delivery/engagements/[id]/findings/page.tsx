@@ -77,7 +77,7 @@ export default function EngagementFindingsPage() {
         return (
             <>
                 <ServiceDeliveryPageTitle title="Findings" />
-                <p className="mt-6 text-sm text-brand-text/70">Loading findings…</p>
+                <p className="mt-6 text-sm text-brand-text/70">Loading findings... </p>
             </>
         );
     }
