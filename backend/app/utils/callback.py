@@ -1,9 +1,9 @@
-import logging 
-import os 
+import logging
+import os
 import time
-from typing import Any 
+from typing import Any
 
-import httpx 
+import httpx
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3001")
 
@@ -44,7 +44,9 @@ def send_source_callback(
         response.raise_for_status() 
         return response.json() 
     except Exception as error: 
-        logger.error("Failed to send source callback for %s source %s: %s", scan_id, source_name, error)
+        logger.error(
+            "Failed to send source callback for %s source %s: %s", 
+            scan_id, source_name, error)
         return None 
 
 def send_report_callback(
@@ -90,8 +92,10 @@ def send_engagement_report_callback(
         "error_message": error_message,
     }
 
-    url = f"{API_BASE_URL}/api/v1/internal/reports/engagement/{engagement_id}/version/{version}/callback"
-
+    url = (
+        f"{API_BASE_URL}/api/v1/internal/reports/engagement/" 
+        f"{engagement_id}/version/{version}/callback"
+    )
 
     for attempt in range(1, max_retries + 1):
         try:

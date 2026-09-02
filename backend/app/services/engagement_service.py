@@ -46,8 +46,7 @@ from app.schemas.finding import (
     FindingPagination,
 )
 from app.schemas.retest import RetestFindingSummary, RetestListItem, RetestListResponse
-from app.tasks.report_tasks import render_engagement_report_pdf_task 
-
+from app.tasks.report_tasks import render_engagement_report_pdf_task
 
 
 class EngagementService:

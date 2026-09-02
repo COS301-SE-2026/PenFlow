@@ -3,12 +3,11 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
-from app.models.base import FindingReviewStatus
 from sqlalchemy import Boolean, CheckConstraint, DateTime, Enum, ForeignKey, Numeric, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, FindingStatus, Severity
+from app.models.base import Base, FindingReviewStatus, FindingStatus, Severity
 
 
 class Finding(Base):

@@ -1,12 +1,14 @@
-from typing import Any 
+from typing import Any
 from uuid import UUID
-from sqlalchemy import select 
-from sqlalchemy.ext.asyncio import AsyncSession 
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.engagement import Engagement 
-from app.models.finding import Finding 
-from app.models.report import Report 
+from app.models.engagement import Engagement
+from app.models.finding import Finding
+from app.models.report import Report
+
 
 async def build_phase3_report_context(
         db: AsyncSession, engagement_id: str | UUID, version: int = 1

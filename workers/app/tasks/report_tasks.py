@@ -5,7 +5,7 @@ from typing import Any
 from app.queue.celery_app import celery_app
 from app.services.pdf_render_service import generate_pdf_from_html
 from app.services.report_storage_service import ReportStorageService
-from app.utils.callback import send_report_callback, send_engagement_report_callback
+from app.utils.callback import send_engagement_report_callback, send_report_callback
 
 JSONDict = dict[str, Any]
 

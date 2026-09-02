@@ -1,8 +1,16 @@
 import uuid
 from datetime import datetime, timezone
-from typing import Optional 
 
-from sqlalchemy import CheckConstraint, Column, DateTime, Enum, ForeignKey, Integer, String, Text,UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -13,7 +21,8 @@ class Report(Base):
     __tablename__ = "reports"
     __table_args__= (
         CheckConstraint(
-            "(scan_id IS NOT NULL AND engagement_id IS NULL) OR (scan_id IS NULL AND engagement_id IS NOT NULL)",
+            "(scan_id IS NOT NULL AND engagement_id IS NULL) "
+            "OR (scan_id IS NULL AND engagement_id IS NOT NULL)",
             name="ck_report_scan_or_engagement",
         ),
         UniqueConstraint("engagement_id", "version", name="uq_reports_engagement_version"),

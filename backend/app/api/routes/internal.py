@@ -216,7 +216,9 @@ async def update_scan_source_callback(
             detail="Failed to process source callback",
         )
 
-@router.put("/reports/engagement/{engagement_id}/version/{version}/callback", status_code=status.HTTP_200_OK)
+@router.put(
+        "/reports/engagement/{engagement_id}/version/{version}/callback",
+        status_code=status.HTTP_200_OK)
 async def update_engagement_report_status_callback(
     engagement_id: UUID, 
     version: int,
@@ -254,5 +256,8 @@ async def update_engagement_report_status_callback(
         raise 
     except Exception: 
         await db.rollback() 
-        logger.exception("Failed to process engagement report callback for %s (v%s)", engagement_id, version)
+        logger.exception(
+            "Failed to process engagement report callback for %s (v%s)",
+            engagement_id,
+            version)
         raise HTTPException(status_code=500, detail="Failed to process callback")

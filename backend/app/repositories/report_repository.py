@@ -141,7 +141,10 @@ async def get_by_engagement_and_version(
     return result.scalar_one_or_none()
 
 async def create_engagement_report(
-        db: AsyncSession, engagement_id: str | UUID, version: int = 1, task_id: str | None = None       
+        db: AsyncSession, 
+        engagement_id: str | UUID, 
+        version: int = 1, 
+        task_id: str | None = None       
 ) -> Report:
     eng_uuid = UUID(str(engagement_id)) if isinstance(engagement_id, str) else engagement_id 
     report = Report(

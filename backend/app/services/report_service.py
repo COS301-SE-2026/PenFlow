@@ -3,23 +3,21 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from fastapi import HTTPException
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.base import ScanType, ReportStatus
+from app.models.base import ReportStatus, ScanType
 from app.queue.celery_app import celery_app
-from app.models.report import Report
 from app.repositories.report_repository import (
+    create_engagement_report,
+    get_by_engagement_and_version,
     load_report_data,
     mark_report_failed,
     mark_report_generating,
     mark_report_task_queued,
-    get_by_engagement_and_version,
-    create_engagement_report,
 )
 from app.utils.phase2_report_context import build_phase2_report_context
-from app.utils.phase3_report_context import build_phase3_report_context 
+from app.utils.phase3_report_context import build_phase3_report_context
 from app.utils.report_context import build_report_context
 
 BASE_DIR = Path(__file__).resolve().parents[1]

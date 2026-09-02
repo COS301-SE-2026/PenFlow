@@ -14,7 +14,7 @@ from app.models.base import (
 )
 from app.models.user import User
 from app.repositories.engagement_repository import EngagementRepository
-from app.repositories.report_repository import get_by_engagement_and_version 
+from app.repositories.report_repository import get_by_engagement_and_version
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.engagement import (
     ActivityListResponse,
@@ -305,8 +305,6 @@ async def get_engagement_report(
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user)):
 
-    user = await resolve_user(db, current_user)
-
     report = await get_by_engagement_and_version(db, engagement_id, version) 
     if not report:
         raise HTTPException(status_code=404, detail="Report not found for this engagement.")
@@ -329,7 +327,6 @@ async def retry_engagement_report(
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user),
 ):
-    user = await resolve_user(db, current_user)
 
     try:
         return await queue_engagement_report_generation(db, engagement_id, version)
