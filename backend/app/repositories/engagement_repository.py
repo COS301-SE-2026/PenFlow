@@ -3,13 +3,20 @@ from decimal import Decimal
 from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import Select, func, or_, select, update
-from sqlalchemy.engine import CursorResult
+from sqlalchemy import Select, case, func, or_, select, update
+from sqlalchemy.engine import CursorResult, Row
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.attributes import InstrumentedAttribute
 
-from app.models.base import EngagementMessageChannel, EngagementStatus, EngagementType
+from app.models.base import (
+    AssessmentType,
+    EngagementMessageChannel,
+    EngagementStatus,
+    EngagementType,
+    RetestStatus,
+    Severity,
+)
 from app.models.engagement import Engagement
 from app.models.engagement_asset import EngagementAsset
 from app.models.engagement_comment import EngagementComment
@@ -574,3 +581,553 @@ class EngagementRepository:
         await db.refresh(engagement)
 
         return engagement
+
+
+    @staticmethod
+    async def list_for_service_delivery(
+        db: AsyncSession,
+        *,
+        engagement_status: EngagementStatus | None,
+        assessment_type: AssessmentType | None,
+        search: str | None,
+        pentester_id: UUID | None,
+        assigned: bool | None,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[tuple[Engagement, User, User | None, User | None]], int]:
+
+        client = aliased(User)
+        service_delivery = aliased(User)
+        pentester = aliased(User)
+
+        query = (
+            select(
+                Engagement,
+                client,
+                service_delivery,
+                pentester,
+            ).join(
+                client,
+                client.id == Engagement.requested_by,
+            ).outerjoin(
+                service_delivery,
+                service_delivery.id == Engagement.service_delivery_id,
+            ).outerjoin(
+                pentester,
+                pentester.id == Engagement.assigned_to,
+            )
+        )
+
+        count_query = select(func.count(Engagement.id))
+
+        if engagement_status is not None:
+            query = query.where(
+                Engagement.status == engagement_status
+            )
+            count_query = count_query.where(
+                Engagement.status == engagement_status
+            )
+
+        if assessment_type is not None:
+            query = query.where(
+                Engagement.assessment_type == assessment_type
+            )
+            count_query = count_query.where(
+                Engagement.assessment_type == assessment_type
+            )
+
+        if pentester_id is not None:
+            query = query.where(
+                Engagement.assigned_to == pentester_id
+            )
+            count_query = count_query.where(
+                Engagement.assigned_to == pentester_id
+            )
+
+        if assigned is True:
+            query = query.where(
+                Engagement.assigned_to.is_not(None)
+            )
+            count_query = count_query.where(
+                Engagement.assigned_to.is_not(None)
+            )
+
+        elif assigned is False:
+            query = query.where(
+                Engagement.assigned_to.is_(None)
+            )
+            count_query = count_query.where(
+                Engagement.assigned_to.is_(None)
+            )
+
+        stripped_search = search.strip() if search else None
+
+        if stripped_search:
+            search_filter = or_(
+                Engagement.title.ilike(f"%{stripped_search}%"),
+                client.full_name.ilike(f"%{stripped_search}%"),
+                client.email.ilike(f"%{stripped_search}%"),
+            )
+
+            query = query.where(search_filter)
+
+            count_query = count_query.join(
+                client,
+                client.id == Engagement.requested_by,
+            ).where(search_filter)
+
+        query = query.order_by(
+            Engagement.updated_at.desc(),
+            Engagement.id.desc(),
+        ).limit(limit).offset(offset)
+
+        result = await db.execute(query)
+        rows = [
+            (
+                row[0],
+                row[1],
+                row[2],
+                row[3],
+            )
+            for row in result.all()
+        ]
+
+        total = int(await db.scalar(count_query) or 0)
+
+        return rows, total
+
+
+    @staticmethod
+    async def get_service_delivery_finding_summary(
+        db: AsyncSession,
+        engagement_id: UUID,
+    ) -> tuple[int, int, int, int, int, int]:
+        query = (
+            select(
+                Finding.severity,
+                func.count(Finding.id),
+            ).where(
+                Finding.engagement_id == engagement_id,
+            ).group_by(Finding.severity)
+        )
+
+        result = await db.execute(query)
+
+        counts = {
+            severity: 0
+            for severity in Severity
+        }
+
+        total = 0
+
+        for severity, count in result.all():
+            numeric_count = int(count)
+            counts[severity] = numeric_count
+            total += numeric_count
+
+        return (
+            total,
+            counts[Severity.CRITICAL],
+            counts[Severity.HIGH],
+            counts[Severity.MEDIUM],
+            counts[Severity.LOW],
+            0,
+        )
+
+
+    @staticmethod
+    async def get_service_delivery_retest_summary(
+        db: AsyncSession,
+        engagement_id: UUID,
+    ) -> tuple[int, int, int, int, int]:
+        query = (
+            select(
+                FindingRetest.status,
+                func.count(FindingRetest.id),
+            ).join(
+                Finding,
+                Finding.id == FindingRetest.finding_id,
+            ).where(
+                Finding.engagement_id == engagement_id,
+            ).group_by(FindingRetest.status)
+        )
+
+        result = await db.execute(query)
+
+        counts = {
+            retest_status: 0
+            for retest_status in RetestStatus
+        }
+
+        total = 0
+
+        for retest_status, count in result.all():
+            numeric_count = int(count)
+            counts[retest_status] = numeric_count
+            total+=numeric_count
+
+        return (
+            total,
+            counts[RetestStatus.REQUESTED],
+            counts[RetestStatus.IN_PROGRESS],
+            counts[RetestStatus.RESOLVED],
+            counts[RetestStatus.STILL_VULNERABLE],
+        )
+
+
+    @staticmethod
+    async def claim(
+        db: AsyncSession,
+        engagement_id: UUID,
+        service_delivery_id: UUID,
+    ) -> Engagement | None:
+        stmt = (
+            update(Engagement).where(
+                Engagement.id == engagement_id,
+                Engagement.status == EngagementStatus.REQUESTED,
+                Engagement.service_delivery_id.is_(None),
+            ).values(
+                service_delivery_id=service_delivery_id,
+                status=EngagementStatus.SCOPING,
+            ).returning(Engagement.id)
+        )
+
+        result = await db.execute(stmt)
+        claimed_id = result.scalar_one_or_none()
+
+        if claimed_id is None:
+            await db.rollback()
+            return None
+
+        await db.commit()
+
+        return await EngagementRepository.get_by_id(
+            db,
+            engagement_id=claimed_id,
+        )
+
+
+    @staticmethod
+    async def update_scoping(
+        db: AsyncSession,
+        *,
+        engagement: Engagement,
+        assessment_type: AssessmentType | None = None,
+        scope: str | None = None,
+        objective: str | None = None,
+        constraints: str | None = None,
+        final_quote: Decimal | None = None,
+        estimated_duration_days: int | None = None,
+    ) -> Engagement:
+        if assessment_type is not None:
+            engagement.assessment_type = assessment_type
+
+        if scope is not None:
+            engagement.scope = scope
+
+        if objective is not None:
+            engagement.objective = objective
+
+        if constraints is not None:
+            engagement.constraints = constraints
+
+        if final_quote is not None:
+            engagement.final_quote = final_quote
+
+        if estimated_duration_days is not None:
+            engagement.estimated_duration_days = estimated_duration_days
+
+        await db.commit()
+        await db.refresh(engagement)
+
+        return engagement
+
+
+    @staticmethod
+    async def update_fields(
+        db: AsyncSession,
+        engagement: Engagement,
+        changes: dict[str, Any],
+    ) -> Engagement:
+
+        for field, value in changes.items():
+            setattr(engagement, field, value)
+
+        await db.commit()
+        await db.refresh(engagement)
+
+        return engagement
+
+
+    @staticmethod
+    async def has_schedule_conflict(
+        db: AsyncSession,
+        *,
+        pentester_id: UUID,
+        scheduled_start_date: date,
+        scheduled_end_date: date,
+        exclude_engagement_id: UUID | None = None,
+    ) -> bool:
+        stmt = select(func.count(Engagement.id)).where(
+            Engagement.assigned_to == pentester_id,
+            Engagement.status.in_(
+                [
+                    EngagementStatus.SCHEDULED,
+                    EngagementStatus.IN_PROGRESS,
+                ]
+            ),
+            Engagement.scheduled_start_date.is_not(None),
+            Engagement.scheduled_end_date.is_not(None),
+            Engagement.scheduled_start_date <= scheduled_end_date,
+            Engagement.scheduled_end_date >= scheduled_start_date,
+        )
+
+        if exclude_engagement_id is not None:
+            stmt = stmt.where(
+                Engagement.id != exclude_engagement_id,
+            )
+
+        count = int(await db.scalar(stmt) or 0)
+
+        return count > 0
+
+
+    @staticmethod
+    async def get_service_delivery_dashboard_counts(
+        db: AsyncSession,
+    ) -> dict[EngagementStatus, int]:
+        stmt = (
+            select(
+                Engagement.status,
+                func.count(Engagement.id),
+            ).group_by(
+                Engagement.status
+            )
+        )
+
+        result = await db.execute(stmt)
+
+        counts = {
+            engagement_status: 0
+            for engagement_status in EngagementStatus
+        }
+
+        for engagement_status, count in result.all():
+            counts[engagement_status] = int(count)
+
+        return counts
+
+
+    @staticmethod
+    async def list_for_service_delivery_dashboard(
+        db: AsyncSession,
+        engagement_status: EngagementStatus,
+        unclaimed_only: bool = False,
+        limit: int = 5,
+    ) -> list[tuple[Engagement, User, User | None, User | None]]:
+
+        client=  aliased(User)
+        service_delivery = aliased(User)
+        pentester = aliased(User)
+
+        stmt = (
+            select(
+                Engagement,
+                client,
+                service_delivery,
+                pentester,
+            ).join(
+                client,
+                client.id == Engagement.requested_by,
+            ).outerjoin(
+                service_delivery,
+                service_delivery.id == Engagement.service_delivery_id,
+            ).outerjoin(
+                pentester,
+                pentester.id == Engagement.assigned_to,
+            ).where(
+                Engagement.status == engagement_status,
+            )
+        )
+
+        if unclaimed_only:
+            stmt = stmt.where(
+                Engagement.service_delivery_id.is_(None),
+            )
+
+        if engagement_status == EngagementStatus.SCHEDULED:
+            stmt = (
+                stmt.where(
+                    Engagement.scheduled_start_date >= date.today(),
+                ).order_by(
+                    Engagement.scheduled_start_date.asc(),
+                    Engagement.id.asc(),
+                )
+            )
+
+        else:
+            stmt = stmt.order_by(
+                Engagement.updated_at.desc(),
+                Engagement.id.desc(),
+            )
+
+        stmt = stmt.limit(limit)
+
+        result = await db.execute(stmt)
+
+        return [
+            (
+                row[0],
+                row[1],
+                row[2],
+                row[3],
+            ) for row in result.all()
+        ]
+
+
+    @staticmethod
+    async def get_service_delivery_conversation_summaries(
+        db: AsyncSession,
+        service_delivery_id: UUID,
+    ) -> list[Row[Any]]:
+
+        participant = aliased(User)
+        sender = aliased(User)
+        latest_comment = aliased(EngagementComment)
+
+        message_count_subquery = (
+            select(
+                EngagementComment.engagement_id,
+                EngagementComment.channel,
+                func.count(EngagementComment.id).label(
+                    "message_count"
+                ),
+            ).where(
+                EngagementComment.channel.in_(
+                    [
+                        EngagementMessageChannel.CLIENT_SERVICE_DELIVERY,
+                        EngagementMessageChannel.SERVICE_DELIVERY_PENTESTER,
+                    ]
+                )
+            ).group_by(
+                EngagementComment.engagement_id,
+                EngagementComment.channel,
+            ).subquery()
+        )
+
+        latest_message_time_subquery = (
+            select(
+                EngagementComment.engagement_id,
+                EngagementComment.channel,
+                func.max(
+                    EngagementComment.created_at,
+                ).label("latest_created_at"),
+            ).where(
+                EngagementComment.channel.in_(
+                    [
+                        EngagementMessageChannel.CLIENT_SERVICE_DELIVERY,
+                        EngagementMessageChannel.SERVICE_DELIVERY_PENTESTER,
+                    ]
+                )
+            ).group_by(
+                EngagementComment.engagement_id,
+                EngagementComment.channel,
+            ).subquery()
+        )
+
+        unread_count_subquery = (
+            select(
+                EngagementComment.engagement_id,
+                EngagementComment.channel,
+                func.count(
+                    EngagementComment.id
+                ).label("unread_count")
+            ).where(
+                EngagementComment.recipient_id == service_delivery_id,
+                EngagementComment.is_read.is_(False),
+                EngagementComment.channel.in_(
+                    [
+                        EngagementMessageChannel.CLIENT_SERVICE_DELIVERY,
+                        EngagementMessageChannel.SERVICE_DELIVERY_PENTESTER,
+                    ]
+                )
+            ).group_by(
+                EngagementComment.engagement_id,
+                EngagementComment.channel
+            ).subquery()
+        )
+
+        stmt = (
+            select(
+                Engagement,
+                message_count_subquery.c.channel,
+                participant,
+                latest_comment,
+                sender,
+                func.coalesce(
+                    message_count_subquery.c.message_count,
+                    0,
+                ).label("message_count"),
+                func.coalesce(
+                    unread_count_subquery.c.unread_count,
+                    0,
+                ).label("unread_count"),
+            ).join(
+                message_count_subquery,
+                message_count_subquery.c.engagement_id == Engagement.id
+            ).join(
+                latest_message_time_subquery,
+                (latest_message_time_subquery.c.engagement_id == Engagement.id)
+                & (latest_message_time_subquery.c.channel == message_count_subquery.c.channel),
+            ).outerjoin(
+                unread_count_subquery,
+                (unread_count_subquery.c.engagement_id == Engagement.id)
+                & (unread_count_subquery.c.channel
+                    == message_count_subquery.c.channel
+                    ),
+            ).outerjoin(
+                latest_comment,
+                (latest_comment.engagement_id == Engagement.id)
+                & (latest_comment.channel == message_count_subquery.c.channel)
+                & (latest_comment.created_at == latest_message_time_subquery.c.latest_created_at),
+            ).outerjoin(
+                sender,
+                sender.id == latest_comment.user_id,
+            ).join(
+                participant,
+                participant.id
+                == case(
+                    (
+                        message_count_subquery.c.channel
+                        == EngagementMessageChannel.CLIENT_SERVICE_DELIVERY,
+                        Engagement.requested_by,
+                    ),
+                    else_=Engagement.assigned_to,
+                ),
+            ).where(
+                Engagement.service_delivery_id == service_delivery_id,
+            ).order_by(
+                latest_message_time_subquery.c.latest_created_at.desc()
+                .nullslast(),
+                Engagement.updated_at.desc(),
+            )
+        )
+
+        result = await db.execute(stmt)
+        return list(result.all())
+
+
+    @staticmethod
+    async def get_service_delivery_users(
+        db: AsyncSession,
+    ) -> list[User]:
+        stmt = (
+            select(User).where(
+                User.role == "service_delivery",
+            ).order_by(
+                User.created_at.asc(),
+            )
+        )
+
+        result = await db.execute(stmt)
+        return list(result.scalars().all())

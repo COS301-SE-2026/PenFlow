@@ -3,7 +3,13 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.base import EngagementMessageChannel, EngagementStatus, FindingStatus, Severity
+from app.models.base import (
+    EngagementMessageChannel,
+    EngagementStatus,
+    FindingStatus,
+    NotificationType,
+    Severity,
+)
 from app.models.engagement import Engagement
 from app.models.finding import Finding
 from app.models.report import Report, ReportStatus
@@ -47,6 +53,7 @@ from app.schemas.finding import (
     FindingPagination,
 )
 from app.schemas.retest import RetestFindingSummary, RetestListItem, RetestListResponse
+from app.services.notification_service import NotificationService
 
 
 class EngagementService:
@@ -245,6 +252,7 @@ class EngagementService:
                 title = engagement.title,
                 client_name=client_name,
                 engagement_type=engagement.engagement_type,
+                assessment_type=engagement.assessment_type,
                 priority=engagement.priority,
                 status=engagement.status,
                 asset_count=asset_count,
@@ -469,11 +477,11 @@ class EngagementService:
 
     @staticmethod
     async def create_engagement \
-                    (
-                    db: AsyncSession,
-                    request: EngagementCreateRequest,
-                    client_user_id: UUID,
-            ) -> EngagementCreateResponse:
+    (
+        db: AsyncSession,
+        request: EngagementCreateRequest,
+        client_user_id: UUID,
+    ) -> EngagementCreateResponse:
         # save the request first.
         engagement = await EngagementRepository.create_engagement \
                 (
@@ -481,11 +489,30 @@ class EngagementService:
                 request=request,
                 client_user_id=client_user_id,
             )
-        return EngagementService.build_create_response \
-                (
-                engagement,
-                asset_count=len(request.assets),
+
+        service_delivery_users = (
+            await EngagementRepository.get_service_delivery_users(db)
+        )
+
+        for service_delivery_user in service_delivery_users:
+            await NotificationService.notify(
+                db,
+                recipient_id=service_delivery_user.id,
+                actor_id=client_user_id,
+                notification_type=NotificationType.ENGAGEMENT_REQUESTED,
+                title="New engagement request",
+                message=f"{engagement.title} is awaiting review.",
+                engagement_id=engagement.id,
+                metadata={
+                    "status": EngagementStatus.REQUESTED.value,
+                },
             )
+
+        return EngagementService.build_create_response \
+        (
+            engagement,
+            asset_count=len(request.assets),
+        )
 
     @staticmethod
     async def create_manual_finding(
@@ -807,6 +834,25 @@ class EngagementService:
                 detail="Message participant could not be found.",
             )
 
+        await NotificationService.notify(
+            db,
+            recipient_id=recipient_id,
+            actor_id=user_id,
+            notification_type=NotificationType.MESSAGE_RECEIVED,
+            title="New message",
+            message=f"You have a new message about {engagement.title}.",
+            engagement_id=engagement.id,
+            metadata={
+                "channel": request.channel.value,
+                "comment_id": str(comment.id),
+                "finding_id": (
+                    str(request.finding_id)
+                    if request.finding_id is not None
+                    else None
+                ),
+            },
+        )
+
         return EngagementMessageResponse(
             id=comment.id,
             engagement_id=comment.engagement_id,
@@ -965,6 +1011,90 @@ class EngagementService:
         celery_app.send_task(
             "engagement.render_report",
             args=[str(engagement_id), version],
+        )
+        await NotificationService.notify(
+            db,
+            recipient_id=engagement.service_delivery_id,
+            actor_id=user_id,
+            notification_type=NotificationType.ENGAGEMENT_REVIEW_REQUIRED,
+            title="Engagement ready for review",
+            message=f"{engagement.title} has been submitted for review.",
+            engagement_id=engagement.id,
+            metadata={
+                "status": EngagementStatus.REVIEW.value,
+            },
+        )
+
+        return EngagementStatusResponse(
+            id=response_id,
+            status=response_status,
+            updated_at=response_updated_at,
+        )
+
+    @staticmethod
+    async def start_engagement(
+        db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+    ) -> EngagementStatusResponse:
+        engagement = await EngagementService.require_assigned_engagement(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+
+        if engagement.status != EngagementStatus.SCHEDULED:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Only scheduled engagements can be started.",
+            )
+
+        engagement = await EngagementRepository.update_status(
+            db,
+            engagement=engagement,
+            new_status=EngagementStatus.IN_PROGRESS,
+        )
+
+        response_id = engagement.id
+        response_status = engagement.status
+        response_updated_at = engagement.updated_at
+
+        await AuditRepository.create_log(
+            db,
+            user_id=user_id,
+            action="engagement.started",
+            entity_type="engagement",
+            entity_id=engagement.id,
+            metadata={
+                "previous_status": EngagementStatus.SCHEDULED.value,
+                "new_status": EngagementStatus.IN_PROGRESS.value,
+            },
+        )
+
+        await NotificationService.notify(
+            db,
+            recipient_id=engagement.requested_by,
+            actor_id=user_id,
+            notification_type=NotificationType.ENGAGEMENT_STARTED,
+            title="Penetration test started",
+            message=f"Testing has started for {engagement.title}.",
+            engagement_id=engagement.id,
+            metadata={
+                "status": EngagementStatus.IN_PROGRESS.value,
+            },
+        )
+
+        await NotificationService.notify(
+            db,
+            recipient_id=engagement.service_delivery_id,
+            actor_id=user_id,
+            notification_type=NotificationType.ENGAGEMENT_STARTED,
+            title="Engagement started",
+            message=f"{engagement.title} is now in progress.",
+            engagement_id=engagement.id,
+            metadata={
+                "status": EngagementStatus.IN_PROGRESS.value,
+            },
         )
 
         return EngagementStatusResponse(
