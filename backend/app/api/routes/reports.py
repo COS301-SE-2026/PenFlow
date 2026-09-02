@@ -6,14 +6,16 @@ from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy import select 
 from sqlalchemy.ext.asyncio import AsyncSession 
 
+from app.api.deps import get_db, get_current_user
 from app.api.middleware.auth import get_current_user 
-from app.models.report import Report 
+from app.models.report import Report, ReportStatus 
 from app.repositories.engagement_repository import EngagementRepository 
 from app.repositories.user_repo import get_user_id_by_provider_id 
 from app.services.report_storage_service import ReportStorageService 
+from app.tasks.report_tasks import render_engagement_report_pdf_task
 from app.utils.db import get_db 
 
-router = APIRouter(prefix="/reports", tags=["Reports"])
+router = APIRouter(prefix="", tags=["Reports"])
 
 async def resolve_user(db: AsyncSession, current_user: dict[str, Any]):
     user_id = await get_user_id_by_provider_id(db, current_user["sub"])
@@ -27,7 +29,7 @@ async def resolve_user(db: AsyncSession, current_user: dict[str, Any]):
     )
 
 @router.get(
-    "/{report_id}/download",
+    "/reports/{report_id}/download",
     summary="Download engagement report"
 )
 async def download_report(
@@ -60,3 +62,33 @@ async def download_report(
         filename=f"engagement_report_v{report.version}.pdf",
         media_type="application/pdf"
     )
+
+@router.get(
+    "/service-delivery/engagements/{engagement_id}/report", 
+    summary="Get report status and metadata for service delivery review"
+)
+async def get_service_delivery_engagement_report(
+    engagement_id: UUID, 
+    db: AsyncSession = Depends(get_db), 
+    current_user: dict[str, Any] = Depends(get_current_user),
+):
+    user = await resolve_user(db, current_user) 
+
+    result = await db.execute(
+        select(Report)
+        .where(Report.engagement_id == engagement_id)
+        .order_by(Report.version.desc())
+    )
+    report = result.scalars().first()
+
+    if not report: 
+        raise HTTPException(status_code=404, detail="Report not found for this engagement")
+
+    return {
+        "repord_id": report.id, 
+        "engagement_id": report.engagement_id, 
+        "version": report.version, 
+        "status": report.status.value if hasattr(report.status, "value") else report.status,
+        "pdf_path": report.pdf_path,
+    }
+
