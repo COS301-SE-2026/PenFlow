@@ -1,10 +1,12 @@
 import os
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.services.scan_delta_service import build_scan_delta
 from app.models.base import ScanType
 from app.queue.celery_app import celery_app
 from app.repositories.report_repository import (
@@ -75,6 +77,12 @@ async def queue_report_generation(db: AsyncSession, scan_id: str) -> dict[str, A
                 technologies=report_data["technologies"],
                 scan_sources=report_data["scan_sources"],
             )
+
+            if scan.schedule_id is not None:
+                context["delta"] = await build_scan_delta(
+                    db=db,
+                    current_scan_id=UUID(scan_id),
+                )
 
         else:
             raise ValueError(f"Unknown scan type: {scan.scan_type}")
