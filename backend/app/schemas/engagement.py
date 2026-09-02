@@ -194,6 +194,9 @@ class EngagementListItem(BaseModel):
     client_name: str
     asset_count: int
     target_date: date | None = None
+    estimated_quote: Decimal | None = None 
+    assigned_pentester_name: str | None = None 
+    user_role: str = "client"
 
 class EngagementListResponse(BaseModel):
     items: list[EngagementListItem]

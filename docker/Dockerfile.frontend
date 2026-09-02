@@ -34,7 +34,7 @@ ENV NODE_ENV=production
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY frontend/package.json ./frontend/
 
-RUN pnpm install --frozen-lockfile --prod
+RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile --prod
 
 COPY --from=builder /app/frontend/.next ./frontend/.next
 COPY --from=builder /app/frontend/public ./frontend/public
