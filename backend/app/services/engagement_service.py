@@ -640,7 +640,7 @@ class EngagementService:
         user_id: UUID,
         limit: int = 100,
     ) -> ActivityListResponse:
-        await EngagementService.require_assigned_engagement(
+        await EngagementService.require_viewable_engagement(
             db,
             engagement_id=engagement_id,
             user_id=user_id,
