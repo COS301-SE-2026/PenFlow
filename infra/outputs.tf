@@ -156,3 +156,15 @@ output "authentication_domain" {
 output "db_bootstrap_ecr_repository_url" {
   value = aws_ecr_repository.db_bootstrap.repository_url
 }
+
+output "email_worker_security_group_id" {
+  value = aws_security_group.email_worker.id
+}
+
+output "email_worker_task_role_arn" {
+  value = aws_iam_role.email_worker_task.arn
+}
+
+output "email_worker_service_name" {
+  value = aws_ecs_service.email_worker.name
+}

@@ -35,6 +35,9 @@ const TIMEZONES = [
     "America/New_York",
 ];
 
+// Accidentally made a raw css instead of tailwind initially, this was my attempt to convert it 1:1.
+// Will make it match the tailwind of the rest of the repo in future
+
 const headingClass = "m-0 text-[1.05rem] tracking-[0.045em] text-[var(--col-text)]";
 
 const descriptionClass = "mt-[0.35rem] mb-0 max-w-[680px] text-[0.82rem] leading-[1.5] text-[var(--col-muted)]";

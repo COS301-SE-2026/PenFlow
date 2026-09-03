@@ -170,10 +170,15 @@ export async function getPentesterDetail(pentesterId:string): Promise<PentesterD
     return apiFetch(`/api/service-delivery/pentesters/${pentesterId}`);
 }
 
-//need implement
-//post /pentesters  backend still till need to be up
-export async function createPentester(_input: PentesterCreateRequest): Promise<PentesterDetail> {
-    throw new Error("create pentester not up yet");
+// POST /pentesters
+export async function createPentester(payload: PentesterCreateRequest): Promise<void> {
+    await apiFetch<unknown>(
+        "/api/service-delivery/pentesters",
+        {
+            method: "POST",
+            body: JSON.stringify(payload),
+        },
+    );
 }
 
 //GET /engagements/{engagement_id}/findings

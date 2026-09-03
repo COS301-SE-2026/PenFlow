@@ -29,3 +29,7 @@ resource "aws_secretsmanager_secret" "urlscan_api_key" {
 resource "aws_secretsmanager_secret" "smtp_password" {
   name = "${local.name_prefix}/email/smtp-password"
 }
+
+resource "aws_secretsmanager_secret" "keycloak_provisioner_client_secret" {
+  name = "${local.name_prefix}/keycloak/provisioner-client-secret"
+}

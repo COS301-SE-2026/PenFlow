@@ -13,7 +13,6 @@ def run_full_scan(scan_id: str, domain: str) -> JSONDict:
         "scan.wappalyzer",
         "scan.crt_sh",
         "scan.shodan",
-        "scan.hunter",
         "scan.hibp",
     ]
 

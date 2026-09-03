@@ -1,7 +1,7 @@
 import os
 import ssl
 from urllib.parse import quote
-from kombu import Queue
+from kombu import Exchange, Queue
 from celery import Celery
 
 
@@ -23,8 +23,28 @@ def build_broker_url() -> str:
     )
 
 
+SCAN_EXCHANGE = Exchange(
+    "scans",
+    type="direct",
+    durable=True,
+)
+
+EMAIL_EXCHANGE = Exchange(
+    "email",
+    type="direct",
+    durable=True,
+)
+
+SCHEDULE_EXCHANGE = Exchange(
+    "schedules",
+    type="direct",
+    durable=True,
+)
+
+
 SCAN_QUEUE = Queue(
     "scans",
+    exchange=SCAN_EXCHANGE,
     routing_key="scans",
     durable=True,
     queue_arguments={"x-queue-type": "quorum"},
@@ -32,6 +52,7 @@ SCAN_QUEUE = Queue(
 
 EMAIL_QUEUE = Queue(
     "email",
+    exchange=EMAIL_EXCHANGE,
     routing_key="email",
     durable=True,
     queue_arguments={"x-queue-type": "quorum"},
@@ -39,6 +60,7 @@ EMAIL_QUEUE = Queue(
 
 SCHEDULE_QUEUE = Queue(
     "schedules",
+    exchange=SCHEDULE_EXCHANGE,
     routing_key="schedules",
     durable=True,
     queue_arguments={"x-queue-type": "quorum"},

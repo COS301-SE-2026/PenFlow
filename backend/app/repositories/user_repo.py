@@ -2,11 +2,15 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import text
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.user import User
 
 logger = logging.getLogger(__name__)
 
+
+# Move these other functions into the class at a later date or if you have time
 
 async def get_or_create_user(
     db: AsyncSession,
@@ -48,3 +52,39 @@ async def get_user_id_by_provider_id(
     )
     row = result.fetchone()
     return row.id if row else None
+
+
+class UserRepository:
+    @staticmethod
+    async def get_by_email(db: AsyncSession, email:str) -> User | None:
+        normalized_email = email.strip().lower()
+
+        result = await db.execute(
+            select(User).where(
+                func.lower(User.email) == normalized_email,
+            )
+        )
+
+        return result.scalar_one_or_none()
+
+
+    @staticmethod
+    async def create_pentester(
+        db: AsyncSession,
+        provider_id: str,
+        email: str,
+        full_name: str,
+    ) -> User:
+        user = User(
+            auth_provider="keycloak",
+            auth_provider_id=provider_id,
+            email=email.strip().lower(),
+            full_name=full_name.strip(),
+            role="pentester",
+        )
+
+        db.add(user)
+        await db.flush()
+        await db.refresh(user)
+
+        return user
