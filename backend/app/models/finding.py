@@ -7,7 +7,7 @@ from sqlalchemy import Boolean, CheckConstraint, DateTime, Enum, ForeignKey, Num
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, FindingStatus, Severity
+from app.models.base import Base, FindingReviewStatus, FindingStatus, Severity
 
 
 class Finding(Base):
@@ -78,6 +78,33 @@ class Finding(Base):
         nullable=False,
         default=False,
     )
+
+    reviewed_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    reviewed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    review_note: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    review_status: Mapped[FindingReviewStatus | None] = mapped_column(
+        Enum(
+            FindingReviewStatus,
+            values_callable=lambda enum: [item.value for item in enum],
+            name="finding_review_status",
+        ),
+        nullable=True,
+    )
+
+
 
     cvss_score: Mapped[Decimal | None] = mapped_column(Numeric(3, 1), nullable=True)
 

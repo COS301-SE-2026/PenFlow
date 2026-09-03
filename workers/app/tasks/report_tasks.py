@@ -5,7 +5,7 @@ from typing import Any
 from app.queue.celery_app import celery_app
 from app.services.pdf_render_service import generate_pdf_from_html
 from app.services.report_storage_service import ReportStorageService
-from app.utils.callback import send_report_callback
+from app.utils.callback import send_engagement_report_callback, send_report_callback
 
 JSONDict = dict[str, Any]
 
@@ -58,5 +58,63 @@ def render_report_pdf_task(scan_id: str, html_content: str, output_path: str) ->
         return {
             "status": "failed",
             "scan_id": scan_id,
+            "error": str(error),
+        }
+
+@celery_app.task(name="engagement.render_report") 
+def render_engagement_report_pdf_task(
+    engagement_id: str, version: int, html_content: str, output_path: str
+) -> JSONDict: 
+    try: 
+        pdf_path = generate_pdf_from_html(
+            html_content=html_content, 
+            output_path=Path(output_path),
+        )
+
+        logger.info(
+            "Report PDF rendered successfully for engagement %s (v%s): %s", 
+            engagement_id, 
+            version, 
+            pdf_path,
+        )
+
+        storage_reference = ReportStorageService.store_engagement_report(
+            local_path=pdf_path, 
+            engagement_id=engagement_id,
+            version=version,
+        )
+
+        send_engagement_report_callback(
+            engagement_id=engagement_id,
+            version=version,
+            status="completed",
+            pdf_path=storage_reference,
+        )
+
+        return {
+            "status": "completed",
+            "engagement_id": engagement_id,
+            "version": version,
+            "pdf_path": storage_reference,
+        }
+
+    except Exception as error: 
+        logger.exception(
+            "Report PDF rendering failed for engagement %s (v%s)", 
+            engagement_id, 
+            version,
+        )
+
+        send_engagement_report_callback(
+            engagement_id=engagement_id, 
+            version=version, 
+            status="failed",
+            error_message=str(error),
+        )
+
+        return {
+            "status": "failed", 
+            "engagement_id": engagement_id, 
+            "version": version,
             "error": str(error),
         }

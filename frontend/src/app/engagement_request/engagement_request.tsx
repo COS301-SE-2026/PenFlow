@@ -161,7 +161,7 @@ function extractErrorMessage(body: unknown): string {
 
 export default function EngagementHome() {
     const[engagementType,setEngagementType] = useState<EngagementType | null>(null);
-    const [assessmentType, setAssessmentType] = useState<AssessmentType | null>(null);
+    const [assessmentType, setAssessmentType] = useState<AssessmentType | undefined>(undefined);
     const [objective ,setObjective] = useState("");
     const [startDate , setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
@@ -405,7 +405,7 @@ export default function EngagementHome() {
                             id="primary-contact"
                             value={primaryContact}
                             onChange={(e) => setPrimaryContact(e.target.value)}
-                            placeholder="name"
+                            placeholder="email"
                             className="h-11 text-lg"
                         />
                     </div>
