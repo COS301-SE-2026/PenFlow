@@ -185,6 +185,7 @@ class EngagementListItem(BaseModel):
     id: UUID
     title: str
     engagement_type: EngagementType
+    assessment_type: AssessmentType
     priority: str
     status: EngagementStatus
     requested_start_date: date | None = None
@@ -193,6 +194,9 @@ class EngagementListItem(BaseModel):
     client_name: str
     asset_count: int
     target_date: date | None = None
+    estimated_quote: Decimal | None = None 
+    assigned_pentester_name: str | None = None 
+    user_role: str = "client"
 
 class EngagementListResponse(BaseModel):
     items: list[EngagementListItem]
@@ -308,3 +312,15 @@ class EngagementStatusResponse(BaseModel):
     id: UUID
     status: EngagementStatus
     updated_at: datetime
+
+class ServiceDeliveryConversationSummary(BaseModel):
+    engagement_id: UUID
+    engagement_title: str
+    channel: EngagementMessageChannel
+    participant: MessageClientSummary
+    last_message: LatestMessageSummary | None
+    message_count: int
+    unread_count: int
+
+class ServiceDeliveryConversationListResponse(BaseModel):
+    items: list[ServiceDeliveryConversationSummary]

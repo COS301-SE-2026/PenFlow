@@ -50,8 +50,8 @@ class Engagement(Base):
 
     engagement_type: Mapped[EngagementType] = mapped_column(
         Enum(
-            EngagementType, 
-            values_callable=lambda e: [item.value for item in e], 
+            EngagementType,
+            values_callable=lambda e: [item.value for item in e],
             name = "engagement_type"
         ),
         nullable=False,
@@ -193,5 +193,11 @@ class Engagement(Base):
     comments = relationship(
         "EngagementComment", 
         back_populates="engagement", 
+        cascade="all, delete-orphan",
+    )
+
+    reports = relationship(
+        "Report",
+        back_populates="engagement",
         cascade="all, delete-orphan",
     )

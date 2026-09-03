@@ -161,7 +161,7 @@ function extractErrorMessage(body: unknown): string {
 
 export default function EngagementHome() {
     const[engagementType,setEngagementType] = useState<EngagementType | null>(null);
-    const [assessmentType, setAssessmentType] = useState<AssessmentType | null>(null);
+    const [assessmentType, setAssessmentType] = useState<AssessmentType | undefined>(undefined);
     const [objective ,setObjective] = useState("");
     const [startDate , setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");

@@ -87,17 +87,17 @@ CREATE TYPE engagement_status AS ENUM (
     'cancelled'
 );
 
-CREATE TYPE retest_status AS ENUM (
-    'requested',
-    'in_progress',
-    'resolved',
-    'still_vulnerable'
+CREATE TYPE finding_review_status AS ENUM (
+    'draft',
+    'ready_for_review',
+    'published',
+    'needs_revision'
 );
 
 CREATE TYPE engagement_message_channel AS ENUM (
     'client_service_delivery',
     'service_delivery_pentester'
-);
+    );
 
 CREATE TYPE assessment_type AS ENUM (
     'web_application',
@@ -106,6 +106,13 @@ CREATE TYPE assessment_type AS ENUM (
     'network',
     'cloud',
     'other'
+);
+
+CREATE TYPE retest_status AS ENUM (
+    'requested',
+    'in_progress',
+    'resolved',
+    'still_vulnerable'
 );
 
 CREATE TABLE organisations (
@@ -324,6 +331,10 @@ CREATE TABLE findings (
     description TEXT,
     recommendation TEXT,
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMPTZ,
+    review_note TEXT,
+    review_status finding_review_status,
     engagement_asset_id UUID REFERENCES engagement_assets(id) ON DELETE SET NULL,
     evidence JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -346,11 +357,9 @@ CREATE TABLE reports (
     error_message TEXT,
 
     CHECK(
-        (scan_id IS NOT NULL AND engagement_id IS NULL) 
-        OR 
-        (scan_id IS NULL AND engagement_id IS NOT NULL)
+        (scan_id IS NOT NULL AND engagement_id IS NULL)
+        OR (scan_id IS NULL AND engagement_id IS NOT NULL)
     ),
-
     UNIQUE (engagement_id, version)
 );
 
@@ -410,7 +419,9 @@ CREATE TABLE notifications (
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
     is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    read_at TIMESTAMPTZ,
     engagement_id UUID REFERENCES engagements(id) ON DELETE CASCADE,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -507,3 +518,6 @@ CREATE INDEX idx_finding_retests_finding_id ON finding_retests(finding_id);
 CREATE INDEX idx_finding_retest_status ON finding_retests(status);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);
 CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
+
+CREATE INDEX idx_notifications_user_id_created_at ON notifications(user_id, created_at DESC);
+CREATE INDEX idx_notifications_user_id_is_read ON notifications(user_id, is_read);
