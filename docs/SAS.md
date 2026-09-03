@@ -912,25 +912,25 @@ The following supporting documents provide additional detail for the Phase 2 arc
 
 ## Service Contracts
 
-The PenFlow system exposes REST-based service contracts between the frontend, backend, worker services, and supporting infrastructure. Each contract defines the HTTP endpoint, accepted inputs, authentication requirements, expected response structure, and error behaviour. Internal callback endpoints are also documented because they form explicit communication boundaries between the asynchronouos work subsystem and the backend.
+PenFlow exposes REST APIs between the frontend, backend and worker services. The contracts below document the main communication boundaries used by the system.
 
-### 1: Domain Verification Service
-
-The Domain Verification Service allows authenticated users to register domains, verify domain ownership, and remove domains that are no longer required.
+Each contract gives the endpoint, required inputs, authentication, expected response and possible errors. Full request and response schemas are also available through PenFlow's generated OpenAPI/Swagger documentation.
 
 ---
 
+### 1: Domain Verification Service
+
+The Domain Verification Service allows users to register, verify, list and remove domains.
+
 #### 1.1: Add Domain for Verification
 
-**Endpoint** `POST /api/v1/domains/`
+`POST /api/v1/domains/`
 
-**Purpose**
-Registers a domain against the authenticated user and creates a domain verification record. The backend generates the information required for the subsequent ownership-verification process.
+Registers a domain to the authenticated user and generates the information needed for DNS verification.
 
-**Authentication**
-Required. The authenticated user's provider identifier is obtained from the authentication token and mapped to the corresponding PenFlow user.
+**Auth:** Required.
 
-**Request Body**
+**Input:** `domain` (string)
 
 ```json
 {
@@ -938,204 +938,90 @@ Required. The authenticated user's provider identifier is obtained from the auth
 }
 ```
 
-| Field | Type | Required | Description |
-|---|---|---:|---|
-| `domain` | string | Yes | Domain that the user wishes to register for verification. |
+**201 Created:** Returns `VerifiedDomainResponse` containing `id`, `domain`, `status`, `verification_token` and `verified_at`.
 
-**Success Response: `201 Created`**
+Example token: `penflow-verification=pentoken123...`
 
-Returns a `VerifiedDomainResponse` describing the newly registered domain and its current verification state.
+**Errors:** 
 
-Example:
-
-
-```json
-{
-    "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
-    "domain": "hackerone.com",
-    "status": "pending",
-    "verification_token": "penflow-verification=pentoken123...",
-    "verified_at": null
-}
-```
-
-**Error Responses:**
-
-- `401 Unauthorized`: The authenticated identity does not correspond to a PenFlow user.
-- `409 Conflict`: The authenticated user has already registered the supplied domain.
-- `422 Unprocessable Entity`: The request body is invalid or the supplied domain cannot be normalised into a valid non-empty domain.
+- `401` user not found, 
+- `409` domain already registered, 
+- `422` invalid domain or request.
 
 ---
 
 #### 1.2: Verify Domain Ownership
 
-**Endpoint** `POST /api/v1/domains/{domain_id}/verify`
+`POST /api/v1/domains/{domain_id}/verify`
 
-**Purpose**  
-Checks the DNS TXT records of a previously registered domain for its issued verification token. If the expected token is found, the domain is marked as verified.
+Checks the domain's DNS TXT records for the generated verification token.
 
-**Authentication**  
-Required: The authenticated user may only verify a domain linked with their own account, and no others.
+**Auth:** Required. Users may only verify their own domains.
 
-**Path Parameters**
+**Input:** `domain_id` (UUID path parameter)
 
-| Parameter | Type | Required | Description |
-|---|---|---:|---|
-| `domain_id` | UUID | Yes | Identifier of the domain verification record. |
+**Rate Limit:** 10 requests per minute per client IP.
 
-**Request Body**  
-None.
+**200 OK:** Returns the updated `VerifiedDomainResponse`. If already verified, the existing verified record is returned.
 
-**Rate Limit**  
-Maximum of 10 verification requests per minute per client IP address.
-
-**Success Response: `200 OK`**
-
-Returns the updated `VerifiedDomainResponse`.
-
-```json
-{
-    "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
-    "domain": "hackerone.com",
-    "status": "verified",
-    "verification_token": "penflow-verification=pentoken123...",
-    "verified_at": "2026-06-06T11:11:11Z"
-}
-```
-
-If the domain has already been successfully verified, then existing verified record is returned. No new attempts would be needed.
-
-**Error Responses**
-
-- `400 Bad Request`: Domain verification failed.
-  - the expected DNS TXT record could not be found;
-  - a TXT record exists but the verification token does not match;
-  - the DNS lookup could not be completed.
-- `401 Unauthorized`: The authenticated identity does not correspond to a PenFlow user.
-- `404 Not Found`: The domain record does not exist or is not associated with a registered user.
-- `422 Unprocessable Entity`: The supplied `domain_id` is not a valid UUID.
+**Errors:** 
+- `400` DNS verification failed, 
+- `401` user not found, 
+- `404` domain not found, 
+- `422` invalid domain ID.
 
 ---
 
 #### 1.3: List Registered Domains
 
-**Endpoint** `GET /api/v1/domains`
+`GET /api/v1/domains`
 
-**Purpose**  
-Returns the domain verification records belonging to the authenticated user. The endpoint supports status filtering, searching, sorting and pagination and also returns counts for each verification status.
+Returns domains belonging to the authenticated user.
 
-**Authentication**  
-Required. Only records belonging to the authenticated PenFlow user are returned.
+**Auth:** Required.
 
-**Query Parameters**
+**Query:** `status`, `search`, `sort` (`domain`, `created_at`, `status`), `order` (`asc`, `desc`), `limit` (1-100, default 20), `offset` (default 0).
 
-| Parameter | Type | Required | Default | Description                                               |
-|---|---|---:|---|-----------------------------------------------------------|
-| `status` | enum | No | None | Filter by domain verification status.                     |
-| `search` | string | No | None | Search value. Maximum length is 255 characters.           |
-| `sort` | enum | No | `created_at` | Sort field: `domain`, `created_at`, or `status`.          |
-| `order` | enum | No | `desc` | Sort direction: `asc` or `desc`.                          |
-| `limit` | integer | No | `20` | Maximum number of records to return. Range: 1-100.        |
-| `offset` | integer | No | `0` | Number of matching records to skip. Must be 0 or greater. |
+**200 OK:** Returns `DomainList` containing domain items, verification status counts and pagination information.
 
-**Request Body**  
-None.
-
-**Success Response: `200 OK`**
-
-Returns a `DomainList` containing the registered domains, verification-status counts and pagination information.
-
-```json
-{
-    "items": [
-        {
-            "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
-            "domain": "hackerone.com",
-            "status": "verified",
-            "verification_method": "dns_txt",
-            "verification_token": "penflow-verification=pentoken123...",
-            "created_at": "2026-01-01T10:10:10Z",
-            "verified_at":"2026-06-06T11:11:11Z",
-            "last_checked_at": "2026-09-01T08:30:00Z",
-            "last_verification_code": "verified"
-        }
-    ],
-    "counts": {
-        "all": 1,
-        "pending": 0,
-        "verified": 1,
-        "failed": 0,
-        "expired": 0
-    },
-    "pagination": {
-        "total": 1,
-        "limit": 20,
-        "offset": 0,
-        "has_more": false
-    }
-}
-```
-
-**Error Responses**
-
-- `401 Unauthorized`: The authenticated identity does not correspond to a PenFlow user.
-- `422 Unprocessable Entity`: One or more query parameters do not satisfy the required type, enumeration, length or range constraints.
+**Errors:** 
+- `401` user not found, 
+- `422` invalid query values.
 
 ---
 
 #### 1.4: Delete Registered Domain
 
-**Endpoint** `DELETE /api/v1/domains/{domain_id}`
+`DELETE /api/v1/domains/{domain_id}`
 
-**Purpose**  
 Deletes a domain verification record belonging to the authenticated user.
 
-**Authentication**  
-Required. The authenticated user may only delete domain records associated with their own account and no other.
+**Auth:** Required.
 
-**Path Parameters**
+**Input:** `domain_id` (UUID path parameter)
 
-| Parameter | Type | Required | Description |
-|---|---|---:|---|
-| `domain_id` | UUID | Yes | Identifier of the domain verification record to delete. |
+**204 No Content:** Domain deleted successfully.
 
-**Request Body**  
-None.
-
-**Success Response: `204 No Content`**
-
-The domain verification record was successfully deleted. No response body is returned.
-
-**Error Responses**
-
-- `401 Unauthorized`: The authenticated identity does not correspond to a PenFlow user.
-- `404 Not Found`: The specified domain record does not exist or is not associated with the authenticated user.
-- `422 Unprocessable Entity`: The supplied `domain_id` is not a valid UUID.
+**Errors:** 
+- `401` user not found, 
+- `404` domain not found, 
+- `422` invalid domain ID.
 
 ---
 
 ### 2: System Health Service
 
-The System Health Service provides a lightweight health check for the PenFlow API and its database connection.
-
----
+The System Health Service checks the API and database connection.
 
 #### 2.1: Get System Health
 
-**Endpoint** `GET /api/v1/health`
+`GET /api/v1/health`
 
-**Purpose**  
-Checks whether the PenFlow API is running and attempts a simple database query to determine the current database connection state.
+Checks whether the PenFlow API is running and whether the backend can connect to the database.
 
-**Authentication**  
-Not required.
+**Auth:** Not required.
 
-**Request Body**  
-None.
-
-**Success Response: `200 OK`**
-
-Returns the API health state, API version and current database connection state.
+**200 OK:** Returns `status`, `api_version` and `database`.
 
 ```json
 {
@@ -1145,42 +1031,23 @@ Returns the API health state, API version and current database connection state.
 }
 ```
 
-The `database` field may contain:
-
-- `connected`: the database health query completed successfully.
-- `disconnected`: the database health query failed.
-
-A database connection failure is logged, but the health endpoint itself still returns `200 OK` with the db shown as `disconnected`.
+`database` is either `connected` or `disconnected`. A database failure is logged but the endpoint still returns `200 OK`.
 
 ---
 
 ### 3: User Service
 
-The User Service provisions the authenticated Keycloak identity within PenFlow and returns the corresponding 
- user information.
-
----
+The User Service links the authenticated Keycloak identity to a PenFlow user.
 
 #### 3.1: Get Current User
 
-**Endpoint** `GET /api/v1/users/me`
+`GET /api/v1/users/me`
 
-**Purpose**  
-Returns the PenFlow user associated with the currently authenticated identity. 
+Returns the PenFlow user linked to the current Keycloak identity. If no user exists, a new `client` user is created. Existing user email and name information is updated from Keycloak.
 
-If no PenFlow user exists for the authenticated Keycloak identity, a new client user is created. 
+**Auth:** Required.
 
-If the user already exists, their stored email and full name are updated from the current authentication information.
-
-**Authentication**  
-Required.
-
-**Request Body**  
-None.
-
-**Success Response: `200 OK`**
-
-Returns the PenFlow user's identifier, email address and role.
+**200 OK:** Returns `id`, `email` and `role`.
 
 ```json
 {
@@ -1190,40 +1057,23 @@ Returns the PenFlow user's identifier, email address and role.
 }
 ```
 
-| Field | Type | Description |
-|---|---|---|
-| `id` | string | PenFlow user identifier. |
-| `email` | string | Email address associated with the identity. |
-| `role` | string | Current PenFlow application role. |
-
-Newly provisioned users are assigned the `client` role.
-
-**Error Responses**
-
-- `500 Internal Server Error`: The backend failed to retrieve the PenFlow user.
+**Errors:** `500` user could not be retrieved or created.
 
 ---
 
-### 4. Scan Service
+### 4: Scan Service
 
-The Scan Service manages Phase 1 passive CTEM scans and Phase 2 active vulnerability scans. It handles starting scans and returning their history, progress, metrics, findings, assets, services and risk history.
+The Scan Service manages Phase 1 passive CTEM scans and Phase 2 active vulnerability scans.
 
----
+#### 4.1: Initiate Scan
 
-#### 4.1 Initiate Scan
+`POST /api/v1/scans/`
 
-**Endpoint** `POST /api/v1/scans/`
+Starts a passive CTEM or active vulnerability scan and queues the relevant Celery pipeline.
 
-**Purpose**
-Starts a Phase 1 passive CTEM or Phase 2 active vulnerability scan and queues the relevant Celery Pipeline.
+**Auth:** Optional for passive scans. Required for active scans.
 
-Passive scans can be started anonymously. Active scans require an authenticated user and a verified domain owner by the user.
-
-**Authentication**  
-Optional for passive CTEM scans.  
-Required for any and all active vulnerability scans.
-
-**Request Body**
+**Input:** `domain`, `scan_type`, optional `verified_domain_id`, optional `email`.
 
 ```json
 {
@@ -1234,708 +1084,252 @@ Required for any and all active vulnerability scans.
 }
 ```
 
-| Field | Type | Required | Default      | Description                                           |
-|---|---|---:|--------------|-------------------------------------------------------|
-| `domain` | string | Yes |              | Target domain to scan.                                |
-| `scan_type` | enum | No | `passive_ctem` | Type of scan either `passive_ctem` or `active_vulnerability`. |
-| `verified_domain_id` | UUID / null | No | `null`       | Verified domain record used for an active vulnerability scan. |
-| `email` | email / null | No | `null`       | Optional email address for automated report delivery. |
+`scan_type` is either `passive_ctem` or `active_vulnerability`.
 
-For an `active_vulnerability` scan:
+Active scans require an authenticated user, a verified domain ID and a domain matching the verification record.
 
-- `verified_domain_id` must be supplied;
-- the user must be authenticated;
-- the domain must be fully verified; and
-- the supplied `domain` must match the verified domain record.
+**Rate Limit:** 3 scan requests per 10 minutes per client IP.
 
-**Rate Limit**  
-Maximum of 3 scan initiation requests per 10 minutes per client IP address.
+**202 Accepted:** Returns `scan_id` and initial status `queued`.
 
-**Success Response: `202 Accepted`**
-
-```json
-{
-    "scan_id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
-    "status": "queued"
-}
-```
-**Error Responses**
-
-- `400 Bad Request`: An active scan is missing a `verified_domain_id`, or the supplied domain does not match its verification record.
-- `401 Unauthorized`: An active vulnerability scan was requested without an authenticated user.
-- `403 Forbidden`: The requested domain is not fully verified for the authenticated user.
-- `422 Unprocessable Entity`: The request body does not satisfy the required schema, for example an invalid scan type, UUID or email address.
-- `500 Internal Server Error`: An unexpected error occurred while starting the scan.
+**Errors:** 
+- `400` active scan details invalid, 
+- `401` authentication required, 
+- `403` domain not verified, 
+- `422` invalid request, 
+- `500` scan could not be started.
 
 ---
 
-#### 4.2 List Scans
+#### 4.2: List Scans
 
-**Endpoint** `GET /api/v1/scans/`
+`GET /api/v1/scans/`
 
-**Purpose**
-Returns the authenticated users scan history. Newest first. Results can also be filtered by their scan status.
+Returns the authenticated user's scan history, newest first.
 
-**Authentication**  
-Required.
+**Auth:** Required.
 
-**Query Parameters**
+**Query:** optional `scan_status`, `limit` (1-100, default 10), `offset` (default 0).
 
-| Parameter | Type | Required | Default | Description                                             |
-|---|---|---:|---|---------------------------------------------------------|
-| `scan_status` | enum | No | None | Filter scans by their current status.                   |
-| `limit` | integer | No | `10` | Maximum number of scans returned. Range: 1-100.         |
-| `offset` | integer | No | `0` | Number of matching scans to skip. Must be 0 or greater. |
+Scan statuses: `queued`, `running`, `completed`, `failed`, `partial`.
 
-Supported scan statuses are:
+**200 OK:** Returns scan history containing scan ID, domain, date, type, status, progress and finding counts.
 
-- `queued`
-- `running`
-- `completed`
-- `failed`
-- `partial`
-
-**Success Response: `200 OK`**
-
-```json
-[
-    {
-        "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
-        "domain": "hackerone.com",
-        "created_at": "2026-06-06T11:11:11Z",
-        "status": "completed",
-        "scan_type": "passive_ctem",
-        "progress": 100,
-        "total_findings": 8,
-        "critical_count": 1,
-        "high_count": 2,
-        "medium_count": 3,
-        "low_count": 2
-    }
-]
-```
-Only scans belonging to the authenticated user are returned.
-
-**Error Responses**
-
-- `404 Not Found`: The authenticated identity does not correspond to a PenFlow user.
-- `422 Unprocessable Entity`: A supplied status or pagination parameter is invalid.
-- `500 Internal Server Error`: The backend failed to retrieve the user's scan history.
+**Errors:** 
+- `404` user not found, 
+- `422` invalid query values, 
+- `500` history could not be retrieved.
 
 ---
 
-#### 4.3 Get Scan Status
+#### 4.3: Get Scan Status
 
-**Endpoint** `GET /api/v1/scans/{scan_id}/status`
+`GET /api/v1/scans/{scan_id}/status`
 
-**Purpose**  
 Returns the current scan status, progress, source statuses and report status.
 
-**Authentication**  
-Optional.
+**Auth:** Optional. Anonymous scans may be checked without authentication. User owned scans require the matching user.
 
-Anonymous scans can be checked without authentication. User owned scans require a matching authenticated users.
+**Input:** `scan_id` (UUID path parameter)
 
-**Path Parameters**
+**200 OK:** Returns `scan_id`, `domain`, `created_at`, `scan_type`, `status`, `progress`, `sources` and `report_status`.
 
-| Parameter | Type | Required | Description |
-|---|---|---:|---|
-| `scan_id` | UUID | Yes | Identifier of the scan. |
+Sources that have not returned a result are shown as `pending`.
 
-**Success Response: `200 OK`**
-
-```json
-{
-    "scan_id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
-    "domain": "hackerone.com",
-    "created_at": "2026-06-06T11:11:11Z",
-    "scan_type": "passive_ctem",
-    "status": "running",
-    "progress": 50,
-    "sources": [
-        {
-            "source_name": "dns",
-            "status": "completed",
-            "error_message": null
-        },
-        {
-            "source_name": "shodan",
-            "status": "running",
-            "error_message": null
-        }
-    ],
-    "report_status": null
-}
-```
-
-The sources shown depend on the scan type. Sources with no type are set to `pending`
-
-**Error Responses**
-
-- `404 Not Found`: The scan does not exist, the authenticated user could not be resolved, or the scan belongs to another authenticated user.
-- `422 Unprocessable Entity`: The supplied `scan_id` is not a valid UUID.
+**Errors:** 
+- `404` scan not found or user does not own the scan, 
+- `422` invalid scan ID.
 
 ---
 
-#### 4.4 Get Scan Summary
+#### 4.4: Get Scan Summary
 
-**Endpoint** `GET /api/v1/scans/{scan_id}/summary`
+`GET /api/v1/scans/{scan_id}/summary`
 
-**Purpose**  
-Returns the scan summary, severity counts, top findings, asset impact, source coverage and report status.
+Returns the main summary information for a scan.
 
-**Authentication**  
-Not required by the current endpoint.
+**Auth:** Not required.
 
-**Path Parameters**
+**Input:** `scan_id` (UUID path parameter)
 
-| Parameter | Type | Required | Description |
-|---|---|---:|---|
-| `scan_id` | UUID | Yes | Identifier of the scan. |
+**200 OK:** Returns the scan summary, severity counts, top findings, asset impact, source coverage and report status.
 
-**Success Response: `200 OK`**
+Up to five top findings are returned in the preview.
 
-```json
-{
-    "scan_summary": {
-        "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
-        "domain": "hackerone.com",
-        "status": "completed",
-        "progress": 100,
-        "created_at": "2026-06-06T11:11:11Z",
-        "started_at": "2026-06-06T11:12:00Z",
-        "completed_at": "2026-06-06T11:20:00Z",
-        "error_message": null
-    },
-    "risk_snapshot": {
-        "total_findings": 8,
-        "critical_count": 1,
-        "high_count": 2,
-        "medium_count": 3,
-        "low_count": 2,
-        "info_count": 0
-    },
-    "top_findings": [
-        {
-            "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
-            "severity": "high",
-            "title": "Missing Security Header",
-            "description": "A security header expected by the scanner was not identified.",
-            "recommendation": "Configure the required response header.",
-            "source": "http_security",
-            "asset_identifier": "hackerone.com",
-            "asset_type": "domain",
-            "created_at": "2026-06-06T11:15:00Z"
-        }
-    ],
-    "asset_impact": {
-        "total_assets_scanned": 4,
-        "affected_assets_count": 2,
-        "asset_type_breakdown": [
-            {
-                "asset_type": "domain",
-                "total_assets": 2,
-                "affected_assets": 1
-            }
-        ],
-        "top_affected_assets": []
-    },
-    "source_coverage": {
-        "aggregate": {
-            "sources_total": 6,
-            "sources_completed": 6,
-            "sources_failed": 0,
-            "sources_partial": 0,
-            "sources_skipped": 0
-        },
-        "sources": []
-    },
-    "report_status": null
-}
-```
-
-Returns up to five top findings. Long descriptions and recommendations are shortened for the preview.
-
-**Error Responses**
-
-- `404 Not Found`: No scan exists with the supplied identifier.
-- `422 Unprocessable Entity`: The supplied `scan_id` is not a valid UUID.
+**Errors:** 
+- `404` scan not found, 
+- `422` invalid scan ID.
 
 ---
 
-#### 4.5 Get Scan Metrics
+#### 4.5: Get Scan Metrics
 
-**Endpoint** `GET /api/v1/scans/{scan_id}/metrics`
+`GET /api/v1/scans/{scan_id}/metrics`
 
-**Purpose**  
-Returns the scan's risk score and counts for findings, assets, services and detected technologies.
+Returns the calculated risk score and scan metrics.
 
-**Authentication**  
-Not required.
+**Auth:** Not required.
 
-**Path Parameters**
+**Input:** `scan_id` (UUID path parameter)
 
-| Parameter | Type | Required | Description             |
-|---|---|---:|-------------------------|
-| `scan_id` | UUID | Yes | Identifier of the scan. |
+**200 OK:** Returns `risk_score`, `risk_level`, finding counts, asset counts, service counts and technology counts.
 
-**Success Response: `200 OK`**
+Risk weighting:
+- Critical: 25
+- High: 15
+- Medium: 5
+- Low: 1
 
-Example:
-```json
-{
-    "risk_score": 69,
-    "risk_level": "MEDIUM RISK",
-    "findings": {
-        "critical": 1,
-        "high": 2,
-        "medium": 2,
-        "low": 4,
-        "info": 1,
-        "total": 10
-    },
-    "assets": {
-        "total": 5,
-        "domain": 1,
-        "subdomain": 3,
-        "ip": 1
-    },
-    "services": {
-        "total": 4,
-        "tcp": 4
-    },
-    "technologies": {
-        "total": 3,
-        "web_server": 1,
-        "framework": 2
-    }
-}
-```
+Risk levels are `HIGH RISK` from 70, `MEDIUM RISK` from 40 and `LOW RISK` below 40.
 
-The risk score is capped at 100 and is calculated from finding severity using the current weighting:
-
-- Critical: 25 points
-- High: 15 points
-- Medium: 5 points
-- Low: 1 point
-
-Risk levels are:
-
-- `HIGH RISK`: score of 70 or greater
-- `MEDIUM RISK`: score from 40 to 69
-- `LOW RISK`: score below 40
-
-**Error Responses**
-
-- `404 Not Found`: The scan does not exist.
-- `422 Unprocessable Entity`: The supplied `scan_id` is not a valid UUID.
+**Errors:** 
+- `404` scan not found, 
+- `422` invalid scan ID.
 
 ---
 
-#### 4.6 Get Scan Findings
+#### 4.6: Get Scan Findings
 
-**Endpoint** `GET /api/v1/scans/{scan_id}/findings`
+`GET /api/v1/scans/{scan_id}/findings`
 
-**Purpose**  
-Returns findings for a scan with optional severity filtering and pagination.
+Returns findings produced by a scan.
 
-**Authentication**  
-Not required.
+**Auth:** Not required.
 
-**Path Parameters**
+**Input:** `scan_id` (UUID path parameter)
 
-| Parameter | Type | Required | Description |
-|---|---|---:|---|
-| `scan_id` | UUID | Yes | Identifier of the scan. |
+**Query:** optional `severity`, `limit` (1-100, default 10), `offset` (default 0).
 
-**Query Parameters**
+**200 OK:** Returns findings containing ID, title, CVE, severity, CVSS score, source, asset, description and recommendation. Results are newest first.
 
-| Parameter | Type | Required | Default | Description                              |
-|---|---|---:|---|------------------------------------------|
-| `severity` | string | No | None | Filters findings by severity.            |
-| `limit` | integer | No | `10` | Maximum findings returned. Range: 1-100. |
-| `offset` | integer | No | `0` | Number of findings to skip.              |
-
-**Success Response: `200 OK`**
-
-```json
-[
-    {
-        "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
-        "title": "Missing Security Header",
-        "cve_id": null,
-        "severity": "high",
-        "cvss_score": 7.5,
-        "source": "http_security",
-        "asset_identifier": "hackerone.com",
-        "description": "The expected security header was not identified.",
-        "recommendation": "Configure the recommended security header."
-    }
-]
-```
-
-Results are ordered from newest to oldest.
-
-If the scan has no findings, the endpoint returns an empty list.
-
-**Error Responses**
-
-- `422 Unprocessable Entity`: The scan ID or pagination values are invalid.
+**Errors:** `422` invalid scan ID or pagination values.
 
 ---
 
-#### 4.7 Get Scan Assets
+#### 4.7: Get Scan Assets
 
-**Endpoint** `GET /api/v1/scans/{scan_id}/assets`
+`GET /api/v1/scans/{scan_id}/assets`
 
-**Purpose**  
-Returns assets found during a scan and the number of findings linked to each asset.
+Returns assets discovered during a scan.
 
-**Authentication**  
-Not required.
+**Auth:** Not required.
 
-**Path Parameters**
+**Input:** `scan_id` (UUID path parameter)
 
-| Parameter | Type | Required | Description             |
-|---|---|---:|-------------------------|
-| `scan_id` | UUID | Yes | Identifier of the scan. |
+**Query:** `limit` (1-100, default 10), `offset` (default 0).
 
-**Query Parameters**
+**200 OK:** Returns asset ID, identifier, asset type and finding count. Assets with the most findings are returned first.
 
-| Parameter | Type | Required | Default | Description                            |
-|---|---|---:|---|----------------------------------------|
-| `limit` | integer | No | `10` | Maximum assets returned. Range: 1-100. |
-| `offset` | integer | No | `0` | Number of assets to skip.              |
-
-**Success Response: `200 OK`**
-
-```json
-[
-    {
-        "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
-        "identifier": "hackerone.com",
-        "asset_type": "domain",
-        "findings_count": 4
-    }
-]
-```
-
-Assets with the most findings are returned first.
-
-If no assets are found, an empty list is returned.
-
-**Error Responses**
-
-- `422 Unprocessable Entity`: A path or pagination parameter is invalid.
+**Errors:** `422` invalid scan ID or pagination values.
 
 ---
 
-#### 4.8 Get Findings Page
+#### 4.8: Get Findings Page
 
-**Endpoint** `GET /api/v1/scans/{scan_id}/findings-page`
+`GET /api/v1/scans/{scan_id}/findings-page`
 
-**Purpose**  
-Returns findings for the Findings page, including filtering, searching, sorting and severity counts.
+Returns the expanded findings data used by the Findings page.
 
-**Authentication**  
-Not required.
+**Auth:** Not required.
 
-**Path Parameters**
+**Input:** `scan_id` (UUID path parameter)
 
-| Parameter | Type | Required | Description |
-|---|---|---:|---|
-| `scan_id` | UUID | Yes | Identifier of the scan. |
+**Query:** optional `severity`, `search`, `sort_by`, `limit` (default 12), `offset` (default 0).
 
-**Query Parameters**
+`low_info` combines Low and Informational findings. `sort_by` supports severity and CVSS sorting.
 
-| Parameter | Type | Required | Default | Description                                                                            |
-|---|---|---:|---|----------------------------------------------------------------------------------------|
-| `severity` | string | No | None | Severity filter. `low_info` combines Low and Informational findings.                   |
-| `search` | string | No | None | Case-insensitive search across finding title, description and asset identifier.        |
-| `sort_by` | string | No | `severity` | Sorting mode. `severity`, `cvss`, or any other value which falls back to newest first. |
-| `limit` | integer | No | `12` | Maximum findings returned. Range: 1-100.                                               |
-| `offset` | integer | No | `0` | Number of findings to skip.                                                            |
+**200 OK:** Returns `total`, severity `counts` and finding `items`.
 
-**Success Response: `200 OK`**
-
-```json
-{
-    "total": 8,
-    "counts": {
-        "critical": 1,
-        "high": 2,
-        "medium": 2,
-        "low_info": 3,
-        "total": 8
-    },
-    "items": [
-        {
-            "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
-            "title": "Missing Security Header",
-            "severity": "high",
-            "cvss_score": 7.5,
-            "cve_id": null,
-            "source": "http_security",
-            "status": "open",
-            "description": "The expected security header was not identified.",
-            "recommendation": "Configure the required security header.",
-            "asset_identifier": "hackerone.com",
-            "asset_type": "domain",
-            "evidence": {},
-            "created_at": "2026-06-06T11:15:00Z"
-        }
-    ]
-}
-```
-
-The severity counts include all findings in the scan, not just the current page.
-
-**Error Responses**
-
-- `422 Unprocessable Entity`: A supplied path, severity or pagination value is invalid.
+**Errors:** `422` invalid scan ID, filter or pagination values.
 
 ---
 
-#### 4.9 Get Assets Page
+#### 4.9: Get Assets Page
 
-**Endpoint** `GET /api/v1/scans/{scan_id}/assets-page`
+`GET /api/v1/scans/{scan_id}/assets-page`
 
-**Purpose**  
-Returns assets for the Assets page with category counts, finding counts, filtering and sorting.
+Returns the expanded asset data used by the Assets page.
 
-**Authentication**  
-Not required.
+**Auth:** Not required.
 
-**Path Parameters**
+**Input:** `scan_id` (UUID path parameter)
 
-| Parameter | Type | Required | Description |
-|---|---|---:|---|
-| `scan_id` | UUID | Yes | Identifier of the scan. |
+**Query:** optional `asset_type`, `severity`, `search`, `sort_by`, `limit` (default 15), `offset` (default 0).
 
-**Query Parameters**
+**200 OK:** Returns `total`, asset category `counts` and asset `items` including severity and finding counts.
 
-| Parameter | Type | Required | Default | Description                                                            |
-|---|---|---:|---|------------------------------------------------------------------------|
-| `asset_type` | string | No | None | Filters by asset type.                                                 |
-| `severity` | string | No | None | Filters assets according to their highest associated finding severity. |
-| `search` | string | No | None | Case-insensitive search against the asset identifier.                  |
-| `sort_by` | string | No | `risk` | Sorting mode: `risk`, `findings`, or identifier ordering.              |
-| `limit` | integer | No | `15` | Maximum assets returned. Range: 1-100.                                 |
-| `offset` | integer | No | `0` | Number of matching assets to skip.                                     |
-
-**Success Response: `200 OK`**
-
-```json
-{
-    "total": 5,
-    "counts": {
-        "total": 5,
-        "domains": 1,
-        "ips": 1,
-        "subdomains": 2,
-        "urls": 1,
-        "other": 0
-    },
-    "items": [
-        {
-            "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
-            "identifier": "hackerone.com",
-            "asset_type": "Domain",
-            "ip_address": "203.0.113.24",
-            "severity": "High",
-            "findings_count": 4,
-            "status": "Active",
-            "created_at": "2026-06-06T11:12:00Z"
-        }
-    ]
-}
-```
-
-TThe asset summary categories are:
-
-- domains
-- IPs
-- subdomains
-- urls
-- other
-
-
-**Error Responses**
-
-- `422 Unprocessable Entity`: A path or pagination parameter is invalid.
+**Errors:** `422` invalid scan ID or pagination values.
 
 ---
 
-#### 4.10 Get Services Page
+#### 4.10: Get Services Page
 
-**Endpoint** `GET /api/v1/scans/{scan_id}/services-page`
+`GET /api/v1/scans/{scan_id}/services-page`
 
-**Purpose**  
-Returns services found during a scan together with protocol and state counts.
+Returns network services discovered during a scan.
 
-**Authentication**  
-Not required.
+**Auth:** Not required.
 
-**Path Parameters**
+**Input:** `scan_id` (UUID path parameter)
 
-| Parameter | Type | Required | Description |
-|---|---|---:|---|
-| `scan_id` | UUID | Yes | Identifier of the scan. |
+**Query:** optional `protocol`, `search`, `sort_by`, `limit` (default 15), `offset` (default 0).
 
-**Query Parameters**
+**200 OK:** Returns `total`, protocol/state `counts` and service `items` including host, port, protocol, product, version, state and risk level.
 
-| Parameter | Type | Required | Default | Description                                                               |
-|---|---|---:|---|---------------------------------------------------------------------------|
-| `protocol` | string | No | None | Protocol filter such as `TCP` or `UDP`.                                   |
-| `search` | string | No | None | Searches service name, product, host and port.                            |
-| `sort_by` | string | No | `open` | `port` sorts numerically by port; other values use newest-first ordering. |
-| `limit` | integer | No | `15` | Maximum services returned. Range: 1-100.                                  |
-| `offset` | integer | No | `0` | Number of services to skip.                                               |
-
-**Success Response: `200 OK`**
-
-```json
-{
-    "total": 3,
-    "counts": {
-        "total": 3,
-        "tcp": 2,
-        "udp": 1,
-        "open": 2,
-        "filtered": 1
-    },
-    "items": [
-        {
-            "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
-            "service_name": "https",
-            "host": "203.0.113.24",
-            "port": 443,
-            "protocol": "TCP",
-            "product": "nginx",
-            "version": "1.24",
-            "state": "Open",
-            "risk_level": "Low",
-            "asset_count": 1,
-            "banner": "nginx",
-            "created_at": "2026-06-06T11:13:00Z"
-        }
-    ]
-}
-```
-
-`risk_level` uses the highest finding severity for the service's asset. If there are no findings, it defaults to `Low`.
-
-**Error Responses**
-
-- `422 Unprocessable Entity`: A path or pagination parameter is invalid.
+**Errors:** `422` invalid scan ID or pagination values.
 
 ---
 
-#### 4.11 Get Risk History
+#### 4.11: Get Risk History
 
-**Endpoint** `GET /api/v1/scans/{scan_id}/risk-history`
+`GET /api/v1/scans/{scan_id}/risk-history`
 
-**Purpose**  
-Returns risk scores from completed scans of the same domain.
+Returns risk history from completed scans of the same domain.
 
-**Authentication**  
-Not required.
+**Auth:** Not required.
 
-**Path Parameters**
+**Input:** `scan_id` (UUID path parameter)
 
-| Parameter | Type | Required | Description                                                          |
-|---|---|---:|----------------------------------------------------------------------|
-| `scan_id` | UUID | Yes | Scan used to determine the domain whose history should be retrieved. |
+**200 OK:** Returns up to 10 completed scans containing `date`, `risk_score` and `total_findings`, ordered from oldest to newest.
 
-**Success Response: `200 OK`**
+If no history exists, an empty list is returned.
 
-```json
-[
-    {
-        "date": "Jun 06",
-        "risk_score": 69,
-        "total_findings": 8
-    },
-    {
-        "date": "Jul 07",
-        "risk_score": 44,
-        "total_findings": 5
-    }
-]
-```
-
-Up to 10 completed scans are returned, ordered from oldest to newest.
-
-If the scan does not exist or has no completed history, an empty list is returned.
-
-**Error Responses**
-
-- `422 Unprocessable Entity`: The supplied `scan_id` is not a valid UUID.
+**Errors:** `422` invalid scan ID.
 
 ---
 
-### 5. Scan Report Service
+### 5: Scan Report Service
 
-The Scan Report Service allows completed scan reports to be downloaded as PDF files or sent to an email address.
+The Scan Report Service allows scan reports to be downloaded or emailed.
 
----
+#### 5.1: Download Scan PDF
 
-#### 5.1 Download Scan PDF
+`GET /api/v1/scans/{scan_id}/pdf`
 
-**Endpoint** `GET /api/v1/scans/{scan_id}/pdf`
-
-**Purpose**  
 Downloads the completed PDF report for a scan.
 
-**Authentication**  
-Not required.
+**Auth:** Not required.
 
-**Path Parameters**
+**Input:** `scan_id` (UUID path parameter)
 
-| Parameter | Type | Required | Description             |
-|---|---|---:|-------------------------|
-| `scan_id` | UUID | Yes | identifier of the scan. |
+**200 OK:** Returns the generated PDF as `PenFlow_Report_{scan_id}.pdf`. Reports may be retrieved from local storage or Amazon S3.
 
-**Request Body**  
-None.
-
-**Success Response: `200 OK`**
-
-Returns the generated report as a PDF file.
-
-The downloaded file uses the name:
-
-```text
-PenFlow_Report_{scan_id}.pdf
-```
-
-Reports may be stored locally or in Amazon S3. The endpoint retrieves the report from the configured storage location before returning it.
-
-**Error Responses**
-
-- `400 Bad Request`: The report has not finished generating or does not have a PDF file available.
-- `404 Not Found`: No report exists for the scan, or the stored report could not be retrieved.
-- `422 Unprocessable Entity`: The supplied `scan_id` is not a valid UUID.
+**Errors:** 
+- `400` report is not ready, 
+- `404` report does not exist or cannot be retrieved, 
+- `422` invalid scan ID.
 
 ---
 
-#### 5.2 Email Scan Report
+#### 5.2: Email Scan Report
 
-**Endpoint** `POST /api/v1/scans/{scan_id}/email-report`
+`POST /api/v1/scans/{scan_id}/email-report`
 
-**Purpose**  
-Sends a completed scan report to the supplied email address.
+Emails a completed scan report as a PDF attachment.
 
-**Authentication**  
-Not required.
+**Auth:** Not required.
 
-**Path Parameters**
-
-| Parameter | Type | Required | Description |
-|---|---|---:|---|
-| `scan_id` | UUID | Yes | Identifier of the scan. |
-
-**Request Body**
+**Input:** `scan_id` (UUID path parameter), `email` (email address).
 
 ```json
 {
@@ -1943,14 +1337,9 @@ Not required.
 }
 ```
 
-| Field | Type | Required | Description |
-|---|---|---:|---|
-| `email` | email | Yes | Email address the report will be sent to. |
+**Rate Limit:** 2 requests per minute per client IP.
 
-**Rate Limit**  
-Maximum of 2 email requests per minute per client IP address.
-
-**Success Response: `200 OK`**
+**200 OK:**
 
 ```json
 {
@@ -1958,12 +1347,180 @@ Maximum of 2 email requests per minute per client IP address.
 }
 ```
 
-The email contains the generated PDF report as an attachment.
-
-**Error Responses**
-
-- `400 Bad Request`: The report has not finished generating or does not have a PDF file available.
-- `404 Not Found`: The scan does not exist.
-- `422 Unprocessable Entity`: The supplied `scan_id` or email address is invalid.
+**Errors:** 
+- `400` report is not ready, 
+- `404` scan not found, 
+- `422` invalid scan ID or email.
 
 ---
+
+### 6: Internal Worker Service
+
+The Internal Worker Service allows workers to send scan, source and report updates back to the backend.
+
+#### 6.1: Update Scan Status
+
+`PATCH /api/v1/internal/scans/{scan_id}/status`
+
+Updates the overall status of a scan.
+
+**Auth:** Not required.
+
+**Input:** `scan_id` (UUID), `status`, optional `error_message`.
+
+```json
+{
+    "status": "completed",
+    "error_message": null
+}
+```
+
+Scan statuses: `queued`, `running`, `completed`, `failed`, `partial`.
+
+A completed scan is set to 100% progress. `completed` and `partial` scans also start report generation.
+
+**200 OK:** Returns `scan_id`, `status` and `report_status`.
+
+**Errors:** 
+- `404` scan not found, 
+- `422` invalid scan ID or status, 
+- `500` callback failed.
+
+---
+
+#### 6.2: Submit Scan Source Result
+
+`PATCH /api/v1/internal/scans/{scan_id}/sources/{source_name}`
+
+Stores the result returned by an individual scan worker and updates scan progress.
+
+**Auth:** Not required.
+
+**Input:** `scan_id` (UUID), `source_name`, `status`, optional `raw_result`, `assets`, `services`, `technologies`, `findings` and `error_message`.
+
+Example:
+
+```json
+{
+    "status": "completed",
+    "raw_result": {
+        "checked": true
+    },
+    "assets": [
+        {
+            "identifier": "hackerone.com",
+            "asset_type": "domain"
+        }
+    ],
+    "services": [],
+    "technologies": [],
+    "findings": [],
+    "error_message": null
+}
+```
+
+Source statuses: `pending`, `running`, `completed`, `failed`, `partial`, `skipped`.
+
+When all expected sources finish, the scan becomes `completed`, `failed` or `partial`. Completed and partial scans may also start report generation.
+
+**200 OK:** Returns `scan_id`, `source_name`, `scan_status`, `progress` and `report_status`.
+
+**Errors:** 
+- `404` scan not found, 
+- `422` invalid scan ID, 
+- `500` source callback failed.
+
+---
+
+#### 6.3: Update Report Status
+
+`PATCH /api/v1/internal/reports/{scan_id}/status`
+
+Updates a report after the report worker completes or fails.
+
+**Auth:** Not required.
+
+**Input:** `scan_id` (UUID), `status`, optional `pdf_path`, optional `error_message`.
+
+`status` must be `completed` or `failed`. A completed report requires `pdf_path`.
+
+Example:
+
+```json
+{
+    "status": "completed",
+    "pdf_path": "scans/2ec29dfa-6839-43ba-a45a-32a31f25dbdb/report.pdf",
+    "error_message": null
+}
+```
+
+**200 OK:** Returns `scan_id` and `report_status`.
+
+**Errors:** 
+- `400` invalid report status or missing PDF path, 
+- `422` invalid scan ID, 
+- `500` callback failed.
+
+---
+
+### 7: Notification Service
+
+The Notification Service allows authenticated users to view and manage their notifications.
+
+#### 7.1: List Notifications
+
+`GET /api/v1/notifications`
+
+Returns notifications belonging to the authenticated user, newest first.
+
+**Auth:** Required.
+
+**Query:** `unread_only` (default `false`), `limit` (1-100, default 20), `offset` (default 0).
+
+**200 OK:** Returns notification `items`, the user's `unread_count` and pagination information.
+
+Each notification contains `id`, `type`, `title`, `message`, `is_read`, `read_at`, optional `engagement_id`, `metadata` and `created_at`.
+
+If `unread_only=true`, only unread notifications are returned.
+
+**Errors:** `422` invalid query values.
+
+---
+
+#### 7.2: Mark Notification as Read
+
+`PATCH /api/v1/notifications/{notification_id}/read`
+
+Marks one notification belonging to the authenticated user as read.
+
+**Auth:** Required.
+
+**Input:** `notification_id` (UUID path parameter)
+
+**200 OK:** Returns the updated notification. `is_read` is set to `true` and `read_at` is recorded when the notification is first marked as read.
+
+**Errors:** 
+- `404` notification not found or does not belong to the user, 
+- `422` invalid notification ID.
+
+---
+
+#### 7.3: Mark All Notifications as Read
+
+`PATCH /api/v1/notifications/read-all`
+
+Marks all unread notifications belonging to the authenticated user as read.
+
+**Auth:** Required.
+
+**200 OK:** Returns the number of notifications that were changed.
+
+```json
+{
+    "marked_read": 3
+}
+```
+
+If there are no unread notifications, `marked_read` is `0`.
+
+--- 
