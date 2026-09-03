@@ -532,15 +532,8 @@ This section defines the **architecturally significant requirements** and the **
 
 --- 
 
-### 4.1 Availability
 
-PenFlow is expected to remain available even when individual application components fail.
-To support this, the frontend, backend and worker services are deployed independently within Amazon ECS. Application Load Balancer health checks detect unhealthy services while ECS automatically replaces failed containers. RabbitMQ separates user requests from long-running scan execution, ensuring that temporary worker failures do not prevent users from interacting with the API.
-As the platform grows, additional backend and worker instances can be deployed to further improve service availability by removing individual containers as single points of failure.
-
----
-
-### 4.2 Scalability
+### 4.1 Scalability
 
 **Requirement:**  
 PenFlow must handle multiple concurrent scans and multiple concurrent users without degrading the responsiveness of the system, it was designed so we could scale the differing parts independently.
@@ -559,7 +552,7 @@ Phase 2 further reinforces this by decomposing scanning into multiple independen
 
 ---
 
-### 4.3 Performance (Responsiveness)
+### 4.2 Performance (Responsiveness)
 
 **Requirement:**  
 User-facing operations must remain responsive even when scans are long-running or external services are slow.
@@ -575,7 +568,7 @@ User-facing operations must remain responsive even when scans are long-running o
 
 ---
 
-### 4.4 Reliability & Fault Tolerance
+### 4.3 Reliability & Fault Tolerance
 
 **Requirement:**  
 PenFlow must continue producing usable results even when OSINT sources are unavailable, rate-limited, or intermittent.
@@ -592,7 +585,7 @@ PenFlow produces a “best-effort” report instead of failing hard due to a sin
 
 ---
 
-### 4.5 Maintainability & Evolvability
+### 4.4 Maintainability & Evolvability
 
 **Requirement:**  
 PenFlow must support frequent change: adding/removing OSINT providers, adjusting normalized data structures, and refining report content without breaking the system.
@@ -607,13 +600,15 @@ PenFlow must support frequent change: adding/removing OSINT providers, adjusting
 
 ---
 
-### 4.6 Security (Core Requirement)
+### 4.5 Security (Core Requirement)
 
 **Requirement:**  
 PenFlow processes sensitive vulnerability and exposure data. The system must protect tenant data, credentials, and generated reports.
 
 **Tactics:**
-- **Authentication & Authorization:** JWT-based auth (Auth0) with role-based access control (RBAC).
+- **Authentication & Authorization:** JWT-based auth (Keycloak) with role-based access control (RBAC).
+- **Ownership-scoped access control:** Resource lookups (scans, domains) are scoped by the requesting user's ID; a request for another user's resource returns 404 rather than exposing that the resource exists.
+- **IP-based rate limiting:** Scan submission is capped per source IP (e.g. 3 scan requests per 10 minutes) to prevent abuse of external OSINT/active-scan providers.
 - **Information hiding:** External API keys and internal scanning logic are not exposed to the client.
 - **Transport security:** HTTPS/TLS for all client-server communication.
 - **Least privilege (AWS IAM):** Roles/policies scoped to minimum required access.
@@ -651,10 +646,10 @@ The following table summarises how the architectural decisions made throughout P
 | Quality Requirement | Architectural Decision                                                                                                                                                                                                                                  |
 |---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Performance | Long-running scans are executed asynchronously using RabbitMQ and Celery workers, allowing the FastAPI backend to respond immediately while scan processing continues in the background.                                                                |
-| Reliability | RabbitMQ provides durable task queues while Celery supports retry mechanisms for failures. Worker failures are isolated from the API, allowing scans to finish with partial results where possible.                                                     |
+| Reliability | RabbitMQ provides durable task queues while Celery supports retry mechanisms for failures. Worker failures are isolated from the API, allowing scans to finish with partial results where possible. Independent ECS deployment with Application Load Balancer health checks and automatic container replacement further protects service availability (see §3.3).                                                    |
 | Scalability | The frontend, backend and worker services are deployed as independent components. Additional worker instances can be introduced without affecting the remainder of the application, while RabbitMQ buffers scan requests during periods of high demand. |
-| Security | Keycloak provides authentication and identity management, HTTPS/TLS secures client communication, AWS Secrets Manager protects sensitive credentials, and IAM roles restrict infrastructure access according to least-privilege principles.             |
-| Maintainability | PenFlow follows a layered modular architecture and decomposes Phase 2 scanning into specialised workers that communicate through a common data contract, allowing new scanning capabilities to be introduced with minimal architectural changes.        |
+| Security | Keycloak provides authentication and identity management, HTTPS/TLS secures client communication, AWS Secrets Manager protects sensitive credentials, and IAM roles restrict infrastructure access according to least-privilege principles. Resource lookups are additionally scoped by the requesting user's ID, and scan submission is rate-limited per source IP.             |
+| Maintainability | PenFlow follows a layered modular architecture and decomposes Phase 2 scanning into specialised workers that communicate through a common data contract, allowing new scanning capabilities to be introduced with minimal architectural changes. Consistent linting, formatting and test coverage gates in CI reduce long-term drift and regression risk.       |
 ---
 
 ## 5. Architectural Patterns
