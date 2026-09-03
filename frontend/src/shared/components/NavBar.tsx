@@ -23,21 +23,7 @@ type NavItem =
   | { label: string; kind: "disabled"}
   | { label: string; kind: "help"};
 
-  const IS_PENTESTER = true;
-
-  const loggedInNavItems: NavItem[] = [
-    { label: "Home", href: "/", kind: "link"},
-    //{ label: "Dashboard", href: "/dashboard", kind: "link"},
-    { label: "Domains", href: "/domains", kind: "link"},
-    { label: "Scans", href: "/phase2_scan", kind: "link"},
-    { label: "Engagements Request", href: "/engagement_request", kind: "link"},
-    //{ label: "Scheduled Scans", href: "/scheduled-scans", kind: "link"},
-    { label: "Scan History", href: "/history", kind: "link"},
-    //{ label: "Settings", href: "/settings", kind: "link"},
-    { label: "Help", kind: "help"},
-    { label: "Pentesting", href: IS_PENTESTER ? "/pentesting/console/my-engagements": "/pentesting/engagement", kind: "link"},
-    { label: "Logout", href: "/api/auth/logout", kind: "external"},
-  ];
+  
 
    const pentestingNavItems: NavItem[] = [
     {label: "Home", href: "/", kind: "link"},
@@ -57,15 +43,40 @@ type NavItem =
 export default function NavBar() {
   //fix hydation error for login
   const [loggedIn,setLoggedIn] = useState(false);
+  const [role, setRole] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const pathName = usePathname();
   const HelpTopics = getHelpTopics(pathName);
   const [activeTopic, setActiveTopic] = useState<HelpTopic | null>(null);
-  const navItems = pathName.startsWith("/pentesting") ? (IS_PENTESTER ? pentesterConsoleNavItems:  pentestingNavItems ): loggedInNavItems;
+  const isPentester = role === "pentester";
 
-  useEffect( ()=>{
-    setLoggedIn(isLoggedIn());
-  },[]);
+  const loggedInNavItems: NavItem[] = [
+    { label: "Home", href: "/", kind: "link"},
+    //{ label: "Dashboard", href: "/dashboard", kind: "link"},
+    { label: "Domains", href: "/domains", kind: "link"},
+    { label: "Scans", href: "/phase2_scan", kind: "link"},
+    { label: "Engagements Request", href: "/engagement_request", kind: "link"},
+    //{ label: "Scheduled Scans", href: "/scheduled-scans", kind: "link"},
+    { label: "Scan History", href: "/history", kind: "link"},
+    //{ label: "Settings", href: "/settings", kind: "link"},
+    { label: "Help", kind: "help"},
+    { label: "Pentesting", href: isPentester ? "/pentesting/console/my-engagements": "/pentesting/engagement", kind: "link"},
+    { label: "Logout", href: "/api/auth/logout", kind: "external"},
+  ];
+
+const navItems = pathName.startsWith("/pentesting") ? (isPentester ? pentesterConsoleNavItems : pentestingNavItems): loggedInNavItems;
+
+  useEffect(() => {
+    const loggedInNow = isLoggedIn();
+    setLoggedIn (loggedInNow);
+    if (loggedInNow) {
+      fetch("/api/users/me")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setRole(data?.role ?? null))
+      .catch(() => setRole(null));
+    }
+  }, []);
+
   return (
     <>
     <nav className = "topbar">
