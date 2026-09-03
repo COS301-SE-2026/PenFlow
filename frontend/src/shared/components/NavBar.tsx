@@ -23,7 +23,6 @@ type NavItem =
   | { label: string; kind: "disabled"}
   | { label: string; kind: "help"};
 
-  
 
    const pentestingNavItems: NavItem[] = [
     {label: "Home", href: "/", kind: "link"},
@@ -61,6 +60,7 @@ export default function NavBar() {
     //{ label: "Settings", href: "/settings", kind: "link"},
     { label: "Help", kind: "help"},
     { label: "Pentesting", href: isPentester ? "/pentesting/console/my-engagements": "/pentesting/engagement", kind: "link"},
+    { label: "Service Delivery", href: "/service-delivery/dashboard", kind: "link"},
     { label: "Logout", href: "/api/auth/logout", kind: "external"},
   ];
 

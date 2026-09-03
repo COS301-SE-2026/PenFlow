@@ -602,6 +602,13 @@ class ServiceDeliveryService:
             },
         )
 
+        #enable state change    
+        await PentesterProfileRepository.update_availability_status(
+            db,
+            user_id=pentester_id,
+            availability_status="engaged",
+        )
+
         response = ServiceDeliveryService.action_response(
             engagement,
         )
@@ -692,6 +699,34 @@ class ServiceDeliveryService:
             )
 
         return pentester
+
+    @staticmethod
+    async def release_pentester_if_idle(
+        db: AsyncSession,
+        pentester_id: UUID,
+        exclude_engagement_id: UUID | None = None,
+    ) -> None:
+        remaining = await PentesterProfileRepository.count_active_engagements(
+            db,
+            pentester_id=pentester_id,
+            exclude_engagement_id=exclude_engagement_id,
+        )
+
+        if remaining > 0:
+            return
+        profile = await PentesterProfileRepository.get_by_user_id(
+            db,
+            user_id=pentester_id,
+        )
+
+        if profile is not None and profile.availability_status == "engaged":
+            await PentesterProfileRepository.update_availability_status(
+                db,
+                user_id=pentester_id,
+                availability_status="available",
+            )
+
+
 
     
     @staticmethod
@@ -967,6 +1002,18 @@ class ServiceDeliveryService:
                 "assigned_to": pentester.id,
             },
         )
+
+        await PentesterProfileRepository.update_availability_status(
+            db,
+            user_id=pentester.id,
+            availability_status="engaged",
+        )
+        if previous_pentester_id is not None:
+            await ServiceDeliveryService.release_pentester_if_idle(
+                db,
+                pentester_id=previous_pentester_id,
+                exclude_engagement_id=engagement.id,
+            )
 
         response = ServiceDeliveryService.action_response(
             engagement,
@@ -1285,6 +1332,12 @@ class ServiceDeliveryService:
                 "completed_at": completed_at,
             },
         )
+        
+        if engagement.assigned_to is not None:
+            await ServiceDeliveryService.release_pentester_if_idle(
+                db,
+                pentester_id=engagement.assigned_to,
+            )
 
         response = ServiceDeliveryService.action_response(
             engagement,
@@ -1377,7 +1430,12 @@ class ServiceDeliveryService:
             changes={
                 "status": EngagementStatus.CANCELLED,
             },
-        )
+        )	
+        if engagement.assigned_to is not None:
+            await ServiceDeliveryService.release_pentester_if_idle(
+                db,
+                pentester_id=engagement.assigned_to,
+            )
 
         response = ServiceDeliveryService.action_response(
             engagement,

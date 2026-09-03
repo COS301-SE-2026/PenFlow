@@ -78,12 +78,13 @@ class AuditRepository:
             .where(
                 or_(
                     (AuditLog.entity_type == "engagement") &
-                    (AuditLog.entity_id.in_(engagement_ids))
-                ),
+                    (AuditLog.entity_id.in_(engagement_ids)),
+                
                 AuditLog.metadata_["engagement_id"].astext.in_(
                     select(Engagement.id.cast(String))
                     .where(Engagement.service_delivery_id == service_delivery_id)
                 ),
+                )
             )
         ).order_by(
             AuditLog.created_at.desc(),

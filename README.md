@@ -17,6 +17,9 @@
   <a href="https://github.com/COS301-SE-2026/PenFlow/actions">
     <img alt="Build" src="https://img.shields.io/github/actions/workflow/status/COS301-SE-2026/PenFlow/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white" />
   </a>
+  <a href="https://stats.uptimerobot.com/bss8arWOgX">
+    <img alt="Uptime" src="https://badge.uptimerobot.com/psp/e7b86e5f665e2ce069ae0d24b319156b.svg?style=logo&theme=dark" />
+  </a>
   <a href="https://codecov.io/gh/COS301-SE-2026/PenFlow">
     <img alt="Coverage" src="https://img.shields.io/codecov/c/github/COS301-SE-2026/PenFlow?style=for-the-badge&logo=codecov&logoColor=white" />
   </a>

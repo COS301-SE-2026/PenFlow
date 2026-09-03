@@ -405,7 +405,7 @@ export default function EngagementHome() {
                             id="primary-contact"
                             value={primaryContact}
                             onChange={(e) => setPrimaryContact(e.target.value)}
-                            placeholder="name"
+                            placeholder="email"
                             className="h-11 text-lg"
                         />
                     </div>
