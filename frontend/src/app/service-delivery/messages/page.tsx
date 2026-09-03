@@ -65,15 +65,17 @@ function MessagesPageInner() {
         }).catch(console.error);
     };
 
-    useEffect(loadConversations, []); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    useEffect(loadConversations, []);
 
     const activeConversation = conversations.find(
         (c) => activeKey === conversationKey(c.engagement_id, c.channel),
     ) ?? null;
+    const hasActiveConversation = !!activeConversation;
 
     // messages only returns conversations that already have at least one add a way so the can enter chat box
     useEffect(() => {
-        if (!activeKey || activeConversation) {
+        if (!activeKey || hasActiveConversation) {
             setFallbackThread(null);
             return;
         }
@@ -89,7 +91,7 @@ function MessagesPageInner() {
                 participantRole: CHANNEL_LABELS[channel],
             });
         }).catch(console.error);
-    }, [activeKey, !!activeConversation]);
+    }, [activeKey, hasActiveConversation]);
 
     const activeThread: ActiveThread | null = activeConversation
         ? {
@@ -101,7 +103,7 @@ function MessagesPageInner() {
         }
         : fallbackThread;
 
-          useEffect(() => {
+    useEffect(() => {
         if (!activeThread) {
             setMessages([]);
             return;
@@ -111,6 +113,7 @@ function MessagesPageInner() {
             .then(() => markConversationRead(activeThread.engagementId, activeThread.channel))
             .then(loadConversations)
             .catch(console.error);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeThread?.engagementId, activeThread?.channel]);
 
     const filteredConversations = conversations

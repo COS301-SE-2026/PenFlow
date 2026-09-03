@@ -704,14 +704,12 @@ class ServiceDeliveryService:
     async def release_pentester_if_idle(
         db: AsyncSession,
         pentester_id: UUID,
-        exclude_engagment_id: UUID | None = None,
-
-
+        exclude_engagement_id: UUID | None = None,
     ) -> None:
         remaining = await PentesterProfileRepository.count_active_engagements(
             db,
             pentester_id=pentester_id,
-            exclude_engagement_id=exclude_engagment_id,
+            exclude_engagement_id=exclude_engagement_id,
         )
 
         if remaining > 0:

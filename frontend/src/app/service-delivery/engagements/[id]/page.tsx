@@ -1,6 +1,6 @@
 "use client";
 
-import {  useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -102,14 +102,14 @@ export default function EngagementDetailPage() {
     const [startDraft ,setStartDraft] = useState("");
     const [endDraft, setEndDraft] = useState("");
 
-    const load = () => {
+    const load = useCallback(() => {
         setIsLoading(true);
         getEngagementDetail(params.id)
             .then(async (detail) =>{
                 setEngagement(detail);
                 const showFindings = ["in_progress", "review", "completed"].includes(detail.status);
                 const [findings, retestList , activityRes] = await Promise.all([
-                    showFindings? listEngagementFindings(params.id, { limit: 100}): Promise.resolve({ items: [] ,pagination: { total:0 , limit:0 , offset: 0, has_more: false}}), 
+                    showFindings? listEngagementFindings(params.id, { limit: 100}): Promise.resolve({ items: [] ,pagination: { total:0 , limit:0 , offset: 0, has_more: false}}),
                     detail.status === "completed" ? listEngagementRetests(params.id) :  Promise.resolve({ items: [] }),
                     listAuditActivity({ limit:200}),
                 ]);
@@ -120,13 +120,13 @@ export default function EngagementDetailPage() {
             })
             .catch(console.error)
             .finally(()=> setIsLoading(false));
-    };
+    }, [params.id]);
 
     useEffect( ()=> {
         load();
          listPentesters({ is_active: true }).then((res) => setPentesters(res.items)).catch(console.error);
 
-    },[params.id]);
+    },[load]);
 
     if(isLoading || !engagement) {
         return(
