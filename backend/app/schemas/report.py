@@ -59,8 +59,9 @@ class ReportCreate(BaseModel):
 
 class ReportResponse(BaseModel):
     id: UUID
-    scan_id: Optional[UUID] = None 
-    engagement_id: Optional[UUID] = None 
+    report_id: Optional[UUID] = None
+    engagement_id: Optional[UUID] = None
+    scan_id: Optional[UUID] = None
     version: int 
     task_id: Optional[str] = None 
     status: ReportStatus 

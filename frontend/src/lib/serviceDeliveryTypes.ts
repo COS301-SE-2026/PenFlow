@@ -332,8 +332,9 @@ export type ReportStatus = "pending" | "generating" | "completed" | "failed";
 
 export interface ReportResponse { 
     id: string;
-    scan_id?: string | null; 
+    report_id?: string | null;
     engagement_id?: string | null;
+    scan_id?: string | null; 
     version: number;
     task_id?: string | null; 
     status: ReportStatus; 

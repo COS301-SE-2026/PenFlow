@@ -208,10 +208,12 @@ const overview: [string, string][] = [
     }
 
     async function handleDownloadReport() {
-        if (!report?.id) return;
+        const reportIdToDownload = report?.id ?? report?.report_id;
+
+        if (!reportIdToDownload) return;
         setIsDownloading(true);
         try {
-            const blob = await downloadReport(report.id);
+            const blob = await downloadReport(reportIdToDownload);
             downloadBlob(`${engagement?.title.replace(/\s+/g, "-").toLowerCase()}-report.pdf`, blob);
         } catch (error) {
             console.error("Failed to download report", error);
