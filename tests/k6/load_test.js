@@ -21,6 +21,7 @@ export const options = {
       { duration: '1m', target: 100 },
       { duration: '30s', target: 0 },
     ],
+    exec: 'checkHealth',
     }
   },
    thresholds: {
