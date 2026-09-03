@@ -203,7 +203,7 @@ const overview: [string, string][] = [
         <ServiceDeliveryPageTitle title={engagement.title}/>
         <div className="mt-4 flex items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-xs text-brand-text/70">
-            <link href= "/service-delivery/engagements" className="text-brand-cyan hover:underline">Engagements</link>
+            <Link href= "/service-delivery/engagements" className="text-brand-cyan hover:underline">Engagements</Link>
             <span>&gt;</span>
             <span>{engagement.title}</span>
             </div>
@@ -292,8 +292,250 @@ const overview: [string, string][] = [
                             <p className="rounded-md border border-brand-panel-border bg-brand-panel-deep p-3 text-sm text-brand-text/90">{engagement.objective}</p>
                         </>
                     )}
+                    <h3 className="mt-4 mb-1 text-xs font-semibold tracking-wide text-brand-text/70 uppercase">Scope && Constraints</h3>
+                    <p className="rounded-md border border-brand-panel-border bg-brand-panel-deep p-3 text-sm text-brand-text/90">{engagement.scope}</p>
+                    {engagement.constraints && (
+                        <p className="mt-2 rounded-md border border-brand-panel-border bg-brand-panel-deep p-3 text-sm text-brand-text/90">{engagement.constraints}</p>
+                    )}
         </CardContent>
         </Card>
+                     {/* Engagement detail body: assets, review actions, findings, re-tests/report, activity log, and all lifecycle/finding/report modals  */}
+        <Card className="mt-4 border-brand-panel-border bg-brand-panel">
+                <CardContent>
+                    <h2 className="mb-3 text-sm font-semibold text-brand-text">Declared Assets</h2>
+                    <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                        {engagement.assets.map((a) => (
+                            <div key={a.id} className="flex items-center justify-between gap-3 rounded-md border border-brand-panel-border bg-brand-panel-deep p-3">
+                                <div>
+                                    <div className="text-sm font-semibold text-brand-text">{a.identifier}</div>
+                                    <div className="text-xs text-brand-text/70">{formatLabel(a.asset_type)}</div>
+                                </div>
+                                <span className="rounded-md border border-brand-success/40 bg-brand-success/10 px-2 py-0.5 text-[10px] font-semibold text-brand-success">
+                                    IN SCOPE
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+
+            {engagement.status === "review" && (
+                <Card className="mt-4 border-brand-cyan/40 bg-brand-panel">
+                    <CardContent>
+                        <div className="text-[11px] tracking-wide text-brand-text/70 uppercase">Service Delivery Review</div>
+                        <h2 className="mt-1 text-base font-semibold text-brand-text">Ready for final quality review</h2>
+                        <p className="mt-1 text-sm text-brand-text/70">
+                            Review scope, findings, evidence, and re-tests. Approval is engagement-level.
+                        </p>
+                        <div className="mt-4 flex gap-2">
+                            <Button variant="outline" size="sm" className={whiteOutlineButtonClass} onClick={() => setActiveAction("return")}>Return to Pentester</Button>
+                            <Button size="sm" onClick={() => runAndReload(completeEngagementReview(engagement.id))}>
+                                Complete Engagement
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+             {showFindings && (
+                <Card className="mt-4 border-brand-panel-border bg-brand-panel">
+                    <CardContent>
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                            <div>
+                                <h2 className="text-sm font-semibold text-brand-text">Findings</h2>
+                                <p className="text-xs text-brand-text/70">
+                                    {engagement.finding_summary.total
+                                        ? `Showing the highest-priority ${previewFindings.length} of ${engagement.finding_summary.total} findings.`
+                                        : "No findings have been submitted yet."}
+                                </p>
+                            </div>
+                            <Link href={`/service-delivery/engagements/${engagement.id}/findings`}>
+                                <Button variant="outline" size="sm" className={whiteOutlineButtonClass} disabled={engagement.finding_summary.total === 0}>
+                                    View All Findings 
+                                </Button>
+                            </Link>
+                        </div>
+                        {previewFindings.length === 0 ? (
+                            <p className="text-sm text-brand-text/70">No findings have been submitted yet.</p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left text-sm">
+                                    <thead>
+                                        <tr className="text-[11px] text-brand-text/70">
+                                            <th className="pb-2 font-medium">Finding</th>
+                                            <th className="pb-2 font-medium">Source</th>
+                                            <th className="pb-2 font-medium">Severity</th>
+                                            <th className="pb-2 font-medium">Status</th>
+                                            <th className="pb-2 font-medium" />
+                                            <th className="pb-2 font-medium" />
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {previewFindings.map((f) => (
+                                            <tr key={f.id} className="border-t border-brand-panel-border/65">
+                                                <td className="py-2.5">
+                                                    <div className="font-medium text-brand-text">{f.title}</div>
+                                                    <div className="text-[11px] text-brand-text/70">{f.asset_identifier ?? "-"}</div>
+                                                </td>
+                                                <td className="py-2.5">{f.source}</td>
+                                                <td className={cn("py-2.5", severityClass[f.severity])}>{formatLabel(f.severity)}</td>
+                                                <td className="py-2.5">{formatLabel(f.status)}</td>
+                                                <td className="py-2.5 text-right">
+                                                    <Button variant="outline" size="sm" className={whiteOutlineButtonClass} onClick={() => openFinding(f.id)}>Inspect</Button>
+                                                </td>
+                                                <td className="py-2.5 text-right">
+                                                    <Button variant="outline" size="sm" className={whiteOutlineButtonClass} onClick={() => downloadFindingEvidence(f)}>Download</Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
+            {(showRetests || showReport) && (
+                <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
+                    {showRetests && (
+                        <Card className="border-brand-panel-border bg-brand-panel">
+                            <CardContent>
+                                <h2 className="mb-3 text-sm font-semibold text-brand-text">Re-tests</h2>
+                                {retests.length === 0 ? (
+                                    <p className="text-sm text-brand-text/70">No re-tests linked to this engagement.</p>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {retests.map((r) => (
+                                            <div key={r.id} className="flex items-center justify-between gap-3 rounded-md border border-brand-panel-border bg-brand-panel-deep p-3">
+                                                <div>
+                                                    <div className="text-sm font-semibold text-brand-text">{r.finding.title}</div>
+                                                    <div className="text-[11px] text-brand-text/70">Requested {formatDate(r.requested_at)}</div>
+                                                </div>
+                                                <span className={cn("rounded-md border px-2 py-0.5 text-[10px] font-semibold", retestStatusPillClass[r.status])}>
+                                                    {formatLabel(r.status)}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {showReport && (
+                        <Card className="border-brand-panel-border bg-brand-panel">
+                            <CardContent>
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h2 className="text-sm font-semibold text-brand-text">Final Report</h2>
+                                    <span className={cn(
+                                        "rounded-md border px-2 py-0.5 text-[10px] font-semibold",
+                                        engagement.status === "completed" ? "border-brand-success/40 bg-brand-success/10 text-brand-success" : "border-brand-panel-border bg-brand-panel-deep text-brand-text/70",
+                                    )}>
+                                        {engagement.status === "completed" ? "READY" : "GENERATING"}
+                                    </span>
+                                </div>
+                                <div className="rounded-md border border-brand-panel-border bg-brand-panel-deep p-3">
+                                    <b className="text-sm text-brand-text">PenFlow Penetration Test Report</b>
+                                    <p className="mt-1 text-sm text-brand-text/70">
+                                        {engagement.status === "completed"
+                                            ? "Generated from the submitted findings and evidence."
+                                            : "The final report finishes generating once the engagement is approved and completed."}
+                                    </p>
+                                    <p className="mt-2 text-xs text-brand-text/70">
+                                        view and download not ready yet.
+                                    </p>
+                                    <div className="mt-3 flex gap-2">
+                                        <Button variant="outline" size="sm" className={whiteOutlineButtonClass} onClick={() => setIsReportViewOpen(true)}>View Report</Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className={whiteOutlineButtonClass}
+                                            onClick={() => downloadTextFile(
+                                                `${engagement.title.replace(/\s+/g, "-").toLowerCase()}-report.txt`,
+                                                `PenFlow Penetration Test Report\n\nEngagement: ${engagement.title}\nClient: ${displayName(engagement.client)}\nFindings: ${engagement.finding_summary.total}\n\nThis is a mock report file for the Service Delivery prototype.`,
+                                            )}
+                                        >
+                                            Download PDF
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+            )}
+
+            <Card className="mt-4 border-brand-panel-border bg-brand-panel">
+                <CardContent>
+                    <h2 className="mb-3 text-sm font-semibold text-brand-text">Engagement Activity</h2>
+                    {activity.length === 0 ? (
+                        <p className="text-sm text-brand-text/70">No recorded activity yet.</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {activity.map((entry) => (
+                                <div key={entry.id} className="flex gap-3">
+                                    <span className="mt-1.5 size-2 shrink-0 rounded-full bg-brand-blue" />
+                                    <div>
+                                        <p className="text-sm text-brand-text">
+                                            {displayName(entry.actor, "System")} · {formatLabel(entry.action)}
+                                        </p>
+                                        <p className="text-[11px] text-brand-text/70">{formatDateTime(entry.created_at)}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+
+            <div className="mt-4">
+                <Button variant="outline" className={whiteOutlineButtonClass} onClick={() => router.push("/service-delivery/engagements")}>Back to Engagements</Button>
+            </div>
+
+            {activeAction && (
+                <ServiceDeliveryModal title={ACTION_TITLES[activeAction]} onClose={closeAction}>
+                    <ActionFormBody
+                        kind={activeAction}
+                        engagement={engagement}
+                        availablePentesters={availableForAssessment}
+                        scopeDraft={scopeDraft}
+                        setScopeDraft={setScopeDraft}
+                        quoteDraft={quoteDraft}
+                        setQuoteDraft={setQuoteDraft}
+                        selectedPentesterId={selectedPentesterId}
+                        setSelectedPentesterId={setSelectedPentesterId}
+                        reasonDraft={reasonDraft}
+                        setReasonDraft={setReasonDraft}
+                        startDraft={startDraft}
+                        setStartDraft={setStartDraft}
+                        endDraft={endDraft}
+                        setEndDraft={setEndDraft}
+                        onCancel={closeAction}
+                        onSubmit={(action) => runAndReload(action)}
+                    />
+                </ServiceDeliveryModal>
+            )}
+
+            {inspectFinding && (
+                <FindingInspectModal finding={inspectFinding} onClose={() => setInspectFinding(null)} />
+            )}
+
+            {isReportViewOpen && (
+                <ServiceDeliveryModal kicker="Final report" title="PenFlow Penetration Test Report" onClose={() => setIsReportViewOpen(false)}>
+                    <div className="mt-4 space-y-2 text-sm text-brand-text/90">
+                        <p><b className="text-brand-text">Engagement:</b> {engagement.title}</p>
+                        <p><b className="text-brand-text">Client:</b> {displayName(engagement.client)}</p>
+                        <p><b className="text-brand-text">Findings:</b> {engagement.finding_summary.total}</p>
+                        <p className="text-brand-text/70">
+                            This is a representative report preview for the Service Delivery prototype, generated from the submitted findings and evidence.
+                        </p>
+                    </div>
+                    <div className="mt-5 flex justify-end">
+                        <Button variant="outline" size="sm" className={whiteOutlineButtonClass} onClick={() => setIsReportViewOpen(false)}>Close</Button>
+                    </div>
+                </ServiceDeliveryModal>
+            )}
     </>    
     )
 
