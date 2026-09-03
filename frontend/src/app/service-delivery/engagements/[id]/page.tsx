@@ -222,12 +222,36 @@ const overview: [string, string][] = [
                 <h2 className="mb-3 text-sm font-semibold text-brand-text">Coordination</h2>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                     <PartyCard kicker="Client" name={displayName(engagement.client)} meta={engagement.client.email ?? "-"}>
-
+                         <Link href={`/service-delivery/messages?engagement=${engagement.id}&channel=client_service_delivery`}>
+                             <Button variant="outline" size="sm" className={whiteOutlineButtonClass}>Message Client</Button>
+                         </Link>
                     </PartyCard>
+                    <PartyCard kicker="Service Delivery" name={displayName(engagement.service_delivery, "Unclaimed")} meta={engagement.service_delivery ? "Owner of this engagement" : "Claim to take ownership"} />
+                    <PartyCard
+                        kicker="Pentester"
+                        name={displayName(engagement.assigned_pentester, "Not assigned")}
+                            meta={engagement.assigned_pentester ? "Selected during scoping" : "Selected during scoping."}
+                        >
+                        <div className="flex gap-2">
+                            {engagement.assigned_pentester && (
+                            <Link href={`/service-delivery/messages?engagement=${engagement.id}&channel=service_delivery_pentester`}>
+                                <Button variant="outline" size="sm" className={whiteOutlineButtonClass}>Message Pentester</Button>
+                            </Link>
+                            )}
+                            {engagement.status === "scoping" && (
+                                <Button size="sm" onClick={() => setActiveAction("assign")}>
+                                    {engagement.assigned_pentester ? "Change Pentester" : "Assign Pentester"}
+                                </Button>
+                            )}
+                            {engagement.status === "scheduled" && (
+                                    <Button size="sm" onClick={() => setActiveAction("reassign")}>Change Pentester</Button>
+                                )}
+                        </div>
+                        </PartyCard>
                 </div>
             </CardContent>
-
         </Card>
+        
     </>    
     )
 
