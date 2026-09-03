@@ -1873,3 +1873,97 @@ If the scan does not exist or has no completed history, an empty list is returne
 - `422 Unprocessable Entity`: The supplied `scan_id` is not a valid UUID.
 
 ---
+
+### 5. Scan Report Service
+
+The Scan Report Service allows completed scan reports to be downloaded as PDF files or sent to an email address.
+
+---
+
+#### 5.1 Download Scan PDF
+
+**Endpoint** `GET /api/v1/scans/{scan_id}/pdf`
+
+**Purpose**  
+Downloads the completed PDF report for a scan.
+
+**Authentication**  
+Not required.
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description             |
+|---|---|---:|-------------------------|
+| `scan_id` | UUID | Yes | identifier of the scan. |
+
+**Request Body**  
+None.
+
+**Success Response: `200 OK`**
+
+Returns the generated report as a PDF file.
+
+The downloaded file uses the name:
+
+```text
+PenFlow_Report_{scan_id}.pdf
+```
+
+Reports may be stored locally or in Amazon S3. The endpoint retrieves the report from the configured storage location before returning it.
+
+**Error Responses**
+
+- `400 Bad Request`: The report has not finished generating or does not have a PDF file available.
+- `404 Not Found`: No report exists for the scan, or the stored report could not be retrieved.
+- `422 Unprocessable Entity`: The supplied `scan_id` is not a valid UUID.
+
+---
+
+#### 5.2 Email Scan Report
+
+**Endpoint** `POST /api/v1/scans/{scan_id}/email-report`
+
+**Purpose**  
+Sends a completed scan report to the supplied email address.
+
+**Authentication**  
+Not required.
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|---|---|---:|---|
+| `scan_id` | UUID | Yes | Identifier of the scan. |
+
+**Request Body**
+
+```json
+{
+    "email": "steve@penflow.com"
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---:|---|
+| `email` | email | Yes | Email address the report will be sent to. |
+
+**Rate Limit**  
+Maximum of 2 email requests per minute per client IP address.
+
+**Success Response: `200 OK`**
+
+```json
+{
+    "message": "Report emailed successfully"
+}
+```
+
+The email contains the generated PDF report as an attachment.
+
+**Error Responses**
+
+- `400 Bad Request`: The report has not finished generating or does not have a PDF file available.
+- `404 Not Found`: The scan does not exist.
+- `422 Unprocessable Entity`: The supplied `scan_id` or email address is invalid.
+
+---
