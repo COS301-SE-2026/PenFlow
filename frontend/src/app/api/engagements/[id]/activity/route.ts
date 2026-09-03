@@ -9,5 +9,5 @@ export async function GET(
     if (!isValidEngagementId(id)) {
         return NextResponse.json({ detail: "Invalid engagement ID format" }, { status: 400});
     }
-    return proxyToEngagementsApi(`/engagements/${id}/activity`);
+    return proxyToEngagementsApi(`/${id}/activity`);
 }

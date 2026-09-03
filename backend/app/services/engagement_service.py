@@ -12,7 +12,9 @@ from app.models.base import (
 )
 from app.models.engagement import Engagement
 from app.models.finding import Finding
+from app.models.report import Report, ReportStatus
 from app.models.user import User
+from app.queue.celery_app import celery_app
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.engagement_comment_repository import EngagementCommentRepository
 from app.repositories.engagement_repository import EngagementRepository
@@ -218,6 +220,7 @@ class EngagementService:
         db: AsyncSession,
         *,
         user_id: UUID,
+        user_role: str,
         engagement_status: EngagementStatus | None,
         search: str | None,
         sort: EngagementSortField,
@@ -228,6 +231,7 @@ class EngagementService:
         rows, total = await EngagementRepository.list_assigned(
             db,
             user_id=user_id,
+            user_role=user_role,
             engagement_status=engagement_status,
             search=search,
             sort=sort,
@@ -239,6 +243,7 @@ class EngagementService:
         status_counts = await EngagementRepository.get_status_counts(
             db,
             user_id=user_id,
+            user_role=user_role,
         )
 
         items = [
@@ -258,8 +263,11 @@ class EngagementService:
                     engagement.estimated_duration_days,
                 ),
                 updated_at=engagement.updated_at,
+                estimated_quote=engagement.estimated_quote,
+                assigned_pentester_name=pentester_name,
+                user_role=user_role,
             )
-            for engagement, client_name, asset_count in rows
+            for engagement, client_name, asset_count, pentester_name in rows
         ]
 
         return EngagementListResponse(
@@ -990,6 +998,20 @@ class EngagementService:
             },
         )
 
+        version = 1
+
+        new_report = Report(
+            engagement_id=engagement_id, 
+            version=version,
+            status=ReportStatus.PENDING,
+        )
+        db.add(new_report)
+        await db.commit() 
+
+        celery_app.send_task(
+            "engagement.render_report",
+            args=[str(engagement_id), version],
+        )
         await NotificationService.notify(
             db,
             recipient_id=engagement.service_delivery_id,

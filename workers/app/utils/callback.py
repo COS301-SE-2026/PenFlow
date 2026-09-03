@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 
 import httpx
 
@@ -85,3 +86,40 @@ def send_source_callback(
             source_name,
         )
         raise
+
+def send_engagement_report_callback(
+        engagement_id: str,
+        version: int, 
+        status: str, 
+        pdf_path: str | None = None, 
+        error_message: str | None = None,
+        max_retries: int = 3,
+) -> None:
+    """
+    Sends a callback to the API indicating that a Phase 3  manualengagement 
+    report generation has completed or failed. 
+    """
+
+    url = build_api_url(f"/internal/reports/engagement/{engagement_id}/version/{version}/callback")
+
+    payload = {
+        "status": status, 
+        "pdf_path": pdf_path, 
+        "error_message": error_message,
+    }
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            with httpx.Client(timeout=30) as client:
+                response = client.put(url, json=payload)
+                response.raise_for_status() 
+                return
+        except Exception: 
+            logger.warning(f"Callback attempt {attempt} failed for engagement {engagement_id}")
+            if attempt == max_retries: 
+                logger.exception(
+                    "Failed to send engagement report callback for %s (v%s)",
+                    engagement_id, version
+                )
+                raise
+            time.sleep(2 ** attempt)

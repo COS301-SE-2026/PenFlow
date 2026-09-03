@@ -10,6 +10,9 @@ export interface EngagementListItem {
     client_name: string;
     asset_count: number;
     target_date: string | null;
+    estimated_quote: number | null;
+    assigned_pentester_name: string | null;
+    user_role: string;
 }
 
 export interface ActivityItemResponse {
