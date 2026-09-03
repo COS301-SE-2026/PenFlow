@@ -1524,3 +1524,518 @@ Marks all unread notifications belonging to the authenticated user as read.
 If there are no unread notifications, `marked_read` is `0`.
 
 --- 
+
+### 8: Engagement and Messaging Service
+
+The Engagement Service handles engagement requests, engagement details, messages and activity.
+
+#### 8.1: Create Engagement
+
+`POST /api/v1/engagements/`
+
+Creates a new engagement request for the authenticated user.
+
+**Auth:** Required.
+
+**Input:** `engagement_type`, `assessment_type`, `objective`, optional dates, optional constraints, optional primary contact and at least one asset.
+
+```json
+{
+    "engagement_type": "black_box",
+    "assessment_type": "web_application",
+    "objective": "Test hackerone.com for web vulnerabilities",
+    "start_date": "2026-09-10",
+    "end_date": "2026-09-12",
+    "primary_contact": "steve@penflow.com",
+    "assets": [
+        {
+            "type": "domain",
+            "value": "hackerone.com"
+        }
+    ]
+}
+```
+
+Asset types are `domain`, `ip`, `hostname` and `url`.
+
+**201 Created:** Returns the engagement ID, initial status, engagement and assessment types, objective, dates, asset count, estimated quote and assignment information.
+
+New engagements start with the `requested` status.
+
+**Errors:** 
+- `401` user not found, 
+- `422` invalid request, asset or date range.
+
+---
+
+#### 8.2: List Engagements
+
+`GET /api/v1/engagements`
+
+Returns engagements linked to the authenticated user.
+
+**Auth:** Required.
+
+**Query:** optional `status`, `search`, `sort`, `order`, `limit` (1-100, default 20), `offset` (default 0).
+
+`sort` supports `created_at`, `updated_at`, `client`, `status` and `requested_start_date`. Default sorting is `updated_at` descending.
+
+**200 OK:** Returns engagement `items`, status `counts` and pagination information.
+
+Each item includes the engagement ID, title, type, assessment type, priority, status, client, asset count, dates, estimated quote and assigned pentester where available.
+
+**Errors:** 
+- `401` user not found, 
+- `422` invalid query values.
+
+---
+
+#### 8.3: Get Engagement
+
+`GET /api/v1/engagements/{engagement_id}`
+
+Returns the full details for an engagement.
+
+**Auth:** Required. Access is limited to the client, assigned pentester, Service Delivery user or admin linked to the engagement.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**200 OK:** Returns engagement details including status, scope, dates, quote, users, assets, finding counts, recent findings and previous scan information where available.
+
+**Errors:** `401` user not found, `404` engagement not found or not accessible, `422` invalid engagement ID, `500` engagement client could not be loaded.
+
+---
+
+#### 8.4: List Engagement Messages
+
+`GET /api/v1/engagements/{engagement_id}/messages`
+
+Returns messages for a selected engagement conversation.
+
+**Auth:** Required. The user must be part of the selected message channel.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**Query:** `channel`
+
+Supported channels are:
+- `client_service_delivery`
+- `service_delivery_pentester`
+
+**200 OK:** Returns message items containing sender, recipient, channel, message, read state, optional finding ID and creation time. Messages are returned oldest first.
+
+**Errors:** 
+- `401` user not found, 
+- `404` engagement or conversation not accessible, 
+- `422` invalid engagement ID or channel.
+
+---
+
+#### 8.5: Send Engagement Message
+
+`POST /api/v1/engagements/{engagement_id}/messages`
+
+Sends a message through one of the engagement communication channels.
+
+**Auth:** Required. The sender must be part of the selected channel.
+
+**Input:** `engagement_id` (UUID), `comment`, `channel` and optional `finding_id`.
+
+```json
+{
+    "comment": "Can you confirm whether this finding should be included in the final report?",
+    "channel": "service_delivery_pentester",
+    "finding_id": null
+}
+```
+
+**201 Created:** Returns the created message including sender, recipient, channel, read state and creation time.
+
+**Errors:** 
+- `404` conversation not accessible, 
+- `409` the other participant has not been assigned, 
+- `422` empty message, invalid channel or finding does not belong to the engagement, 
+- `500` message participant could not be loaded.
+
+---
+
+#### 8.6: Mark Engagement Messages as Read
+
+`PATCH /api/v1/engagements/{engagement_id}/messages/read`
+
+Marks unread messages in a selected engagement conversation as read.
+
+**Auth:** Required. The user must be part of the selected channel.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**Query:** `channel`
+
+**200 OK:** Returns the number of messages changed.
+
+```json
+{
+    "marked_read": 4
+}
+```
+
+**Errors:** 
+- `401` user not found, 
+- `404` conversation not accessible, 
+- `422` invalid engagement ID or channel.
+
+---
+
+#### 8.7: Get Engagement Activity
+
+`GET /api/v1/engagements/{engagement_id}/activity`
+
+Returns activity recorded for an engagement and its related entities.
+
+**Auth:** Required. The user must have access to the engagement.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**Query:** `limit` (1-200, default 100).
+
+**200 OK:** Returns activity items containing `action`, `entity_type`, optional `entity_id`, actor, metadata and creation time.
+
+**Errors:** 
+- `401` user not found, 
+- `404` engagement not found or not accessible, 
+- `422` invalid engagement ID or limit.
+
+---
+
+### 9: Findings and Evidence Service
+
+The Findings Service allows engagement findings to be viewed, updated, verified, deleted and supported with evidence.
+
+#### 9.1: Get Finding
+
+`GET /api/v1/findings/{finding_id}`
+
+Returns the details of a finding.
+
+**Auth:** Required. The finding must belong to an engagement assigned to the user.
+
+**Input:** `finding_id` (UUID path parameter)
+
+**200 OK:** Returns the finding including severity, status, CVSS score, CVE, description, recommendation, asset information and uploaded evidence.
+
+**Errors:** 
+- `401` user not found, 
+- `404` finding not found or not accessible, 
+- `422` invalid finding ID.
+
+---
+
+#### 9.2: Update Finding
+
+`PATCH /api/v1/findings/{finding_id}`
+
+Updates an engagement finding.
+
+**Auth:** Pentester required. The finding must belong to an engagement assigned to the pentester.
+
+**Input:** `finding_id` (UUID) and `FindingUpdate`.
+
+Editable fields include title, engagement asset, severity, CVSS score, CVE ID, description, recommendation, status and verification state.
+
+Findings can only be edited while the engagement is `in_progress`.
+
+**200 OK:** Returns the updated finding.
+
+**Errors:** 
+- `404` finding not found or not accessible, 
+- `409` engagement is not in progress or a verified finding is being marked as a false positive, 
+- `422` invalid request or selected asset does not belong to the engagement.
+
+---
+
+#### 9.3: Upload Finding Evidence
+
+`POST /api/v1/findings/{finding_id}/evidence`
+
+Uploads an evidence file for a finding.
+
+**Auth:** Pentester required. The finding must belong to an active engagement assigned to the pentester.
+
+**Input:** `finding_id` (UUID) and one uploaded file.
+
+Maximum file size is 10 MB.
+
+Supported file types:
+- PNG
+- JPEG
+- TXT
+- JSON
+- PDF
+
+The backend checks the actual file type and validates image and JSON contents.
+
+**201 Created:** Returns the evidence ID, file name, MIME type and upload time.
+
+**Errors:** 
+- `404` finding not found, 
+- `409` engagement is not in progress, 
+- `413` file exceeds 10 MB, 
+- `415` unsupported or mismatched file type, 
+- `422` empty, invalid or corrupted file.
+
+---
+
+#### 9.4: Delete Finding
+
+`DELETE /api/v1/findings/{finding_id}`
+
+Deletes a manually created finding.
+
+**Auth:** Pentester required.
+
+**Input:** `finding_id` (UUID path parameter)
+
+Only findings with the `manual` source can be deleted and the engagement must still be `in_progress`.
+
+**204 No Content:** Finding deleted successfully.
+
+**Errors:** 
+- `404` finding not found or not accessible, 
+- `409` engagement is not in progress or the finding is automated, 
+- `422` invalid finding ID.
+
+---
+
+#### 9.5: Verify Finding
+
+`PATCH /api/v1/findings/{finding_id}/verify`
+
+Marks an automated finding as verified by the assigned pentester.
+
+**Auth:** Pentester required.
+
+**Input:** `finding_id` (UUID path parameter)
+
+The finding must be automated, not already verified, not marked as a false positive and the engagement must still be `in_progress`.
+
+**200 OK:** Returns the updated finding with `is_verified` set to `true`.
+
+**Errors:** 
+- `404` finding not found or not accessible, 
+- `409` finding cannot be verified in its current state, 
+- `422` invalid finding ID.
+
+---
+
+### 10: Re-test Service
+
+The Re-test Service allows assigned pentesters to update the outcome and notes of a finding re-test.
+
+#### 10.1: Update Re-test
+
+`PATCH /api/v1/retests/{retest_id}`
+
+Updates the status or notes of a re-test assigned to the pentester.
+
+**Auth:** Pentester required.
+
+**Input:** `retest_id` (UUID path parameter), optional `status` and optional `notes`.
+
+Re-test statuses are:
+- `requested`
+- `in_progress`
+- `resolved`
+- `still_vulnerable`
+
+When a re-test changes to `resolved` or `still_vulnerable`, `completed_at` is recorded. Moving it back to `requested` or `in_progress` clears `completed_at`.
+
+```json
+{
+    "status": "resolved",
+    "notes": "The vulnerability could no longer be reproduced."
+}
+```
+
+**200 OK:** Returns the updated re-test including finding details, status, notes, assignment information and completion time.
+
+When a re-test is completed for the first time, the client and Service Delivery user are notified.
+
+**Errors:** 
+- `404` re-test not found or not assigned to the pentester, 
+- `422` invalid re-test ID or request values.
+
+---
+
+### 11: Pentester Service
+
+The Pentester Service gives pentesters access to their assigned engagements, findings, re-tests, messages and engagement workflow actions.
+
+#### 11.1: List Assigned Engagements
+
+`GET /api/v1/pentester`
+
+Returns engagements assigned to the authenticated pentester.
+
+**Auth:** Pentester required.
+
+**Query:** optional `status`, `search`, `sort`, `order`, `limit` (1-100, default 20), `offset` (default 0).
+
+`sort` supports `created_at`, `updated_at`, `client`, `status` and `requested_start_date`. Default sorting is `updated_at` descending.
+
+**200 OK:** Returns engagement `items`, status `counts` and pagination information.
+
+Only engagements assigned to the pentester are returned.
+
+**Errors:** 
+- `422` invalid query values.
+
+---
+
+#### 11.2: Get Pentester Messages
+
+`GET /api/v1/pentester/messages`
+
+Returns the pentester's Service Delivery conversations.
+
+**Auth:** Pentester required.
+
+**200 OK:** Returns conversation items containing the engagement, Service Delivery user, latest message, message count and unread count.
+
+---
+
+#### 11.3: Create Manual Finding
+
+`POST /api/v1/pentester/{engagement_id}/findings`
+
+Creates a manual finding for an engagement assigned to the pentester.
+
+**Auth:** Pentester required.
+
+**Input:** `engagement_id` (UUID), `title`, `severity`, optional `engagement_asset_id`, `cvss_score`, `cve_id`, `description` and `recommendation`.
+
+```json
+{
+    "title": "Missing Security Header",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "cve_id": null,
+    "description": "A required security header was not found.",
+    "recommendation": "Configure the missing security header."
+}
+```
+
+Manual findings are created with source `manual` and status `open`.
+
+**201 Created:** Returns the created finding.
+
+**Errors:** 
+- `404` engagement not found or not assigned to the pentester, 
+- `409` engagement is not in progress, 
+- `422` invalid request or selected asset does not belong to the engagement.
+
+---
+
+#### 11.4: List Engagement Findings
+
+`GET /api/v1/pentester/{engagement_id}/findings`
+
+Returns findings for an engagement assigned to the pentester.
+
+**Auth:** Pentester required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**Query:** optional `source`, `severity`, `status`, `search`, `limit` (1-100, default 20), `offset` (default 0).
+
+**200 OK:** Returns finding `items` and pagination information. Results are returned newest first.
+
+**Errors:** 
+- `404` engagement not found or not assigned to the pentester, 
+- `422` invalid query values.
+
+---
+
+#### 11.5: List Engagement Re-tests
+
+`GET /api/v1/pentester/{engagement_id}/retests`
+
+Returns re-tests for an engagement assigned to the pentester.
+
+**Auth:** Pentester required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**200 OK:** Returns re-tests containing finding details, status, notes, assignment information and completion time.
+
+**Errors:** 
+- `404` engagement not found or not assigned to the pentester, 
+- `422` invalid engagement ID.
+
+---
+
+#### 11.6: Get Engagement Activity
+
+`GET /api/v1/pentester/{engagement_id}/activity`
+
+Returns activity recorded for the selected engagement.
+
+**Auth:** Pentester required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**Query:** `limit` (1-200, default 100).
+
+**200 OK:** Returns activity items including action, entity type, actor, metadata and creation time.
+
+**Errors:** 
+- `404` engagement not found or not accessible, 
+- `422` invalid engagement ID or limit.
+
+---
+
+#### 11.7: Start Engagement
+
+`POST /api/v1/pentester/engagements/{engagement_id}/start`
+
+Starts a scheduled engagement assigned to the pentester.
+
+**Auth:** Pentester required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+The engagement must currently have the `scheduled` status.
+
+**200 OK:** Changes the engagement status to `in_progress` and returns the engagement ID, status and update time.
+
+The client and Service Delivery user are notified when testing starts.
+
+**Errors:** 
+- `404` engagement not found or not assigned to the pentester, 
+- `409` engagement is not scheduled, 
+- `422` invalid engagement ID.
+
+---
+
+#### 11.8: Submit Engagement for Review
+
+`PATCH /api/v1/pentester/{engagement_id}/submit-for-review`
+
+Submits a completed pentester engagement to Service Delivery for review.
+
+**Auth:** Pentester required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+The engagement must be assigned to the pentester and currently have the `in_progress` status.
+
+**200 OK:** Changes the engagement status to `review` and returns the engagement ID, status and update time.
+
+Submitting for review also starts report generation and notifies the Service Delivery user.
+
+**Errors:** 
+- `403` engagement is assigned to another pentester, 
+- `404` engagement not found, 
+- `409` engagement is not in progress,
+- `422` invalid engagement ID.
+
+---
