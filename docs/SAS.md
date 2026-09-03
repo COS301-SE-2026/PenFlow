@@ -912,15 +912,15 @@ The following supporting documents provide additional detail for the Phase 2 arc
 
 The PenFlow system exposes REST-based service contracts between the frontend, backend, worker services, and supporting infrastructure. Each contract defines the HTTP endpoint, accepted inputs, authentication requirements, expected response structure, and error behaviour. Internal callback endpoints are also documented because they form explicit communication boundaries between the asynchronouos work subsystem and the backend.
 
-### Domain Verification Service
+### 1: Domain Verification Service
 
 The Domain Verification Service allows authenticated users to register domains, verify domain ownership, and remove domains that are no longer required.
 
 ---
 
-### Add Domain for Verification
+### 1.1: Add Domain for Verification
 
-**Endpoint** `POST /domains/`
+**Endpoint** `POST /api/v1/domains/`
 
 **Purpose**
 Registers a domain against the authenticated user and creates a domain verification record. The backend generates the information required for the subsequent ownership-verification process.
@@ -932,7 +932,7 @@ Required. The authenticated user's provider identifier is obtained from the auth
 
 ```json
 {
-    "domain": "example.com"
+    "domain": "hackerone.com"
 }
 ```
 
@@ -950,10 +950,10 @@ Example:
 ```json
 {
     "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
-    "domain": "example.com",
+    "domain": "hackerone.com",
     "status": "pending",
     "verification_method": "dns_txt",
-    "verification_token": "penflow-verification=...",
+    "verification_token": "penflow-verification=pentoken123...",
     "verified_at": null
 }
 ```
@@ -961,7 +961,154 @@ Example:
 **Error Responses:**
 
 - `401 Unauthorized` — The authenticated identity does not correspond to a PenFlow user.
-- `422 Unprocessable Entity` — The supplied request does not satisfy the required request schema.
-- Additional domain-validation erros may be returned by the Domain Service where the supplied domain cannot be registered.
+- `409 Conflict` — The authenticated user has already registered the supplied domain.
+- `422 Unprocessable Entity` — The request body is invalid or the supplied domain cannot be normalised into a valid non-empty domain.
+
+---
+
+### 1.2: Verify Domain Ownership
+
+**Endpoint** `POST /api/v1/domains/{domain_id}/verify`
+
+**Purpose**  
+Checks the DNS TXT records of a previously registered domain for its issued verification token. If the expected token is found, the domain is marked as verified.
+
+**Authentication**  
+Required: The authenticated user may only verify a domain linked with their own account, and no others.
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|---|---|---:|---|
+| `domain_id` | UUID | Yes | Identifier of the domain verification record. |
+
+**Request Body**  
+None.
+
+**Rate Limit**  
+Maximum of 10 verification requests per minute.
+
+**Success Response: `200 OK`**
+
+Returns the updated `VerifiedDomainResponse`.
+
+```json
+{
+    "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
+    "domain": "hackerone.com",
+    "status": "verified",
+    "verification_token": "penflow-verification=pentoken123...",
+    "verified_at": "2026-06-06T11:11:11Z"
+}
+```
+
+If the domain has already been successfully verified, then existing verified record is returned. No new attempts would be needed.
+
+**Error Responses**
+
+- `400 Bad Request` — Domain verification failed.
+  - the expected DNS TXT record could not be found;
+  - a TXT record exists but the verification token does not match;
+  - the DNS lookup could not be completed.
+- `401 Unauthorized` — The authenticated identity does not correspond to a PenFlow user.
+- `404 Not Found` — The domain record does not exist or is not associated with a registered user.
+- `422 Unprocessable Entity` — The supplied `domain_id` is not a valid UUID.
+
+---
+
+### 1.3: List Registered Domains
+
+**Endpoint** `GET /api/v1/domains`
+
+**Purpose**  
+Returns the domain verification records belonging to the authenticated user. The endpoint supports status filtering, searching, sorting and pagination and also returns counts for each verification status.
+
+**Authentication**  
+Required. Only records belonging to the authenticated PenFlow user are returned.
+
+**Query Parameters**
+
+| Parameter | Type | Required | Default | Description |
+|---|---|---:|---|---|
+| `status` | enum | No | None | Filter by domain verification status. |
+| `search` | string | No | None | Search value. Maximum length is 255 characters. |
+| `sort` | enum | No | `created_at` | Sort field: `domain`, `created_at`, or `status`. |
+| `order` | enum | No | `desc` | Sort direction: `asc` or `desc`. |
+| `limit` | integer | No | `20` | Maximum number of records to return. Range: 1–100. |
+| `offset` | integer | No | `0` | Number of matching records to skip. Must be 0 or greater. |
+
+**Request Body**  
+None.
+
+**Success Response: `200 OK`**
+
+Returns a `DomainList` containing the registered domains, verification-status counts and pagination information.
+
+```json
+{
+    "items": [
+        {
+            "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
+            "domain": "hackerone.com",
+            "status": "verified",
+            "verification_method": "dns_txt",
+            "verification_token": "penflow-verification=pentoken123...",
+            "created_at": "2026-01-01T10:10:10Z",
+            "verified_at":"2026-06-06T11:11:11Z",
+            "last_checked_at": "2026-09-01T08:30:00Z",
+            "last_verification_code": "verified"
+        }
+    ],
+    "counts": {
+        "all": 1,
+        "pending": 0,
+        "verified": 1,
+        "failed": 0,
+        "expired": 0
+    },
+    "pagination": {
+        "total": 1,
+        "limit": 20,
+        "offset": 0,
+        "has_more": false
+    }
+}
+```
+
+**Error Responses**
+
+- `401 Unauthorized` — The authenticated identity does not correspond to a PenFlow user.
+- `422 Unprocessable Entity` — One or more query parameters do not satisfy the required type, enumeration, length or range constraints.
+
+---
+
+### 1.4: Delete Registered Domain
+
+**Endpoint** `DELETE /api/v1/domains/{domain_id}`
+
+**Purpose**  
+Deletes a domain verification record belonging to the authenticated user.
+
+**Authentication**  
+Required. The authenticated user may only delete domain records associated with their own account and no other.
+
+**Path Parameters**
+
+| Parameter | Type | Required | Description |
+|---|---|---:|---|
+| `domain_id` | UUID | Yes | Identifier of the domain verification record to delete. |
+
+**Request Body**  
+None.
+
+**Success Response: `204 No Content`**
+
+The domain verification record was successfully deleted. No response body is returned.
+
+**Error Responses**
+
+- `401 Unauthorized` — The authenticated identity does not correspond to a PenFlow user.
+- `404 Not Found` — The specified domain record does not exist or is not associated with the authenticated user.
+- `422 Unprocessable Entity` — The supplied `domain_id` is not a valid UUID.
 
 ---
