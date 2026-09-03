@@ -251,7 +251,49 @@ const overview: [string, string][] = [
                 </div>
             </CardContent>
         </Card>
-        
+         {/* Show different action buttons depending on what stage the engagement is in                        */}
+        <Card className="mt-4 border-brand-panel-border bg-brand-panel">
+        <CardContent> 
+            <div className="mb-3 flex items-start justify-between gap-3">
+                <h2 className="text-sm font-semibold text-brand-text">Engagement Overview</h2>
+                <div className="flex flex-wrap gap-2">
+                                {engagement.status === "requested" && (
+                                <Button size="sm" onClick={() => runAndReload(claimEngagement(engagement.id))}>Claim Request</Button>
+                            )}
+                            {engagement.status === "scoping" && (
+                                <Button size="sm" onClick={() => { setScopeDraft(engagement.scope); setQuoteDraft(engagement.final_quote ?? ""); setActiveAction("editScope"); }}>
+                                    Edit Scope && Commercials
+                                </Button>
+                            )}
+                            {engagement.status === "scoping" && (
+                                <Button size="sm" onClick={() => setActiveAction("schedule")}>Confirm && Schedule</Button>
+                            )}
+                            {engagement.status === "scheduled" && (
+                                <Button variant="outline" size="sm" className={whiteOutlineButtonClass} onClick={() => setActiveAction("changeSchedule")}>Change Schedule</Button>
+                            )}
+                            {["requested", "scoping", "scheduled", "in_progress"].includes(engagement.status) && (
+                                <Button variant="destructive" size="sm" onClick={() => setActiveAction("cancel")}>Cancel Engagement</Button>
+                            )}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+                        {overview.map(([k, v]) => (
+                            <div key={k} className="rounded-md border border-brand-panel-border/75 bg-brand-panel-deep p-3">
+                                <div className="mb-1 text-[10px] tracking-wide text-brand-text/70 uppercase">{k}</div>
+                                <div className="text-sm font-semibold text-brand-text">{v}</div>
+                            </div>
+                        ))}
+                    </div>                 
+            
+             {engagement.objective && (
+                        <>
+                            <h3 className="mt-6 mb-1 text-xs font-semibold tracking-wide text-brand-text/70 uppercase">Objective</h3>
+                            <p className="rounded-md border border-brand-panel-border bg-brand-panel-deep p-3 text-sm text-brand-text/90">{engagement.objective}</p>
+                        </>
+                    )}
+        </CardContent>
+        </Card>
     </>    
     )
 
