@@ -193,8 +193,8 @@ const overview: [string, string][] = [
 
     async function downloadFindingEvidence(f: FindingListItem) {
         const detail = await getEngagementFinding(params.id, f.id);
+        if (detail.evidence_files && detail.evidence_files.length > 0) {
         const firstFile = detail.evidence_files[0];
-        if (firstFile){
             const blob = await downloadEvidence(firstFile.id,firstFile.file_name);
             downloadBlob(firstFile.file_name, blob)
             return;
