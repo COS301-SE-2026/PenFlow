@@ -26,13 +26,18 @@ def _scan_data(**overrides):
 @patch("app.services.scan_service.ScanRepository.create_scan",new_callable=AsyncMock)
 async def test_start_scan_passive_queues_full_task(mock_create_scan,mock_send_task):
         db =AsyncMock()
-        scan_record = SimpleNamespace(id=uuid4())
+        scan_record = SimpleNamespace(
+               id=uuid4(),
+               scan_type=ScanTypeEnum.PASSIVE_CTEM.value,
+               domain="example.com",
+        )
         mock_create_scan.return_value = scan_record
+
+        mock_send_task.return_value = SimpleNamespace(id="task-123")
 
         scan_data = _scan_data()
 
-        result = await ScanService.start_scan(db,scan_data)
-
+        result = await ScanService.start_scan(db, scan_data)
         assert result is scan_record
         mock_create_scan.assert_awaited_once_with(
               db=db,
@@ -134,7 +139,7 @@ async def  test_start_scan_active_domain_mismatch_raises_400(mock_get_by_id):
 #happy path for phase 2 scan
 # initate scan endpoint POST /scans/
 @pytest.mark.asyncio 
-@patch("app.services.scan_service.celery_app.send_task")
+@patch("app.services.scan_service.ScanService.publish_scan_task", new_callable=AsyncMock)
 @patch("app.services.scan_service.ScanRepository.create_scan",new_callable=AsyncMock)
 @patch("app.services.scan_service.DomainRepository.get_by_id",new_callable=AsyncMock)
 async def test_start_scan_active_happy_path_queues_phase2_task(
@@ -143,13 +148,19 @@ async def test_start_scan_active_happy_path_queues_phase2_task(
     db = AsyncMock()
     user_id = uuid4()
     verified_domain_id = uuid4()
-    scan_record = SimpleNamespace(id = uuid4())
+    scan_record = SimpleNamespace(
+           id = uuid4(),
+           scan_type=ScanTypeEnum.ACTIVE_VULNERABILITY.value,
+           domain="example.com",
+        )
 
     mock_get_by_id.return_value = SimpleNamespace(
             status = SimpleNamespace(value ="verified"),
             domain = "Example.com",
             )
     mock_create_scan.return_value = scan_record
+    mock_send_task.return_value = SimpleNamespace(task="task-456")
+
     scan_data = _scan_data(
                domain = "example.com",
                scan_type = ScanTypeEnum.ACTIVE_VULNERABILITY,
@@ -167,6 +178,6 @@ async def test_start_scan_active_happy_path_queues_phase2_task(
            verified_domain_id = verified_domain_id,
     )
     mock_send_task.assert_called_once_with(
-           "scan.phase2_full",args = [str(scan_record.id),"example.com"]
+           db, scan_record,
     )
   

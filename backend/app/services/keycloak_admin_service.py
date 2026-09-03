@@ -3,6 +3,7 @@ from typing import Any
 
 import httpx
 
+
 class KeycloakAdminError(RuntimeError):
     def __init__(self, message:str, status_code: int | None=None) -> None:
         super().__init__(message)
@@ -153,12 +154,12 @@ class KeycloakAdminService:
 
         location = response.headers.get("Location")
 
-        if not location:
+        if not isinstance(location, str) or not location:
             raise KeycloakAdminError(
                 "Keylcoak created the user without returning its identifier."
             )
 
-        user_id = location.rstrip("/").rsplit("/", maxsplit=1)[-1]
+        user_id: str = location.rstrip("/").rsplit("/", maxsplit=1)[-1]
 
         if not user_id:
             raise KeycloakAdminError("Keycloak returned invalid identifer")

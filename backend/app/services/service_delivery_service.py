@@ -1,9 +1,10 @@
+import logging
 from datetime import date, datetime, timezone
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-import logging
+
 from app.models.base import (
     AssessmentType,
     EngagementStatus,
@@ -40,7 +41,6 @@ from app.schemas.retest import (
 )
 from app.schemas.service_delivery import (
     ServiceDeliveryCancelRequest,
-    ServiceDeliveryPentesterCreate,
     ServiceDeliveryDashboardCounts,
     ServiceDeliveryDashboardEngagement,
     ServiceDeliveryDashboardResponse,
@@ -53,6 +53,7 @@ from app.schemas.service_delivery import (
     ServiceDeliveryFindingListResponse,
     ServiceDeliveryFindingSummary,
     ServiceDeliveryPentesterAssignment,
+    ServiceDeliveryPentesterCreate,
     ServiceDeliveryPentesterDetail,
     ServiceDeliveryPentesterListItem,
     ServiceDeliveryPentesterListResponse,
@@ -2120,7 +2121,7 @@ class ServiceDeliveryService:
                 detail="Unable to create the pentester account in Keycloak.",
             ) from err
 
-        except RuntimeError as err:
+        except RuntimeError:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Keycloak provisioning is not configured.",
@@ -2129,7 +2130,7 @@ class ServiceDeliveryService:
         try:
             await keycloak.assign_pentester_role(provider_user_id)
 
-        except KeycloakAdminError as err:
+        except KeycloakAdminError:
             try:
                 await keycloak.delete_user(provider_user_id)
             except KeycloakAdminError:
@@ -2257,13 +2258,15 @@ class ServiceDeliveryService:
 
             raise HTTPException(
                 status_code=status.HTTP_502_BAD_GATEWAY,
-                detail="The pentester was deactivated in PenFlow, but Keycloak could not be updated.",
+                detail="The pentester was deactivated in PenFlow, " \
+                "but Keycloak could not be updated.",
             ) from err
 
         except RuntimeError as err:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="The pentester was deactivated in PenFlow, but Keycloak provisioning is not configured.",
+                detail="The pentester was deactivated in PenFlow, " \
+                "but Keycloak provisioning is not configured.",
             ) from err
 
         await AuditRepository.create_log(

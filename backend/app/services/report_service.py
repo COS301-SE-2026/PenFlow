@@ -6,7 +6,6 @@ from uuid import UUID
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.scan_delta_service import build_scan_delta
 from app.models.base import ReportStatus, ScanType
 from app.queue.celery_app import celery_app
 from app.repositories.report_repository import (
@@ -17,6 +16,7 @@ from app.repositories.report_repository import (
     mark_report_generating,
     mark_report_task_queued,
 )
+from app.services.scan_delta_service import build_scan_delta
 from app.utils.phase2_report_context import build_phase2_report_context
 from app.utils.phase3_report_context import build_phase3_report_context
 from app.utils.report_context import build_report_context

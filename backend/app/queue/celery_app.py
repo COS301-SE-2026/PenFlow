@@ -1,8 +1,9 @@
 import os
 import ssl
 from urllib.parse import quote
-from kombu import Exchange, Queue
+
 from celery import Celery
+from kombu import Exchange, Queue  # type: ignore[import-untyped]
 
 
 def build_broker_url() -> str:

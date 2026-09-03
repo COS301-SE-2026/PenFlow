@@ -25,7 +25,6 @@ from app.schemas.retest import (
 )
 from app.schemas.service_delivery import (
     ServiceDeliveryCancelRequest,
-    ServiceDeliveryPentesterCreate,
     ServiceDeliveryDashboardResponse,
     ServiceDeliveryEngagementActionResponse,
     ServiceDeliveryEngagementDetail,
@@ -33,6 +32,7 @@ from app.schemas.service_delivery import (
     ServiceDeliveryFindingDetail,
     ServiceDeliveryFindingListResponse,
     ServiceDeliveryPentesterAssignment,
+    ServiceDeliveryPentesterCreate,
     ServiceDeliveryPentesterDetail,
     ServiceDeliveryPentesterListResponse,
     ServiceDeliveryReassignRequest,

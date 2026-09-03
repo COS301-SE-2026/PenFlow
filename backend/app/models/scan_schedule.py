@@ -1,10 +1,9 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, time, timezone
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
-    Column,
     DateTime,
     Enum,
     ForeignKey,
@@ -14,7 +13,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, ScanScheduleFrequency, ScanType
 
@@ -57,27 +56,27 @@ class ScanSchedule(Base):
         ),
     )
 
-    id = Column(
+    id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), 
         primary_key=True, 
         default=uuid.uuid4
     )
 
-    user_id = Column(
+    user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), 
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
 
-    verified_domain_id = Column(
+    verified_domain_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("verified_domains.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
 
-    scan_type = Column(
+    scan_type: Mapped[ScanType] = mapped_column(
         Enum(
             ScanType,
             values_callable = lambda enum: [item.value for item in enum],
@@ -87,7 +86,7 @@ class ScanSchedule(Base):
         default=ScanType.ACTIVE_VULNERABILITY,
     )
 
-    frequency = Column(
+    frequency: Mapped[ScanScheduleFrequency] = mapped_column(
         Enum(
             ScanScheduleFrequency,
             values_callable = lambda enum: [item.value for item in enum],
@@ -96,52 +95,52 @@ class ScanSchedule(Base):
         nullable = False,
     )
 
-    run_time = Column(
+    run_time: Mapped[time] = mapped_column(
         Time(timezone=False),
         nullable=False,
     )
 
-    day_of_week = Column(
+    day_of_week: Mapped[int | None] = mapped_column(
         SmallInteger,
         nullable=True,
     )
 
-    day_of_month = Column(
+    day_of_month: Mapped[int | None] = mapped_column(
         SmallInteger,
         nullable=True,
     )
 
-    is_active = Column(
+    is_active: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
         default=True,
         index=True,
     )
 
-    next_run_at = Column(
+    next_run_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         index=True,
     )
 
-    last_run_at = Column(
+    last_run_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
     )
 
-    timezone = Column(
+    timezone: Mapped[str] = mapped_column(
         String(64),
         nullable=False,
         default="Africa/Johannesburg",
     )
 
-    created_at = Column(
+    created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default = lambda: datetime.now(timezone.utc),
     )
 
-    updated_at = Column(
+    updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         default = lambda: datetime.now(timezone.utc),

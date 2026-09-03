@@ -12,7 +12,11 @@ from app.repositories.domain_repository import DomainRepository
 from app.repositories.scan_schedule_repository import ScanScheduleRepository
 from app.schemas.scan_schedule import ScanScheduleCreate, ScanScheduleUpdate
 from app.services.scan_service import ScanService
-from app.services.schedule_calculator import ScheduleValidationError, calculate_next_run, validate_schedule
+from app.services.schedule_calculator import (
+    ScheduleValidationError,
+    calculate_next_run,
+    validate_schedule,
+)
 
 logger = logging.getLogger(__name__)
 

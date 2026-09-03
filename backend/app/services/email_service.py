@@ -7,6 +7,7 @@ from botocore.exceptions import BotoCoreError, ClientError
 
 from app.services.report_storage_service import ReportStorageService
 
+
 class EmailDeliveryError(Exception):
     """Error is raised if an email cannot be delivered"""
 

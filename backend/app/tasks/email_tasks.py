@@ -1,11 +1,7 @@
 import logging
 
 from app.queue.celery_app import celery_app
-from app.services.email_service import (
-    EmailDeliveryError,
-    send_email,
-    send_report_email
-)
+from app.services.email_service import EmailDeliveryError, send_email, send_report_email
 
 logger = logging.getLogger(__name__)
 

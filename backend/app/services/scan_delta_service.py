@@ -1,6 +1,7 @@
 import json
 import re
 from decimal import Decimal
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import select
@@ -69,7 +70,7 @@ def cvss_value(value: Decimal | float | None) -> float | None:
     return float(value)
 
 
-def extract_target_identity(evidence: dict | None) -> str:
+def extract_target_identity(evidence: dict[str,Any] | None) -> str:
     if not isinstance(evidence, dict):
         return ""
 
@@ -154,7 +155,7 @@ def changed_fields(
     return changes
 
 
-def finding_to_report_item(finding: Finding) -> dict:
+def finding_to_report_item(finding: Finding) -> dict[str, Any]:
     return {
         "id": str(finding.id),
         "title": finding.title,
@@ -234,7 +235,7 @@ async def load_previous_completed_scan(
 def baseline_result(
         current_scan: Scan,
         reason: str,
-) -> dict:
+) -> dict[str, Any]:
     findings = [
         finding_to_report_item(finding)
         for finding in current_scan.findings
@@ -266,7 +267,7 @@ def baseline_result(
 async def build_scan_delta(
         db: AsyncSession,
         current_scan_id: UUID,
-) -> dict:
+) -> dict[str, Any]:
     current_scan = await load_scan_for_delta(
         db,
         current_scan_id,
