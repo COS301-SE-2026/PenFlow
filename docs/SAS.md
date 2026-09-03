@@ -918,7 +918,7 @@ The Domain Verification Service allows authenticated users to register domains, 
 
 ---
 
-### 1.1: Add Domain for Verification
+#### 1.1: Add Domain for Verification
 
 **Endpoint** `POST /api/v1/domains/`
 
@@ -966,7 +966,7 @@ Example:
 
 ---
 
-### 1.2: Verify Domain Ownership
+#### 1.2: Verify Domain Ownership
 
 **Endpoint** `POST /api/v1/domains/{domain_id}/verify`
 
@@ -986,7 +986,7 @@ Required: The authenticated user may only verify a domain linked with their own 
 None.
 
 **Rate Limit**  
-Maximum of 10 verification requests per minute.
+Maximum of 10 verification requests per minute per client IP address.
 
 **Success Response: `200 OK`**
 
@@ -1016,7 +1016,7 @@ If the domain has already been successfully verified, then existing verified rec
 
 ---
 
-### 1.3: List Registered Domains
+#### 1.3: List Registered Domains
 
 **Endpoint** `GET /api/v1/domains`
 
@@ -1082,7 +1082,7 @@ Returns a `DomainList` containing the registered domains, verification-status co
 
 ---
 
-### 1.4: Delete Registered Domain
+#### 1.4: Delete Registered Domain
 
 **Endpoint** `DELETE /api/v1/domains/{domain_id}`
 
@@ -1110,5 +1110,95 @@ The domain verification record was successfully deleted. No response body is ret
 - `401 Unauthorized` — The authenticated identity does not correspond to a PenFlow user.
 - `404 Not Found` — The specified domain record does not exist or is not associated with the authenticated user.
 - `422 Unprocessable Entity` — The supplied `domain_id` is not a valid UUID.
+
+---
+
+### 2: System Health Service
+
+The System Health Service provides a lightweight health check for the PenFlow API and its database connection.
+
+---
+
+#### 2.1: Get System Health
+
+**Endpoint** `GET /api/v1/health`
+
+**Purpose**  
+Checks whether the PenFlow API is running and attempts a simple database query to determine the current database connection state.
+
+**Authentication**  
+Not required.
+
+**Request Body**  
+None.
+
+**Success Response: `200 OK`**
+
+Returns the API health state, API version and current database connection state.
+
+```json
+{
+    "status": "ok",
+    "api_version": "1.0.0",
+    "database": "connected"
+}
+```
+
+The `database` field may contain:
+
+- `connected` — the database health query completed successfully.
+- `disconnected` — the database health query failed.
+
+A database connection failure is logged by the backend but does not cause the health endpoint itself to return an HTTP error, as the query itself was a success.
+
+---
+
+### 3: User Service
+
+The User Service provisions the authenticated Keycloak identity within PenFlow and returns the corresponding 
+ user information.
+
+---
+
+#### 3.1: Get Current User
+
+**Endpoint** `GET /api/v1/users/me`
+
+**Purpose**  
+Returns the PenFlow user associated with the currently authenticated identity. 
+
+If no PenFlow user exists for the authenticated Keycloak identity, a new client user is created. 
+
+If the user already exists, their stored email and full name are updated from the current authentication information.
+
+**Authentication**  
+Required.
+
+**Request Body**  
+None.
+
+**Success Response: `200 OK`**
+
+Returns the PenFlow user's identifier, email address and role.
+
+```json
+{
+    "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
+    "email": "user@usermail.com",
+    "role": "client"
+}
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | PenFlow user identifier. |
+| `email` | string | Email address associated with the identity. |
+| `role` | string | Current PenFlow application role. |
+
+Newly provisioned users are assigned the `client` role.
+
+**Error Responses**
+
+- `500 Internal Server Error` — The backend failed to retrieve the PenFlow user.
 
 ---
