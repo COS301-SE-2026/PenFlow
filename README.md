@@ -100,6 +100,8 @@ Detailed project documentation is available below.
 | [User Manual](docs/User%20Manual.pdf) 
 | [Testing Policy](docs/Testingpolicy.md) 
 | [Brand Style](docs/TESTING.md)
+| [NFR Traceability Matrix](docs/NFR_Traceability_Matrix.md)
+| [NFR Testing](docs/NFRtesting.md)
 
 ---
 
