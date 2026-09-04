@@ -7,18 +7,20 @@ import { usePathname } from "next/navigation";
 import brocodeLogo from "@/app/images/images/BroCode logo.png";
 import bluevisionLogo from "@/app/images/images/Bluevision logo.png";
 import {listConversations } from "@/lib/serviceDeliveryService";
+import NotificationMenu from "./NotificationMenu";
 
-type ServiceDeliveryNavItem = {
-    label: string;
-    href: string;
-};
+type ServiceDeliveryNavItem = 
+    | { label: string; href : string; kind:"link"}
+    | { label: string; href : string; kind:"external"}
+
 
 const serviceDeliveryNavItems: ServiceDeliveryNavItem[] = [
-    { label: "Dashboard", href: "/service-delivery/dashboard" },
-    { label: "Engagements", href: "/service-delivery/engagements" },
-    { label: "Messages", href: "/service-delivery/messages" },
-    { label: "Pentesters", href: "/service-delivery/pentesters" },
-    { label: "Audit Logs", href: "/service-delivery/audit" },
+    { label: "Dashboard", href: "/service-delivery/dashboard" , kind: "link"},
+    { label: "Engagements", href: "/service-delivery/engagements", kind: "link" },
+    { label: "Messages", href: "/service-delivery/messages", kind: "link" },
+    { label: "Pentesters", href: "/service-delivery/pentesters" , kind: "link"},
+    { label: "Audit Logs", href: "/service-delivery/audit" , kind: "link"},
+    { label: "Logout", href: "/api/auth/logout", kind: "external"},
 ];
 
 export default function ServiceDeliverySidebar() {
@@ -53,29 +55,49 @@ export default function ServiceDeliverySidebar() {
                 />
             </div>
 
+            
+
             <ul className="topnav-list">
+                <li>
+                    <NotificationMenu />
+                </li>
                  {serviceDeliveryNavItems.map((item) => {
                     const isActive = pathName === item.href || pathName.startsWith(`${item.href}/`);
                     const badge = badges[item.label];
+
+                    if(item.kind === "external") { 
                     return (
                         <li key={item.href}>
-                            <Link
-                                href={item.href}
-                                className={isActive ? "nav-link nav-link-active" : "nav-link"}
-                            >
+                            <a href = {item.href} className="nav-link">
                                 {item.label}
-                                {!!badge&& (
-                                    <span className="float-right rounded-full bg-brand-blue px-1.5 py-0.5 text-[11px] font-semibold text-white">
-                                        {badge}
-                                    </span>
-                                )}
-                            </Link>
+                            </a>
                         </li>
                     );
-                })}
+                }
+                return (
+                    <li key={item.href}>
+                        <Link
+                            href={item.href}
+                            className={isActive ? "nav-link nav-link-active": "nav-link"}
+                        >
+                            {item.label}
+                            {!!badge && (
+                                <span className="float-right rounded-full bg-brand-blue px-1.5 py-0.5 text-[11px] font-semibold text-white">
+                                    {badge}
+                                </span>
+                            )}
+                        </Link>
+                    </li>
+                 );
+            })}
+
+
+
+
 
             </ul>
-            {/* <SidebarProfileFooter name="Maya Chen" role="Service Delivery" /> */}
+
+            
         </nav>
      );
 }

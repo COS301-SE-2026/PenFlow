@@ -77,7 +77,7 @@ export default function NotificationMenu() {
                     setOpen((current) => !current);
                     void refresh();
                 }}
-                className="flex w-full items-center rounded-lg px-3 py-2 text-left">
+                className="nav-link flex w-full items-center px-3 py-2 text-left">
 
                 <span className="relative inline-flex">
                     <Bell className="size-5" />

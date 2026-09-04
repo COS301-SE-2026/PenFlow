@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import NavBar from "@/components/NavBar";
-import { fetchScanHistory, getReportPdfUrl, formatDate } from "@/lib/scanService";
+import { fetchScanHistory, getReportPdfUrl, formatDate, sendReportEmail } from "@/lib/scanService";
 import type { ScanHistoryItem } from "@/lib/scanService";
 import Image from "next/image";
 import submarineImage from "@/app/images/images/submarine.png";
@@ -15,6 +15,16 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils"
 import Link from "next/link";
 
+const handleSendEmail = async (scanId: string) => {
+  const email = window.prompt("Send this report to which email address?"); 
+  if (!email || !email.trim()) return;
+  try {
+    await sendReportEmail(scanId, email.trim());
+    alert("Report sent.");
+  } catch (err) {
+    console.error(err);
+    alert("Failed to send report email");
+  };}
 
 const scanTypeLabel: Record<string, string> = {
     active_vulnerability: "Active Vulnerability Scan",
@@ -227,6 +237,14 @@ export default function HistoryPage() {
           >
             ↓ DOWNLOAD PDF
           </a>
+
+          <button
+            type="button"
+            className={`${styles.modalBtn} ${styles.modalBtnSend}`} 
+            onClick={() => handleSendEmail (modal.id)}
+            >
+                SEND EMAIL
+          </button>
 
         
         </div>
