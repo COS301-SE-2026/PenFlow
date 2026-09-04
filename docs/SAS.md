@@ -2034,3 +2034,484 @@ Submitting for review also starts report generation and notifies the Service Del
 - `422` invalid engagement ID.
 
 ---
+
+### 12: Service Delivery Service
+
+The Service Delivery Service manages engagement scoping, pentester assignment, scheduling, review, findings, re-tests and coms between clients and pentesters.
+
+All endpoints in this service require the `service_delivery` role.
+
+#### 12.1: List Engagements
+
+`GET /api/v1/service-delivery/engagements`
+
+Returns engagements available to Service Delivery.
+
+**Auth:** Service Delivery required.
+
+**Query:** optional `status`, `assessment_type`, `search`, `pentester_id`, `assigned`, `limit` (1-100, default 20), `offset` (default 0).
+
+**200 OK:** Returns engagement `items` and pagination information.
+
+Each item includes client details, engagement and assessment type, status, assigned Service Delivery user, assigned pentester, requested and scheduled dates, final quote and timestamps.
+
+**Errors:** 
+- `422` invalid query values.
+
+---
+
+#### 12.2: Get Engagement
+
+`GET /api/v1/service-delivery/engagements/{engagement_id}`
+
+Returns the full Service Delivery view of an engagement.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**200 OK:** Returns scope, objective, constraints, quote information, dates, client, assigned users, assets, finding summary and re-test summary.
+
+**Errors:** 
+- `404` engagement not found, 
+- `422` invalid engagement ID, 
+- `500` engagement client could not be loaded.
+
+---
+
+#### 12.3: Claim Engagement
+
+`POST /api/v1/service-delivery/engagements/{engagement_id}/claim`
+
+Claims a new engagement request for the authenticated Service Delivery user.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+Only engagements with status `requested` that have not already been claimed may be claimed.
+
+**200 OK:** Assigns the Service Delivery user and changes the engagement status to `scoping`.
+
+The client is notified that the engagement has been accepted for scoping.
+
+**Errors:** 
+- `404` engagement not found, 
+- `409` engagement cannot be claimed, 
+- `422` invalid engagement ID.
+
+---
+
+#### 12.4: Update Engagement Scoping
+
+`PATCH /api/v1/service-delivery/engagements/{engagement_id}/scoping`
+
+Updates the scoping information for an engagement owned by the Service Delivery user.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` (UUID) and one or more scoping fields.
+
+Available fields are `assessment_type`, `scope`, `objective`, `constraints`, `final_quote` and `estimated_duration_days`.
+
+The engagement must currently have status `scoping`.
+
+**200 OK:** Returns the updated engagement status and assignment information.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement not found, 
+- `409` engagement is not in scoping, 
+- `422` invalid fields or no scoping fields supplied.
+
+---
+
+#### 12.5: Assign Pentester
+
+`PUT /api/v1/service-delivery/engagements/{engagement_id}/pentester`
+
+Assigns a pentester to an engagement during scoping.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` and `pentester_id`.
+
+```json
+{
+    "pentester_id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb"
+}
+```
+
+The pentester must have an active profile, be available and support the engagement's assessment type.
+
+**200 OK:** Returns the updated engagement assignment and notifies the selected pentester.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement or pentester not found, 
+- `409` engagement is not in scoping or pentester is not eligible, 
+- `422` selected user is not a pentester.
+
+---
+
+#### 12.6: Schedule Engagement
+
+`POST /api/v1/service-delivery/engagements/{engagement_id}/schedule`
+
+Schedules a scoped engagement.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id`, `scheduled_start_date` and `scheduled_end_date`.
+
+```json
+{
+    "scheduled_start_date": "2026-09-10",
+    "scheduled_end_date": "2026-09-14"
+}
+```
+
+Before scheduling, the engagement must have an assigned eligible pentester, confirmed scope and final quote. The pentester must not have a scheduling conflict.
+
+**200 OK:** Changes the engagement status to `scheduled` and returns the scheduled dates and assignment information.
+
+The client and pentester are notified.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement or pentester not found, 
+- `409` scheduling requirements are not met or a schedule conflict exists, 
+- `422` invalid dates or start date is in the past.
+
+---
+
+#### 12.7: Reassign Pentester
+
+`POST /api/v1/service-delivery/engagements/{engagement_id}/reassign`
+
+Reassigns a scheduled engagement to another pentester.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id`, new `pentester_id` and `reason`.
+
+```json
+{
+    "pentester_id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
+    "reason": "Original pentester is no longer available."
+}
+```
+
+The new pentester must be available, support the assessment type and have no conflict with the existing schedule.
+
+**200 OK:** Updates the assigned pentester. The previous and new pentesters are notified.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement or pentester not found, 
+- `409` engagement cannot be reassigned or pentester is not eligible, 
+- `422` invalid request.
+
+---
+
+#### 12.8: Reschedule Engagement
+
+`POST /api/v1/service-delivery/engagements/{engagement_id}/reschedule`
+
+Changes the dates of a scheduled engagement.
+
+**Auth:** Service Delivery required.
+
+**Input:** new scheduled dates and a reason.
+
+```json
+{
+    "scheduled_start_date": "2026-09-15",
+    "scheduled_end_date": "2026-09-19",
+    "reason": "Client requested a new testing window."
+}
+```
+
+The engagement must be scheduled and the new dates must not conflict with the assigned pentester's other engagements.
+
+**200 OK:** Returns the updated schedule. The client and pentester are notified.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement not found, 
+- `409` engagement cannot be rescheduled or dates conflict, 
+- `422` invalid dates or start date is in the past.
+
+---
+
+#### 12.9: Return Engagement from Review
+
+`POST /api/v1/service-delivery/engagements/{engagement_id}/review/return`
+
+Returns an engagement to the pentester for further work.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` and `review_note`.
+
+```json
+{
+    "review_note": "Please add evidence and expand the recommendation for the high severity finding."
+}
+```
+
+The engagement must currently have status `review`.
+
+**200 OK:** Changes the status back to `in_progress`, records the reviewer and review note, and notifies the pentester.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement not found, 
+- `409` engagement is not in review or has no assigned pentester, 
+- `422` invalid review note.
+
+---
+
+#### 12.10: Complete Engagement Review
+
+`POST /api/v1/service-delivery/engagements/{engagement_id}/review/complete`
+
+Approves an engagement after Service Delivery review.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+The engagement must have status `review` and its latest report must have completed successfully.
+
+**200 OK:** Changes the engagement status to `completed` and records the reviewer, review time and completion time.
+
+The client and pentester are notified.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement not found, 
+- `409` engagement is not in review or the final report is not ready, 
+- `422` invalid engagement ID.
+
+---
+
+#### 12.11: Cancel Engagement
+
+`POST /api/v1/service-delivery/engagements/{engagement_id}/cancel`
+
+Cancels an engagement before it reaches review or completion.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` and cancellation `reason`.
+
+```json
+{
+    "reason": "Client cancelled the penetration test."
+}
+```
+
+Engagements may be cancelled while `requested`, `scoping`, `scheduled` or `in_progress`.
+
+**200 OK:** Changes the status to `cancelled` and notifies the client and assigned pentester where applicable.
+
+**Errors:** 
+- `403` engagement is assigned to another Service Delivery user, 
+- `404` engagement not found, 
+- `409` engagement can no longer be cancelled, 
+- `422` invalid reason.
+
+---
+
+#### 12.12: Get Service Delivery Dashboard
+
+`GET /api/v1/service-delivery/dashboard`
+
+Returns the information required by the Service Delivery dashboard.
+
+**Auth:** Service Delivery required.
+
+**200 OK:** Returns engagement counts for each status and dashboard lists for unclaimed requests, engagements awaiting review and upcoming scheduled engagements.
+
+`needs_attention` is calculated from engagements in `requested` or `review`.
+
+Each dashboard list returns up to five engagements.
+
+---
+
+#### 12.13: List Pentesters
+
+`GET /api/v1/service-delivery/pentesters`
+
+Returns pentesters available for assignment.
+
+**Auth:** Service Delivery required.
+
+**Query:** optional `search`, `assessment_type`, `availability_status`, `is_active`, `limit` (1-100, default 20), `offset` (default 0).
+
+**200 OK:** Returns pentester `items` and pagination information.
+
+Each pentester includes name, email, active state, availability, specialisations and current assigned engagement count.
+
+**Errors:** 
+- `422` invalid query values.
+
+---
+
+#### 12.14: Get Pentester Details
+
+`GET /api/v1/service-delivery/pentesters/{pentester_id}`
+
+Returns assignment and availability information for a pentester.
+
+**Auth:** Service Delivery required.
+
+**Input:** `pentester_id` (UUID path parameter)
+
+**200 OK:** Returns profile information, specialisations, availability and current scheduled, in-progress and total active engagement counts.
+
+**Errors:** 
+- `404` pentester or pentester profile not found, 
+- `422` invalid pentester ID.
+
+---
+
+#### 12.15: List Engagement Findings
+
+`GET /api/v1/service-delivery/engagements/{engagement_id}/findings`
+
+Returns findings for an engagement owned by the Service Delivery user.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**Query:** optional `severity`, `status`, `limit` (1-100, default 20), `offset` (default 0).
+
+Findings are available while the engagement is `in_progress`, `review` or `completed`.
+
+**200 OK:** Returns finding `items` and pagination information including severity, status, source, verification state, CVSS, CVE and asset information.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement not found, 
+- `409` findings are not available in the current engagement state, 
+- `422` invalid query values.
+
+---
+
+#### 12.16: Get Engagement Finding
+
+`GET /api/v1/service-delivery/engagements/{engagement_id}/findings/{finding_id}`
+
+Returns the full details of one engagement finding.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` and `finding_id` (UUID path parameters)
+
+**200 OK:** Returns the finding including asset, description, recommendation, severity, status, verification state, CVSS and CVE information.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement or finding not found, 
+- `409` findings are not available in the current engagement state, 
+- `422` invalid IDs.
+
+---
+
+#### 12.17: Download Finding Evidence
+
+`GET /api/v1/service-delivery/evidence/{evidence_id}/download`
+
+Downloads an evidence file attached to a finding.
+
+**Auth:** Service Delivery required.
+
+**Input:** `evidence_id` (UUID path parameter)
+
+The evidence must belong to a finding in an engagement accessible to the Service Delivery user.
+
+**200 OK:** Returns the evidence file using its stored file name and MIME type.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` evidence or stored file not found, 
+- `409` findings are not available for the engagement, 
+- `422` invalid evidence ID.
+
+---
+
+#### 12.18: List Engagement Re-tests
+
+`GET /api/v1/service-delivery/engagements/{engagement_id}/retests`
+
+Returns re-tests associated with a completed engagement.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+Re-tests are only available after the engagement has status `completed`.
+
+**200 OK:** Returns re-test items containing finding details, status, notes, assignment information and completion time.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement not found, 
+- `409` engagement is not completed, 
+- `422` invalid engagement ID.
+
+---
+
+#### 12.19: Get Re-test Details
+
+`GET /api/v1/service-delivery/retests/{retest_id}`
+
+Returns the details of one re-test.
+
+**Auth:** Service Delivery required.
+
+**Input:** `retest_id` (UUID path parameter)
+
+The associated engagement must belong to the Service Delivery user and be completed.
+
+**200 OK:** Returns the re-test, finding summary, status, notes, assignment information and completion time.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` re-test or engagement not found, 
+- `409` engagement is not completed, 
+- `422` invalid re-test ID.
+
+---
+
+#### 12.20: Get Service Delivery Messages
+
+`GET /api/v1/service-delivery/messages`
+
+Returns the authenticated Service Delivery user's engagement conversations.
+
+**Auth:** Service Delivery required.
+
+**200 OK:** Returns conversation items containing engagement information, communication channel, participant, latest message, total message count and unread count.
+
+---
+
+#### 12.21: Get Service Delivery Audit Activity
+
+`GET /api/v1/service-delivery/audit`
+
+Returns audit activity associated with the authenticated Service Delivery user.
+
+**Auth:** Service Delivery required.
+
+**Query:** `limit` (1-200, default 100), `offset` (default 0).
+
+**200 OK:** Returns activity items containing action, entity type, optional entity ID, actor, metadata and creation time.
+
+**Errors:** 
+- `422` invalid pagination values.
+
+---
