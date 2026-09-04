@@ -25,6 +25,7 @@ import type {
     PentesterListFilters,
     PentesterListResponse,
     ReassignEngagementRequest,
+    ReportResponse,
     RescheduleEngagementRequest,
     Retest,
     RetestListResponse,
@@ -256,4 +257,24 @@ export async function markConversationRead(engagementId: string, channel: Engage
 export async function listAuditActivity(filters: AuditListFilters = {}): Promise<ActivityListResponse> {
     const query = buildQuery({ limit: filters.limit, offset: filters.offset });
     return apiFetch(`/api/service-delivery/audit${query}`);
+}
+
+//GET /engagements/{engagement_id}/report
+export async function getEngagementReport(engagementId: string): Promise<ReportResponse> {
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}/report`);
+}
+
+//POST /engagements/{engagement_id}/report/retry 
+export async function retryEngagementReport(engagementId: string): Promise<ReportResponse> {
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}/report/retry`, { method: "POST" });
+}
+
+//GET /reports/{report_id}/download
+export async function downloadReport(reportId: string): Promise<Blob> {
+    const response = await fetch(`/api/service-delivery/reports/${reportId}/download`);
+    if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(typeof body?.detail === "string" ? body.detail : "Failed to download report.");
+    }
+    return response.blob();
 }

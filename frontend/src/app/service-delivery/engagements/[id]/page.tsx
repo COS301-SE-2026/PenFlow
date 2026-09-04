@@ -29,6 +29,9 @@ import {
     returnEngagementFromReview,
     scheduleEngagement,
     updateEngagementScoping,
+    getEngagementReport, 
+    downloadReport, 
+    retryEngagementReport,
 } from "@/lib/serviceDeliveryService";
 import type {
     Activity,
@@ -39,6 +42,7 @@ import type {
     FindingListItem,
     PentesterListItem,
     Retest,
+    ReportResponse,
 } from "@/lib/serviceDeliveryTypes";
 import {
     assessmentTypeLabels,
@@ -94,6 +98,9 @@ export default function EngagementDetailPage() {
     const [activeAction, setActiveAction] =useState<ActionKind>(null);
     const [inspectFinding,setInspectFinding] = useState < FindingDetail | null> (null);
     const [isReportViewOpen,setIsReportViewOpen] = useState(false);
+    const [report, setReport] = useState<ReportResponse | null>(null);
+    const [isDownloading, setIsDownloading] = useState(false);
+    const [isRetrying, setIsRetrying] = useState(false);
 
     const [scopeDraft, setScopeDraft] = useState("");
     const [quoteDraft, setQuoteDraft] = useState("");
@@ -108,15 +115,17 @@ export default function EngagementDetailPage() {
             .then(async (detail) =>{
                 setEngagement(detail);
                 const showFindings = ["in_progress", "review", "completed"].includes(detail.status);
-                const [findings, retestList , activityRes] = await Promise.all([
-                    showFindings? listEngagementFindings(params.id, { limit: 100}): Promise.resolve({ items: [] ,pagination: { total:0 , limit:0 , offset: 0, has_more: false}}),
+                const showReport = ["review", "completed"].includes(detail.status);
+                const [findings, retestList , activityRes, reportRes] = await Promise.all([
+                    showFindings? listEngagementFindings(params.id, { limit: 100 }) : Promise.resolve({ items: [] ,pagination: { total:0 , limit:0 , offset: 0, has_more: false}}),
                     detail.status === "completed" ? listEngagementRetests(params.id) :  Promise.resolve({ items: [] }),
                     listAuditActivity({ limit:200}),
+                    showReport ? getEngagementReport(params.id).catch(() => null) : Promise.resolve(null), 
                 ]);
                 setFindingsPreview(findings.items);
                 setRetests(retestList.items);
                 setActivity(activityRes.items.filter((a) => a.entity_id === params.id));
-
+                setReport(reportRes);
             })
             .catch(console.error)
             .finally(()=> setIsLoading(false));
@@ -184,8 +193,8 @@ const overview: [string, string][] = [
 
     async function downloadFindingEvidence(f: FindingListItem) {
         const detail = await getEngagementFinding(params.id, f.id);
+        if (detail.evidence_files && detail.evidence_files.length > 0) {
         const firstFile = detail.evidence_files[0];
-        if (firstFile){
             const blob = await downloadEvidence(firstFile.id,firstFile.file_name);
             downloadBlob(firstFile.file_name, blob)
             return;
@@ -196,6 +205,33 @@ const overview: [string, string][] = [
             \nSeverity: ${formatLabel(f.severity)}\nStatus: ${formatLabel(f.status)}
             \n\nNo evidence file is attached to this finding.`,
         );
+    }
+
+    async function handleDownloadReport() {
+        const reportIdToDownload = report?.id ?? report?.report_id;
+
+        if (!reportIdToDownload) return;
+        setIsDownloading(true);
+        try {
+            const blob = await downloadReport(reportIdToDownload);
+            downloadBlob(`${engagement?.title.replace(/\s+/g, "-").toLowerCase()}-report.pdf`, blob);
+        } catch (error) {
+            console.error("Failed to download report", error);
+        } finally {
+            setIsDownloading(false);
+        }
+    }
+
+    async function handleRetryReport() {
+        setIsRetrying(true);
+        try{
+            await retryEngagementReport(params.id); 
+            load();
+        } catch (error) { 
+            console.error("Failed to retry report", error);
+        } finally {
+            setIsRetrying(false);
+        }
     }
 
     return (
@@ -428,36 +464,54 @@ const overview: [string, string][] = [
                             <CardContent>
                                 <div className="mb-3 flex items-center justify-between">
                                     <h2 className="text-sm font-semibold text-brand-text">Final Report</h2>
-                                    <span className={cn(
-                                        "rounded-md border px-2 py-0.5 text-[10px] font-semibold",
-                                        engagement.status === "completed" ? "border-brand-success/40 bg-brand-success/10 text-brand-success" : "border-brand-panel-border bg-brand-panel-deep text-brand-text/70",
+                                    {report && (
+                                        <span className={cn(
+                                            "rounded-md border px-2 py-0.5 text-[10px] font-semibold",
+                                            report.status === "completed" ? "border-brand-success/40 bg-brand-success/10 text-brand-success" :
+                                            report.status === "failed" ? "border-red-500/40 bg-red-500/10 text-red-500" :
+                                            "border-brand-panel-border bg-brand-panel-deep text-brand-text/70",
                                     )}>
-                                        {engagement.status === "completed" ? "READY" : "GENERATING"}
+                                        {report.status.toUpperCase()}
                                     </span>
+                                    )}
                                 </div>
+
                                 <div className="rounded-md border border-brand-panel-border bg-brand-panel-deep p-3">
                                     <b className="text-sm text-brand-text">PenFlow Penetration Test Report</b>
                                     <p className="mt-1 text-sm text-brand-text/70">
-                                        {engagement.status === "completed"
-                                            ? "Generated from the submitted findings and evidence."
+                                        {report?.status === "completed"
+                                            ? `Generated successfully on ${formatDate(report.generated_at ?? report.created_at)}.`
+                                            : report?.status === "failed"
+                                            ? `Generation failed: ${report.error_message || "System error during PDF compilation"}`
                                             : "The final report finishes generating once the engagement is approved and completed."}
                                     </p>
-                                    <p className="mt-2 text-xs text-brand-text/70">
-                                        view and download not ready yet.
-                                    </p>
+
                                     <div className="mt-3 flex gap-2">
-                                        <Button variant="outline" size="sm" className={whiteOutlineButtonClass} onClick={() => setIsReportViewOpen(true)}>View Report</Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className={whiteOutlineButtonClass}
-                                            onClick={() => downloadTextFile(
-                                                `${engagement.title.replace(/\s+/g, "-").toLowerCase()}-report.txt`,
-                                                `PenFlow Penetration Test Report\n\nEngagement: ${engagement.title}\nClient: ${displayName(engagement.client)}\nFindings: ${engagement.finding_summary.total}\n\nThis is a mock report file for the Service Delivery prototype.`,
-                                            )}
-                                        >
-                                            Download PDF
-                                        </Button>
+                                        <Button variant="outline" size="sm" className={whiteOutlineButtonClass} onClick={() => setIsReportViewOpen(true)}>View Summary</Button>
+
+                                        {report?.status === "completed" && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className={whiteOutlineButtonClass}
+                                                onClick={handleDownloadReport}
+                                                disabled={isDownloading}
+                                            >
+                                                {isDownloading ? "Downloading..." : "Download PDF"}  
+                                            </Button>
+                                        )}
+
+                                        {report?.status === "failed" && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className={whiteOutlineButtonClass}
+                                                onClick={handleRetryReport}
+                                                disabled={isRetrying}
+                                            >
+                                                {isRetrying ? "Retrying..." : "Retry Generation"}
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             </CardContent>
@@ -539,7 +593,6 @@ const overview: [string, string][] = [
     </>    
     )
 
-    
 }
 
 // client info display in party cards
@@ -782,5 +835,3 @@ function FormActions({
         </div>
     );
 }
-
-

@@ -327,6 +327,23 @@ export interface Retest {
     completed_at?: string | null;
 }
 
+//ReportStatus
+export type ReportStatus = "pending" | "generating" | "completed" | "failed";
+
+export interface ReportResponse { 
+    id: string;
+    report_id?: string | null;
+    engagement_id?: string | null;
+    scan_id?: string | null; 
+    version: number;
+    task_id?: string | null; 
+    status: ReportStatus; 
+    pdf_path?: string | null; 
+    generated_at?: string | null;
+    created_at: string; 
+    error_message?: string | null;
+}
+
 //Service Delivery conversation list
 
 export interface ConversationParticipant {
