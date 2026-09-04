@@ -9,6 +9,7 @@ from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
+from app.repositories.pentester_profile_repository import PentesterProfileRepository
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.utils.db import get_db
 
@@ -212,6 +213,17 @@ async def require_pentester(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Pentester access required.",
+        )
+
+    profile = await PentesterProfileRepository.get_by_user_id(
+        db,
+        user_id=user.id,
+    )
+
+    if profile is None or not profile.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Pentester account is inactive.",
         )
 
     return user

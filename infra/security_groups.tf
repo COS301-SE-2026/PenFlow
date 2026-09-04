@@ -153,6 +153,14 @@ resource "aws_security_group" "rds" {
     security_groups = [aws_security_group.keycloak.id]
   }
 
+  ingress {
+    description     = "PostgreSQL from schedule worker"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.scheduler.id]
+  }
+
   egress {
     description = "Allow outbound traffic"
     from_port   = 0
@@ -166,3 +174,38 @@ resource "aws_security_group" "rds" {
   }
 }
 
+resource "aws_security_group" "email_worker" {
+  name        = "${local.name_prefix}-email-worker-sg"
+  description = "Security group for the email worker."
+  vpc_id      = aws_vpc.main.id
+
+  egress {
+    description = "Allow outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${local.name_prefix}-email-worker-sg"
+  }
+}
+
+resource "aws_security_group" "scheduler" {
+  name        = "${local.name_prefix}-scheduler-sg"
+  description = "Security group for Celery Beat and schedule worker"
+  vpc_id      = aws_vpc.main.id
+
+  egress {
+    description = "Allow outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${local.name_prefix}-scheduler-sg"
+  }
+}

@@ -2,7 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from app.services.email_service import send_report_email
+from app.services.email_service import EmailDeliveryError, send_report_email
 
 
 @patch("app.services.email_service.smtplib.SMTP")
@@ -18,7 +18,11 @@ def test_send_report_email_success(mock_smtp, tmp_path, monkeypatch):
 
     smtp_inst = MagicMock()
     mock_smtp.return_value.__enter__.return_value = smtp_inst
-    send_report_email("customer@test.com", "example.com", str(pdf))
+    send_report_email(
+        to_email="customer@test.com", 
+        domain="example.com", 
+        storage_ref=str(pdf),
+    )
 
     smtp_inst.starttls.assert_called_once()
     smtp_inst.login.assert_called_once_with("user", "password")
@@ -33,5 +37,9 @@ def test_send_report_email_missing_smtp_env(tmp_path, monkeypatch):
     monkeypatch.delenv("SMTP_USER", raising=False)
     monkeypatch.delenv("SMTP_PASSWORD", raising=False)
 
-    with pytest.raises(ValueError, match="SMTP environment variables are missing"):
-        send_report_email("customer@test.com", "example.com", str(pdf))
+    with pytest.raises(EmailDeliveryError, match="SMTP env variables are missing"):
+        send_report_email(
+            to_email="customer@test.com", 
+            domain="example.com", 
+            storage_ref=str(pdf),
+        )

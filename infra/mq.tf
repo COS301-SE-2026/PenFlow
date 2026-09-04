@@ -19,6 +19,22 @@ resource "aws_security_group" "rabbitmq" {
     security_groups = [aws_security_group.worker.id]
   }
 
+  ingress {
+    description     = "AMQPS from email workers"
+    from_port       = 5671
+    to_port         = 5671
+    protocol        = "tcp"
+    security_groups = [aws_security_group.email_worker.id]
+  }
+
+  ingress {
+    description     = "AMQPS from scheduler tasks"
+    from_port       = 5671
+    to_port         = 5671
+    protocol        = "tcp"
+    security_groups = [aws_security_group.scheduler.id]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0

@@ -32,6 +32,7 @@ from app.schemas.service_delivery import (
     ServiceDeliveryFindingDetail,
     ServiceDeliveryFindingListResponse,
     ServiceDeliveryPentesterAssignment,
+    ServiceDeliveryPentesterCreate,
     ServiceDeliveryPentesterDetail,
     ServiceDeliveryPentesterListResponse,
     ServiceDeliveryReassignRequest,
@@ -312,7 +313,6 @@ async def list_service_delivery_pentesters(
         offset=offset,
     )
 
-
 @router.get(
     "/pentesters/{pentester_id}",
     response_model=ServiceDeliveryPentesterDetail,
@@ -328,12 +328,41 @@ async def get_service_delivery_pentester(
         pentester_id=pentester_id,
     )
 
-#@router.post(
-#    "/pentesters",
-#    response_model=ServiceDeliveryPentesterDetail,
-#    status_code=status.HTTP_201_CREATED,
-#    summary="Create pentester",
-#)
+
+@router.post(
+    "/pentesters",
+    response_model=ServiceDeliveryPentesterDetail,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create pentester",
+)
+async def create_service_delivery_pentester(
+    request: ServiceDeliveryPentesterCreate,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_service_delivery),
+) -> ServiceDeliveryPentesterDetail:
+    return await ServiceDeliveryService.create_pentester(
+        db,
+        service_delivery_user_id=user.id,
+        request=request,
+    )
+
+
+@router.delete(
+        "/pentesters/{pentester_id}",
+        response_model=ServiceDeliveryPentesterDetail,
+        status_code=status.HTTP_200_OK,
+        summary="Deactivate a pentester",
+)
+async def deactivate_service_delivery_pentester(
+    pentester_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_service_delivery),
+) -> ServiceDeliveryPentesterDetail:
+    return await ServiceDeliveryService.deactivate_pentester(
+        db,
+        service_delivery_user_id=user.id,
+        pentester_id=pentester_id,
+    )
 
 @router.get(
     "/engagements/{engagement_id}/findings",

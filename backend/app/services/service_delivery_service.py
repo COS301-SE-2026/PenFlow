@@ -1,3 +1,4 @@
+import logging
 from datetime import date, datetime, timezone
 from uuid import UUID
 
@@ -21,6 +22,7 @@ from app.repositories.finding_repository import FindingRepository
 from app.repositories.pentester_profile_repository import PentesterProfileRepository
 from app.repositories.report_repository import get_latest_for_engagement
 from app.repositories.retest_repository import RetestRepository
+from app.repositories.user_repo import UserRepository
 from app.schemas.engagement import (
     ActivityItemResponse,
     ActivityListResponse,
@@ -51,6 +53,7 @@ from app.schemas.service_delivery import (
     ServiceDeliveryFindingListResponse,
     ServiceDeliveryFindingSummary,
     ServiceDeliveryPentesterAssignment,
+    ServiceDeliveryPentesterCreate,
     ServiceDeliveryPentesterDetail,
     ServiceDeliveryPentesterListItem,
     ServiceDeliveryPentesterListResponse,
@@ -61,8 +64,10 @@ from app.schemas.service_delivery import (
     ServiceDeliveryScheduleRequest,
     ServiceDeliveryScopingUpdate,
 )
+from app.services.keycloak_admin_service import KeycloakAdminError, KeycloakAdminService
 from app.services.notification_service import NotificationService
 
+logger = logging.getLogger(__name__)
 
 class ServiceDeliveryService:
 
@@ -2073,4 +2078,210 @@ class ServiceDeliveryService:
                     created_at=log.created_at,
                 ) for log in logs
             ]
+        )
+
+
+    @staticmethod
+    async def create_pentester(
+        db: AsyncSession,
+        service_delivery_user_id: UUID,
+        request: ServiceDeliveryPentesterCreate,
+    ) -> ServiceDeliveryPentesterDetail:
+        normalized_email = str(request.email).strip().lower()
+        normalized_name = request.full_name.strip()
+
+        existing_user = await UserRepository.get_by_email(
+            db,
+            email=normalized_email,
+        )
+
+        if existing_user is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A user with this email address already exists.",
+            )
+
+        keycloak = KeycloakAdminService()
+
+        try:
+            provider_user_id = await keycloak.create_pentester(
+                email=normalized_email,
+                full_name=normalized_name,
+            )
+
+        except KeycloakAdminError as err:
+            if err.status_code == status.HTTP_409_CONFLICT:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="A Keycloak user with this email address already exists.",
+                ) from err
+
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Unable to create the pentester account in Keycloak.",
+            ) from err
+
+        except RuntimeError:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Keycloak provisioning is not configured.",
+            )
+
+        try:
+            await keycloak.assign_pentester_role(provider_user_id)
+
+        except KeycloakAdminError:
+            try:
+                await keycloak.delete_user(provider_user_id)
+            except KeycloakAdminError:
+                logger.exception(
+                    "Failed to clean up Keycloak user %s.",
+                    provider_user_id,
+                )
+
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Unable to assign the pentester role in Keycloak.",
+            )
+
+        try:
+            pentester = await UserRepository.create_pentester(
+                db,
+                provider_id=provider_user_id,
+                email=normalized_email,
+                full_name=normalized_name,
+            )
+
+            profile = await PentesterProfileRepository.create_profile(
+                db,
+                user_id=pentester.id,
+                specialisations=request.specialisations,
+            )
+
+            pentester_id = pentester.id
+            pentester_email = pentester.email
+
+            specialisations = [
+                specialisation.value
+                for specialisation in profile.specialisations
+            ]
+
+            await AuditRepository.create_log(
+                db,
+                user_id=service_delivery_user_id,
+                action="pentester.created",
+                entity_type="user",
+                entity_id=pentester_id,
+                metadata={
+                    "email": pentester_email,
+                    "keycloak_user_id": provider_user_id,
+                    "specialisations": specialisations,
+                },
+            )
+
+        except Exception:
+            await db.rollback()
+
+            try:
+                await keycloak.delete_user(provider_user_id)
+
+            except KeycloakAdminError:
+                logger.exception(
+                    "Failed to clean up Keycloak user %s after DB failure.",
+                    provider_user_id,
+                )
+
+            raise
+
+        try:
+            await keycloak.send_activation_email(provider_user_id)
+
+        except KeycloakAdminError:
+            logger.exception(
+                "Pentester %s was created but activation email failed.",
+                pentester_id,
+            )
+
+        return await ServiceDeliveryService.get_pentester(
+            db,
+            pentester_id=pentester_id,
+        )
+
+
+    @staticmethod
+    async def deactivate_pentester(
+        db: AsyncSession,
+        service_delivery_user_id: UUID,
+        pentester_id: UUID,
+    ) -> ServiceDeliveryPentesterDetail:
+        pentester = await EngagementRepository.get_user_by_id(
+            db,
+            user_id=pentester_id,
+        )
+
+        if pentester is None or pentester.role != "pentester":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Pentester not found.",
+            )
+
+        profile = await PentesterProfileRepository.get_by_user_id(
+            db,
+            user_id=pentester.id,
+        )
+
+        if profile is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Pentester profile not found.",
+            )
+
+        pentester_id = pentester.id
+        pentester_email = pentester.email
+        provider_user_id = pentester.auth_provider_id
+
+        if profile.is_active:
+            profile.is_active = False
+            await db.commit()
+            await db.refresh(profile)
+
+        try:
+            keycloak = KeycloakAdminService()
+
+            await keycloak.disable_user(provider_user_id)
+
+        except KeycloakAdminError as err:
+            logger.exception(
+                "Pentester %s was deactivated locally but Keycloak disable failed.",
+                pentester_id,
+            )
+
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="The pentester was deactivated in PenFlow, " \
+                "but Keycloak could not be updated.",
+            ) from err
+
+        except RuntimeError as err:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="The pentester was deactivated in PenFlow, " \
+                "but Keycloak provisioning is not configured.",
+            ) from err
+
+        await AuditRepository.create_log(
+            db,
+            user_id=service_delivery_user_id,
+            action="pentester.deactivated",
+            entity_type="user",
+            entity_id=pentester_id,
+            metadata={
+                "email": pentester_email,
+                "keycloak_user_id": provider_user_id,
+            },
+        )
+
+        return await ServiceDeliveryService.get_pentester(
+            db,
+            pentester_id=pentester_id,
         )

@@ -19,4 +19,15 @@ smtp_port = 587
 smtp_user = "smtp-user"
 smtp_from = "noreply@example.com"
 
+email_from       = "notifications@example.com"
+ses_identity_arn = "arn:aws:ses:af-south-1:123456789012:identity/example.com"
+
+backend_desired_count      = 1
+frontend_desired_count     = 1
+worker_desired_count       = 1
+email_worker_desired_count = 1
+keycloak_desired_count     = 1
+schedule_worker_desired_count = 1
+celery_beat_desired_count     = 1
+
 # Secret values are not stored here. They are supplied to scripts/bootstrap-infra.sh through environment variables.

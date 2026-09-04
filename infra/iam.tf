@@ -43,7 +43,8 @@ data "aws_iam_policy_document" "ecs_execution_secrets" {
       aws_secretsmanager_secret.hibp_api_key.arn,
       aws_secretsmanager_secret.shodan_api_key.arn,
       aws_secretsmanager_secret.urlscan_api_key.arn,
-      aws_secretsmanager_secret.smtp_password.arn
+      aws_secretsmanager_secret.smtp_password.arn,
+      aws_secretsmanager_secret.keycloak_provisioner_client_secret.arn
     ]
   }
 }
@@ -90,6 +91,45 @@ resource "aws_iam_role" "keycloak_task" {
   }
 }
 
+
+resource "aws_iam_role" "email_worker_task" {
+  name               = "${local.name_prefix}-email-worker-task-role"
+  assume_role_policy = data.aws_iam_policy_document.ecs_task_assume_role.json
+
+  tags = {
+    Name = "${local.name_prefix}-email-worker-task-role"
+  }
+}
+
+data "aws_iam_policy_document" "email_worker" {
+  statement {
+    sid    = "SendEmail"
+    effect = "Allow"
+
+    actions = [
+      "ses:SendEmail",
+      "ses:SendRawEmail"
+    ]
+
+    resources = [
+      var.ses_identity_arn
+    ]
+  }
+
+  statement {
+    sid    = "ReadReports"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject"
+    ]
+
+    resources = [
+      "${aws_s3_bucket.reports.arn}/*"
+    ]
+  }
+}
+
 data "aws_iam_policy_document" "reports_s3" {
   statement {
     sid    = "ListReportsBucket"
@@ -130,4 +170,10 @@ resource "aws_iam_role_policy" "worker_reports_s3" {
   name   = "${local.name_prefix}-worker-reports-s3"
   role   = aws_iam_role.worker_task.id
   policy = data.aws_iam_policy_document.reports_s3.json
+}
+
+resource "aws_iam_role_policy" "email_worker" {
+  name   = "${local.name_prefix}-email-worker"
+  role   = aws_iam_role.email_worker_task.id
+  policy = data.aws_iam_policy_document.email_worker.json
 }

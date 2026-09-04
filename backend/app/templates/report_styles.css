@@ -850,3 +850,247 @@ ol {
     margin-top: 4px;
     color: var(--text);
 }
+
+.delta-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    margin-bottom: 14px;
+}
+
+.delta-baseline-reference {
+    max-width: 320px;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 8px;
+    text-align: right;
+}
+
+.delta-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 7px;
+    margin: 14px 0 20px;
+}
+
+.delta-summary-card {
+    padding: 10px 7px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--bluevision-blue);
+    border-radius: 5px;
+    text-align: center;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.delta-summary-card strong {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--bluevision-navy);
+    font-size: 16px;
+    line-height: 1;
+}
+
+.delta-summary-card span {
+    color: var(--text-muted);
+    font-size: 7px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.delta-baseline {
+    border-top-color: var(--bluevision-blue);
+}
+
+.delta-new {
+    border-top-color: var(--bluevision-red);
+}
+
+.delta-resolved {
+    border-top-color: var(--success);
+}
+
+.delta-changed {
+    border-top-color: var(--medium);
+}
+
+.delta-unchanged {
+    border-top-color: var(--info);
+}
+
+.delta-not-evaluated {
+    border-top-color: var(--medium);
+}
+
+.delta-baseline-notice,
+.delta-coverage-warning,
+.delta-no-change {
+    margin: 12px 0;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--bluevision-blue);
+    border-radius: 5px;
+    background: var(--surface);
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.delta-baseline-notice {
+    background: #F4F8FD;
+    border-left-color: var(--bluevision-blue);
+}
+
+.delta-coverage-warning {
+    background: #FFF9EA;
+    border-left-color: var(--medium);
+}
+
+.delta-no-change {
+    background: #F3F9F5;
+    border-left-color: var(--success);
+}
+
+.delta-baseline-notice strong,
+.delta-coverage-warning strong,
+.delta-no-change strong {
+    color: var(--bluevision-navy);
+    font-size: 10px;
+}
+
+.delta-baseline-notice p,
+.delta-coverage-warning p,
+.delta-no-change p {
+    margin: 4px 0 0;
+    color: var(--text-muted);
+    font-size: 8px;
+    line-height: 1.5;
+}
+
+.delta-table-title {
+    margin: 20px 0 8px;
+    color: var(--bluevision-navy);
+    font-size: 12px;
+    line-height: 1.3;
+    break-after: avoid;
+    page-break-after: avoid;
+}
+
+.delta-table {
+    width: 100%;
+    margin-top: 7px;
+    margin-bottom: 16px;
+    border-collapse: collapse;
+    font-size: 8.4px;
+}
+
+.delta-table thead {
+    display: table-header-group;
+}
+
+.delta-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+
+.delta-table th,
+.delta-table td {
+    padding: 7px;
+    vertical-align: top;
+    text-align: left;
+}
+
+.delta-table th {
+    background: var(--bluevision-navy);
+    border: 1px solid var(--bluevision-navy);
+    color: var(--background);
+    font-size: 7px;
+    font-weight: bold;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+.delta-table td {
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+.delta-table tbody tr:nth-child(even) {
+    background: var(--surface);
+}
+
+.delta-table td strong {
+    color: var(--text);
+}
+
+.delta-reference {
+    display: block;
+    margin-top: 3px;
+    color: var(--bluevision-blue);
+    font-family: monospace;
+    font-size: 7px;
+    font-weight: bold;
+}
+
+.delta-label,
+.delta-severity {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: 7px;
+    font-weight: bold;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+.delta-label {
+    margin-left: 6px;
+    vertical-align: middle;
+    text-transform: uppercase;
+}
+
+.delta-label-new {
+    color: var(--critical);
+    background: #FDECEC;
+}
+
+.delta-label-resolved {
+    color: var(--success);
+    background: #EAF5EE;
+}
+
+.delta-label-changed {
+    color: #8F5F00;
+    background: #FFF4DB;
+}
+
+.delta-label-unchanged {
+    color: var(--info);
+    background: #EEF0F3;
+}
+
+.delta-severity-critical {
+    color: var(--critical);
+    background: #FCEAEA;
+}
+
+.delta-severity-high {
+    color: var(--high);
+    background: #FDECEC;
+}
+
+.delta-severity-medium {
+    color: var(--medium);
+    background: #FFF4DB;
+}
+
+.delta-severity-low {
+    color: var(--low);
+    background: #EAF1FA;
+}
+
+.delta-severity-info {
+    color: var(--info);
+    background: #EEF0F3;
+}

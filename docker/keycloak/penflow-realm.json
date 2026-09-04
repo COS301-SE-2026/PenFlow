@@ -15,8 +15,8 @@
   "roles": {
     "realm": [
       {
-        "name": "user",
-        "description": "Standard PenFlow user"
+        "name": "client",
+        "description": "Standard PenFlow client"
       },
       {
         "name": "pentester",
@@ -25,6 +25,10 @@
       {
         "name": "admin",
         "description": "PenFlow administrator"
+      },
+      {
+        "name": "service_delivery",
+        "description": "Penflow service delivery"
       }
     ]
   },

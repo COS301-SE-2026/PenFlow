@@ -1,11 +1,14 @@
 from typing import Any
 from uuid import UUID
 
+import logging
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.base import NotificationType
 from app.models.notification import Notification
+from app.models.user import User
 from app.repositories.notification_repository import NotificationRepository
 from app.schemas.engagement import EngagementPagination
 from app.schemas.notification import (
@@ -13,7 +16,22 @@ from app.schemas.notification import (
     NotificationListResponse,
     NotificationResponse,
 )
+from app.tasks.email_tasks import send_email_task
 
+EMAIL_NOTIFICATION_TYPES = {
+    NotificationType.ENGAGEMENT_CLAIMED,
+    NotificationType.ENGAGEMENT_ASSIGNED,
+    NotificationType.ENGAGEMENT_SCHEDULED,
+    NotificationType.ENGAGEMENT_REASSIGNED,
+    NotificationType.ENGAGEMENT_RESCHEDULED,
+    NotificationType.ENGAGEMENT_REVIEW_REQUIRED,
+    NotificationType.ENGAGEMENT_REVIEW_RETURNED,
+    NotificationType.ENGAGEMENT_STARTED,
+    NotificationType.ENGAGEMENT_COMPLETED,
+    NotificationType.ENGAGEMENT_CANCELLED,
+}
+
+logger = logging.getLogger(__name__)
 
 class NotificationService:
 
@@ -137,7 +155,7 @@ class NotificationService:
         if actor_id is not None and recipient_id == actor_id:
             return None
 
-        return await NotificationRepository.create_notification(
+        notification = await NotificationRepository.create_notification(
             db,
             user_id=recipient_id,
             notification_type=notification_type,
@@ -146,3 +164,28 @@ class NotificationService:
             engagement_id=engagement_id,
             metadata=metadata or {},
         )
+
+        if notification_type in EMAIL_NOTIFICATION_TYPES:
+            recipient = await db.get(User, recipient_id)
+
+            if recipient is not None and recipient.email:
+                try:
+                    send_email_task.apply_async(
+                        kwargs={
+                            "to_email": recipient.email,
+                            "subject": title,
+                            "text_body": message,
+                        },
+                        queue="email",
+                    )
+                except Exception:
+                    logger.exception(
+                        "Failed to queue notification email for notification %s",
+                        notification.id
+                    )
+
+        return notification
+
+
+    
+    

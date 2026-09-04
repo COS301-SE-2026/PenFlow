@@ -56,7 +56,7 @@ try {
         console.error("[auth] callback failed: ", err);
 
         const resp = NextResponse.redirect(
-            new URL("/?auth_error=1", req.url),
+            new URL("/?auth_error=1", APP_URL),
         );
 
         resp.cookies.delete("oauth_state");

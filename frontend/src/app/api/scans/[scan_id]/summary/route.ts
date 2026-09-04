@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { isValidScanId, proxyToScansApi } from "@/lib/scansBackend";
+import { isValidScanId, proxyToPublicScansApi } from "@/lib/scansBackend";
 
 export async function GET(
     _req: Request,
@@ -9,5 +9,5 @@ export async function GET(
     if (!isValidScanId(scan_id)) {
         return NextResponse.json({ detail: "Invalid scan id" }, { status: 400 });
     }
-    return proxyToScansApi(`/${scan_id}/summary`);
+    return proxyToPublicScansApi(`/${scan_id}/summary`);
 }
