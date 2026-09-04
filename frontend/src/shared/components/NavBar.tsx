@@ -26,16 +26,17 @@ type NavItem =
 
    const pentestingNavItems: NavItem[] = [
     {label: "Home", href: "/", kind: "link"},
+    { label: "Engagements Request", href: "/engagement_request", kind: "link"},
     {label: "Live Engagement", href: "/pentesting/engagement", kind: "link"},
-    { label: "Help", kind: "help"},
+    //{ label: "Help", kind: "help"},
     { label: "Logout", href: "/api/auth/logout", kind: "external"},
   ]
 
   const pentesterConsoleNavItems: NavItem[] = [
-    { label: "Home", href: "/", kind: "link"},
+    //{ label: "Home", href: "/", kind: "link"},
     { label: "My Engagements", href: "/pentesting/console/my-engagements", kind: "link"},
     { label: "Messages", href: "/pentesting/console/messages", kind: "link"},
-    { label: "Help", kind: "help"},
+    //{ label: "Help", kind: "help"},
     { label: "Logout", href: "/api/auth/logout", kind: "external"},
   ]
 
@@ -48,23 +49,25 @@ export default function NavBar() {
   const HelpTopics = getHelpTopics(pathName);
   const [activeTopic, setActiveTopic] = useState<HelpTopic | null>(null);
   const isPentester = role === "pentester";
+  const isServiceDelivery = role === "service_delivery";
 
   const loggedInNavItems: NavItem[] = [
     { label: "Home", href: "/", kind: "link"},
     //{ label: "Dashboard", href: "/dashboard", kind: "link"},
     { label: "Domains", href: "/domains", kind: "link"},
     { label: "Scans", href: "/phase2_scan", kind: "link"},
-    { label: "Engagements Request", href: "/engagement_request", kind: "link"},
+   
     //{ label: "Scheduled Scans", href: "/scheduled-scans", kind: "link"},
     { label: "Scan History", href: "/history", kind: "link"},
     //{ label: "Settings", href: "/settings", kind: "link"},
-    { label: "Help", kind: "help"},
     { label: "Pentesting", href: isPentester ? "/pentesting/console/my-engagements": "/pentesting/engagement", kind: "link"},
-    { label: "Service Delivery", href: "/service-delivery/dashboard", kind: "link"},
+    { label: "Help", kind: "help"},
+    
+    ...(isServiceDelivery ?  [{ label: "Service Delivery", href: "/service-delivery/dashboard", kind: "link" as const}] : []),
     { label: "Logout", href: "/api/auth/logout", kind: "external"},
   ];
 
-const navItems = pathName.startsWith("/pentesting") ? (isPentester ? pentesterConsoleNavItems : pentestingNavItems): loggedInNavItems;
+const navItems = pathName.startsWith("/pentesting") || pathName.startsWith("/engagement_request") ? (isPentester ? pentesterConsoleNavItems: pentestingNavItems): loggedInNavItems;
 
   useEffect(() => {
     const loggedInNow = isLoggedIn();
