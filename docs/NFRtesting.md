@@ -115,7 +115,7 @@
  
 **Evidence:**
  
-![QR-07 ZAP scan result](proof/zap_scan.png)
+![QR-07 ZAP scan result](proof/owasp_zap.png)
  
  
 **Result:** **2 medium+ alerts found** against a target of 0 - . Alerts not yet triaged/fixed.
