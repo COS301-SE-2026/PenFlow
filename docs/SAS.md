@@ -2515,3 +2515,251 @@ Returns audit activity associated with the authenticated Service Delivery user.
 - `422` invalid pagination values.
 
 ---
+
+# PenFlow - NFR Testing
+ 
+---
+ 
+## Performance
+ 
+### QR-01 - API response time under normal load
+ 
+**Objective:** Validate that API response times stay within target under normal load.
+ 
+**Tool used:** k6
+ 
+**Test performed:** `tests/k6/load_test.js`, `performance` scenario - 10 constant virtual users hitting `GET /api/v1/health` for 30s against `https://pen-flow.com`.
+ 
+**Evidence:**
+ 
+![QR-01 load test result](proof/load.png)
+ 
+**Result:** p(95) response time **208.23ms** against a target of <2s - **passes**.
+ 
+---
+ 
+### QR-02 - Phase 1 CTEM scan completion time
+ 
+**Objective:** Validate that the Phase 1 CTEM scan completes within target, bounded by the slowest single OSINT lookup.
+ 
+**Tool used:** k6
+ 
+**Test performed:** `tests/k6/phase1_scan_completion_test.js` - 10 sequential Phase 1 CTEM scans triggered and polled to completion.
+ 
+**Evidence:**
+ 
+![QR-02 Phase 1 scan completion result](proof/phases1scan.png)
+ 
+**Result:** p(90) completion time **34.09s** against a target of <60s - **passes**. All 10 runs returned `"partial"` status rather than `"completed"` (at least one OSINT source failed/rate-limited during each run - expected graceful-degradation behavior, not a defect).
+ 
+---
+ 
+### QR-03 - Phase 2 active vulnerability scan completion time
+ 
+**Objective:** Validate that the Phase 2 active scan completes within target, bounded by the sequential worker pipeline.
+ 
+**Tool used:** k6
+ 
+**Test performed:** `tests/k6/phase2_scan_completion_test.js` - Phase 2 scan triggered and polled to completion.
+ 
+**Evidence:**
+ 
+![QR-03 Phase 2 scan completion result](proof/phase2scan.png)
+ 
+**Result:** p(90) completion time **25.1s** against a target of <30s - **passes**.
+ 
+---
+ 
+## Scalability
+ 
+### QR-04 - System stability at 100 concurrent users
+ 
+**Objective:** Validate that the system remains stable as concurrent users ramp up to 100.
+ 
+**Tool used:** k6
+ 
+**Test performed:** `tests/k6/load_test.js`, `scalability` scenario - ramping virtual users from 0 to 100 over 3 stages (30s up / 1m sustained / 30s down) against `GET /api/v1/health`.
+ 
+**Evidence:**
+ 
+![QR-04 scalability test result](proof/Load+scalibiltytest.png)
+ 
+**Result:** Error rate at peak load **0.00%** (0 failed out of 108,264 requests, up to 110 VUs) against a target of <50% degradation vs. baseline - thresholds held under load. **Caveat:** this run does not isolate a clean baseline measurement to compute degradation against (the `performance` and `scalability` scenarios executed concurrently), so the "<50% degradation vs. baseline" figure is not yet directly measured. This run also only proves the **API/HTTP layer** stays responsive (`GET /api/v1/health` never touches RabbitMQ/Celery) - it does not yet demonstrate the "horizontal worker scaling + queue-based load leveling" tactic, which would need a scenario against `POST /api/v1/scans/` with the rate limiter temporarily raised for the test.
+ 
+---
+ 
+## Reliability
+ 
+### QR-05 - Crash rate on third-party OSINT API failure
+ 
+**Objective:** Validate that the system recovers from third-party OSINT API failure without crashing.
+ 
+**Tool used:** k6
+ 
+**Test performed:** `tests/k6/phase1_scan_completion_test.js` (same run used for QR-02) - crash rate measured as the proportion of triggered scans that returned an unhandled error rather than a terminal status (`completed`/`partial`/`failed`). A dedicated script, `tests/k6/reliability_crash_rate_test.js`, also exists for this QR specifically (explicit crash-rate threshold rather than reading it off console logs).
+ 
+**Evidence:**
+ 
+![QR-05 reliability test result](proof/scan_crash.png)
+ 
+**Result:** **0% crash rate (0/10)** against a target of <1% - **passes**. Every scan reached a terminal status; no unhandled errors. 10/10 runs returned `"partial"` status, consistent with expected graceful degradation under real OSINT conditions.
+ 
+---
+ 
+### QR-06 - Availability / uptime
+ 
+**Objective:** Validate that the system maintains target uptime.
+ 
+**Tool used:** UptimeRobot
+ 
+**Test performed:**  UptimeRobot monitor configured against the deployed system.
+ 
+**Evidence:** 
+![QR-06 uptime](proof/uptimerobot.png)
+ 
+**Result:** Target ≥99% / 99%.
+ 
+---
+ 
+## Security
+ 
+### QR-07 - Medium+ risk alerts on staging
+ 
+**Objective:** Validate that the system has no medium-or-above vulnerabilities, and that sensitive data is encrypted at rest.
+ 
+**Tool used:** OWASP ZAP
+ 
+**Test performed:** OWASP ZAP automated vulnerability scan against staging.
+ 
+**Evidence:**
+ 
+![QR-07 ZAP scan result](proof/zap_scan.png)
+ 
+ 
+**Result:** **2 medium+ alerts found** against a target of 0 - . Alerts not yet triaged/fixed.
+ 
+---
+ 
+### QR-08 - Auth enforcement (401 / 404)
+ 
+**Objective:** Validate that unauthenticated and cross-user requests are correctly rejected.
+ 
+**Tool used:** k6
+ 
+**Test performed:** `tests/k6/security_test.js` - checks an unauthenticated request to `GET /api/v1/domains` returns 401, and that an anonymous request for another user's scan status returns 404 (not 403 - ownership is enforced by a user_id-scoped lookup, not an explicit role check).
+ 
+**Evidence:**
+ 
+![QR-08 auth enforcement test result](proof/security.png)
+ 
+**Result:** 401 **confirmed**, 0 secrets leaked in the response body. 404 cross-user check still **pending** - needs a real `AUTH_TOKEN` to create an owned scan first (see script comments).
+ 
+---
+ 
+### QR-09 - Secret exposure / rate limiting
+ 
+**Objective:** Validate that no sensitive data is exposed in API responses, and that scan submission is rate-limited per IP.
+ 
+**Tool used:** k6
+ 
+**Test performed:** `tests/k6/security_test.js` - checks that the 4th `POST /api/v1/scans/` from the same IP within 10 minutes returns 429, and that none of the tested responses leak secrets/credentials/stack traces.
+ 
+**Evidence:**
+ 
+![QR-09 rate limiting test result](proof/security.png)
+ 
+ 
+**Result:** **Confirmed** - 4th `POST /api/v1/scans/` from the same IP returned 429, no secrets leaked in the response body.
+ 
+---
+ 
+## Maintainability
+ 
+### QR-10 - Zero lint errors on merged PRs
+ 
+**Objective:** Validate that merged code passes static analysis with zero linting errors.
+ 
+**Tool used:** ESLint (frontend) / ruff (backend + workers)
+ 
+**Test performed:** `pnpm lint` - runs frontend ESLint and backend/workers ruff.
+ 
+**Evidence:**
+ 
+![QR-10 lint result](proof/lint.png)
+ 
+ 
+**Result:** **0 errors** - `pnpm lint` passes clean. Some non-blocking `react-hooks/exhaustive-deps` warnings remain, but 0 errors.
+ 
+---
+ 
+### QR-11 - Test coverage threshold
+ 
+**Objective:** Validate that backend and worker modules meet the automated test coverage target.
+ 
+**Tool used:** pytest-cov
+ 
+**Test performed:** `pytest` with coverage (`backend/pytest.ini`, `workers/pytest.ini`), run across backend + workers, unit + integration, merged via Codecov.
+ 
+**Evidence:**
+ 
+![QR-11 coverage result](proof/coverage.png)
+ 
+**Result:** **64.5%** combined backend + workers coverage against a target of ≥80% - .
+ 
+---
+ 
+## Usability
+ 
+### QR-12 - Accessibility score
+ 
+**Objective:** Validate that primary user-facing pages are accessible.
+ 
+**Tool used:** Google Lighthouse
+ 
+**Test performed:** Lighthouse accessibility audit against the primary user-facing pages (dashboard, scan results).
+ 
+**Evidence:**
+ 
+![QR-12 Lighthouse result](proof/googelighthouse.png)
+ 
+**Result:** **≥80** against a target of ≥80 - **passes**.
+
+
+# PenFlow - NFR Traceability Matrix
+ 
+## Performance (tool: k6)
+| ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
+|----|------------------------|---------------|-------------|------------------|
+| QR-01 | P95 API response time under 2 seconds for  REST endpoints under normal load | Asynchronous task execution + fast acknowledgement (4.2 Performance) | k6 | <2s / 208.23ms (p95)  |
+| QR-02 | Phase 1 CTEM scan completes within 60 seconds for 90% of requests, bounded by slowest single OSINT lookup | Asynchronous aggregation of parallel OSINT providers (1, 4.2) | k6 | <60s / 34.09s (p90); all 10 runs returned "partial" status |
+| QR-03 | Phase 2 active vulnerability scan completes within 30 seconds for 90% of requests, bounded by the sequential worker pipeline rather than a single lookup | Asynchronous task execution + fast acknowledgement (4.2 Performance); pipelined active-scan workers, dependent stages (5.4 Worker Pipeline Architecture, 7.5 Worker Pipeline Constraints) | k6 | <30s / 25.1s (p90)  |
+ 
+## Scalability (tool: k6)
+| ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
+|----|------------------------|---------------|-------------|------------------|
+| QR-04 | System remains stable at 100 concurrent users; response time degradation <50% under peak load vs. baseline | Horizontal scaling of workers + queue-based load leveling via RabbitMQ (4.1 Scalability) | k6 | <50% degradation / 0.00% error rate at up to 110 VUs  (degradation vs. isolated baseline not yet measured) |
+ 
+## Reliability (tool: k6, UptimeRobot)
+| ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
+|----|------------------------|---------------|-------------|------------------|
+| QR-05 | System recovers from third-party OSINT API failure and compiles partial report; <1% crash rate | Partial failure tolerance + retry with bounded calls (4.3 Reliability) | k6 | <1% crash rate / 0% crash rate (0/10); 10/10 runs returned "partial" - graceful degradation observed under real OSINT conditions |
+| QR-06 | Availability  achieve 99% uptime | Independent ECS deployment + ALB health checks + auto-replacement (4.3 Reliability) | UptimeRobot | ≥99% / TBD |
+ 
+## Security (tool: OWASP ZAP + k6)
+| ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
+|----|------------------------|---------------|-------------|------------------|
+| QR-07 | No medium risk alerts on staging from automated vulnerability scanning; passwords and sensitive scan data encrypted at rest | Transport security (HTTPS/TLS) + information hiding (4.5 Security) | OWASP ZAP | 0 medium+ / 2 |
+| QR-08 | Unauthenticated requests return 401; cross-user requests return 404 (ownership is enforced via a user_id-scoped lookup, not an explicit 403 check) | JWT-based auth (Keycloak) with RBAC + isolated, short-lived worker containers destroyed on completion (4.5 Security, 1 Phase 2) | k6 | 401 / 404 / 401 confirmed, 0 secrets leaked; 404 cross-user check pending (needs AUTH_TOKEN) |
+| QR-09 | No sensitive data (API keys, credentials) exposed in API responses or logs; rate limiter returns 429 on 4th scan submission from same IP within 10 minutes | AWS Secrets Manager + information hiding (4.5 Security) + IP-based rate limiting (7.3 Regulatory/Ethical Constraints) | k6 | 0 exposures / 429 confirmed, 0 secrets leaked |
+ 
+## Maintainability (tool: ESLint / ruff)
+| ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
+|----|------------------------|---------------|-------------|------------------|
+| QR-10 | 100% of merged PRs pass static code analysis with zero linting errors | Established coding standards + CI quality gates (4.4 Maintainability & Evolvability) | ESLint / ruff | 0 errors / 0errors |
+| QR-11 | Backend services and worker modules maintain ≥80% automated test coverage | CI coverage gate (4.4 Maintainability & Evolvability) | pytest-cov | ≥80% / 64.5% |
+ 
+## Usability (tool: Google Lighthouse)
+| ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
+|----|------------------------|---------------|-------------|------------------|
+| QR-12 | Primary user-facing pages (dashboard, scan results) achieve a Lighthouse accessibility score of at least 80 | Not covered by SAS  | Google Lighthouse | >80 / >=80% |
+
