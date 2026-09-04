@@ -97,10 +97,7 @@ export default function EngagementDetailPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [activeAction, setActiveAction] =useState<ActionKind>(null);
     const [inspectFinding,setInspectFinding] = useState < FindingDetail | null> (null);
-    const [isReportViewOpen,setIsReportViewOpen] = useState(false);
-    const [report, setReport] = useState<ReportResponse | null>(null);
-    const [isDownloading, setIsDownloading] = useState(false);
-    const [isRetrying, setIsRetrying] = useState(false);
+    
 
     const [scopeDraft, setScopeDraft] = useState("");
     const [quoteDraft, setQuoteDraft] = useState("");
@@ -108,6 +105,8 @@ export default function EngagementDetailPage() {
     const [reasonDraft,setReasonDraft] = useState("");
     const [startDraft ,setStartDraft] = useState("");
     const [endDraft, setEndDraft] = useState("");
+
+    const [toast, setToast] = useState<{message: string; type: "success" | "error"} | null>(null);
 
     const load = useCallback(() => {
         setIsLoading(true);
@@ -160,10 +159,21 @@ function closeAction() {
         setEndDraft("");
 }
 
-async function runAndReload(action: Promise<EngagementActionResponse | null>) {
-    await action;
-    load();
-    closeAction();
+function notify(message: string, type: "success" | "error" = "success") {
+    setToast({message, type});
+    setTimeout(() => setToast(null), 2500);
+}
+
+async function runAndReload(action: Promise<EngagementActionResponse | null>) { 
+    try {
+        await action;
+        load();
+        closeAction();
+        notify("Action completed successfully.");
+    } catch (err) {
+        console.error(err);
+        notify(err instanceof Error ? err.message: "Action failed.", "error");
+    }
 }
 
 const overview: [string, string][] = [
@@ -180,7 +190,7 @@ const overview: [string, string][] = [
 
     const showFindings = ["in_progress","review","completed"].includes(engagement.status);
     const showRetests = engagement.status === "completed";
-    const showReport = ["review", "completed"].includes(engagement.status);
+    
     const previewFindings = [...findingsPreview]
     .sort((a, b) => SERVERITY_ORDER[a.severity] - SERVERITY_ORDER[b.severity])
     .slice(0, 5);
@@ -258,9 +268,11 @@ const overview: [string, string][] = [
                 <h2 className="mb-3 text-sm font-semibold text-brand-text">Coordination</h2>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                     <PartyCard kicker="Client" name={displayName(engagement.client)} meta={engagement.client.email ?? "-"}>
+                        {engagement.status !== "requested" && (
                          <Link href={`/service-delivery/messages?engagement=${engagement.id}&channel=client_service_delivery`}>
                              <Button variant="outline" size="sm" className={whiteOutlineButtonClass}>Message Client</Button>
                          </Link>
+                        )}
                     </PartyCard>
                     <PartyCard kicker="Service Delivery" name={displayName(engagement.service_delivery, "Unclaimed")} meta={engagement.service_delivery ? "Owner of this engagement" : "Claim to take ownership"} />
                     <PartyCard
@@ -432,7 +444,7 @@ const overview: [string, string][] = [
                 </Card>
             )}
 
-            {(showRetests || showReport) && (
+            {showRetests  && (
                 <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
                     {showRetests && (
                         <Card className="border-brand-panel-border bg-brand-panel">
@@ -459,64 +471,7 @@ const overview: [string, string][] = [
                         </Card>
                     )}
 
-                    {showReport && (
-                        <Card className="border-brand-panel-border bg-brand-panel">
-                            <CardContent>
-                                <div className="mb-3 flex items-center justify-between">
-                                    <h2 className="text-sm font-semibold text-brand-text">Final Report</h2>
-                                    {report && (
-                                        <span className={cn(
-                                            "rounded-md border px-2 py-0.5 text-[10px] font-semibold",
-                                            report.status === "completed" ? "border-brand-success/40 bg-brand-success/10 text-brand-success" :
-                                            report.status === "failed" ? "border-red-500/40 bg-red-500/10 text-red-500" :
-                                            "border-brand-panel-border bg-brand-panel-deep text-brand-text/70",
-                                    )}>
-                                        {report.status.toUpperCase()}
-                                    </span>
-                                    )}
-                                </div>
-
-                                <div className="rounded-md border border-brand-panel-border bg-brand-panel-deep p-3">
-                                    <b className="text-sm text-brand-text">PenFlow Penetration Test Report</b>
-                                    <p className="mt-1 text-sm text-brand-text/70">
-                                        {report?.status === "completed"
-                                            ? `Generated successfully on ${formatDate(report.generated_at ?? report.created_at)}.`
-                                            : report?.status === "failed"
-                                            ? `Generation failed: ${report.error_message || "System error during PDF compilation"}`
-                                            : "The final report finishes generating once the engagement is approved and completed."}
-                                    </p>
-
-                                    <div className="mt-3 flex gap-2">
-                                        <Button variant="outline" size="sm" className={whiteOutlineButtonClass} onClick={() => setIsReportViewOpen(true)}>View Summary</Button>
-
-                                        {report?.status === "completed" && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className={whiteOutlineButtonClass}
-                                                onClick={handleDownloadReport}
-                                                disabled={isDownloading}
-                                            >
-                                                {isDownloading ? "Downloading..." : "Download PDF"}  
-                                            </Button>
-                                        )}
-
-                                        {report?.status === "failed" && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className={whiteOutlineButtonClass}
-                                                onClick={handleRetryReport}
-                                                disabled={isRetrying}
-                                            >
-                                                {isRetrying ? "Retrying..." : "Retry Generation"}
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    )}
+                    
                 </div>
             )}
 
@@ -575,21 +530,16 @@ const overview: [string, string][] = [
                 <FindingInspectModal finding={inspectFinding} onClose={() => setInspectFinding(null)} />
             )}
 
-            {isReportViewOpen && (
-                <ServiceDeliveryModal kicker="Final report" title="PenFlow Penetration Test Report" onClose={() => setIsReportViewOpen(false)}>
-                    <div className="mt-4 space-y-2 text-sm text-brand-text/90">
-                        <p><b className="text-brand-text">Engagement:</b> {engagement.title}</p>
-                        <p><b className="text-brand-text">Client:</b> {displayName(engagement.client)}</p>
-                        <p><b className="text-brand-text">Findings:</b> {engagement.finding_summary.total}</p>
-                        <p className="text-brand-text/70">
-                            This is a representative report preview for the Service Delivery prototype, generated from the submitted findings and evidence.
-                        </p>
-                    </div>
-                    <div className="mt-5 flex justify-end">
-                        <Button variant="outline" size="sm" className={whiteOutlineButtonClass} onClick={() => setIsReportViewOpen(false)}>Close</Button>
-                    </div>
-                </ServiceDeliveryModal>
+            
+        {toast && ( 
+            <div className={cn(
+                "fixed bottom-7 left-1/2 z-[90] -translate-x-1/2 rounded-lg border px-4 py-2.5 text-xs shadow-lg",
+                toast.type === "success" ? "border-brand-cyan/40 bg-brand-deep text-foreground" : "border-red-500/40 bg-red-950/80 text-red-200"
             )}
+        >
+            {toast.message}
+        </div>
+    )}
     </>    
     )
 
