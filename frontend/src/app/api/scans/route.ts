@@ -1,13 +1,13 @@
-import {proxyToScansApi} from "@/lib/scansBackend";
+import { proxyToPublicScansApi, proxyToScansApi } from "@/lib/scansBackend";
 export async function GET() {
     return proxyToScansApi("/");
 }
 
 export async function POST(req: Request) {
     const body = await req.text();
-    return proxyToScansApi("/", {
+    return proxyToPublicScansApi("/", {
         method: "POST",
-        headers: { "Content-Type": "application/json"},
+        headers: { "Content-Type": "application/json" },
         body,
     });
 }

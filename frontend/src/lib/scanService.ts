@@ -164,7 +164,7 @@ export async function fetchScanRiskHistory(scanId: string): Promise<RiskHistoryI
 }
 
 export async function postScanRequest(params: StartScanParams ): Promise<ScanStartResponse> {
-  const response = await authenticatedFetch(API_BASE, {
+  const response = await fetch(API_BASE, {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(params),
@@ -260,7 +260,7 @@ export async function fetchScanHistory(): Promise<ScanHistoryItem[]> {
 }
 
 export async function fetchScanSummary(scanId: string): Promise<ExecutiveSummary> {
-  const response = await authenticatedFetch(`/api/scans/${scanId}/summary`, {
+  const response = await fetch(`/api/scans/${scanId}/summary`, {
   });
   if (!response.ok) {
     const err = await response.json().catch(() => ({ detail: "Failed to load summary" }));
@@ -307,7 +307,7 @@ export interface RealTimeScanStatus {
 }
 
 export async function fetchScanStatus(scanId: string): Promise<RealTimeScanStatus> {
-  const response = await authenticatedFetch(`${API_BASE}/${scanId}/status`);
+  const response = await fetch(`${API_BASE}/${scanId}/status`);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({
@@ -347,7 +347,7 @@ export async function fetchScanMetrics(scanId: string): Promise<ScanMetrics> {
 }
 
 export async function sendReportEmail(scanId: string, email: string): Promise<void> {
-  const response = await authenticatedFetch(`${API_BASE}/${scanId}/email-report`, {
+  const response = await fetch(`${API_BASE}/${scanId}/email-report`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json" },

@@ -86,11 +86,17 @@ async def get_service_delivery_engagement_report(
         raise HTTPException(status_code=404, detail="Report not found for this engagement")
 
     return {
+        "id": report.id,
         "report_id": report.id, 
         "engagement_id": report.engagement_id, 
+        "scan_id": report.scan_id,
         "version": report.version, 
+        "task_id": report.task_id,
         "status": report.status.value if hasattr(report.status, "value") else report.status,
         "pdf_path": report.pdf_path,
+        "generated_at": report.generated_at,
+        "created_at": report.created_at,
+        "error_message":report.error_message
     }
 
 @router.get(
@@ -140,8 +146,16 @@ async def service_delivery_retry_report(
     )
 
     return {
-        "message": "Report generation task queued successfully", 
-        "engagement_id": str(engagement_id), 
-        "version": version,
+        "id":report.id,
+        "report_id": report.id,
+        "engagement_id": report.engagement_id,
+        "scan_id": report.scan_id, 
+        "version": report.version, 
+        "task_id": report.task_id, 
+        "status": report.status.value if hasattr(report.status, "value") else report.status,
+        "pdf_path": report.pdf_path, 
+        "generated_at": report.generated_at, 
+        "created_at": report.created_at, 
+        "error_message": report.error_message
     }
 

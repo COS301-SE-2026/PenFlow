@@ -16,6 +16,7 @@ from app.repositories.report_repository import (
     mark_report_generating,
     mark_report_task_queued,
 )
+from app.services.scan_delta_service import build_scan_delta
 from app.utils.phase2_report_context import build_phase2_report_context
 from app.utils.phase3_report_context import build_phase3_report_context
 from app.utils.report_context import build_report_context
@@ -84,6 +85,12 @@ async def queue_report_generation(db: AsyncSession, scan_id: str) -> dict[str, A
                 scan_sources=report_data["scan_sources"],
             )
 
+            if scan.schedule_id is not None:
+                context["delta"] = await build_scan_delta(
+                    db=db,
+                    current_scan_id=UUID(scan_id),
+                )
+
         else:
             raise ValueError(f"Unknown scan type: {scan.scan_type}")
 
@@ -135,6 +142,7 @@ async def queue_engagement_report_generation(
         task = celery_app.send_task(
             "engagement.render_report",
             args=[str(eng_uuid), version, html_content, str(output_path)],
+            queue="scans", routing_key="scans",
         )
 
         report.task_id = task.id 

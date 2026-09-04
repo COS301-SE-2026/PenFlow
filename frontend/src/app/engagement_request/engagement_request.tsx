@@ -114,8 +114,8 @@ function validateAssetValue(type: AssetType, value: string): string | null {
 }
 
 
-//control to have min 7 days for a request
-const MIN_ENGAGEMENT_DAYS = 7;
+//control to have min 3 days for a request
+const MIN_ENGAGEMENT_DAYS = 3;
 
 
 //local date restriction of no past input date
@@ -256,6 +256,7 @@ export default function EngagementHome() {
             </div>
 
             {submitted && (
+            <div className="fixed bottom-7 left-1/2 z-[90] -translate-x-1/2">
             <Card className = "border-brand-success/40 bg-brand-success/10">
                 <CardContent className="flex items-center gap-3 py-4">
                     <CheckCircle2 className="size-6 shrink-0 text-brand-success" />
@@ -268,6 +269,7 @@ export default function EngagementHome() {
                     </p>
                 </CardContent>
             </Card>
+            </div>
             
             )}
             {submitError && (

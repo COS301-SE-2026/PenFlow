@@ -25,6 +25,7 @@ import type {
     PentesterListFilters,
     PentesterListResponse,
     ReassignEngagementRequest,
+    ReportResponse,
     RescheduleEngagementRequest,
     Retest,
     RetestListResponse,
@@ -170,10 +171,27 @@ export async function getPentesterDetail(pentesterId:string): Promise<PentesterD
     return apiFetch(`/api/service-delivery/pentesters/${pentesterId}`);
 }
 
-//need implement
-//post /pentesters  backend still till need to be up
-export async function createPentester(_input: PentesterCreateRequest): Promise<PentesterDetail> {
-    throw new Error("create pentester not up yet");
+// DELETE /pentesters/{pentester_id}
+export async function deletePentester(
+    pentesterId: string,
+): Promise<void> {
+    await apiFetch<void>(
+        `/api/service-delivery/pentesters/${pentesterId}`,
+        {
+            method: "DELETE",
+        },
+    );
+}
+
+// POST /pentesters
+export async function createPentester(payload: PentesterCreateRequest): Promise<void> {
+    await apiFetch<unknown>(
+        "/api/service-delivery/pentesters",
+        {
+            method: "POST",
+            body: JSON.stringify(payload),
+        },
+    );
 }
 
 //GET /engagements/{engagement_id}/findings
@@ -239,4 +257,24 @@ export async function markConversationRead(engagementId: string, channel: Engage
 export async function listAuditActivity(filters: AuditListFilters = {}): Promise<ActivityListResponse> {
     const query = buildQuery({ limit: filters.limit, offset: filters.offset });
     return apiFetch(`/api/service-delivery/audit${query}`);
+}
+
+//GET /engagements/{engagement_id}/report
+export async function getEngagementReport(engagementId: string): Promise<ReportResponse> {
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}/report`);
+}
+
+//POST /engagements/{engagement_id}/report/retry 
+export async function retryEngagementReport(engagementId: string): Promise<ReportResponse> {
+    return apiFetch(`/api/service-delivery/engagements/${engagementId}/report/retry`, { method: "POST" });
+}
+
+//GET /reports/{report_id}/download
+export async function downloadReport(reportId: string): Promise<Blob> {
+    const response = await fetch(`/api/service-delivery/reports/${reportId}/download`);
+    if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(typeof body?.detail === "string" ? body.detail : "Failed to download report.");
+    }
+    return response.blob();
 }

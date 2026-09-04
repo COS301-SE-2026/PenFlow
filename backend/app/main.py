@@ -18,6 +18,7 @@ from app.api.routes import (
     pentester,
     reports,
     retests,
+    scan_schedules,
     scans,
     service_delivery,
     summary,
@@ -62,3 +63,4 @@ app.include_router(pentester.router, prefix=API_V1_PREFIX)
 app.include_router(reports.router, prefix=API_V1_PREFIX)
 app.include_router(service_delivery.router, prefix=API_V1_PREFIX)
 app.include_router(notifications.router, prefix=API_V1_PREFIX)
+app.include_router(scan_schedules.router, prefix=API_V1_PREFIX)

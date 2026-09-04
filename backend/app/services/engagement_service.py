@@ -12,9 +12,7 @@ from app.models.base import (
 )
 from app.models.engagement import Engagement
 from app.models.finding import Finding
-from app.models.report import Report, ReportStatus
 from app.models.user import User
-from app.queue.celery_app import celery_app
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.engagement_comment_repository import EngagementCommentRepository
 from app.repositories.engagement_repository import EngagementRepository
@@ -54,6 +52,7 @@ from app.schemas.finding import (
 )
 from app.schemas.retest import RetestFindingSummary, RetestListItem, RetestListResponse
 from app.services.notification_service import NotificationService
+from app.services.report_service import queue_engagement_report_generation
 
 
 class EngagementService:
@@ -489,6 +488,18 @@ class EngagementService:
                 request=request,
                 client_user_id=client_user_id,
             )
+
+        await AuditRepository.create_log(
+            db,
+            user_id=client_user_id,
+            action="engagement.created",
+            entity_type="engagement",
+            entity_id=engagement.id,
+            metadata={
+                "status": EngagementStatus.REQUESTED.value,
+                "asset_count": len(request.assets),
+            },
+        )
 
         service_delivery_users = (
             await EngagementRepository.get_service_delivery_users(db)
@@ -997,21 +1008,8 @@ class EngagementService:
                 "new_status": "review",
             },
         )
+        await queue_engagement_report_generation(db, engagement_id=engagement.id, version=1)
 
-        version = 1
-
-        new_report = Report(
-            engagement_id=engagement_id, 
-            version=version,
-            status=ReportStatus.PENDING,
-        )
-        db.add(new_report)
-        await db.commit() 
-
-        celery_app.send_task(
-            "engagement.render_report",
-            args=[str(engagement_id), version],
-        )
         await NotificationService.notify(
             db,
             recipient_id=engagement.service_delivery_id,

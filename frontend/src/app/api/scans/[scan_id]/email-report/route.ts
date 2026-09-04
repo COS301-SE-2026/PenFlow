@@ -1,7 +1,6 @@
 //proxy file for email service
 import { NextResponse } from "next/server";
-import { authenticatedBackendRequest } from "@/lib/authenticatedBackend";
-import { isValidScanId } from "@/lib/scansBackend";
+import { isValidScanId, proxyToPublicScansApi } from "@/lib/scansBackend";
 
 export async function POST(req:Request,{params}:{ params: Promise<{scan_id:string
 }>}){
@@ -12,15 +11,12 @@ export async function POST(req:Request,{params}:{ params: Promise<{scan_id:strin
 
     const body = await req.json();
 
-    return authenticatedBackendRequest({
-        path: `/api/v1/scans/${scan_id}/email-report`,
-        init: {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(body),
+    return proxyToPublicScansApi(`/${scan_id}/email-report`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
         },
+        body: JSON.stringify(body),
     });
 }
 

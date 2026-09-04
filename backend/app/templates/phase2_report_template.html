@@ -47,6 +47,8 @@
         </div>
     </header>
 
+    {% set section_offset = 1 if delta else 0 %}
+
     <section>
         <div class = "section-heading">
             <div>
@@ -187,13 +189,345 @@
             collected during this assessment. This does not guarentee that the target is free of vulnerabilities.
         </div>
         {% endif %}
-
     </section>
+
+    {% if delta %}
+    <div class = "section-heading">
+        <div>
+            <span class = "section-kicker">03</span>
+            <h2>Changes Since Previous Scan</h2>
+        </div>
+    </div>
+    <section class="delta-section">
+        <div class="delta-heading">
+            {% if not delta.is_baseline %}
+                <p class="delta-baseline-reference">
+                    Compared with scan {{ delta.previous_scan_id }}
+                    {% if delta.previous_completed_at %}
+                        completed {{ delta.previous_completed_at.strftime("%d %B %Y") }}
+                    {% endif %}
+                </p>
+            {% endif %}
+        </div>
+
+        {% if delta.is_baseline %}
+            <div class="delta-baseline-notice">
+                <strong>Comparison baseline established</strong>
+                <p>
+                    {{ delta.reason }}. Findings from this scan will be used
+                    when calculating changes in the next scheduled report.
+                </p>
+            </div>
+
+            <div class="delta-summary-grid">
+                <div class="delta-summary-card delta-baseline">
+                    <strong>{{ delta.summary.baseline }}</strong>
+                    <span>Baseline findings</span>
+                </div>
+            </div>
+
+            {% if delta.baseline_findings %}
+                <h3 class="delta-table-title">Baseline findings</h3>
+                <table class="delta-table">
+                    <thead>
+                        <tr>
+                            <th>Finding</th>
+                            <th>Severity</th>
+                            <th>Target</th>
+                            <th>Source</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for finding in delta.baseline_findings %}
+                            <tr>
+                                <td>
+                                    <strong>{{ finding.title }}</strong>
+
+                                    {% if finding.cve_id %}
+                                        <span class="delta-reference">
+                                            {{ finding.cve_id }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="delta-severity delta-severity-{{ finding.severity }}">
+                                        {{ finding.severity | upper }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {{ finding.asset_identifier or "Domain-wide" }}
+                                </td>
+                                <td>{{ finding.source }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
+
+            {% else  %}
+                <div class="delta-summary-grid">
+                    <div class="delta-summary-card delta-new">
+                        <strong>{{ delta.summary.new }}</strong>
+                        <span>New</span>
+                    </div>
+
+                    <div class="delta-summary-card delta-resolved">
+                        <strong>{{ delta.summary.resolved }}</strong>
+                        <span>Resolved</span>
+                    </div>
+        
+                    <div class="delta-summary-card delta-changed">
+                        <strong>{{ delta.summary.changed }}</strong>
+                        <span>Changed</span>
+                    </div>
+
+                    <div class="delta-summary-card delta-unchanged">
+                        <strong>{{ delta.summary.unchanged }}</strong>
+                        <span>Unchanged</span>
+                    </div>
+
+                    {% if delta.summary.not_evaluated > 0 %}
+                        <div class="delta-summary-card delta-not-evaluated">
+                            <strong> {{ delta.summary.not_evaluated }}</strong>
+                            <span>Not evaluated</span>
+                        </div>
+                    {% endif %}
+                </div>
+
+                {% if delta.new_findings %}
+                    <h3 class="delta-table-title">
+                        New Findings
+                    </h3>
+
+                    <table class="delta-table">
+                        <thead>
+                            <tr>
+                                <th>Finding</th>
+                                <th>Severity</th>
+                                <th>Target</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for finding in delta.new_findings %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ finding.title }}</strong>
+
+                                        {% if finding.cve_id %}
+                                            <span class="delta-reference">
+                                                {{ finding.cve_id }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="delta-severity delta-severity-{{ finding.severity }}">
+                                            {{ finding.severity | upper }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {{ finding.asset_identifier or "Domain-wide" }}
+                                    </td>
+                                    <td>{{ finding.source }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+
+                {% if delta.resolved_findings %}
+                    <h3 class="delta-table-title">
+                        Resolved Findings
+                    </h3>
+
+                    <table class="delta-table">
+                        <thead>
+                            <tr>
+                                <th>Finding</th>
+                                <th>Previous Severity</th>
+                                <th>Target</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for finding in delta.resolved_findings %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ finding.title }}</strong>
+
+                                        {% if finding.cve_id %}
+                                            <span class="delta-reference">
+                                                {{ finding.cve_id }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="delta-severity delta-severity-{{ finding.severity }}">
+                                            {{ finding.severity | upper }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {{ finding.asset_identifier or "Domain-wide" }}
+                                    </td>
+                                    <td>{{ finding.source }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+
+                {% if delta.changed_findings %}
+                    <h3 class="delta-table-title">
+                        Changed Findings
+                        <span class="delta-label delta-label-changed">
+                            CHANGED
+                        </span>
+                    </h3>
+
+                    <table class="delta-table">
+                        <thead>
+                            <tr>
+                                <th>Finding</th>
+                                <th>Severity Change</th>
+                                <th>Changed Fields</th>
+                                <th>Target</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for change in delta.changed_findings %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ change.finding.title }}</strong>
+
+                                        {% if change.finding.cve_id %}
+                                            <span class="delta-reference">
+                                                {{ change.finding.cve_id }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ change.previous_severity | upper }}
+                                        &rarr;
+                                        {{ change.current_severity | upper }}
+                                    </td>
+                                    <td>
+                                        {{ change.changed_fields | join(", ") | replace("_", " ") | title }}
+                                    </td>
+                                    <td>
+                                        {{ change.finding.asset_identifier or "Domain-wide" }}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>    
+                {% endif %}
+
+
+                {% if delta.unchanged_findings %}
+                    <h3 class="delta-table-title">
+                        Unchanged Findings
+                    </h3>
+
+                    <table class="delta-table">
+                        <thead>
+                            <tr>
+                                <th>Finding</th>
+                                <th>Severity</th>
+                                <th>Target</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for finding in delta.unchanged_findings %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ finding.title }}</strong>
+
+                                        {% if finding.cve_id %}
+                                            <span class="delta-reference">
+                                                {{ finding.cve_id }}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="delta-severity delta-severity-{{ finding.severity }}">
+                                            {{ finding.severity | upper }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {{ finding.asset_identifier or "Domain-wide" }}
+                                    </td>
+                                    <td>{{ finding.source }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>    
+                {% endif %}
+
+                {% if delta.not_evaluated_findings %}
+                    <div class="delta-coverage-warning">
+                        <strong>
+                            Some previous findings could not be evaluated
+                        </strong>
+                        <p>
+                            One or more scanner sources did not complete during the current scan.
+                            These findings have not been marked as resolved.
+                        </p>
+                    </div>
+
+                    <table class="delta-table">
+                        <thead>
+                            <tr>
+                                <th>Finding</th>
+                                <th>Previous Severity</th>
+                                <th>Target</th>
+                                <th>Source</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for finding in delta.not_evaluated_findings %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ finding.title }}</strong>
+                                    </td>
+                                    <td>
+                                        <span class="delta-severity delta-severity-{{ finding.severity }}">
+                                            {{ finding.severity | upper }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {{ finding.asset_identifier or "Domain-wide" }}
+                                    </td>
+                                    <td>{{ finding.source }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>    
+                {% endif %}
+
+                {% if 
+                    delta.summary.new == 0
+                    and delta.summary.resolved == 0
+                    and delta.summary.changed == 0
+                    and delta.summary.not_evaluated == 0
+                %}
+
+                    <div class="delta-no-change">
+                        <strong>No material changes detected</strong>
+                        <p>
+                            The current findings match the previous completed scheduled scan.
+                        </p>
+                    </div>
+                {% endif %}
+            {% endif %}
+    </section>
+    {% endif %}
+
 
     <section>
         <div class = "section-heading">
             <div>
-                <span class = "section-kicker">03</span>
+                <span class = "section-kicker">{{ "%02d"|format(3 + section_offset) }}</span>
                 <h2>Assessment Scope & Methodology</h2>
             </div>
         </div>
@@ -273,7 +607,7 @@
     <section>
         <div class = "section-heading">
             <div>
-                <span class = "section-kicker">04</span>
+                <span class = "section-kicker">{{ "%02d"|format(4 + section_offset) }}</span>
                 <h2>Assessment Coverage</h2>
             </div>
         </div>
@@ -323,7 +657,7 @@
     <section>
         <div class = "section-heading">
             <div>
-                <span class = "section-kicker">05</span>
+                <span class = "section-kicker">{{ "%02d"|format(5 + section_offset) }}</span>
                 <h2>External Attack Surface</h2>
             </div>
         </div>
@@ -393,7 +727,7 @@
       <section>
         <div class = "section-heading">
             <div>
-                <span class = "section-kicker">06</span>
+                <span class = "section-kicker">{{ "%02d"|format(6 + section_offset) }}</span>
                 <h2>Externally Exposed Services</h2>
             </div>
         </div>
@@ -485,7 +819,7 @@
       <section>
         <div class = "section-heading">
             <div>
-                <span class = "section-kicker">07</span>
+                <span class = "section-kicker">{{ "%02d"|format(7 + section_offset) }}</span>
                 <h2>Detected Technology Inventory</h2>
             </div>
         </div>
@@ -579,7 +913,7 @@
       <section>
         <div class = "section-heading">
             <div>
-                <span class = "section-kicker">08</span>
+                <span class = "section-kicker">{{ "%02d"|format(8 + section_offset) }}</span>
                 <h2>Finding Register</h2>
             </div>
         </div>
@@ -674,7 +1008,7 @@
       <section>
         <div class = "section-heading">
             <div>
-                <span class = "section-kicker">09</span>
+                <span class = "section-kicker">{{ "%02d"|format(9 + section_offset) }}</span>
                 <h2>Detailed Findings</h2>
             </div>
         </div>
@@ -798,7 +1132,7 @@
     <section>
         <div class = "section-heading">
             <div>
-                <span class = "section-kicker">10</span>
+                <span class = "section-kicker">{{ "%02d"|format(10 + section_offset) }}</span>
                 <h2>Remediation Priorities</h2>
             </div>
         </div>
@@ -888,7 +1222,7 @@
     <section>
         <div class = "section-heading">
             <div>
-                <span class = "section-kicker">11</span>
+                <span class = "section-kicker">{{ "%02d"|format(11 + section_offset) }}</span>
                 <h2>Assessment Limitations</h2>
             </div>
         </div>
@@ -932,7 +1266,7 @@
     <section class = "conclusion">
         <div class = "section-heading">
             <div>
-                <span class = "section-kicker">12</span>
+                <span class = "section-kicker">{{ "%02d"|format(12 + section_offset) }}</span>
                 <h2>Conclusion</h2>
             </div>
         </div>

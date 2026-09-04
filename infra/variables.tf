@@ -208,3 +208,36 @@ variable "db_backup_retention_period" {
   description = "Number of days to retain automated RDS backups."
   default     = 1
 }
+
+variable "email_from" {
+  description = "Verified Amazon SES sender address."
+  type        = string
+}
+
+variable "ses_identity_arn" {
+  description = "Verified Amazon SES identity ARN permitted for sending."
+  type        = string
+}
+
+variable "email_worker_desired_count" {
+  description = "Desired email-worker ECS task count."
+  type        = number
+  default     = 0
+}
+
+variable "schedule_worker_desired_count" {
+  description = "Number of schedule worker ECS tasks"
+  type        = number
+  default     = 0
+}
+
+variable "celery_beat_desired_count" {
+  description = "Number of Celery Beat ECS tasks; must be 0 or 1"
+  type        = number
+  default     = 0
+
+  validation {
+    condition     = contains([0, 1], var.celery_beat_desired_count)
+    error_message = "celery_beat_desired_count must be either 0 or 1."
+  }
+}

@@ -139,125 +139,144 @@
   via an in-platform notification.
 
 
-# PenFlow: OSINT Scanning Engine Use Cases
+# PenFlow: Use Cases and User Stories
 
 ## User Stories
-* **US-01:** As a PenFlow User, I want to initiate an OSINT scan on this domain so that I can discover potential vulnerabilities and exposed assets.
-* **US-02:** As a PenFlow User, I want to view a summarized scan report so that I can quickly understand the risk level and asset impact of my target infrastructure.
-* **US-03:** As a PenFlow User, I want to access my scan history so that I can track previous assessments and easily locate past reports.
-* **US-04:** As a PenFlow User, I want to email the generated PDF report so that I can easily share the intelligence findings with my team or clients.
-* **US-05:** As a PenFlow User, I want to securely authenticate and log in so that my sensitive scan data is protected and private.
-* **US-06:** As a PenFlow User, I want to download my scan report as a PDF so I can store it offline or attach it to internal tickets. 
-* **US-07:** As a PenFlow User, I want to cancel a running scan so that I don't waste system resources if I entered the wrong domain.
 
----
+### US-01: As a PenFlow User, I want to initiate an OSINT scan on this domain so that I can discover potential vulnerabilities and exposed assets.
 
-## 1. Actors
-An actor denotes a business role played by (and on the behalf of) a set of business entities.
+### US-02: As a PenFlow User, I want to view a summarized scan report so that I can quickly understand the risk level and asset impact of my target infrastructure.
 
-* **PenFlow User:** This is the primary client interacting with our Next.js frontend to initiate scans and view results.
-* **OSINT Workers:** The automated backend subsystems responsible for executing the intelligence gathering (which includes subdomains, open ports, breached credentials).
+### US-03: As a registered PenFlow User, I want to access my scan history so that I can track previous assessments and easily locate past reports.
 
----
+### US-04: As a PenFlow User, I want to email the generated PDF report so that I can easily share the intelligence findings with my team or clients.
 
-## 2. Use Case Specifications
+### US-05: As a PenFlow User, I want to securely authenticate and log in so that my sensitive scan data is protected and private.
 
-### UC-01: Initiate OSINT Scan
-**Actor(s):** PenFlow User
+### US-06: As a PenFlow User, I want to download my scan report as a PDF so I can store it offline or attach it to internal tickets.
 
-**High-Level Description:**
-* **TUCBW** the User entering a target domain and clicking the "Start Scan" button on the dashboard.
-* **TUCEW** the system presents the user with the scan dashboard, indicating the scan has successfully started.
+### US-07: As a registered PenFlow user, I want to verify ownership of my domain via a DNS TXT record so that I can securely authorize active vulnerability scans on my infrastructure.
 
-**Expanded Specification:**
-1. The PenFlow User navigates to the New Scan page.
-2. The user inputs the target domain and optionally provides an email address.
-3. The user clicks "Start Scan".
-4. The system validates the domain format.
-5. The system confirms the scan has been successfully initiated.
-6. The system redirects the user to the Executive Summary dashboard.
+### US-08: As a PenFlow system, I need to isolate each active scan in a dedicated worker container so that cross client data leakage is prevented during execution.
 
-### UC-02: View Scan Report
-**Actor(s):** PenFlow User
+### US-09: As a registered PenFlow user I want to receive a delta report after an active scan completes so that I can easily identify newly introduced or resolved findings.
 
-**High-Level Description:**
-* **TUCBW** the User clicks on a completed scan from their dashboard or receives a redirect after initiating a new scan.
-* **TUCEW** the User successfully views the aggregated intelligence data.
+### US-10: As a registered PenFlow user, I want to view a detailed history of a specific verified asset so that I can track how its security has changed over time.
 
-**Expanded Specification:**
-1. The PenFlow User requests to view the summary for a specific scan.
-2. The system retrieves the base scan details and findings.
-3. The system aggregates the risk snapshot and asset impact breakdown.
-4. The system retrieves and truncates the top findings for preview.
-5. The system presents the Executive Summary dashboard to the user.
+### US-11: As a registered PenFlow user I want to view a high level summary so that I can quickly understand my organization's external risk score and prioritize critical remediations.
 
-### UC-03: View Scan History
-**Actor:** PenFlow User
+### US-12: As a registered PenFlow user, I want to add a new domain to my workspace so that I can begin the verification and scanning process.
 
-**High-Level Description:**
-* **TUCBW** the User clicks the History or All Scans tab from the main navigation menu.
-* **TUCEW** the User views a structured list of all their historical scans, including current statuses and timestamps.
+### US-13: As a registered PenFlow user I want to view all my domains in a list so that I can easily manage and monitor the attack surface.
 
-**Expanded Specification:**
-1. The PenFlow User navigates to the Scan History page.
-2. The system retrieves all historical scan records associated with the user's account.
-3. The system orders the records by creation date (newest first).
-4. The system displays the formatted list of scans, allowing the user to view which are Pending, Running, or Completed.
+### US-14: As a registered PenFlow user I want to search and filter my domains so that I can quickly locate a specific target within a large list.
 
-### UC-04: Send Scan Report via Email
-**Actor:** PenFlow User
+### US-15: As a registered PenFlow user I want to remove a domain from my account so that it is no longer tracked or scanned by the system.
 
-**High-Level Description:**
-* **TUCBW** the PenFlow User clicks the "Email Report" button on the Executive Summary dashboard and submits a target email address.
-* **TUCEW** the system verifies the PDF report exists and successfully queues the email for delivery.
+### US-16: As a Client, I want to create an engagement request so that I can initiate a formal penetration test.
 
-**Expanded Specification:**
-1. The PenFlow User requests to email the report for a specific scan by providing a target email address.
-2. The system validates the email address format.
-3. The system verifies that a final PDF report document has been generated for that scan.
-4. If the report is missing or still generating, the system displays an error message to the user.
-5. If the report exists, the system queues the report for email dispatch.
-6. The system displays a confirmation message to the user indicating that the email has been queued.
+### US-17: As a Client, I want to message Service Delivery so that I can communicate about my engagement scope and progress.
 
-### UC-05: Log In
-**Actor:** PenFlow User
+### US-18: As Service Delivery, I want to filter and claim engagements so that I can take ownership of client requests.
 
-**High-Level Description:**
-* **TUCBW** an unauthenticated user attempts to access a protected route or clicks the "Login" button.
-* **TUCEW** the system verifies their identity and grants access to the dashboard.
+### US-19: As Service Delivery, I want to scope and modify an engagement so that I can accurately define the technical boundaries and financial quote.
 
-**Expanded Specification:**
-1. The user navigates to the login page.
-2. The user submits their credentials.
-3. The system validates the credentials.
-4. The system grants access and redirects the authenticated user to the main dashboard.
+### US-20: As Service Delivery, I want to schedule engagements and assign pentesters so that the assessment has firm dates and allocated resources.
 
-### UC-06: Download PDF Report
-**Actor:** PenFlow User
+### US-21: As Service Delivery, I want to view findings and download reports so that I can perform QA before delivering them to the client.
 
-**High-Level Description:**
-* **TUCBW** the PenFlow User clicks the "Download PDF" button on the Executive Summary dashboard.
-* **TUCEW** the system retrieves the generated PDF and streams it to the user. 
+### US-22: As a Pentester, I want to view my assigned engagements so that I can understand my assessment scope.
 
-**Expanded Specification:**
-1. The PenFlow User requests the PDF download for a specific scan.
-2. The system verifies that the report generation is complete.
-3. The system retrieves the final report file.
-4. The system prompts the user's browser to save the PDF file locally.
+### US-23: As a Pentester, I want to create findings and upload evidence so that I can properly document discovered vulnerabilities.
 
-### UC-07: Cancel Running Scan
-**Actors:** PenFlow User
+### US-24: As a Pentester, I want to message Service Delivery so that I can ask questions or provide updates on the assessment.
 
-**High-Level Description:**
-* **TUCBW** the user clicks "Cancel" on a scan that is currently in a "Running" or "Pending" state.
-* **TUCEW** the system terminates the background worker process and marks the scan as canceled.
+### US-25: As a Registered User, I want to view, create, update, and remove scheduled scans so that I can easily manage my automated scanning frequency.
 
-**Expanded Specifications:**
-1. The User requests to cancel a specific scan.
-2. The system verifies the user has permission to modify this scan and that the scan is not already completed.
-3. The system halts the background scanning tasks.
-4. The system marks the scan as canceled.
-5. The system updates the UI to reflect the canceled status to the user.
+### US-26: As a Registered User, I want to pause and resume scheduled scans so that I can temporarily halt automated traffic during maintenance windows.
+
+
+## Domain and Asset Verification
+
+![Domain](images/Domain_&_Asset_Verification.png)
+
+
+### UC: Add Domain
+1. TUCBW: The user clicks "Add Domain" on the domain dashboard. 
+2. TUCEW: The new domain is recorded in the system and ready for verification.
+
+### UC: Verify Domain Ownership
+1. TUCBW: The user adds a new domain and adds our verification token to the public DNS records. 
+2. TUCEW: The domain is securely linked to the user's account and ready for Phase 2 scanning
+
+### UC: View, Search and Filter Domain list
+1. TUCBW: The user navigates to the Domains tab and types into the search bar or clicks on the filter button. 
+2. TUCEW: The UI is updated to reflect the filtered criteria.
+
+### UC: Remove Domain 
+1. TUCBW: The user clicks the remove action on a specific domain.
+2. TUCEW: The domain and its associated data are removed from the user's workspace. 
+
+## Scans
+
+![Scans](images/Scans.png)
+
+
+### UC: Initiate OSINT Scan
+1. TUCBW: The user inputs a domain and clicks scan.
+2. TUCEW: A scan job is successful.
+
+### UC: Execute Phase 2 Vulnerability Scan
+1. TUCBW: After clicking a verified domain, the user clicks scan.
+2. TUCEW: Raw vulnerability data is securely written and a formatted report is available for download
+
+### UC: View Scan History and Target history
+1. TUCBW: The user clicks on the history tab or navigates to a specific asset's history page.
+2. TUCEW: UI successfully renders the historical timeline.
+
+### UC: View, Download and Email Reports
+1. TUCBW: The user clicks a report link downloads a PDF or submits an email address.
+2. TUCEW: The user views the aggregated intelligence, downloads the PDF or dispatches it via email. 
+
+## Schedule Scan
+
+![Schedule](images/Schedule_Scan.png)
+
+### UC: Manage Scheduled scans
+1. TUCBW: A registered user navigates to a view where they can: create, update and remove scheduled scans, so they can manage scanning frequency.
+2. TUCEW: The automated schedule is saved, updated or removed from the database.
+
+### UC: Pause and resume scheduled scans
+1. TUCBW: A registered user clicks to pause or resume an existing scan.
+2. TUCEW: The scan's scheduled active state is successfully toggled. 
+
+## Engagement management
+
+![Client_engagement](images/Engagement_management_client.png)
+
+![Service_delivery_engagement](images/Engagement_management_Service_Delivery.png)
+
+![Pentester_engagement](images/Engagement_management_Pentester.png)
+
+### UC: Create Engagement Request
+1. TUCBW: The client clicks to initiate a new engagement request
+2. TUCEW: The engagement request is officially saved and queued for review.
+
+### UC: Manage Engagement Scope and Schedule
+1. TUCBW: Service delivery selects an engagement to claim, scope, modify or schedule.
+2. TUCEW: The engagement is fully scoped, quoted and scheduled in the database.
+
+### UC: Assign Pentester
+1. TUCBW: Service Delivery clicks to assign a resource to a scheduled engagement. 
+2. TUCEW: The engagement is linked to a specific Pentester
+
+### UC: Documenting Findings and Evidence
+1. TUCBW: The Pentester clicks to create a finding or upload evidence for their assigned engagement.
+2. TUCEW: The finding and evidence are securely saved and available for review. 
+
+### UC: Engagement Communication 
+1. TUCBW: A client, service delivery or pentester initiates a message on an active engagement. 
+2. TUCEW: The message is appended to the engagement's communication log.
 
 
 ### Domain Model

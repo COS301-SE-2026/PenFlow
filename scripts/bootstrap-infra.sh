@@ -99,7 +99,10 @@ terraform -chdir="$INFRA_DIR" apply \
     -var="backend_desired_count=0" \
     -var="frontend_desired_count=0" \
     -var="worker_desired_count=0" \
-    -var="keycloak_desired_count=0"
+    -var="email_worker_desired_count=0" \
+    -var="keycloak_desired_count=0" \
+    -var="schedule_worker_desired_count=0" \
+    -var="celery_beat_desired_count=0"
 
 
 echo "6. Reading Terraform outputs"
@@ -375,7 +378,10 @@ terraform -chdir="$INFRA_DIR" apply \
     -var="backend_desired_count=1" \
     -var="frontend_desired_count=1" \
     -var="worker_desired_count=1" \
-    -var="keycloak_desired_count=1"
+    -var="email_worker_desired_count=1" \
+    -var="keycloak_desired_count=1" \
+    -var="schedule_worker_desired_count=1" \
+    -var="celery_beat_desired_count=1"
 
 
 echo "13. Deployment information"
