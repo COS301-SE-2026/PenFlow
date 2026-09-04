@@ -170,6 +170,18 @@ export async function getPentesterDetail(pentesterId:string): Promise<PentesterD
     return apiFetch(`/api/service-delivery/pentesters/${pentesterId}`);
 }
 
+// DELETE /pentesters/{pentester_id}
+export async function deletePentester(
+    pentesterId: string,
+): Promise<void> {
+    await apiFetch<void>(
+        `/api/service-delivery/pentesters/${pentesterId}`,
+        {
+            method: "DELETE",
+        },
+    );
+}
+
 // POST /pentesters
 export async function createPentester(payload: PentesterCreateRequest): Promise<void> {
     await apiFetch<unknown>(
