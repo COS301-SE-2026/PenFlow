@@ -142,6 +142,7 @@ async def queue_engagement_report_generation(
         task = celery_app.send_task(
             "engagement.render_report",
             args=[str(eng_uuid), version, html_content, str(output_path)],
+            queue="scans", routing_key="scans",
         )
 
         report.task_id = task.id 

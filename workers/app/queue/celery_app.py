@@ -68,6 +68,10 @@ celery_app.conf.update(
             "queue": "scans",
             "routing_key": "scans",
         },
+        "engagement.render_report": {
+            "queue": "scans",
+            "routing_key": "scans",
+        },
     },
     worker_detect_quorum_queues=True,
     broker_transport_options={

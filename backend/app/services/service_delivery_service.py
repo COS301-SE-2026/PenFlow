@@ -64,6 +64,7 @@ from app.schemas.service_delivery import (
     ServiceDeliveryScheduleRequest,
     ServiceDeliveryScopingUpdate,
 )
+from app.tasks.email_tasks import send_engagement_report_email_task
 from app.services.keycloak_admin_service import KeycloakAdminError, KeycloakAdminService
 from app.services.notification_service import NotificationService
 
@@ -1310,6 +1311,7 @@ class ServiceDeliveryService:
             engagement_id=engagement.id,
         )
 
+
         if report is None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -1322,6 +1324,7 @@ class ServiceDeliveryService:
                 detail="Final report is not ready.",
             )
 
+        report_storage_ref = report.pdf_path
         report_id = report.id
         report_version = report.version
 
@@ -1362,6 +1365,7 @@ class ServiceDeliveryService:
             },
         )
 
+
         await NotificationService.notify(
             db,
             recipient_id=engagement.requested_by,
@@ -1387,8 +1391,19 @@ class ServiceDeliveryService:
             metadata={
                 "status": EngagementStatus.COMPLETED.value,
             },
-        )    
+        )
 
+        client = await EngagementRepository.get_user_by_id(
+            db,
+            user_id=engagement.requested_by,
+        )
+
+        send_engagement_report_email_task.delay(
+            client.email,
+            engagement.title,
+            report_storage_ref,
+        )
+        
         return response
 
 

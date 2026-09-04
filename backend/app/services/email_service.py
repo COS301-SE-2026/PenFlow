@@ -155,3 +155,37 @@ def send_report_email(
     )
 
     send_message(message)
+
+
+def send_engagement_report_email(
+        to_email: str,
+        engagement_title: str,
+        storage_ref: str,
+) -> None:
+    try:
+        pdf_bytes = ReportStorageService.get_report_bytes(storage_ref)
+
+    except Exception as err:
+        raise EmailDeliveryError(f"Failed to retrieve report {engagement_title}") from err
+
+    message = EmailMessage()
+    message["Subject"] = f"Your PenFlow Penetration Test Report - {engagement_title}"
+    message["From"] = get_sender()
+    message["To"] = to_email
+
+    message.set_content(
+        f"Hi,\n\n"
+        f"Your penetration testing engagement, "
+        f"{engagement_title}, has been completed.\n\n"
+        f"Regards,\n"
+        f"PenFlow"
+    )
+
+    message.add_attachment(
+        pdf_bytes,
+        maintype="application",
+        subtype="pdf",
+        filename=f"penflow-report-{engagement_title}.pdf",
+    )
+
+    send_message(message)
