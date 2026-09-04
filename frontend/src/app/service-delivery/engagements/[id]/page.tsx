@@ -30,8 +30,6 @@ import {
     scheduleEngagement,
     updateEngagementScoping,
     getEngagementReport, 
-    downloadReport, 
-    retryEngagementReport,
 } from "@/lib/serviceDeliveryService";
 import type {
     Activity,
@@ -42,7 +40,6 @@ import type {
     FindingListItem,
     PentesterListItem,
     Retest,
-    ReportResponse,
 } from "@/lib/serviceDeliveryTypes";
 import {
     assessmentTypeLabels,
@@ -115,7 +112,7 @@ export default function EngagementDetailPage() {
                 setEngagement(detail);
                 const showFindings = ["in_progress", "review", "completed"].includes(detail.status);
                 const showReport = ["review", "completed"].includes(detail.status);
-                const [findings, retestList , activityRes, reportRes] = await Promise.all([
+                const [findings, retestList , activityRes] = await Promise.all([
                     showFindings? listEngagementFindings(params.id, { limit: 100 }) : Promise.resolve({ items: [] ,pagination: { total:0 , limit:0 , offset: 0, has_more: false}}),
                     detail.status === "completed" ? listEngagementRetests(params.id) :  Promise.resolve({ items: [] }),
                     listAuditActivity({ limit:200}),
@@ -124,7 +121,6 @@ export default function EngagementDetailPage() {
                 setFindingsPreview(findings.items);
                 setRetests(retestList.items);
                 setActivity(activityRes.items.filter((a) => a.entity_id === params.id));
-                setReport(reportRes);
             })
             .catch(console.error)
             .finally(()=> setIsLoading(false));
@@ -215,33 +211,6 @@ const overview: [string, string][] = [
             \nSeverity: ${formatLabel(f.severity)}\nStatus: ${formatLabel(f.status)}
             \n\nNo evidence file is attached to this finding.`,
         );
-    }
-
-    async function handleDownloadReport() {
-        const reportIdToDownload = report?.id ?? report?.report_id;
-
-        if (!reportIdToDownload) return;
-        setIsDownloading(true);
-        try {
-            const blob = await downloadReport(reportIdToDownload);
-            downloadBlob(`${engagement?.title.replace(/\s+/g, "-").toLowerCase()}-report.pdf`, blob);
-        } catch (error) {
-            console.error("Failed to download report", error);
-        } finally {
-            setIsDownloading(false);
-        }
-    }
-
-    async function handleRetryReport() {
-        setIsRetrying(true);
-        try{
-            await retryEngagementReport(params.id); 
-            load();
-        } catch (error) { 
-            console.error("Failed to retry report", error);
-        } finally {
-            setIsRetrying(false);
-        }
     }
 
     return (
