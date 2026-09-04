@@ -222,9 +222,11 @@ const overview: [string, string][] = [
                 <h2 className="mb-3 text-sm font-semibold text-brand-text">Coordination</h2>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                     <PartyCard kicker="Client" name={displayName(engagement.client)} meta={engagement.client.email ?? "-"}>
+                        {engagement.status !== "requested" && (
                          <Link href={`/service-delivery/messages?engagement=${engagement.id}&channel=client_service_delivery`}>
                              <Button variant="outline" size="sm" className={whiteOutlineButtonClass}>Message Client</Button>
                          </Link>
+                        )}
                     </PartyCard>
                     <PartyCard kicker="Service Delivery" name={displayName(engagement.service_delivery, "Unclaimed")} meta={engagement.service_delivery ? "Owner of this engagement" : "Claim to take ownership"} />
                     <PartyCard
