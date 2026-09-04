@@ -42,8 +42,8 @@ def test_run_cve_scan_task_success(
     assert finding["cve_id"] == "CVE-2025-1234"
     assert finding["cvss_score"] == 8.8
 
-    mock_callback.assert_called_once_with\
-    (
+    assert mock_callback.call_count == 2
+    mock_callback.assert_any_call(
         scan_id="scan-123",
         source_name="cve",
         status="completed",
@@ -78,7 +78,7 @@ def test_run_cve_scan_task_empty(
     assert result["findings"] == []
     assert result["assets"] == []
 
-    mock_callback.assert_called_once()
+    assert mock_callback.call_count == 2
 
 
 @patch("app.tasks.cve_task.send_source_callback")
@@ -100,8 +100,8 @@ def test_run_cve_scan_task_failure(
     assert result["findings"] == []
     assert result["assets"] == []
 
-    mock_callback.assert_called_once_with\
-    (
+    assert mock_callback.call_count == 2
+    mock_callback.assert_any_call(
         scan_id="scan-456",
         source_name="cve",
         status="failed",

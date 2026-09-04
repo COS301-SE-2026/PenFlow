@@ -25,6 +25,11 @@ def run_fingerprinting_scan_task(
     logger.info(f"[Fingerprint_Task] Starting fingerprint scan for {target_url}")
 
     try:
+        send_source_callback(scan_id=scan_id, source_name="fingerprint", status="running")
+    except Exception:
+        logger.warning("[Fingerprint_Task] Failed to send `running` callback for %s",target_url)
+
+    try:
         # run the fingerprinting service
         fingerprinting_service = FingerprintingService(
             target_url=target_url,

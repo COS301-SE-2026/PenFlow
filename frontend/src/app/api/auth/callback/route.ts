@@ -21,42 +21,42 @@ export async function GET(req: NextRequest) {
     }
 
     const redirectUri = `${APP_URL}/api/auth/callback`
-
-    try {
-        const tokens = await exchangeAuthCode(code, verifier, redirectUri);
-
-        const resp = NextResponse.redirect(
-            new URL("/", APP_URL),
-        );
-
-        setAuthCookies(resp, tokens);
-
-        resp.cookies.delete("oauth_state");
-        resp.cookies.delete("pkce_verifier");
-
-        const provisionRes = await fetch(
-            `${BACKEND_URL}/api/v1/users/me`,
-            {
-                headers: {
-                    Authorization: `Bearer ${tokens.access_token}`,
-                },
+        
+try {
+    const tokens = await exchangeAuthCode(code, verifier, redirectUri);
+    const provisionRes = await fetch(
+        `${BACKEND_URL}/api/v1/users/me`,
+        {
+            headers: {
+                Authorization: `Bearer ${tokens.access_token}`,
             },
-        );
+        },
+    );
 
-        if (!provisionRes.ok) {
-            const body = await provisionRes.text();
+    if (!provisionRes.ok) {
+        const body = await provisionRes.text();
+        console.error(`[auth] provisioning returned ${provisionRes.status}:`, body);
+        throw new Error("Failed to provision user.");
+    }
 
-            console.error(`[auth] provisioning returned ${provisionRes.status}:`, body);
+    const user = await provisionRes.json();
+    const destination = 
+        user?.role === "pentester" ? "/pentesting/console/my-engagements" :
+        user?.role === "service_delivery" ? "/service-delivery/dashboard":
+"/";
 
-            throw new Error("Failed to provision user.");
-        }
-
-        return resp;
+    const resp = NextResponse.redirect(
+        new URL(destination, APP_URL),
+    );
+    setAuthCookies (resp, tokens);
+    resp.cookies.delete("oauth_state"); 
+    resp.cookies.delete("pkce_verifier");
+    return resp; 
     } catch(err) {
         console.error("[auth] callback failed: ", err);
 
         const resp = NextResponse.redirect(
-            new URL("/?auth_error=1", req.url),
+            new URL("/?auth_error=1", APP_URL),
         );
 
         resp.cookies.delete("oauth_state");
@@ -65,6 +65,7 @@ export async function GET(req: NextRequest) {
         resp.cookies.delete("refresh_token");
         resp.cookies.delete("id_token");
         resp.cookies.delete("logged_in");
+        resp.cookies.delete("access_token_expires_at");
 
         return resp;
     }

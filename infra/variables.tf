@@ -151,9 +151,9 @@ variable "keycloak_image_tag" {
 }
 
 variable "access_token_lifespan_seconds" {
-  description = "Access token lifespan exposed to the frontend refesh logic."
+  description = "Fallback access token lifespan used only when access_token_expires_at is unavailable."
   type        = number
-  default     = 600
+  default     = 900
 }
 
 variable "keycloak_bootstrap_admin_username" {
@@ -206,5 +206,38 @@ variable "smtp_from" {
 variable "db_backup_retention_period" {
   type        = number
   description = "Number of days to retain automated RDS backups."
-  default     = 7
+  default     = 1
+}
+
+variable "email_from" {
+  description = "Verified Amazon SES sender address."
+  type        = string
+}
+
+variable "ses_identity_arn" {
+  description = "Verified Amazon SES identity ARN permitted for sending."
+  type        = string
+}
+
+variable "email_worker_desired_count" {
+  description = "Desired email-worker ECS task count."
+  type        = number
+  default     = 0
+}
+
+variable "schedule_worker_desired_count" {
+  description = "Number of schedule worker ECS tasks"
+  type        = number
+  default     = 0
+}
+
+variable "celery_beat_desired_count" {
+  description = "Number of Celery Beat ECS tasks; must be 0 or 1"
+  type        = number
+  default     = 0
+
+  validation {
+    condition     = contains([0, 1], var.celery_beat_desired_count)
+    error_message = "celery_beat_desired_count must be either 0 or 1."
+  }
 }

@@ -28,6 +28,11 @@ def run_tls_scan_task(
     logger.info(f"[TLS_Task] Starting TLS scan for IP address: {ip_address}")
 
     try:
+        send_source_callback(scan_id=scan_id, source_name="tls", status="running")
+    except Exception:
+        logger.warning("[TLS_Task] Failed to send `running` callback for %s",ip_address)
+
+    try:
         tls_data = run_tls_scan(
             ip_address=ip_address,
             ports=ports,

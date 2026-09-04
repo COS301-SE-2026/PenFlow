@@ -42,7 +42,7 @@ def test_successful_task(mock_scan, mock_callback, mock_send_task):
     assert service["port"] == 22
     assert service["protocol"] == "tcp"
     assert service["service_name"] == "ssh"
-    mock_callback.assert_called_once()
+    assert mock_callback.call_count == 2
     assert mock_send_task.call_count == 3
 
 #Sad Path 1
@@ -64,4 +64,4 @@ def test_failed_task(mock_scan, mock_callback):
     assert result["services"] == []
     assert "error_message" in result
 
-    mock_callback.assert_called_once()
+    assert mock_callback.call_count == 2

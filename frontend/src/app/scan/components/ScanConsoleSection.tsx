@@ -8,8 +8,8 @@ import { validateDomain } from "@/lib/domainValidator";
 import { postScanRequest,  fetchScanStatus} from "@/lib/scanService";  
 
 const LEFT_SOURCES  = ["Shodan", "HaveIBeenPwned", "URLScan.io", "Wappalyzer"];
-const RIGHT_SOURCES = ["crt.sh", "WHOIS", "DNS"];
-const SOURCES = [...LEFT_SOURCES, ...RIGHT_SOURCES, "Normalising"];
+const RIGHT_SOURCES = ["crt.sh", "WHOIS", "DNS", "Normalising"];
+const SOURCES = [...LEFT_SOURCES, ...RIGHT_SOURCES,];
 const SOURCE_MAPPINGS: Record<string, string> = {
   Shodan: "shodan",
   HaveIBeenPwned: "hibp",
@@ -166,9 +166,7 @@ export default function ScanConsoleSection() {
                     {source}
                   </span>
                 ))}
-                <span className={`${styles.processLabel} ${styles.normalisingLabel}`} data-done={stepsDone[SOURCES.length - 1]}>
-                  Normalising
-                </span>
+                
               </div>
             </div>
 

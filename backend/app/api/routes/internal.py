@@ -11,6 +11,7 @@ from app.models.base import ReportStatus, ScanSourceStatus, ScanStatus, Severity
 from app.models.finding import Finding
 from app.models.scan_source import ScanSource
 from app.repositories.report_repository import (
+    get_by_engagement_and_version,
     get_report_by_scan_id,
     mark_report_completed,
     mark_report_failed,
@@ -214,3 +215,49 @@ async def update_scan_source_callback(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to process source callback",
         )
+
+@router.put(
+        "/reports/engagement/{engagement_id}/version/{version}/callback",
+        status_code=status.HTTP_200_OK)
+async def update_engagement_report_status_callback(
+    engagement_id: UUID, 
+    version: int,
+    payload: ReportCallbackRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]: 
+    try:
+        report = await get_by_engagement_and_version(db, engagement_id, version) 
+        if not report: 
+            raise HTTPException(status_code=404, detail="Engagement report not found")
+
+        if payload.status == "completed": 
+            if not payload.pdf_path: 
+                raise HTTPException(status_code=400, detail="pdf_path is required")
+            report.status = ReportStatus.COMPLETED 
+            report.pdf_path = payload.pdf_path 
+        elif payload.status == "failed": 
+            report.status = ReportStatus.FAILED 
+            report.error_message = payload.error_message or "Report generation failed"
+        else:
+            raise HTTPException(status_code=400, detail="Invalid report status")
+
+        await db.commit() 
+        await db.refresh(report) 
+
+        status_val = report.status.value if hasattr(report.status, "value") else report.status 
+
+        return {
+            "engagement_id": str(engagement_id), 
+            "version": version, 
+            "report_status": status_val,
+        }
+
+    except HTTPException: 
+        raise 
+    except Exception: 
+        await db.rollback() 
+        logger.exception(
+            "Failed to process engagement report callback for %s (v%s)",
+            engagement_id,
+            version)
+        raise HTTPException(status_code=500, detail="Failed to process callback")

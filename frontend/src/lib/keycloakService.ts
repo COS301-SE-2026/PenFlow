@@ -2,6 +2,7 @@ const KEYCLOAK_PUBLIC_URL = process.env.KEYCLOAK_PUBLIC_URL ?? "http://localhost
 const KEYCLOAK_INTERNAL_URL = process.env.KEYCLOAK_INTERNAL_URL ?? KEYCLOAK_PUBLIC_URL;
 const REALM = process.env.KEYCLOAK_REALM ?? "penflow";
 const CLIENT_ID = process.env.KEYCLOAK_CLIENT_ID ?? "penflow-web";
+const CLIENT_SECRET = process.env.KEYCLOAK_CLIENT_SECRET;
 
 export const AUTHORIZATION_URL = `${KEYCLOAK_PUBLIC_URL}/realms/${REALM}/protocol/openid-connect/auth`;
 export const TOKEN_URL = `${KEYCLOAK_INTERNAL_URL}/realms/${REALM}/protocol/openid-connect/token`;
@@ -29,6 +30,7 @@ export async function exchangeAuthCode(
     body: new URLSearchParams({
       grant_type: "authorization_code",
       client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET ?? "",
       code,
       redirect_uri: redirectUri,
       code_verifier: codeVerifier,
@@ -52,6 +54,7 @@ export async function refreshAccessToken(refreshToken: string):Promise<TokenResp
     body:new URLSearchParams({
       grant_type: "refresh_token",
       client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET ?? "",
       refresh_token:refreshToken
     }),
   });

@@ -158,7 +158,7 @@ This section embeds the core architectural diagrams and explains **what each dia
 
 ---
 
-### 2.2 API Gateway (FastAPI) — Application Tier Detail
+### 2.2 API Gateway (FastAPI) - Application Tier Detail
 ![API Gateway Diagram](/docs/Architecture/images/API%20Gateway%20Diagram.jpg)
 
 **What this diagram shows**
@@ -250,13 +250,13 @@ This section embeds the core architectural diagrams and explains **what each dia
 
 ---
 
-### 2.7 Design Pattern Diagrams — How They Appear in PenFlow
+### 2.7 Design Pattern Diagrams - How They Appear in PenFlow
 
 #### Facade Pattern
 ![Facade](/docs/Architecture/images/Facade.jpg)
 
 **How it maps to PenFlow**
-- The FastAPI gateway acts as a façade for the client: it hides queueing, orchestration, retries, normalization, and persistence behind a small set of API endpoints.
+- The FastAPI gateway acts as a facade view for the client: it hides queueing, orchestration, retries, normalization, and persistence behind a small set of API endpoints.
 
 #### Adapter Pattern
 ![Adapter](/docs/Architecture/images/Adapter.jpg)
@@ -532,15 +532,8 @@ This section defines the **architecturally significant requirements** and the **
 
 --- 
 
-### 4.1 Availability
 
-PenFlow is expected to remain available even when individual application components fail.
-To support this, the frontend, backend and worker services are deployed independently within Amazon ECS. Application Load Balancer health checks detect unhealthy services while ECS automatically replaces failed containers. RabbitMQ separates user requests from long-running scan execution, ensuring that temporary worker failures do not prevent users from interacting with the API.
-As the platform grows, additional backend and worker instances can be deployed to further improve service availability by removing individual containers as single points of failure.
-
----
-
-### 4.2 Scalability
+### 4.1 Scalability
 
 **Requirement:**  
 PenFlow must handle multiple concurrent scans and multiple concurrent users without degrading the responsiveness of the system, it was designed so we could scale the differing parts independently.
@@ -559,7 +552,7 @@ Phase 2 further reinforces this by decomposing scanning into multiple independen
 
 ---
 
-### 4.3 Performance (Responsiveness)
+### 4.2 Performance (Responsiveness)
 
 **Requirement:**  
 User-facing operations must remain responsive even when scans are long-running or external services are slow.
@@ -575,7 +568,7 @@ User-facing operations must remain responsive even when scans are long-running o
 
 ---
 
-### 4.4 Reliability & Fault Tolerance
+### 4.3 Reliability & Fault Tolerance
 
 **Requirement:**  
 PenFlow must continue producing usable results even when OSINT sources are unavailable, rate-limited, or intermittent.
@@ -592,7 +585,7 @@ PenFlow produces a “best-effort” report instead of failing hard due to a sin
 
 ---
 
-### 4.5 Maintainability & Evolvability
+### 4.4 Maintainability & Evolvability
 
 **Requirement:**  
 PenFlow must support frequent change: adding/removing OSINT providers, adjusting normalized data structures, and refining report content without breaking the system.
@@ -607,13 +600,15 @@ PenFlow must support frequent change: adding/removing OSINT providers, adjusting
 
 ---
 
-### 4.6 Security (Core Requirement)
+### 4.5 Security (Core Requirement)
 
 **Requirement:**  
 PenFlow processes sensitive vulnerability and exposure data. The system must protect tenant data, credentials, and generated reports.
 
 **Tactics:**
-- **Authentication & Authorization:** JWT-based auth (Auth0) with role-based access control (RBAC).
+- **Authentication & Authorization:** JWT-based auth (Keycloak) with role-based access control (RBAC).
+- **Ownership-scoped access control:** Resource lookups (scans, domains) are scoped by the requesting user's ID; a request for another user's resource returns 404 rather than exposing that the resource exists.
+- **IP-based rate limiting:** Scan submission is capped per source IP (e.g. 3 scan requests per 10 minutes) to prevent abuse of external OSINT/active-scan providers.
 - **Information hiding:** External API keys and internal scanning logic are not exposed to the client.
 - **Transport security:** HTTPS/TLS for all client-server communication.
 - **Least privilege (AWS IAM):** Roles/policies scoped to minimum required access.
@@ -651,10 +646,10 @@ The following table summarises how the architectural decisions made throughout P
 | Quality Requirement | Architectural Decision                                                                                                                                                                                                                                  |
 |---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Performance | Long-running scans are executed asynchronously using RabbitMQ and Celery workers, allowing the FastAPI backend to respond immediately while scan processing continues in the background.                                                                |
-| Reliability | RabbitMQ provides durable task queues while Celery supports retry mechanisms for failures. Worker failures are isolated from the API, allowing scans to finish with partial results where possible.                                                     |
+| Reliability | RabbitMQ provides durable task queues while Celery supports retry mechanisms for failures. Worker failures are isolated from the API, allowing scans to finish with partial results where possible. Independent ECS deployment with Application Load Balancer health checks and automatic container replacement further protects service availability (see §3.3).                                                    |
 | Scalability | The frontend, backend and worker services are deployed as independent components. Additional worker instances can be introduced without affecting the remainder of the application, while RabbitMQ buffers scan requests during periods of high demand. |
-| Security | Keycloak provides authentication and identity management, HTTPS/TLS secures client communication, AWS Secrets Manager protects sensitive credentials, and IAM roles restrict infrastructure access according to least-privilege principles.             |
-| Maintainability | PenFlow follows a layered modular architecture and decomposes Phase 2 scanning into specialised workers that communicate through a common data contract, allowing new scanning capabilities to be introduced with minimal architectural changes.        |
+| Security | Keycloak provides authentication and identity management, HTTPS/TLS secures client communication, AWS Secrets Manager protects sensitive credentials, and IAM roles restrict infrastructure access according to least-privilege principles. Resource lookups are additionally scoped by the requesting user's ID, and scan submission is rate-limited per source IP.             |
+| Maintainability | PenFlow follows a layered modular architecture and decomposes Phase 2 scanning into specialised workers that communicate through a common data contract, allowing new scanning capabilities to be introduced with minimal architectural changes. Consistent linting, formatting and test coverage gates in CI reduce long-term drift and regression risk.       |
 ---
 
 ## 5. Architectural Patterns
@@ -906,3 +901,1871 @@ The following supporting documents provide additional detail for the Phase 2 arc
 |---------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [Phase 2 Worker Architecture](/docs/Architecture/phase2-worker-architecture.md) | Describes the worker pipeline, worker responsibilities, the standard worker contract, and architectural rationale for the distributed scanning architecture. |
 | [Phase 2 Data Flow](/docs/Architecture/phase2-data-flow.md)                     | Describes how scan information flows through the backend, workers, Findings, Assets and reporting pipeline.                                                  |
+
+
+---
+
+## Service Contracts
+
+PenFlow exposes REST APIs between the frontend, backend and worker services. The contracts below document the main communication boundaries used by the system.
+
+Each contract gives the endpoint, required inputs, authentication, expected response and possible errors. Full request and response schemas are also available through PenFlow's generated OpenAPI/Swagger documentation.
+
+### OpenAPI Specification
+
+The complete PenFlow REST API contract, including all endpoints, request and response schemas, authentication requirements, and status codes. [OpenAPI Specification](./openapi.yaml)
+
+---
+
+### 1: Domain Verification Service
+
+The Domain Verification Service allows users to register, verify, list and remove domains.
+
+#### 1.1: Add Domain for Verification
+
+`POST /api/v1/domains/`
+
+Registers a domain to the authenticated user and generates the information needed for DNS verification.
+
+**Auth:** Required.
+
+**Input:** `domain` (string)
+
+```json
+{
+    "domain": "hackerone.com"
+}
+```
+
+**201 Created:** Returns `VerifiedDomainResponse` containing `id`, `domain`, `status`, `verification_token` and `verified_at`.
+
+Example token: `penflow-verification=pentoken123...`
+
+**Errors:** 
+
+- `401` user not found, 
+- `409` domain already registered, 
+- `422` invalid domain or request.
+
+---
+
+#### 1.2: Verify Domain Ownership
+
+`POST /api/v1/domains/{domain_id}/verify`
+
+Checks the domain's DNS TXT records for the generated verification token.
+
+**Auth:** Required. Users may only verify their own domains.
+
+**Input:** `domain_id` (UUID path parameter)
+
+**Rate Limit:** 10 requests per minute per client IP.
+
+**200 OK:** Returns the updated `VerifiedDomainResponse`. If already verified, the existing verified record is returned.
+
+**Errors:** 
+- `400` DNS verification failed, 
+- `401` user not found, 
+- `404` domain not found, 
+- `422` invalid domain ID.
+
+---
+
+#### 1.3: List Registered Domains
+
+`GET /api/v1/domains`
+
+Returns domains belonging to the authenticated user.
+
+**Auth:** Required.
+
+**Query:** `status`, `search`, `sort` (`domain`, `created_at`, `status`), `order` (`asc`, `desc`), `limit` (1-100, default 20), `offset` (default 0).
+
+**200 OK:** Returns `DomainList` containing domain items, verification status counts and pagination information.
+
+**Errors:** 
+- `401` user not found, 
+- `422` invalid query values.
+
+---
+
+#### 1.4: Delete Registered Domain
+
+`DELETE /api/v1/domains/{domain_id}`
+
+Deletes a domain verification record belonging to the authenticated user.
+
+**Auth:** Required.
+
+**Input:** `domain_id` (UUID path parameter)
+
+**204 No Content:** Domain deleted successfully.
+
+**Errors:** 
+- `401` user not found, 
+- `404` domain not found, 
+- `422` invalid domain ID.
+
+---
+
+### 2: System Health Service
+
+The System Health Service checks the API and database connection.
+
+#### 2.1: Get System Health
+
+`GET /api/v1/health`
+
+Checks whether the PenFlow API is running and whether the backend can connect to the database.
+
+**Auth:** Not required.
+
+**200 OK:** Returns `status`, `api_version` and `database`.
+
+```json
+{
+    "status": "ok",
+    "api_version": "1.0.0",
+    "database": "connected"
+}
+```
+
+`database` is either `connected` or `disconnected`. A database failure is logged but the endpoint still returns `200 OK`.
+
+---
+
+### 3: User Service
+
+The User Service links the authenticated Keycloak identity to a PenFlow user.
+
+#### 3.1: Get Current User
+
+`GET /api/v1/users/me`
+
+Returns the PenFlow user linked to the current Keycloak identity. If no user exists, a new `client` user is created. Existing user email and name information is updated from Keycloak.
+
+**Auth:** Required.
+
+**200 OK:** Returns `id`, `email` and `role`.
+
+```json
+{
+    "id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
+    "email": "user@usermail.com",
+    "role": "client"
+}
+```
+
+**Errors:** `500` user could not be retrieved or created.
+
+---
+
+### 4: Scan Service
+
+The Scan Service manages Phase 1 passive CTEM scans and Phase 2 active vulnerability scans.
+
+#### 4.1: Initiate Scan
+
+`POST /api/v1/scans/`
+
+Starts a passive CTEM or active vulnerability scan and queues the relevant Celery pipeline.
+
+**Auth:** Optional for passive scans. Required for active scans.
+
+**Input:** `domain`, `scan_type`, optional `verified_domain_id`, optional `email`.
+
+```json
+{
+    "domain": "hackerone.com",
+    "scan_type": "passive_ctem",
+    "verified_domain_id": null,
+    "email": "steve@penflow.com"
+}
+```
+
+`scan_type` is either `passive_ctem` or `active_vulnerability`.
+
+Active scans require an authenticated user, a verified domain ID and a domain matching the verification record.
+
+**Rate Limit:** 3 scan requests per 10 minutes per client IP.
+
+**202 Accepted:** Returns `scan_id` and initial status `queued`.
+
+**Errors:** 
+- `400` active scan details invalid, 
+- `401` authentication required, 
+- `403` domain not verified, 
+- `422` invalid request, 
+- `500` scan could not be started.
+
+---
+
+#### 4.2: List Scans
+
+`GET /api/v1/scans/`
+
+Returns the authenticated user's scan history, newest first.
+
+**Auth:** Required.
+
+**Query:** optional `scan_status`, `limit` (1-100, default 10), `offset` (default 0).
+
+Scan statuses: `queued`, `running`, `completed`, `failed`, `partial`.
+
+**200 OK:** Returns scan history containing scan ID, domain, date, type, status, progress and finding counts.
+
+**Errors:** 
+- `404` user not found, 
+- `422` invalid query values, 
+- `500` history could not be retrieved.
+
+---
+
+#### 4.3: Get Scan Status
+
+`GET /api/v1/scans/{scan_id}/status`
+
+Returns the current scan status, progress, source statuses and report status.
+
+**Auth:** Optional. Anonymous scans may be checked without authentication. User owned scans require the matching user.
+
+**Input:** `scan_id` (UUID path parameter)
+
+**200 OK:** Returns `scan_id`, `domain`, `created_at`, `scan_type`, `status`, `progress`, `sources` and `report_status`.
+
+Sources that have not returned a result are shown as `pending`.
+
+**Errors:** 
+- `404` scan not found or user does not own the scan, 
+- `422` invalid scan ID.
+
+---
+
+#### 4.4: Get Scan Summary
+
+`GET /api/v1/scans/{scan_id}/summary`
+
+Returns the main summary information for a scan.
+
+**Auth:** Not required.
+
+**Input:** `scan_id` (UUID path parameter)
+
+**200 OK:** Returns the scan summary, severity counts, top findings, asset impact, source coverage and report status.
+
+Up to five top findings are returned in the preview.
+
+**Errors:** 
+- `404` scan not found, 
+- `422` invalid scan ID.
+
+---
+
+#### 4.5: Get Scan Metrics
+
+`GET /api/v1/scans/{scan_id}/metrics`
+
+Returns the calculated risk score and scan metrics.
+
+**Auth:** Not required.
+
+**Input:** `scan_id` (UUID path parameter)
+
+**200 OK:** Returns `risk_score`, `risk_level`, finding counts, asset counts, service counts and technology counts.
+
+Risk weighting:
+- Critical: 25
+- High: 15
+- Medium: 5
+- Low: 1
+
+Risk levels are `HIGH RISK` from 70, `MEDIUM RISK` from 40 and `LOW RISK` below 40.
+
+**Errors:** 
+- `404` scan not found, 
+- `422` invalid scan ID.
+
+---
+
+#### 4.6: Get Scan Findings
+
+`GET /api/v1/scans/{scan_id}/findings`
+
+Returns findings produced by a scan.
+
+**Auth:** Not required.
+
+**Input:** `scan_id` (UUID path parameter)
+
+**Query:** optional `severity`, `limit` (1-100, default 10), `offset` (default 0).
+
+**200 OK:** Returns findings containing ID, title, CVE, severity, CVSS score, source, asset, description and recommendation. Results are newest first.
+
+**Errors:** `422` invalid scan ID or pagination values.
+
+---
+
+#### 4.7: Get Scan Assets
+
+`GET /api/v1/scans/{scan_id}/assets`
+
+Returns assets discovered during a scan.
+
+**Auth:** Not required.
+
+**Input:** `scan_id` (UUID path parameter)
+
+**Query:** `limit` (1-100, default 10), `offset` (default 0).
+
+**200 OK:** Returns asset ID, identifier, asset type and finding count. Assets with the most findings are returned first.
+
+**Errors:** `422` invalid scan ID or pagination values.
+
+---
+
+#### 4.8: Get Findings Page
+
+`GET /api/v1/scans/{scan_id}/findings-page`
+
+Returns the expanded findings data used by the Findings page.
+
+**Auth:** Not required.
+
+**Input:** `scan_id` (UUID path parameter)
+
+**Query:** optional `severity`, `search`, `sort_by`, `limit` (default 12), `offset` (default 0).
+
+`low_info` combines Low and Informational findings. `sort_by` supports severity and CVSS sorting.
+
+**200 OK:** Returns `total`, severity `counts` and finding `items`.
+
+**Errors:** `422` invalid scan ID, filter or pagination values.
+
+---
+
+#### 4.9: Get Assets Page
+
+`GET /api/v1/scans/{scan_id}/assets-page`
+
+Returns the expanded asset data used by the Assets page.
+
+**Auth:** Not required.
+
+**Input:** `scan_id` (UUID path parameter)
+
+**Query:** optional `asset_type`, `severity`, `search`, `sort_by`, `limit` (default 15), `offset` (default 0).
+
+**200 OK:** Returns `total`, asset category `counts` and asset `items` including severity and finding counts.
+
+**Errors:** `422` invalid scan ID or pagination values.
+
+---
+
+#### 4.10: Get Services Page
+
+`GET /api/v1/scans/{scan_id}/services-page`
+
+Returns network services discovered during a scan.
+
+**Auth:** Not required.
+
+**Input:** `scan_id` (UUID path parameter)
+
+**Query:** optional `protocol`, `search`, `sort_by`, `limit` (default 15), `offset` (default 0).
+
+**200 OK:** Returns `total`, protocol/state `counts` and service `items` including host, port, protocol, product, version, state and risk level.
+
+**Errors:** `422` invalid scan ID or pagination values.
+
+---
+
+#### 4.11: Get Risk History
+
+`GET /api/v1/scans/{scan_id}/risk-history`
+
+Returns risk history from completed scans of the same domain.
+
+**Auth:** Not required.
+
+**Input:** `scan_id` (UUID path parameter)
+
+**200 OK:** Returns up to 10 completed scans containing `date`, `risk_score` and `total_findings`, ordered from oldest to newest.
+
+If no history exists, an empty list is returned.
+
+**Errors:** `422` invalid scan ID.
+
+---
+
+### 5: Scan Report Service
+
+The Scan Report Service allows scan reports to be downloaded or emailed.
+
+#### 5.1: Download Scan PDF
+
+`GET /api/v1/scans/{scan_id}/pdf`
+
+Downloads the completed PDF report for a scan.
+
+**Auth:** Not required.
+
+**Input:** `scan_id` (UUID path parameter)
+
+**200 OK:** Returns the generated PDF as `PenFlow_Report_{scan_id}.pdf`. Reports may be retrieved from local storage or Amazon S3.
+
+**Errors:** 
+- `400` report is not ready, 
+- `404` report does not exist or cannot be retrieved, 
+- `422` invalid scan ID.
+
+---
+
+#### 5.2: Email Scan Report
+
+`POST /api/v1/scans/{scan_id}/email-report`
+
+Emails a completed scan report as a PDF attachment.
+
+**Auth:** Not required.
+
+**Input:** `scan_id` (UUID path parameter), `email` (email address).
+
+```json
+{
+    "email": "steve@penflow.com"
+}
+```
+
+**Rate Limit:** 2 requests per minute per client IP.
+
+**200 OK:**
+
+```json
+{
+    "message": "Report emailed successfully"
+}
+```
+
+**Errors:** 
+- `400` report is not ready, 
+- `404` scan not found, 
+- `422` invalid scan ID or email.
+
+---
+
+### 6: Internal Worker Service
+
+The Internal Worker Service allows workers to send scan, source and report updates back to the backend.
+
+#### 6.1: Update Scan Status
+
+`PATCH /api/v1/internal/scans/{scan_id}/status`
+
+Updates the overall status of a scan.
+
+**Auth:** Not required.
+
+**Input:** `scan_id` (UUID), `status`, optional `error_message`.
+
+```json
+{
+    "status": "completed",
+    "error_message": null
+}
+```
+
+Scan statuses: `queued`, `running`, `completed`, `failed`, `partial`.
+
+A completed scan is set to 100% progress. `completed` and `partial` scans also start report generation.
+
+**200 OK:** Returns `scan_id`, `status` and `report_status`.
+
+**Errors:** 
+- `404` scan not found, 
+- `422` invalid scan ID or status, 
+- `500` callback failed.
+
+---
+
+#### 6.2: Submit Scan Source Result
+
+`PATCH /api/v1/internal/scans/{scan_id}/sources/{source_name}`
+
+Stores the result returned by an individual scan worker and updates scan progress.
+
+**Auth:** Not required.
+
+**Input:** `scan_id` (UUID), `source_name`, `status`, optional `raw_result`, `assets`, `services`, `technologies`, `findings` and `error_message`.
+
+Example:
+
+```json
+{
+    "status": "completed",
+    "raw_result": {
+        "checked": true
+    },
+    "assets": [
+        {
+            "identifier": "hackerone.com",
+            "asset_type": "domain"
+        }
+    ],
+    "services": [],
+    "technologies": [],
+    "findings": [],
+    "error_message": null
+}
+```
+
+Source statuses: `pending`, `running`, `completed`, `failed`, `partial`, `skipped`.
+
+When all expected sources finish, the scan becomes `completed`, `failed` or `partial`. Completed and partial scans may also start report generation.
+
+**200 OK:** Returns `scan_id`, `source_name`, `scan_status`, `progress` and `report_status`.
+
+**Errors:** 
+- `404` scan not found, 
+- `422` invalid scan ID, 
+- `500` source callback failed.
+
+---
+
+#### 6.3: Update Report Status
+
+`PATCH /api/v1/internal/reports/{scan_id}/status`
+
+Updates a report after the report worker completes or fails.
+
+**Auth:** Not required.
+
+**Input:** `scan_id` (UUID), `status`, optional `pdf_path`, optional `error_message`.
+
+`status` must be `completed` or `failed`. A completed report requires `pdf_path`.
+
+Example:
+
+```json
+{
+    "status": "completed",
+    "pdf_path": "scans/2ec29dfa-6839-43ba-a45a-32a31f25dbdb/report.pdf",
+    "error_message": null
+}
+```
+
+**200 OK:** Returns `scan_id` and `report_status`.
+
+**Errors:** 
+- `400` invalid report status or missing PDF path, 
+- `422` invalid scan ID, 
+- `500` callback failed.
+
+---
+
+### 7: Notification Service
+
+The Notification Service allows authenticated users to view and manage their notifications.
+
+#### 7.1: List Notifications
+
+`GET /api/v1/notifications`
+
+Returns notifications belonging to the authenticated user, newest first.
+
+**Auth:** Required.
+
+**Query:** `unread_only` (default `false`), `limit` (1-100, default 20), `offset` (default 0).
+
+**200 OK:** Returns notification `items`, the user's `unread_count` and pagination information.
+
+Each notification contains `id`, `type`, `title`, `message`, `is_read`, `read_at`, optional `engagement_id`, `metadata` and `created_at`.
+
+If `unread_only=true`, only unread notifications are returned.
+
+**Errors:** `422` invalid query values.
+
+---
+
+#### 7.2: Mark Notification as Read
+
+`PATCH /api/v1/notifications/{notification_id}/read`
+
+Marks one notification belonging to the authenticated user as read.
+
+**Auth:** Required.
+
+**Input:** `notification_id` (UUID path parameter)
+
+**200 OK:** Returns the updated notification. `is_read` is set to `true` and `read_at` is recorded when the notification is first marked as read.
+
+**Errors:** 
+- `404` notification not found or does not belong to the user, 
+- `422` invalid notification ID.
+
+---
+
+#### 7.3: Mark All Notifications as Read
+
+`PATCH /api/v1/notifications/read-all`
+
+Marks all unread notifications belonging to the authenticated user as read.
+
+**Auth:** Required.
+
+**200 OK:** Returns the number of notifications that were changed.
+
+```json
+{
+    "marked_read": 3
+}
+```
+
+If there are no unread notifications, `marked_read` is `0`.
+
+--- 
+
+### 8: Engagement and Messaging Service
+
+The Engagement Service handles engagement requests, engagement details, messages and activity.
+
+#### 8.1: Create Engagement
+
+`POST /api/v1/engagements/`
+
+Creates a new engagement request for the authenticated user.
+
+**Auth:** Required.
+
+**Input:** `engagement_type`, `assessment_type`, `objective`, optional dates, optional constraints, optional primary contact and at least one asset.
+
+```json
+{
+    "engagement_type": "black_box",
+    "assessment_type": "web_application",
+    "objective": "Test hackerone.com for web vulnerabilities",
+    "start_date": "2026-09-10",
+    "end_date": "2026-09-12",
+    "primary_contact": "steve@penflow.com",
+    "assets": [
+        {
+            "type": "domain",
+            "value": "hackerone.com"
+        }
+    ]
+}
+```
+
+Asset types are `domain`, `ip`, `hostname` and `url`.
+
+**201 Created:** Returns the engagement ID, initial status, engagement and assessment types, objective, dates, asset count, estimated quote and assignment information.
+
+New engagements start with the `requested` status.
+
+**Errors:** 
+- `401` user not found, 
+- `422` invalid request, asset or date range.
+
+---
+
+#### 8.2: List Engagements
+
+`GET /api/v1/engagements`
+
+Returns engagements linked to the authenticated user.
+
+**Auth:** Required.
+
+**Query:** optional `status`, `search`, `sort`, `order`, `limit` (1-100, default 20), `offset` (default 0).
+
+`sort` supports `created_at`, `updated_at`, `client`, `status` and `requested_start_date`. Default sorting is `updated_at` descending.
+
+**200 OK:** Returns engagement `items`, status `counts` and pagination information.
+
+Each item includes the engagement ID, title, type, assessment type, priority, status, client, asset count, dates, estimated quote and assigned pentester where available.
+
+**Errors:** 
+- `401` user not found, 
+- `422` invalid query values.
+
+---
+
+#### 8.3: Get Engagement
+
+`GET /api/v1/engagements/{engagement_id}`
+
+Returns the full details for an engagement.
+
+**Auth:** Required. Access is limited to the client, assigned pentester, Service Delivery user or admin linked to the engagement.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**200 OK:** Returns engagement details including status, scope, dates, quote, users, assets, finding counts, recent findings and previous scan information where available.
+
+**Errors:** `401` user not found, `404` engagement not found or not accessible, `422` invalid engagement ID, `500` engagement client could not be loaded.
+
+---
+
+#### 8.4: List Engagement Messages
+
+`GET /api/v1/engagements/{engagement_id}/messages`
+
+Returns messages for a selected engagement conversation.
+
+**Auth:** Required. The user must be part of the selected message channel.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**Query:** `channel`
+
+Supported channels are:
+- `client_service_delivery`
+- `service_delivery_pentester`
+
+**200 OK:** Returns message items containing sender, recipient, channel, message, read state, optional finding ID and creation time. Messages are returned oldest first.
+
+**Errors:** 
+- `401` user not found, 
+- `404` engagement or conversation not accessible, 
+- `422` invalid engagement ID or channel.
+
+---
+
+#### 8.5: Send Engagement Message
+
+`POST /api/v1/engagements/{engagement_id}/messages`
+
+Sends a message through one of the engagement communication channels.
+
+**Auth:** Required. The sender must be part of the selected channel.
+
+**Input:** `engagement_id` (UUID), `comment`, `channel` and optional `finding_id`.
+
+```json
+{
+    "comment": "Can you confirm whether this finding should be included in the final report?",
+    "channel": "service_delivery_pentester",
+    "finding_id": null
+}
+```
+
+**201 Created:** Returns the created message including sender, recipient, channel, read state and creation time.
+
+**Errors:** 
+- `404` conversation not accessible, 
+- `409` the other participant has not been assigned, 
+- `422` empty message, invalid channel or finding does not belong to the engagement, 
+- `500` message participant could not be loaded.
+
+---
+
+#### 8.6: Mark Engagement Messages as Read
+
+`PATCH /api/v1/engagements/{engagement_id}/messages/read`
+
+Marks unread messages in a selected engagement conversation as read.
+
+**Auth:** Required. The user must be part of the selected channel.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**Query:** `channel`
+
+**200 OK:** Returns the number of messages changed.
+
+```json
+{
+    "marked_read": 4
+}
+```
+
+**Errors:** 
+- `401` user not found, 
+- `404` conversation not accessible, 
+- `422` invalid engagement ID or channel.
+
+---
+
+#### 8.7: Get Engagement Activity
+
+`GET /api/v1/engagements/{engagement_id}/activity`
+
+Returns activity recorded for an engagement and its related entities.
+
+**Auth:** Required. The user must have access to the engagement.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**Query:** `limit` (1-200, default 100).
+
+**200 OK:** Returns activity items containing `action`, `entity_type`, optional `entity_id`, actor, metadata and creation time.
+
+**Errors:** 
+- `401` user not found, 
+- `404` engagement not found or not accessible, 
+- `422` invalid engagement ID or limit.
+
+---
+
+### 9: Findings and Evidence Service
+
+The Findings Service allows engagement findings to be viewed, updated, verified, deleted and supported with evidence.
+
+#### 9.1: Get Finding
+
+`GET /api/v1/findings/{finding_id}`
+
+Returns the details of a finding.
+
+**Auth:** Required. The finding must belong to an engagement assigned to the user.
+
+**Input:** `finding_id` (UUID path parameter)
+
+**200 OK:** Returns the finding including severity, status, CVSS score, CVE, description, recommendation, asset information and uploaded evidence.
+
+**Errors:** 
+- `401` user not found, 
+- `404` finding not found or not accessible, 
+- `422` invalid finding ID.
+
+---
+
+#### 9.2: Update Finding
+
+`PATCH /api/v1/findings/{finding_id}`
+
+Updates an engagement finding.
+
+**Auth:** Pentester required. The finding must belong to an engagement assigned to the pentester.
+
+**Input:** `finding_id` (UUID) and `FindingUpdate`.
+
+Editable fields include title, engagement asset, severity, CVSS score, CVE ID, description, recommendation, status and verification state.
+
+Findings can only be edited while the engagement is `in_progress`.
+
+**200 OK:** Returns the updated finding.
+
+**Errors:** 
+- `404` finding not found or not accessible, 
+- `409` engagement is not in progress or a verified finding is being marked as a false positive, 
+- `422` invalid request or selected asset does not belong to the engagement.
+
+---
+
+#### 9.3: Upload Finding Evidence
+
+`POST /api/v1/findings/{finding_id}/evidence`
+
+Uploads an evidence file for a finding.
+
+**Auth:** Pentester required. The finding must belong to an active engagement assigned to the pentester.
+
+**Input:** `finding_id` (UUID) and one uploaded file.
+
+Maximum file size is 10 MB.
+
+Supported file types:
+- PNG
+- JPEG
+- TXT
+- JSON
+- PDF
+
+The backend checks the actual file type and validates image and JSON contents.
+
+**201 Created:** Returns the evidence ID, file name, MIME type and upload time.
+
+**Errors:** 
+- `404` finding not found, 
+- `409` engagement is not in progress, 
+- `413` file exceeds 10 MB, 
+- `415` unsupported or mismatched file type, 
+- `422` empty, invalid or corrupted file.
+
+---
+
+#### 9.4: Delete Finding
+
+`DELETE /api/v1/findings/{finding_id}`
+
+Deletes a manually created finding.
+
+**Auth:** Pentester required.
+
+**Input:** `finding_id` (UUID path parameter)
+
+Only findings with the `manual` source can be deleted and the engagement must still be `in_progress`.
+
+**204 No Content:** Finding deleted successfully.
+
+**Errors:** 
+- `404` finding not found or not accessible, 
+- `409` engagement is not in progress or the finding is automated, 
+- `422` invalid finding ID.
+
+---
+
+#### 9.5: Verify Finding
+
+`PATCH /api/v1/findings/{finding_id}/verify`
+
+Marks an automated finding as verified by the assigned pentester.
+
+**Auth:** Pentester required.
+
+**Input:** `finding_id` (UUID path parameter)
+
+The finding must be automated, not already verified, not marked as a false positive and the engagement must still be `in_progress`.
+
+**200 OK:** Returns the updated finding with `is_verified` set to `true`.
+
+**Errors:** 
+- `404` finding not found or not accessible, 
+- `409` finding cannot be verified in its current state, 
+- `422` invalid finding ID.
+
+---
+
+### 10: Re-test Service
+
+The Re-test Service allows assigned pentesters to update the outcome and notes of a finding re-test.
+
+#### 10.1: Update Re-test
+
+`PATCH /api/v1/retests/{retest_id}`
+
+Updates the status or notes of a re-test assigned to the pentester.
+
+**Auth:** Pentester required.
+
+**Input:** `retest_id` (UUID path parameter), optional `status` and optional `notes`.
+
+Re-test statuses are:
+- `requested`
+- `in_progress`
+- `resolved`
+- `still_vulnerable`
+
+When a re-test changes to `resolved` or `still_vulnerable`, `completed_at` is recorded. Moving it back to `requested` or `in_progress` clears `completed_at`.
+
+```json
+{
+    "status": "resolved",
+    "notes": "The vulnerability could no longer be reproduced."
+}
+```
+
+**200 OK:** Returns the updated re-test including finding details, status, notes, assignment information and completion time.
+
+When a re-test is completed for the first time, the client and Service Delivery user are notified.
+
+**Errors:** 
+- `404` re-test not found or not assigned to the pentester, 
+- `422` invalid re-test ID or request values.
+
+---
+
+### 11: Pentester Service
+
+The Pentester Service gives pentesters access to their assigned engagements, findings, re-tests, messages and engagement workflow actions.
+
+#### 11.1: List Assigned Engagements
+
+`GET /api/v1/pentester`
+
+Returns engagements assigned to the authenticated pentester.
+
+**Auth:** Pentester required.
+
+**Query:** optional `status`, `search`, `sort`, `order`, `limit` (1-100, default 20), `offset` (default 0).
+
+`sort` supports `created_at`, `updated_at`, `client`, `status` and `requested_start_date`. Default sorting is `updated_at` descending.
+
+**200 OK:** Returns engagement `items`, status `counts` and pagination information.
+
+Only engagements assigned to the pentester are returned.
+
+**Errors:** 
+- `422` invalid query values.
+
+---
+
+#### 11.2: Get Pentester Messages
+
+`GET /api/v1/pentester/messages`
+
+Returns the pentester's Service Delivery conversations.
+
+**Auth:** Pentester required.
+
+**200 OK:** Returns conversation items containing the engagement, Service Delivery user, latest message, message count and unread count.
+
+---
+
+#### 11.3: Create Manual Finding
+
+`POST /api/v1/pentester/{engagement_id}/findings`
+
+Creates a manual finding for an engagement assigned to the pentester.
+
+**Auth:** Pentester required.
+
+**Input:** `engagement_id` (UUID), `title`, `severity`, optional `engagement_asset_id`, `cvss_score`, `cve_id`, `description` and `recommendation`.
+
+```json
+{
+    "title": "Missing Security Header",
+    "severity": "high",
+    "cvss_score": 7.5,
+    "cve_id": null,
+    "description": "A required security header was not found.",
+    "recommendation": "Configure the missing security header."
+}
+```
+
+Manual findings are created with source `manual` and status `open`.
+
+**201 Created:** Returns the created finding.
+
+**Errors:** 
+- `404` engagement not found or not assigned to the pentester, 
+- `409` engagement is not in progress, 
+- `422` invalid request or selected asset does not belong to the engagement.
+
+---
+
+#### 11.4: List Engagement Findings
+
+`GET /api/v1/pentester/{engagement_id}/findings`
+
+Returns findings for an engagement assigned to the pentester.
+
+**Auth:** Pentester required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**Query:** optional `source`, `severity`, `status`, `search`, `limit` (1-100, default 20), `offset` (default 0).
+
+**200 OK:** Returns finding `items` and pagination information. Results are returned newest first.
+
+**Errors:** 
+- `404` engagement not found or not assigned to the pentester, 
+- `422` invalid query values.
+
+---
+
+#### 11.5: List Engagement Re-tests
+
+`GET /api/v1/pentester/{engagement_id}/retests`
+
+Returns re-tests for an engagement assigned to the pentester.
+
+**Auth:** Pentester required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**200 OK:** Returns re-tests containing finding details, status, notes, assignment information and completion time.
+
+**Errors:** 
+- `404` engagement not found or not assigned to the pentester, 
+- `422` invalid engagement ID.
+
+---
+
+#### 11.6: Get Engagement Activity
+
+`GET /api/v1/pentester/{engagement_id}/activity`
+
+Returns activity recorded for the selected engagement.
+
+**Auth:** Pentester required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**Query:** `limit` (1-200, default 100).
+
+**200 OK:** Returns activity items including action, entity type, actor, metadata and creation time.
+
+**Errors:** 
+- `404` engagement not found or not accessible, 
+- `422` invalid engagement ID or limit.
+
+---
+
+#### 11.7: Start Engagement
+
+`POST /api/v1/pentester/engagements/{engagement_id}/start`
+
+Starts a scheduled engagement assigned to the pentester.
+
+**Auth:** Pentester required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+The engagement must currently have the `scheduled` status.
+
+**200 OK:** Changes the engagement status to `in_progress` and returns the engagement ID, status and update time.
+
+The client and Service Delivery user are notified when testing starts.
+
+**Errors:** 
+- `404` engagement not found or not assigned to the pentester, 
+- `409` engagement is not scheduled, 
+- `422` invalid engagement ID.
+
+---
+
+#### 11.8: Submit Engagement for Review
+
+`PATCH /api/v1/pentester/{engagement_id}/submit-for-review`
+
+Submits a completed pentester engagement to Service Delivery for review.
+
+**Auth:** Pentester required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+The engagement must be assigned to the pentester and currently have the `in_progress` status.
+
+**200 OK:** Changes the engagement status to `review` and returns the engagement ID, status and update time.
+
+Submitting for review also starts report generation and notifies the Service Delivery user.
+
+**Errors:** 
+- `403` engagement is assigned to another pentester, 
+- `404` engagement not found, 
+- `409` engagement is not in progress,
+- `422` invalid engagement ID.
+
+---
+
+### 12: Service Delivery Service
+
+The Service Delivery Service manages engagement scoping, pentester assignment, scheduling, review, findings, re-tests and coms between clients and pentesters.
+
+All endpoints in this service require the `service_delivery` role.
+
+#### 12.1: List Engagements
+
+`GET /api/v1/service-delivery/engagements`
+
+Returns engagements available to Service Delivery.
+
+**Auth:** Service Delivery required.
+
+**Query:** optional `status`, `assessment_type`, `search`, `pentester_id`, `assigned`, `limit` (1-100, default 20), `offset` (default 0).
+
+**200 OK:** Returns engagement `items` and pagination information.
+
+Each item includes client details, engagement and assessment type, status, assigned Service Delivery user, assigned pentester, requested and scheduled dates, final quote and timestamps.
+
+**Errors:** 
+- `422` invalid query values.
+
+---
+
+#### 12.2: Get Engagement
+
+`GET /api/v1/service-delivery/engagements/{engagement_id}`
+
+Returns the full Service Delivery view of an engagement.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**200 OK:** Returns scope, objective, constraints, quote information, dates, client, assigned users, assets, finding summary and re-test summary.
+
+**Errors:** 
+- `404` engagement not found, 
+- `422` invalid engagement ID, 
+- `500` engagement client could not be loaded.
+
+---
+
+#### 12.3: Claim Engagement
+
+`POST /api/v1/service-delivery/engagements/{engagement_id}/claim`
+
+Claims a new engagement request for the authenticated Service Delivery user.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+Only engagements with status `requested` that have not already been claimed may be claimed.
+
+**200 OK:** Assigns the Service Delivery user and changes the engagement status to `scoping`.
+
+The client is notified that the engagement has been accepted for scoping.
+
+**Errors:** 
+- `404` engagement not found, 
+- `409` engagement cannot be claimed, 
+- `422` invalid engagement ID.
+
+---
+
+#### 12.4: Update Engagement Scoping
+
+`PATCH /api/v1/service-delivery/engagements/{engagement_id}/scoping`
+
+Updates the scoping information for an engagement owned by the Service Delivery user.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` (UUID) and one or more scoping fields.
+
+Available fields are `assessment_type`, `scope`, `objective`, `constraints`, `final_quote` and `estimated_duration_days`.
+
+The engagement must currently have status `scoping`.
+
+**200 OK:** Returns the updated engagement status and assignment information.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement not found, 
+- `409` engagement is not in scoping, 
+- `422` invalid fields or no scoping fields supplied.
+
+---
+
+#### 12.5: Assign Pentester
+
+`PUT /api/v1/service-delivery/engagements/{engagement_id}/pentester`
+
+Assigns a pentester to an engagement during scoping.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` and `pentester_id`.
+
+```json
+{
+    "pentester_id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb"
+}
+```
+
+The pentester must have an active profile, be available and support the engagement's assessment type.
+
+**200 OK:** Returns the updated engagement assignment and notifies the selected pentester.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement or pentester not found, 
+- `409` engagement is not in scoping or pentester is not eligible, 
+- `422` selected user is not a pentester.
+
+---
+
+#### 12.6: Schedule Engagement
+
+`POST /api/v1/service-delivery/engagements/{engagement_id}/schedule`
+
+Schedules a scoped engagement.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id`, `scheduled_start_date` and `scheduled_end_date`.
+
+```json
+{
+    "scheduled_start_date": "2026-09-10",
+    "scheduled_end_date": "2026-09-14"
+}
+```
+
+Before scheduling, the engagement must have an assigned eligible pentester, confirmed scope and final quote. The pentester must not have a scheduling conflict.
+
+**200 OK:** Changes the engagement status to `scheduled` and returns the scheduled dates and assignment information.
+
+The client and pentester are notified.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement or pentester not found, 
+- `409` scheduling requirements are not met or a schedule conflict exists, 
+- `422` invalid dates or start date is in the past.
+
+---
+
+#### 12.7: Reassign Pentester
+
+`POST /api/v1/service-delivery/engagements/{engagement_id}/reassign`
+
+Reassigns a scheduled engagement to another pentester.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id`, new `pentester_id` and `reason`.
+
+```json
+{
+    "pentester_id": "2ec29dfa-6839-43ba-a45a-32a31f25dbdb",
+    "reason": "Original pentester is no longer available."
+}
+```
+
+The new pentester must be available, support the assessment type and have no conflict with the existing schedule.
+
+**200 OK:** Updates the assigned pentester. The previous and new pentesters are notified.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement or pentester not found, 
+- `409` engagement cannot be reassigned or pentester is not eligible, 
+- `422` invalid request.
+
+---
+
+#### 12.8: Reschedule Engagement
+
+`POST /api/v1/service-delivery/engagements/{engagement_id}/reschedule`
+
+Changes the dates of a scheduled engagement.
+
+**Auth:** Service Delivery required.
+
+**Input:** new scheduled dates and a reason.
+
+```json
+{
+    "scheduled_start_date": "2026-09-15",
+    "scheduled_end_date": "2026-09-19",
+    "reason": "Client requested a new testing window."
+}
+```
+
+The engagement must be scheduled and the new dates must not conflict with the assigned pentester's other engagements.
+
+**200 OK:** Returns the updated schedule. The client and pentester are notified.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement not found, 
+- `409` engagement cannot be rescheduled or dates conflict, 
+- `422` invalid dates or start date is in the past.
+
+---
+
+#### 12.9: Return Engagement from Review
+
+`POST /api/v1/service-delivery/engagements/{engagement_id}/review/return`
+
+Returns an engagement to the pentester for further work.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` and `review_note`.
+
+```json
+{
+    "review_note": "Please add evidence and expand the recommendation for the high severity finding."
+}
+```
+
+The engagement must currently have status `review`.
+
+**200 OK:** Changes the status back to `in_progress`, records the reviewer and review note, and notifies the pentester.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement not found, 
+- `409` engagement is not in review or has no assigned pentester, 
+- `422` invalid review note.
+
+---
+
+#### 12.10: Complete Engagement Review
+
+`POST /api/v1/service-delivery/engagements/{engagement_id}/review/complete`
+
+Approves an engagement after Service Delivery review.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+The engagement must have status `review` and its latest report must have completed successfully.
+
+**200 OK:** Changes the engagement status to `completed` and records the reviewer, review time and completion time.
+
+The client and pentester are notified.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement not found, 
+- `409` engagement is not in review or the final report is not ready, 
+- `422` invalid engagement ID.
+
+---
+
+#### 12.11: Cancel Engagement
+
+`POST /api/v1/service-delivery/engagements/{engagement_id}/cancel`
+
+Cancels an engagement before it reaches review or completion.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` and cancellation `reason`.
+
+```json
+{
+    "reason": "Client cancelled the penetration test."
+}
+```
+
+Engagements may be cancelled while `requested`, `scoping`, `scheduled` or `in_progress`.
+
+**200 OK:** Changes the status to `cancelled` and notifies the client and assigned pentester where applicable.
+
+**Errors:** 
+- `403` engagement is assigned to another Service Delivery user, 
+- `404` engagement not found, 
+- `409` engagement can no longer be cancelled, 
+- `422` invalid reason.
+
+---
+
+#### 12.12: Get Service Delivery Dashboard
+
+`GET /api/v1/service-delivery/dashboard`
+
+Returns the information required by the Service Delivery dashboard.
+
+**Auth:** Service Delivery required.
+
+**200 OK:** Returns engagement counts for each status and dashboard lists for unclaimed requests, engagements awaiting review and upcoming scheduled engagements.
+
+`needs_attention` is calculated from engagements in `requested` or `review`.
+
+Each dashboard list returns up to five engagements.
+
+---
+
+#### 12.13: List Pentesters
+
+`GET /api/v1/service-delivery/pentesters`
+
+Returns pentesters available for assignment.
+
+**Auth:** Service Delivery required.
+
+**Query:** optional `search`, `assessment_type`, `availability_status`, `is_active`, `limit` (1-100, default 20), `offset` (default 0).
+
+**200 OK:** Returns pentester `items` and pagination information.
+
+Each pentester includes name, email, active state, availability, specialisations and current assigned engagement count.
+
+**Errors:** 
+- `422` invalid query values.
+
+---
+
+#### 12.14: Get Pentester Details
+
+`GET /api/v1/service-delivery/pentesters/{pentester_id}`
+
+Returns assignment and availability information for a pentester.
+
+**Auth:** Service Delivery required.
+
+**Input:** `pentester_id` (UUID path parameter)
+
+**200 OK:** Returns profile information, specialisations, availability and current scheduled, in-progress and total active engagement counts.
+
+**Errors:** 
+- `404` pentester or pentester profile not found, 
+- `422` invalid pentester ID.
+
+---
+
+#### 12.15: List Engagement Findings
+
+`GET /api/v1/service-delivery/engagements/{engagement_id}/findings`
+
+Returns findings for an engagement owned by the Service Delivery user.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+**Query:** optional `severity`, `status`, `limit` (1-100, default 20), `offset` (default 0).
+
+Findings are available while the engagement is `in_progress`, `review` or `completed`.
+
+**200 OK:** Returns finding `items` and pagination information including severity, status, source, verification state, CVSS, CVE and asset information.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement not found, 
+- `409` findings are not available in the current engagement state, 
+- `422` invalid query values.
+
+---
+
+#### 12.16: Get Engagement Finding
+
+`GET /api/v1/service-delivery/engagements/{engagement_id}/findings/{finding_id}`
+
+Returns the full details of one engagement finding.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` and `finding_id` (UUID path parameters)
+
+**200 OK:** Returns the finding including asset, description, recommendation, severity, status, verification state, CVSS and CVE information.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement or finding not found, 
+- `409` findings are not available in the current engagement state, 
+- `422` invalid IDs.
+
+---
+
+#### 12.17: Download Finding Evidence
+
+`GET /api/v1/service-delivery/evidence/{evidence_id}/download`
+
+Downloads an evidence file attached to a finding.
+
+**Auth:** Service Delivery required.
+
+**Input:** `evidence_id` (UUID path parameter)
+
+The evidence must belong to a finding in an engagement accessible to the Service Delivery user.
+
+**200 OK:** Returns the evidence file using its stored file name and MIME type.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` evidence or stored file not found, 
+- `409` findings are not available for the engagement, 
+- `422` invalid evidence ID.
+
+---
+
+#### 12.18: List Engagement Re-tests
+
+`GET /api/v1/service-delivery/engagements/{engagement_id}/retests`
+
+Returns re-tests associated with a completed engagement.
+
+**Auth:** Service Delivery required.
+
+**Input:** `engagement_id` (UUID path parameter)
+
+Re-tests are only available after the engagement has status `completed`.
+
+**200 OK:** Returns re-test items containing finding details, status, notes, assignment information and completion time.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` engagement not found, 
+- `409` engagement is not completed, 
+- `422` invalid engagement ID.
+
+---
+
+#### 12.19: Get Re-test Details
+
+`GET /api/v1/service-delivery/retests/{retest_id}`
+
+Returns the details of one re-test.
+
+**Auth:** Service Delivery required.
+
+**Input:** `retest_id` (UUID path parameter)
+
+The associated engagement must belong to the Service Delivery user and be completed.
+
+**200 OK:** Returns the re-test, finding summary, status, notes, assignment information and completion time.
+
+**Errors:** 
+- `403` engagement belongs to another Service Delivery user, 
+- `404` re-test or engagement not found, 
+- `409` engagement is not completed, 
+- `422` invalid re-test ID.
+
+---
+
+#### 12.20: Get Service Delivery Messages
+
+`GET /api/v1/service-delivery/messages`
+
+Returns the authenticated Service Delivery user's engagement conversations.
+
+**Auth:** Service Delivery required.
+
+**200 OK:** Returns conversation items containing engagement information, communication channel, participant, latest message, total message count and unread count.
+
+---
+
+#### 12.21: Get Service Delivery Audit Activity
+
+`GET /api/v1/service-delivery/audit`
+
+Returns audit activity associated with the authenticated Service Delivery user.
+
+**Auth:** Service Delivery required.
+
+**Query:** `limit` (1-200, default 100), `offset` (default 0).
+
+**200 OK:** Returns activity items containing action, entity type, optional entity ID, actor, metadata and creation time.
+
+**Errors:** 
+- `422` invalid pagination values.
+
+---
+
+
+
+# PenFlow - NFR Testing
+ 
+---
+ 
+## Performance
+ 
+### QR-01 - API response time under normal load
+ 
+**Objective:** Validate that API response times stay within target under normal load.
+ 
+**Tool used:** k6
+ 
+**Test performed:** `tests/k6/load_test.js`, `performance` scenario - 10 constant virtual users hitting `GET /api/v1/health` for 30s against `https://pen-flow.com`.
+ 
+**Evidence:**
+ 
+![QR-01 load test result](proof/load.png)
+ 
+**Result:** p(95) response time **208.23ms** against a target of <2s - **passes**.
+ 
+---
+ 
+### QR-02 - Phase 1 CTEM scan completion time
+ 
+**Objective:** Validate that the Phase 1 CTEM scan completes within target, bounded by the slowest single OSINT lookup.
+ 
+**Tool used:** k6
+ 
+**Test performed:** `tests/k6/phase1_scan_completion_test.js` - 10 sequential Phase 1 CTEM scans triggered and polled to completion.
+ 
+**Evidence:**
+ 
+![QR-02 Phase 1 scan completion result](proof/phases1scan.png)
+ 
+**Result:** p(90) completion time **34.09s** against a target of <60s - **passes**. All 10 runs returned `"partial"` status rather than `"completed"` (at least one OSINT source failed/rate-limited during each run - expected graceful-degradation behavior, not a defect).
+ 
+---
+ 
+### QR-03 - Phase 2 active vulnerability scan completion time
+ 
+**Objective:** Validate that the Phase 2 active scan completes within target, bounded by the sequential worker pipeline.
+ 
+**Tool used:** k6
+ 
+**Test performed:** `tests/k6/phase2_scan_completion_test.js` - Phase 2 scan triggered and polled to completion.
+ 
+**Evidence:**
+ 
+![QR-03 Phase 2 scan completion result](proof/phase2scan.png)
+ 
+**Result:** p(90) completion time **25.1s** against a target of <30s - **passes**.
+ 
+---
+ 
+## Scalability
+ 
+### QR-04 - System stability at 100 concurrent users
+ 
+**Objective:** Validate that the system remains stable as concurrent users ramp up to 100.
+ 
+**Tool used:** k6
+ 
+**Test performed:** `tests/k6/load_test.js`, `scalability` scenario - ramping virtual users from 0 to 100 over 3 stages (30s up / 1m sustained / 30s down) against `GET /api/v1/health`.
+ 
+**Evidence:**
+ 
+![QR-04 scalability test result](proof/Load+scalibiltytest.png)
+ 
+**Result:** Error rate at peak load **0.00%** (0 failed out of 108,264 requests, up to 110 VUs) against a target of <50% degradation vs. baseline - thresholds held under load. **Caveat:** this run does not isolate a clean baseline measurement to compute degradation against (the `performance` and `scalability` scenarios executed concurrently), so the "<50% degradation vs. baseline" figure is not yet directly measured. This run also only proves the **API/HTTP layer** stays responsive (`GET /api/v1/health` never touches RabbitMQ/Celery) - it does not yet demonstrate the "horizontal worker scaling + queue-based load leveling" tactic, which would need a scenario against `POST /api/v1/scans/` with the rate limiter temporarily raised for the test.
+ 
+---
+ 
+## Reliability
+ 
+### QR-05 - Crash rate on third-party OSINT API failure
+ 
+**Objective:** Validate that the system recovers from third-party OSINT API failure without crashing.
+ 
+**Tool used:** k6
+ 
+**Test performed:** `tests/k6/phase1_scan_completion_test.js` (same run used for QR-02) - crash rate measured as the proportion of triggered scans that returned an unhandled error rather than a terminal status (`completed`/`partial`/`failed`). A dedicated script, `tests/k6/reliability_crash_rate_test.js`, also exists for this QR specifically (explicit crash-rate threshold rather than reading it off console logs).
+ 
+**Evidence:**
+ 
+![QR-05 reliability test result](proof/scan_crash.png)
+ 
+**Result:** **0% crash rate (0/10)** against a target of <1% - **passes**. Every scan reached a terminal status; no unhandled errors. 10/10 runs returned `"partial"` status, consistent with expected graceful degradation under real OSINT conditions.
+ 
+---
+ 
+### QR-06 - Availability / uptime
+ 
+**Objective:** Validate that the system maintains target uptime.
+ 
+**Tool used:** UptimeRobot
+ 
+**Test performed:**  UptimeRobot monitor configured against the deployed system.
+ 
+**Evidence:** 
+![QR-06 uptime](proof/uptimerobot.png)
+ 
+**Result:** Target ≥99% / 99%.
+ 
+---
+ 
+## Security
+ 
+### QR-07 - Medium+ risk alerts on staging
+ 
+**Objective:** Validate that the system has no medium-or-above vulnerabilities, and that sensitive data is encrypted at rest.
+ 
+**Tool used:** OWASP ZAP
+ 
+**Test performed:** OWASP ZAP automated vulnerability scan against staging.
+ 
+**Evidence:**
+ 
+![QR-07 ZAP scan result](proof/zap_scan.png)
+ 
+ 
+**Result:** **2 medium+ alerts found** against a target of 0 - . Alerts not yet triaged/fixed.
+ 
+---
+ 
+### QR-08 - Auth enforcement (401 / 404)
+ 
+**Objective:** Validate that unauthenticated and cross-user requests are correctly rejected.
+ 
+**Tool used:** k6
+ 
+**Test performed:** `tests/k6/security_test.js` - checks an unauthenticated request to `GET /api/v1/domains` returns 401, and that an anonymous request for another user's scan status returns 404 (not 403 - ownership is enforced by a user_id-scoped lookup, not an explicit role check).
+ 
+**Evidence:**
+ 
+![QR-08 auth enforcement test result](proof/security.png)
+ 
+**Result:** 401 **confirmed**, 0 secrets leaked in the response body. 404 cross-user check still **pending** - needs a real `AUTH_TOKEN` to create an owned scan first (see script comments).
+ 
+---
+ 
+### QR-09 - Secret exposure / rate limiting
+ 
+**Objective:** Validate that no sensitive data is exposed in API responses, and that scan submission is rate-limited per IP.
+ 
+**Tool used:** k6
+ 
+**Test performed:** `tests/k6/security_test.js` - checks that the 4th `POST /api/v1/scans/` from the same IP within 10 minutes returns 429, and that none of the tested responses leak secrets/credentials/stack traces.
+ 
+**Evidence:**
+ 
+![QR-09 rate limiting test result](proof/security.png)
+ 
+ 
+**Result:** **Confirmed** - 4th `POST /api/v1/scans/` from the same IP returned 429, no secrets leaked in the response body.
+ 
+---
+ 
+## Maintainability
+ 
+### QR-10 - Zero lint errors on merged PRs
+ 
+**Objective:** Validate that merged code passes static analysis with zero linting errors.
+ 
+**Tool used:** ESLint (frontend) / ruff (backend + workers)
+ 
+**Test performed:** `pnpm lint` - runs frontend ESLint and backend/workers ruff.
+ 
+**Evidence:**
+ 
+![QR-10 lint result](proof/lint.png)
+ 
+ 
+**Result:** **0 errors** - `pnpm lint` passes clean. Some non-blocking `react-hooks/exhaustive-deps` warnings remain, but 0 errors.
+ 
+---
+ 
+### QR-11 - Test coverage threshold
+ 
+**Objective:** Validate that backend and worker modules meet the automated test coverage target.
+ 
+**Tool used:** pytest-cov
+ 
+**Test performed:** `pytest` with coverage (`backend/pytest.ini`, `workers/pytest.ini`), run across backend + workers, unit + integration, merged via Codecov.
+ 
+**Evidence:**
+ 
+![QR-11 coverage result](proof/coverage.png)
+ 
+**Result:** **64.5%** combined backend + workers coverage against a target of ≥80% - .
+ 
+---
+ 
+## Usability
+ 
+### QR-12 - Accessibility score
+ 
+**Objective:** Validate that primary user-facing pages are accessible.
+ 
+**Tool used:** Google Lighthouse
+ 
+**Test performed:** Lighthouse accessibility audit against the primary user-facing pages (dashboard, scan results).
+ 
+**Evidence:**
+ 
+![QR-12 Lighthouse result](proof/googelighthouse.png)
+ 
+**Result:** **≥80** against a target of ≥80 - **passes**.
+
+
+
+# PenFlow - NFR Traceability Matrix
+ 
+## Performance (tool: k6)
+| ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
+|----|------------------------|---------------|-------------|------------------|
+| QR-01 | P95 API response time under 2 seconds for  REST endpoints under normal load | Asynchronous task execution + fast acknowledgement (4.2 Performance) | k6 | <2s / 208.23ms (p95)  |
+| QR-02 | Phase 1 CTEM scan completes within 60 seconds for 90% of requests, bounded by slowest single OSINT lookup | Asynchronous aggregation of parallel OSINT providers (1, 4.2) | k6 | <60s / 34.09s (p90); all 10 runs returned "partial" status |
+| QR-03 | Phase 2 active vulnerability scan completes within 30 seconds for 90% of requests, bounded by the sequential worker pipeline rather than a single lookup | Asynchronous task execution + fast acknowledgement (4.2 Performance); pipelined active-scan workers, dependent stages (5.4 Worker Pipeline Architecture, 7.5 Worker Pipeline Constraints) | k6 | <30s / 25.1s (p90)  |
+ 
+## Scalability (tool: k6)
+| ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
+|----|------------------------|---------------|-------------|------------------|
+| QR-04 | System remains stable at 100 concurrent users; response time degradation <50% under peak load vs. baseline | Horizontal scaling of workers + queue-based load leveling via RabbitMQ (4.1 Scalability) | k6 | <50% degradation / 0.00% error rate at up to 110 VUs  (degradation vs. isolated baseline not yet measured) |
+ 
+## Reliability (tool: k6, UptimeRobot)
+| ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
+|----|------------------------|---------------|-------------|------------------|
+| QR-05 | System recovers from third-party OSINT API failure and compiles partial report; <1% crash rate | Partial failure tolerance + retry with bounded calls (4.3 Reliability) | k6 | <1% crash rate / 0% crash rate (0/10); 10/10 runs returned "partial" - graceful degradation observed under real OSINT conditions |
+| QR-06 | Availability  achieve 99% uptime | Independent ECS deployment + ALB health checks + auto-replacement (4.3 Reliability) | UptimeRobot | ≥99% / TBD |
+ 
+## Security (tool: OWASP ZAP + k6)
+| ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
+|----|------------------------|---------------|-------------|------------------|
+| QR-07 | No medium risk alerts on staging from automated vulnerability scanning; passwords and sensitive scan data encrypted at rest | Transport security (HTTPS/TLS) + information hiding (4.5 Security) | OWASP ZAP | 0 medium+ / 2 |
+| QR-08 | Unauthenticated requests return 401; cross-user requests return 404 (ownership is enforced via a user_id-scoped lookup, not an explicit 403 check) | JWT-based auth (Keycloak) with RBAC + isolated, short-lived worker containers destroyed on completion (4.5 Security, 1 Phase 2) | k6 | 401 / 404 / 401 confirmed, 0 secrets leaked; 404 cross-user check pending (needs AUTH_TOKEN) |
+| QR-09 | No sensitive data (API keys, credentials) exposed in API responses or logs; rate limiter returns 429 on 4th scan submission from same IP within 10 minutes | AWS Secrets Manager + information hiding (4.5 Security) + IP-based rate limiting (7.3 Regulatory/Ethical Constraints) | k6 | 0 exposures / 429 confirmed, 0 secrets leaked |
+ 
+## Maintainability (tool: ESLint / ruff)
+| ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
+|----|------------------------|---------------|-------------|------------------|
+| QR-10 | 100% of merged PRs pass static code analysis with zero linting errors | Established coding standards + CI quality gates (4.4 Maintainability & Evolvability) | ESLint / ruff | 0 errors / 0errors |
+| QR-11 | Backend services and worker modules maintain ≥80% automated test coverage | CI coverage gate (4.4 Maintainability & Evolvability) | pytest-cov | ≥80% / 64.5% |
+ 
+## Usability (tool: Google Lighthouse)
+| ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
+|----|------------------------|---------------|-------------|------------------|
+| QR-12 | Primary user-facing pages (dashboard, scan results) achieve a Lighthouse accessibility score of at least 80 | Not covered by SAS  | Google Lighthouse | >80 / >=80% |

@@ -32,7 +32,7 @@ def test_crt_sh_live_happy_path(mock_get, mock_send_callback):
         "api.acorns.com",
         "app.acorns.com",
     ]
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 # Test sad paths for api issues
@@ -59,7 +59,7 @@ def test_crt_sh_sad_path_502_loop(mock_get, mock_sleep, mock_send_callback):
     # Prove our "Fail Fast" retry loops fired exactly 6 times
     assert mock_get.call_count == 3
     assert mock_sleep.call_count == 2
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 #test mock mode to see if it loads
@@ -75,7 +75,7 @@ def test_crt_sh_mock_mode_fallback(mock_get, mock_send_callback):
     assert not mock_get.called
     assert result["status"] == "completed"
     assert result["raw_result"]["subdomains"]["total_found"] > 0
-    mock_send_callback.assert_called_once()
+    assert mock_send_callback.call_count == 2
 
 
 @patch("app.tasks.crtsh_tasks.send_source_callback")
@@ -97,7 +97,8 @@ def test_crtsh_exception(mock_raw_data, mock_send_callback):
         "error_message": "Some crt.sh exception",
     }
 
-    mock_send_callback.assert_called_once_with(
+    assert mock_send_callback.call_count == 2
+    mock_send_callback.assert_any_call(
         scan_id = "scan-1234",
         source_name = "crt.sh",
         status = "failed",

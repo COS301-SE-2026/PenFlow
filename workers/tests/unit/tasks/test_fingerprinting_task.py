@@ -48,8 +48,8 @@ def test_run_fingerprinting_scan_task_success(mock_service_class, mock_callback,
     assert technology["evidence"]["vendor"] == "f5"
     assert technology["evidence"]["target_url"] == "https://hackerone.com"
 
-    mock_callback.assert_called_once_with \
-            (
+    assert mock_callback.call_count == 2
+    mock_callback.assert_any_call(
             scan_id="scan-123",
             source_name="fingerprint",
             status="completed",
@@ -116,8 +116,8 @@ def test_run_fingerprinting_scan_task_failure(mock_service_class, mock_callback)
             "error": "Connection timed out",
         }
 
-    mock_callback.assert_called_once_with \
-            (
+    assert mock_callback.call_count == 2
+    mock_callback.assert_any_call(
             scan_id="scan-456",
             source_name="fingerprint",
             status="failed",

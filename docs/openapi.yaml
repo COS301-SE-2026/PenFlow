@@ -1,0 +1,6534 @@
+openapi: 3.1.0
+info:
+  title: PenFlow API
+  description: Core backend API for the PenFlow platform.
+  version: 1.0.0
+paths:
+  /api/v1/health:
+    get:
+      tags:
+      - System
+      summary: Health Check
+      description: Infrastructure health check endpoint for Render/Docker.
+      operationId: health_check_api_v1_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                title: Response Health Check Api V1 Health Get
+  /api/v1/scans/:
+    get:
+      tags:
+      - Scans
+      summary: List Scans
+      operationId: list_scans_api_v1_scans__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: scan_status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/ScanStatus'
+          - type: 'null'
+          title: Scan Status
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 10
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ScanHistoryItem'
+                title: Response List Scans Api V1 Scans  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - Scans
+      summary: Initiate Ctem Scan
+      operationId: initiate_ctem_scan_api_v1_scans__post
+      security:
+      - HTTPBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InitiateScanRequest'
+      responses:
+        '202':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InitiateScanResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/scans/{scan_id}/status:
+    get:
+      tags:
+      - Scans
+      summary: Get Scan Status
+      operationId: get_scan_status_api_v1_scans__scan_id__status_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Scan Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Scan Status Api V1 Scans  Scan Id  Status Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/scans/{scan_id}/pdf:
+    get:
+      tags:
+      - Scans
+      summary: Download Scan Pdf
+      operationId: download_scan_pdf_api_v1_scans__scan_id__pdf_get
+      parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Scan Id
+      responses:
+        '200':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/scans/{scan_id}/email-report:
+    post:
+      tags:
+      - Scans
+      summary: Email Scan Report
+      operationId: email_scan_report_api_v1_scans__scan_id__email_report_post
+      parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Scan Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmailReportRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Email Scan Report Api V1 Scans  Scan Id  Email Report
+                  Post
+        '400':
+          description: Report is not ready yet
+        '404':
+          description: Scan not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/scans/{scan_id}/metrics:
+    get:
+      tags:
+      - Scans
+      summary: Get Scan Metrics
+      description: 'Returns aggregated metrics for Risk Score, Findings,
+
+        Assets, Services, Technologies.'
+      operationId: get_scan_metrics_api_v1_scans__scan_id__metrics_get
+      parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Scan Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/scans/{scan_id}/findings:
+    get:
+      tags:
+      - Scans
+      summary: Get Scan Findings
+      description: Retrieves detailed findings for a scan, ordered by highest risk.
+      operationId: get_scan_findings_api_v1_scans__scan_id__findings_get
+      parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Scan Id
+      - name: severity
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter by severity
+          title: Severity
+        description: Filter by severity
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 10
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DashboardFindingItem'
+                title: Response Get Scan Findings Api V1 Scans  Scan Id  Findings
+                  Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/scans/{scan_id}/assets:
+    get:
+      tags:
+      - Scans
+      summary: Get Scan Assets
+      description: Retrieves discovered assets along with their associated finding
+        counts.
+      operationId: get_scan_assets_api_v1_scans__scan_id__assets_get
+      parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Scan Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 10
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DashboardAssetItem'
+                title: Response Get Scan Assets Api V1 Scans  Scan Id  Assets Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/scans/{scan_id}/risk-history:
+    get:
+      tags:
+      - Scans
+      summary: Get Scan Risk History
+      description: Retrieves historical risk scores for the domain to render the risk
+        over time graph.
+      operationId: get_scan_risk_history_api_v1_scans__scan_id__risk_history_get
+      parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Scan Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RiskHistoryItem'
+                title: Response Get Scan Risk History Api V1 Scans  Scan Id  Risk
+                  History Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/scans/{scan_id}/findings-page:
+    get:
+      tags:
+      - Scans
+      summary: Get Scan Findings Page
+      description: 'Provides full card grid data for the Findings tab, including top
+        metric counts
+
+        and side drawer attributes.'
+      operationId: get_scan_findings_page_api_v1_scans__scan_id__findings_page_get
+      parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Scan Id
+      - name: severity
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter by severity category
+          title: Severity
+        description: Filter by severity category
+      - name: search
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Search query string
+          title: Search
+        description: Search query string
+      - name: sort_by
+        in: query
+        required: false
+        schema:
+          type: string
+          description: Sort criteria (severity, cvss, newest)
+          default: severity
+          title: Sort By
+        description: Sort criteria (severity, cvss, newest)
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 12
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__schemas__scan__FindingListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/scans/{scan_id}/services-page:
+    get:
+      tags:
+      - Scans
+      summary: Get Scan Services Page
+      description: Provides full table data and summary cards for the Services tab.
+      operationId: get_scan_services_page_api_v1_scans__scan_id__services_page_get
+      parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Scan Id
+      - name: protocol
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter by protocol, TCP/UDP
+          title: Protocol
+        description: Filter by protocol, TCP/UDP
+      - name: search
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Search query string
+          title: Search
+        description: Search query string
+      - name: sort_by
+        in: query
+        required: false
+        schema:
+          type: string
+          description: Sort criteria
+          default: open
+          title: Sort By
+        description: Sort criteria
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 15
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/scans/{scan_id}/assets-page:
+    get:
+      tags:
+      - Scans
+      summary: Get Scan Assets Page
+      description: Provides full table data and summary category cards for the assets
+        tab.
+      operationId: get_scan_assets_page_api_v1_scans__scan_id__assets_page_get
+      parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Scan Id
+      - name: asset_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter by asset type (Domain, subdomain, ip)
+          title: Asset Type
+        description: Filter by asset type (Domain, subdomain, ip)
+      - name: severity
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filter by highest severity
+          title: Severity
+        description: Filter by highest severity
+      - name: search
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Search by query string
+          title: Search
+        description: Search by query string
+      - name: sort_by
+        in: query
+        required: false
+        schema:
+          type: string
+          description: Sort criteria (risk, findings, identifier)
+          default: risk
+          title: Sort By
+        description: Sort criteria (risk, findings, identifier)
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 15
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssetListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/internal/scans/{scan_id}/status:
+    patch:
+      tags:
+      - Internal Webhooks
+      summary: Update Scan Status Callback
+      operationId: update_scan_status_callback_api_v1_internal_scans__scan_id__status_patch
+      parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Scan Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanCallbackRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Update Scan Status Callback Api V1 Internal Scans  Scan
+                  Id  Status Patch
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/internal/reports/{scan_id}/status:
+    patch:
+      tags:
+      - Internal Webhooks
+      summary: Update Report Status Callback
+      operationId: update_report_status_callback_api_v1_internal_reports__scan_id__status_patch
+      parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Scan Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportCallbackRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
+                title: Response Update Report Status Callback Api V1 Internal Reports  Scan
+                  Id  Status Patch
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/internal/scans/{scan_id}/sources/{source_name}:
+    patch:
+      tags:
+      - Internal Webhooks
+      summary: Update Scan Source Callback
+      operationId: update_scan_source_callback_api_v1_internal_scans__scan_id__sources__source_name__patch
+      parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Scan Id
+      - name: source_name
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Source Name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanSourceCallbackRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Update Scan Source Callback Api V1 Internal Scans  Scan
+                  Id  Sources  Source Name  Patch
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/internal/reports/engagement/{engagement_id}/version/{version}/callback:
+    put:
+      tags:
+      - Internal Webhooks
+      summary: Update Engagement Report Status Callback
+      operationId: update_engagement_report_status_callback_api_v1_internal_reports_engagement__engagement_id__version__version__callback_put
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      - name: version
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Version
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportCallbackRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Update Engagement Report Status Callback Api V1 Internal
+                  Reports Engagement  Engagement Id  Version  Version  Callback Put
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/users/me:
+    get:
+      tags:
+      - Users
+      summary: Provision User
+      operationId: provision_user_api_v1_users_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Provision User Api V1 Users Me Get
+      security:
+      - HTTPBearer: []
+  /api/v1/scans/{scan_id}/summary:
+    get:
+      tags:
+      - Executive Summary
+      summary: Get Scan Summary
+      description: 'Generates the complete Executive Summary for a specific scan.
+
+        Currently compiled blocks:
+
+        - Block 1: Scan Summary
+
+        - Block 2: Risk Snapshot
+
+        - Block 3: Top Findings Preview'
+      operationId: get_scan_summary_api_v1_scans__scan_id__summary_get
+      parameters:
+      - name: scan_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Scan Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExecutiveSummary'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/domains/:
+    post:
+      tags:
+      - Domain Verification
+      summary: Add Domain For Verification
+      operationId: add_domain_for_verification_api_v1_domains__post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddDomainRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifiedDomainResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/domains/{domain_id}/verify:
+    post:
+      tags:
+      - Domain Verification
+      summary: Verify Domain Ownership
+      operationId: verify_domain_ownership_api_v1_domains__domain_id__verify_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: domain_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Domain Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifiedDomainResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/domains:
+    get:
+      tags:
+      - Domain Verification
+      summary: Get Domains
+      operationId: get_domains_api_v1_domains_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/DomainVerificationStatus'
+          - type: 'null'
+          title: Status
+      - name: search
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Search
+      - name: sort
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/DomainSortField'
+          default: created_at
+      - name: order
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/SortOrder'
+          default: desc
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DomainList'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/domains/{domain_id}:
+    delete:
+      tags:
+      - Domain Verification
+      summary: Delete Domain
+      operationId: delete_domain_api_v1_domains__domain_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: domain_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Domain Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/engagements/:
+    post:
+      tags:
+      - Engagements
+      summary: Create client engagement request
+      operationId: create_engagement_request_api_v1_engagements__post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EngagementCreateRequest'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EngagementCreateResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/engagements:
+    get:
+      tags:
+      - Engagements
+      summary: List engagements for user
+      operationId: get_engagements_api_v1_engagements_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/EngagementStatus'
+          - type: 'null'
+          title: Status
+      - name: search
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Search
+      - name: sort
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/EngagementSortField'
+          default: updated_at
+      - name: order
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/SortOrder'
+          default: desc
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EngagementListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/engagements/{engagement_id}:
+    get:
+      tags:
+      - Engagements
+      summary: Get engagement detail
+      operationId: get_engagement_api_v1_engagements__engagement_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EngagementDetailResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/engagements/{engagement_id}/findings:
+    get:
+      tags:
+      - Engagements
+      summary: List findings for an engagement
+      operationId: get_engagement_findings_api_v1_engagements__engagement_id__findings_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      - name: source
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Source
+      - name: severity
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/Severity'
+          - type: 'null'
+          title: Severity
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/FindingStatus'
+          - type: 'null'
+          title: Status
+      - name: review_status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/FindingReviewStatus'
+          - type: 'null'
+          title: Review Status
+      - name: search
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Search
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__schemas__finding__FindingListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - Engagements
+      summary: Create manual finding for an engagement
+      operationId: create_engagement_finding_api_v1_engagements__engagement_id__findings_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FindingCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindingListItem'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/engagements/{engagement_id}/retests:
+    get:
+      tags:
+      - Engagements
+      summary: List retests for an engagement
+      operationId: get_engagement_retests_api_v1_engagements__engagement_id__retests_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetestListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/engagements/{engagement_id}/messages:
+    get:
+      tags:
+      - Engagements
+      summary: List engagement messages
+      operationId: get_engagement_messages_api_v1_engagements__engagement_id__messages_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      - name: channel
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/EngagementMessageChannel'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EngagementMessageListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - Engagements
+      summary: Create engagement message
+      operationId: create_engagement_message_api_v1_engagements__engagement_id__messages_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EngagementMessageCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EngagementMessageResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/engagements/{engagement_id}/messages/read:
+    patch:
+      tags:
+      - Engagements
+      summary: Marks viewed messages as read
+      operationId: mark_engagement_messages_read_api_v1_engagements__engagement_id__messages_read_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      - name: channel
+        in: query
+        required: true
+        schema:
+          $ref: '#/components/schemas/EngagementMessageChannel'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkMessagesReadResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/engagements/{engagement_id}/activity:
+    get:
+      tags:
+      - Engagements
+      summary: List engagement activity
+      operationId: get_engagement_activity_api_v1_engagements__engagement_id__activity_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/engagements/{engagement_id}/report:
+    get:
+      tags:
+      - Engagements
+      summary: Get engagement report
+      operationId: get_engagement_report_api_v1_engagements__engagement_id__report_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      - name: version
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+          title: Version
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Engagement Report Api V1 Engagements  Engagement
+                  Id  Report Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/engagements/{engagement_id}/report/retry:
+    post:
+      tags:
+      - Engagements
+      summary: Retry engagement report generation
+      operationId: retry_engagement_report_api_v1_engagements__engagement_id__report_retry_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      - name: version
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+          title: Version
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Retry Engagement Report Api V1 Engagements  Engagement
+                  Id  Report Retry Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/findings/{finding_id}:
+    get:
+      tags:
+      - Findings
+      summary: Get Finding
+      operationId: get_finding_api_v1_findings__finding_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: finding_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Finding Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindingDetail'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - Findings
+      summary: Update Finding
+      operationId: update_finding_api_v1_findings__finding_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: finding_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Finding Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FindingUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindingDetail'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - Findings
+      summary: Delete Finding
+      operationId: delete_finding_api_v1_findings__finding_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: finding_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Finding Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/findings/{finding_id}/evidence:
+    post:
+      tags:
+      - Findings
+      summary: Upload Finding Evidence
+      operationId: upload_finding_evidence_api_v1_findings__finding_id__evidence_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: finding_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Finding Id
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Body_upload_finding_evidence_api_v1_findings__finding_id__evidence_post'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvidenceFileResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/findings/{finding_id}/verify:
+    patch:
+      tags:
+      - Findings
+      summary: Verify Finding
+      operationId: verify_finding_api_v1_findings__finding_id__verify_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: finding_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Finding Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindingDetail'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/retests/{retest_id}:
+    patch:
+      tags:
+      - Re-tests
+      summary: Update Retest
+      operationId: update_retest_api_v1_retests__retest_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: retest_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Retest Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RetestUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetestListItem'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/pentester/messages:
+    get:
+      tags:
+      - Pentester
+      summary: Get a pentesters messages
+      operationId: get_pentester_messages_api_v1_pentester_messages_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PentesterConversationListResponse'
+      security:
+      - HTTPBearer: []
+  /api/v1/pentester/{engagement_id}/findings:
+    post:
+      tags:
+      - Pentester
+      summary: Create manual finding for an engagement
+      operationId: create_engagement_finding_api_v1_pentester__engagement_id__findings_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FindingCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindingListItem'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    get:
+      tags:
+      - Pentester
+      summary: List findings for an engagement
+      operationId: get_engagement_findings_api_v1_pentester__engagement_id__findings_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      - name: source
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 100
+          - type: 'null'
+          title: Source
+      - name: severity
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/Severity'
+          - type: 'null'
+          title: Severity
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/FindingStatus'
+          - type: 'null'
+          title: Status
+      - name: search
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Search
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__schemas__finding__FindingListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/pentester/{engagement_id}/submit-for-review:
+    patch:
+      tags:
+      - Pentester
+      summary: Submit an engagement to be reviewed
+      operationId: submit_engagement_for_review_api_v1_pentester__engagement_id__submit_for_review_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EngagementStatusResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/pentester:
+    get:
+      tags:
+      - Pentester
+      summary: List assigned engagements
+      operationId: get_engagements_api_v1_pentester_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/EngagementStatus'
+          - type: 'null'
+          title: Status
+      - name: search
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Search
+      - name: sort
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/EngagementSortField'
+          default: updated_at
+      - name: order
+        in: query
+        required: false
+        schema:
+          $ref: '#/components/schemas/SortOrder'
+          default: desc
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EngagementListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/pentester/{engagement_id}/retests:
+    get:
+      tags:
+      - Pentester
+      summary: List retests for an engagement
+      operationId: get_engagement_retests_api_v1_pentester__engagement_id__retests_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetestListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/pentester/{engagement_id}/activity:
+    get:
+      tags:
+      - Pentester
+      summary: List engagement activity
+      operationId: get_engagement_activity_api_v1_pentester__engagement_id__activity_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 100
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/pentester/engagements/{engagement_id}/start:
+    post:
+      tags:
+      - Pentester
+      summary: Start an engagement
+      operationId: start_engagement_api_v1_pentester_engagements__engagement_id__start_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EngagementStatusResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/reports/{report_id}/download:
+    get:
+      tags:
+      - Reports
+      summary: Download engagement report
+      operationId: download_report_api_v1_reports__report_id__download_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: report_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Report Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/engagements/{engagement_id}/report:
+    get:
+      tags:
+      - Reports
+      summary: Get report status and metadata for service delivery review
+      operationId: get_service_delivery_engagement_report_api_v1_service_delivery_engagements__engagement_id__report_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Get Service Delivery Engagement Report Api V1 Service
+                  Delivery Engagements  Engagement Id  Report Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/reports/{report_id}/download:
+    get:
+      tags:
+      - Reports
+      summary: Service delivery download report endpoint
+      operationId: service_delivery_download_report_api_v1_service_delivery_reports__report_id__download_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: report_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Report Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/engagements/{engagement_id}/report/retry:
+    post:
+      tags:
+      - Reports
+      summary: Retry or trigger report generation for service delivery
+      operationId: service_delivery_retry_report_api_v1_service_delivery_engagements__engagement_id__report_retry_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      - name: version
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+          title: Version
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response Service Delivery Retry Report Api V1 Service Delivery
+                  Engagements  Engagement Id  Report Retry Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/engagements:
+    get:
+      tags:
+      - Service Delivery
+      summary: List engagements for Service Delivery
+      operationId: list_service_delivery_engagements_api_v1_service_delivery_engagements_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/EngagementStatus'
+          - type: 'null'
+          title: Status
+      - name: assessment_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/AssessmentType'
+          - type: 'null'
+          title: Assessment Type
+      - name: search
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Search
+      - name: pentester_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Pentester Id
+      - name: assigned
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Assigned
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryEngagementListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/engagements/{engagement_id}:
+    get:
+      tags:
+      - Service Delivery
+      summary: Get Service Delivery engagement detail.
+      operationId: get_service_delivery_engagement_api_v1_service_delivery_engagements__engagement_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryEngagementDetail'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/engagements/{engagement_id}/claim:
+    post:
+      tags:
+      - Service Delivery
+      summary: Claim an engagement for scoping
+      operationId: claim_service_delivery_engagement_api_v1_service_delivery_engagements__engagement_id__claim_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryEngagementActionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/engagements/{engagement_id}/scoping:
+    patch:
+      tags:
+      - Service Delivery
+      summary: Update engagement scoping
+      operationId: update_service_delivery_scoping_api_v1_service_delivery_engagements__engagement_id__scoping_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceDeliveryScopingUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryEngagementActionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/engagements/{engagement_id}/pentester:
+    put:
+      tags:
+      - Service Delivery
+      summary: Assign pentester to engagement
+      operationId: assign_service_delivery_pentester_api_v1_service_delivery_engagements__engagement_id__pentester_put
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceDeliveryPentesterAssignment'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryEngagementActionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/engagements/{engagement_id}/schedule:
+    post:
+      tags:
+      - Service Delivery
+      summary: Schedule an engagement
+      operationId: schedule_service_delivery_engagement_api_v1_service_delivery_engagements__engagement_id__schedule_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceDeliveryScheduleRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryEngagementActionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/engagements/{engagement_id}/reassign:
+    post:
+      tags:
+      - Service Delivery
+      summary: Reassign scheduled engagement
+      operationId: reassign_service_delivery_pentester_api_v1_service_delivery_engagements__engagement_id__reassign_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceDeliveryReassignRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryEngagementActionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/engagements/{engagement_id}/reschedule:
+    post:
+      tags:
+      - Service Delivery
+      summary: Reschedule an engagement
+      operationId: reschedule_service_delivery_engagement_api_v1_service_delivery_engagements__engagement_id__reschedule_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceDeliveryRescheduleRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryEngagementActionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/engagements/{engagement_id}/review/return:
+    post:
+      tags:
+      - Service Delivery
+      summary: Return engagement to pentester
+      operationId: return_service_delivery_review_api_v1_service_delivery_engagements__engagement_id__review_return_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceDeliveryReviewReturnRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryEngagementActionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/engagements/{engagement_id}/review/complete:
+    post:
+      tags:
+      - Service Delivery
+      summary: Complete engagement review
+      operationId: complete_service_delivery_review_api_v1_service_delivery_engagements__engagement_id__review_complete_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryEngagementActionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/engagements/{engagement_id}/cancel:
+    post:
+      tags:
+      - Service Delivery
+      summary: Cancel an engagement
+      operationId: cancel_service_delivery_engagement_api_v1_service_delivery_engagements__engagement_id__cancel_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceDeliveryCancelRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryEngagementActionResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/dashboard:
+    get:
+      tags:
+      - Service Delivery
+      summary: Get Service Delivery dashboard
+      operationId: get_service_delivery_dashboard_api_v1_service_delivery_dashboard_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryDashboardResponse'
+      security:
+      - HTTPBearer: []
+  /api/v1/service-delivery/pentesters:
+    get:
+      tags:
+      - Service Delivery
+      summary: List pentesters
+      operationId: list_service_delivery_pentesters_api_v1_service_delivery_pentesters_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: search
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Search
+      - name: assessment_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/AssessmentType'
+          - type: 'null'
+          title: Assessment Type
+      - name: availability_status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Availability Status
+      - name: is_active
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Active
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryPentesterListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - Service Delivery
+      summary: Create pentester
+      operationId: create_service_delivery_pentester_api_v1_service_delivery_pentesters_post
+      security:
+      - HTTPBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceDeliveryPentesterCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryPentesterDetail'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/pentesters/{pentester_id}:
+    get:
+      tags:
+      - Service Delivery
+      summary: Get pentester detail
+      operationId: get_service_delivery_pentester_api_v1_service_delivery_pentesters__pentester_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: pentester_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Pentester Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryPentesterDetail'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - Service Delivery
+      summary: Deactivate a pentester
+      operationId: deactivate_service_delivery_pentester_api_v1_service_delivery_pentesters__pentester_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: pentester_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Pentester Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryPentesterDetail'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/engagements/{engagement_id}/findings:
+    get:
+      tags:
+      - Service Delivery
+      summary: List engagement findings
+      operationId: list_service_delivery_findings_api_v1_service_delivery_engagements__engagement_id__findings_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      - name: severity
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/Severity'
+          - type: 'null'
+          title: Severity
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - $ref: '#/components/schemas/FindingStatus'
+          - type: 'null'
+          title: Status
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryFindingListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/engagements/{engagement_id}/findings/{finding_id}:
+    get:
+      tags:
+      - Service Delivery
+      summary: Get engagement finding
+      operationId: get_service_delivery_finding_api_v1_service_delivery_engagements__engagement_id__findings__finding_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      - name: finding_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Finding Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryFindingDetail'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/evidence/{evidence_id}/download:
+    get:
+      tags:
+      - Service Delivery
+      summary: Download finding evidence
+      operationId: download_service_delivery_evidence_api_v1_service_delivery_evidence__evidence_id__download_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: evidence_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Evidence Id
+      responses:
+        '200':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/engagements/{engagement_id}/retests:
+    get:
+      tags:
+      - Service Delivery
+      summary: List retests for an engagement
+      operationId: get_service_delivery_engagement_retests_api_v1_service_delivery_engagements__engagement_id__retests_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: engagement_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Engagement Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetestListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/retests/{retest_id}:
+    get:
+      tags:
+      - Service Delivery
+      summary: Get retest details
+      operationId: get_service_delivery_retest_api_v1_service_delivery_retests__retest_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: retest_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Retest Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RetestListItem'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/service-delivery/messages:
+    get:
+      tags:
+      - Service Delivery
+      summary: Get service delivery messages
+      operationId: get_service_delivery_messages_api_v1_service_delivery_messages_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDeliveryConversationListResponse'
+      security:
+      - HTTPBearer: []
+  /api/v1/service-delivery/audit:
+    get:
+      tags:
+      - Service Delivery
+      summary: List service delivery audit activity
+      operationId: get_service_delivery_audit_api_v1_service_delivery_audit_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 100
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/notifications:
+    get:
+      tags:
+      - Notifications
+      summary: List current user notifications
+      operationId: list_notifications_api_v1_notifications_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: unread_only
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+          title: Unread Only
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Limit
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+          title: Offset
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/notifications/{notification_id}/read:
+    patch:
+      tags:
+      - Notifications
+      summary: Mark notification as read
+      operationId: mark_notification_read_api_v1_notifications__notification_id__read_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: notification_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Notification Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/notifications/read-all:
+    patch:
+      tags:
+      - Notifications
+      summary: Mark all notifications as read
+      operationId: mark_all_notifications_read_api_v1_notifications_read_all_patch
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkNotificationsReadResponse'
+      security:
+      - HTTPBearer: []
+  /api/v1/scan-schedules:
+    get:
+      tags:
+      - Scan Schedules
+      summary: List Schedules
+      operationId: list_schedules_api_v1_scan_schedules_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/ScanScheduleResponse'
+                type: array
+                title: Response List Schedules Api V1 Scan Schedules Get
+      security:
+      - HTTPBearer: []
+    post:
+      tags:
+      - Scan Schedules
+      summary: Create Schedule
+      operationId: create_schedule_api_v1_scan_schedules_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanScheduleCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanScheduleResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/scan-schedules/{schedule_id}:
+    get:
+      tags:
+      - Scan Schedules
+      summary: Get Schedule
+      operationId: get_schedule_api_v1_scan_schedules__schedule_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: schedule_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Schedule Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanScheduleResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    patch:
+      tags:
+      - Scan Schedules
+      summary: Update Schedule
+      operationId: update_schedule_api_v1_scan_schedules__schedule_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: schedule_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Schedule Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScanScheduleUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ScanScheduleResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - Scan Schedules
+      summary: Delete Schedule
+      operationId: delete_schedule_api_v1_scan_schedules__schedule_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: schedule_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+          title: Schedule Id
+      responses:
+        '204':
+          description: Successful Response
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+components:
+  schemas:
+    ActivityItemResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        action:
+          type: string
+          title: Action
+        entity_type:
+          type: string
+          title: Entity Type
+        entity_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Entity Id
+        actor:
+          anyOf:
+          - $ref: '#/components/schemas/UserSummary'
+          - type: 'null'
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - action
+      - entity_type
+      - metadata
+      - created_at
+      title: ActivityItemResponse
+    ActivityListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ActivityItemResponse'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: ActivityListResponse
+    AddDomainRequest:
+      properties:
+        domain:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Domain
+          description: The domain to verify
+      type: object
+      required:
+      - domain
+      title: AddDomainRequest
+    AssessmentType:
+      type: string
+      enum:
+      - web_application
+      - mobile_application
+      - api
+      - network
+      - cloud
+      - other
+      title: AssessmentType
+    AssetImpactSummary:
+      properties:
+        total_assets_scanned:
+          type: integer
+          title: Total Assets Scanned
+        affected_assets_count:
+          type: integer
+          title: Affected Assets Count
+        asset_type_breakdown:
+          items:
+            $ref: '#/components/schemas/AssetTypeBreakdown'
+          type: array
+          title: Asset Type Breakdown
+        top_affected_assets:
+          items:
+            $ref: '#/components/schemas/TopAffectedAsset'
+          type: array
+          title: Top Affected Assets
+      type: object
+      required:
+      - total_assets_scanned
+      - affected_assets_count
+      - asset_type_breakdown
+      - top_affected_assets
+      title: AssetImpactSummary
+    AssetListResponse:
+      properties:
+        total:
+          type: integer
+          title: Total
+        counts:
+          $ref: '#/components/schemas/AssetSummaryCounts'
+        items:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Items
+      type: object
+      required:
+      - total
+      - counts
+      - items
+      title: AssetListResponse
+    AssetSummaryCounts:
+      properties:
+        total:
+          type: integer
+          title: Total
+          default: 0
+        domains:
+          type: integer
+          title: Domains
+          default: 0
+        ips:
+          type: integer
+          title: Ips
+          default: 0
+        subdomains:
+          type: integer
+          title: Subdomains
+          default: 0
+        urls:
+          type: integer
+          title: Urls
+          default: 0
+        other:
+          type: integer
+          title: Other
+          default: 0
+      type: object
+      title: AssetSummaryCounts
+    AssetTypeBreakdown:
+      properties:
+        asset_type:
+          type: string
+          title: Asset Type
+        total_assets:
+          type: integer
+          title: Total Assets
+        affected_assets:
+          type: integer
+          title: Affected Assets
+      type: object
+      required:
+      - asset_type
+      - total_assets
+      - affected_assets
+      title: AssetTypeBreakdown
+    Body_upload_finding_evidence_api_v1_findings__finding_id__evidence_post:
+      properties:
+        file:
+          type: string
+          contentMediaType: application/octet-stream
+          title: File
+      type: object
+      required:
+      - file
+      title: Body_upload_finding_evidence_api_v1_findings__finding_id__evidence_post
+    DashboardAssetItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        identifier:
+          type: string
+          title: Identifier
+        asset_type:
+          type: string
+          title: Asset Type
+        findings_count:
+          type: integer
+          title: Findings Count
+      type: object
+      required:
+      - id
+      - identifier
+      - asset_type
+      - findings_count
+      title: DashboardAssetItem
+    DashboardFindingItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        title:
+          type: string
+          title: Title
+        cve_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cve Id
+        severity:
+          type: string
+          title: Severity
+        cvss_score:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Cvss Score
+        source:
+          type: string
+          title: Source
+        asset_identifier:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Asset Identifier
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        recommendation:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Recommendation
+      type: object
+      required:
+      - id
+      - title
+      - severity
+      - source
+      title: DashboardFindingItem
+    DomainCounts:
+      properties:
+        all:
+          type: integer
+          title: All
+        pending:
+          type: integer
+          title: Pending
+        verified:
+          type: integer
+          title: Verified
+        failed:
+          type: integer
+          title: Failed
+        expired:
+          type: integer
+          title: Expired
+      type: object
+      required:
+      - all
+      - pending
+      - verified
+      - failed
+      - expired
+      title: DomainCounts
+    DomainItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        domain:
+          type: string
+          title: Domain
+        status:
+          $ref: '#/components/schemas/DomainVerificationStatus'
+        verification_method:
+          type: string
+          title: Verification Method
+        verification_token:
+          type: string
+          title: Verification Token
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        verified_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Verified At
+        last_checked_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Checked At
+        last_verification_code:
+          anyOf:
+          - $ref: '#/components/schemas/DomainVerificationCode'
+          - type: 'null'
+      type: object
+      required:
+      - id
+      - domain
+      - status
+      - verification_method
+      - verification_token
+      - created_at
+      title: DomainItem
+    DomainList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/DomainItem'
+          type: array
+          title: Items
+        counts:
+          $ref: '#/components/schemas/DomainCounts'
+        pagination:
+          $ref: '#/components/schemas/DomainPagination'
+      type: object
+      required:
+      - items
+      - counts
+      - pagination
+      title: DomainList
+    DomainPagination:
+      properties:
+        total:
+          type: integer
+          title: Total
+        limit:
+          type: integer
+          title: Limit
+        offset:
+          type: integer
+          title: Offset
+        has_more:
+          type: boolean
+          title: Has More
+      type: object
+      required:
+      - total
+      - limit
+      - offset
+      - has_more
+      title: DomainPagination
+    DomainSortField:
+      type: string
+      enum:
+      - domain
+      - created_at
+      - status
+      title: DomainSortField
+    DomainVerificationCode:
+      type: string
+      enum:
+      - verified
+      - record_not_found
+      - token_mismatch
+      - lookup_failed
+      title: DomainVerificationCode
+    DomainVerificationStatus:
+      type: string
+      enum:
+      - pending
+      - verified
+      - failed
+      - expired
+      title: DomainVerificationStatus
+    EmailReportRequest:
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email
+      type: object
+      required:
+      - email
+      title: EmailReportRequest
+    EngagementAssetCreate:
+      properties:
+        type:
+          $ref: '#/components/schemas/EngagementAssetRequestType'
+        value:
+          type: string
+          maxLength: 2048
+          minLength: 1
+          title: Value
+      type: object
+      required:
+      - type
+      - value
+      title: EngagementAssetCreate
+    EngagementAssetRequestType:
+      type: string
+      enum:
+      - domain
+      - ip
+      - hostname
+      - url
+      title: EngagementAssetRequestType
+    EngagementAssetResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        identifier:
+          type: string
+          title: Identifier
+        asset_type:
+          type: string
+          title: Asset Type
+        asset_metadata:
+          additionalProperties: true
+          type: object
+          title: Asset Metadata
+        verified_domain_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Verified Domain Id
+      type: object
+      required:
+      - id
+      - identifier
+      - asset_type
+      - asset_metadata
+      title: EngagementAssetResponse
+    EngagementCounts:
+      properties:
+        all:
+          type: integer
+          title: All
+        requested:
+          type: integer
+          title: Requested
+        scoping:
+          type: integer
+          title: Scoping
+        scheduled:
+          type: integer
+          title: Scheduled
+        in_progress:
+          type: integer
+          title: In Progress
+        review:
+          type: integer
+          title: Review
+        completed:
+          type: integer
+          title: Completed
+        cancelled:
+          type: integer
+          title: Cancelled
+      type: object
+      required:
+      - all
+      - requested
+      - scoping
+      - scheduled
+      - in_progress
+      - review
+      - completed
+      - cancelled
+      title: EngagementCounts
+    EngagementCreateRequest:
+      properties:
+        engagement_type:
+          $ref: '#/components/schemas/EngagementType'
+        assessment_type:
+          $ref: '#/components/schemas/AssessmentType'
+        objective:
+          type: string
+          maxLength: 5000
+          minLength: 1
+          title: Objective
+        start_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Start Date
+        end_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: End Date
+        constraints:
+          anyOf:
+          - type: string
+            maxLength: 5000
+          - type: 'null'
+          title: Constraints
+        primary_contact:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Primary Contact
+        assets:
+          items:
+            $ref: '#/components/schemas/EngagementAssetCreate'
+          type: array
+          minItems: 1
+          title: Assets
+      type: object
+      required:
+      - engagement_type
+      - assessment_type
+      - objective
+      - assets
+      title: EngagementCreateRequest
+    EngagementCreateResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        status:
+          $ref: '#/components/schemas/EngagementStatus'
+        engagement_type:
+          $ref: '#/components/schemas/EngagementType'
+        assessment_type:
+          $ref: '#/components/schemas/AssessmentType'
+        objective:
+          type: string
+          title: Objective
+        start_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Start Date
+        end_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: End Date
+        asset_count:
+          type: integer
+          title: Asset Count
+        estimated_quote:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Estimated Quote
+        service_delivery_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Service Delivery Id
+        assigned_pentester_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Assigned Pentester Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - status
+      - engagement_type
+      - assessment_type
+      - objective
+      - asset_count
+      - estimated_quote
+      - created_at
+      title: EngagementCreateResponse
+    EngagementDetailResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        title:
+          type: string
+          title: Title
+        engagement_type:
+          $ref: '#/components/schemas/EngagementType'
+        assessment_type:
+          $ref: '#/components/schemas/AssessmentType'
+        priority:
+          type: string
+          title: Priority
+        status:
+          $ref: '#/components/schemas/EngagementStatus'
+        scope:
+          type: string
+          title: Scope
+        estimated_quote:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Estimated Quote
+        final_quote:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Final Quote
+        estimated_duration_days:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Estimated Duration Days
+        requested_start_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Requested Start Date
+        requested_end_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Requested End Date
+        scheduled_start_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Scheduled Start Date
+        scheduled_end_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Scheduled End Date
+        target_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Target Date
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        completed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completed At
+        reviewed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Reviewed At
+        review_note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Review Note
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        client:
+          $ref: '#/components/schemas/UserSummary'
+        service_delivery:
+          anyOf:
+          - $ref: '#/components/schemas/UserSummary'
+          - type: 'null'
+        assigned_pentester:
+          anyOf:
+          - $ref: '#/components/schemas/UserSummary'
+          - type: 'null'
+        assets:
+          items:
+            $ref: '#/components/schemas/EngagementAssetResponse'
+          type: array
+          title: Assets
+        counts:
+          $ref: '#/components/schemas/EngagementOverviewCounts'
+        recent_findings:
+          items:
+            $ref: '#/components/schemas/FindingListItem'
+          type: array
+          title: Recent Findings
+        previous_scan:
+          anyOf:
+          - $ref: '#/components/schemas/PreviousScanSummary'
+          - type: 'null'
+      type: object
+      required:
+      - id
+      - title
+      - engagement_type
+      - assessment_type
+      - priority
+      - status
+      - scope
+      - estimated_quote
+      - created_at
+      - updated_at
+      - client
+      - assets
+      - counts
+      - recent_findings
+      title: EngagementDetailResponse
+    EngagementListItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        title:
+          type: string
+          title: Title
+        engagement_type:
+          $ref: '#/components/schemas/EngagementType'
+        assessment_type:
+          $ref: '#/components/schemas/AssessmentType'
+        priority:
+          type: string
+          title: Priority
+        status:
+          $ref: '#/components/schemas/EngagementStatus'
+        requested_start_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Requested Start Date
+        estimated_duration_days:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Estimated Duration Days
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+        client_name:
+          type: string
+          title: Client Name
+        asset_count:
+          type: integer
+          title: Asset Count
+        target_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Target Date
+        estimated_quote:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Estimated Quote
+        assigned_pentester_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Assigned Pentester Name
+        user_role:
+          type: string
+          title: User Role
+          default: client
+      type: object
+      required:
+      - id
+      - title
+      - engagement_type
+      - assessment_type
+      - priority
+      - status
+      - updated_at
+      - client_name
+      - asset_count
+      title: EngagementListItem
+    EngagementListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/EngagementListItem'
+          type: array
+          title: Items
+        counts:
+          $ref: '#/components/schemas/EngagementCounts'
+        pagination:
+          $ref: '#/components/schemas/EngagementPagination'
+      type: object
+      required:
+      - items
+      - counts
+      - pagination
+      title: EngagementListResponse
+    EngagementMessageChannel:
+      type: string
+      enum:
+      - client_service_delivery
+      - service_delivery_pentester
+      title: EngagementMessageChannel
+    EngagementMessageCreate:
+      properties:
+        comment:
+          type: string
+          minLength: 1
+          title: Comment
+        finding_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Finding Id
+        channel:
+          $ref: '#/components/schemas/EngagementMessageChannel'
+      type: object
+      required:
+      - comment
+      - channel
+      title: EngagementMessageCreate
+    EngagementMessageListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/EngagementMessageResponse'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: EngagementMessageListResponse
+    EngagementMessageResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        engagement_id:
+          type: string
+          format: uuid
+          title: Engagement Id
+        finding_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Finding Id
+        user:
+          $ref: '#/components/schemas/UserSummary'
+        recipient:
+          $ref: '#/components/schemas/UserSummary'
+        channel:
+          $ref: '#/components/schemas/EngagementMessageChannel'
+        comment:
+          type: string
+          title: Comment
+        is_read:
+          type: boolean
+          title: Is Read
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - engagement_id
+      - user
+      - recipient
+      - channel
+      - comment
+      - is_read
+      - created_at
+      title: EngagementMessageResponse
+    EngagementOverviewCounts:
+      properties:
+        assets:
+          type: integer
+          title: Assets
+        manual_findings:
+          type: integer
+          title: Manual Findings
+        automated_findings:
+          type: integer
+          title: Automated Findings
+      type: object
+      required:
+      - assets
+      - manual_findings
+      - automated_findings
+      title: EngagementOverviewCounts
+    EngagementPagination:
+      properties:
+        total:
+          type: integer
+          title: Total
+        limit:
+          type: integer
+          title: Limit
+        offset:
+          type: integer
+          title: Offset
+        has_more:
+          type: boolean
+          title: Has More
+      type: object
+      required:
+      - total
+      - limit
+      - offset
+      - has_more
+      title: EngagementPagination
+    EngagementSortField:
+      type: string
+      enum:
+      - created_at
+      - updated_at
+      - client
+      - status
+      - requested_start_date
+      title: EngagementSortField
+    EngagementStatus:
+      type: string
+      enum:
+      - requested
+      - scoping
+      - scheduled
+      - in_progress
+      - review
+      - completed
+      - cancelled
+      title: EngagementStatus
+    EngagementStatusResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        status:
+          $ref: '#/components/schemas/EngagementStatus'
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - status
+      - updated_at
+      title: EngagementStatusResponse
+    EngagementType:
+      type: string
+      enum:
+      - black_box
+      - grey_box
+      - white_box
+      title: EngagementType
+    EvidenceFileResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        file_name:
+          type: string
+          title: File Name
+        mime_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Mime Type
+        uploaded_at:
+          type: string
+          format: date-time
+          title: Uploaded At
+      type: object
+      required:
+      - id
+      - file_name
+      - uploaded_at
+      title: EvidenceFileResponse
+    ExecutiveSummary:
+      properties:
+        scan_summary:
+          $ref: '#/components/schemas/ScanSummary'
+        risk_snapshot:
+          $ref: '#/components/schemas/RiskSnapshot'
+        top_findings:
+          items:
+            $ref: '#/components/schemas/TopFindingPreview'
+          type: array
+          title: Top Findings
+        asset_impact:
+          $ref: '#/components/schemas/AssetImpactSummary'
+        source_coverage:
+          $ref: '#/components/schemas/SourceCoverageSummary'
+        report_status:
+          anyOf:
+          - $ref: '#/components/schemas/Report'
+          - type: 'null'
+      type: object
+      required:
+      - scan_summary
+      - risk_snapshot
+      - top_findings
+      - asset_impact
+      - source_coverage
+      title: ExecutiveSummary
+    FindingCreate:
+      properties:
+        engagement_asset_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Engagement Asset Id
+        title:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Title
+        severity:
+          $ref: '#/components/schemas/Severity'
+        cvss_score:
+          anyOf:
+          - type: number
+            maximum: 10.0
+            minimum: 0.0
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Cvss Score
+        cve_id:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Cve Id
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        recommendation:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Recommendation
+      type: object
+      required:
+      - title
+      - severity
+      title: FindingCreate
+    FindingDetail:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        engagement_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Engagement Id
+        engagement_asset_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Engagement Asset Id
+        source:
+          type: string
+          title: Source
+        status:
+          $ref: '#/components/schemas/FindingStatus'
+        is_verified:
+          type: boolean
+          title: Is Verified
+        severity:
+          $ref: '#/components/schemas/Severity'
+        cvss_score:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Cvss Score
+        cve_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cve Id
+        title:
+          type: string
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        asset_identifier:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Asset Identifier
+        recommendation:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Recommendation
+        created_by:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Created By
+        evidence_files:
+          items:
+            $ref: '#/components/schemas/EvidenceFileResponse'
+          type: array
+          title: Evidence Files
+          default: []
+      type: object
+      required:
+      - id
+      - source
+      - status
+      - is_verified
+      - severity
+      - title
+      - created_at
+      title: FindingDetail
+    FindingListItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        engagement_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Engagement Id
+        engagement_asset_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Engagement Asset Id
+        source:
+          type: string
+          title: Source
+        status:
+          $ref: '#/components/schemas/FindingStatus'
+        is_verified:
+          type: boolean
+          title: Is Verified
+        severity:
+          $ref: '#/components/schemas/Severity'
+        cvss_score:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Cvss Score
+        cve_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cve Id
+        title:
+          type: string
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        asset_identifier:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Asset Identifier
+      type: object
+      required:
+      - id
+      - source
+      - status
+      - is_verified
+      - severity
+      - title
+      - created_at
+      title: FindingListItem
+    FindingPagination:
+      properties:
+        total:
+          type: integer
+          title: Total
+        limit:
+          type: integer
+          title: Limit
+        offset:
+          type: integer
+          title: Offset
+        has_more:
+          type: boolean
+          title: Has More
+      type: object
+      required:
+      - total
+      - limit
+      - offset
+      - has_more
+      title: FindingPagination
+    FindingReviewStatus:
+      type: string
+      enum:
+      - draft
+      - ready_for_review
+      - published
+      - needs_revision
+      title: FindingReviewStatus
+    FindingSeverityCounts:
+      properties:
+        critical:
+          type: integer
+          title: Critical
+        high:
+          type: integer
+          title: High
+        medium:
+          type: integer
+          title: Medium
+        low_info:
+          type: integer
+          title: Low Info
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - critical
+      - high
+      - medium
+      - low_info
+      - total
+      title: FindingSeverityCounts
+    FindingStatus:
+      type: string
+      enum:
+      - open
+      - in_progress
+      - resolved
+      - accepted_risk
+      - false_positive
+      title: FindingStatus
+    FindingUpdate:
+      properties:
+        title:
+          anyOf:
+          - type: string
+            maxLength: 255
+            minLength: 1
+          - type: 'null'
+          title: Title
+        engagement_asset_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Engagement Asset Id
+        severity:
+          anyOf:
+          - $ref: '#/components/schemas/Severity'
+          - type: 'null'
+        cvss_score:
+          anyOf:
+          - type: number
+            maximum: 10.0
+            minimum: 0.0
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Cvss Score
+        cve_id:
+          anyOf:
+          - type: string
+            maxLength: 50
+          - type: 'null'
+          title: Cve Id
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        recommendation:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Recommendation
+        status:
+          anyOf:
+          - $ref: '#/components/schemas/FindingStatus'
+          - type: 'null'
+        is_verified:
+          type: boolean
+          title: Is Verified
+      type: object
+      required:
+      - is_verified
+      title: FindingUpdate
+    FindingsCount:
+      properties:
+        critical:
+          type: integer
+          title: Critical
+        high:
+          type: integer
+          title: High
+        medium:
+          type: integer
+          title: Medium
+        low:
+          type: integer
+          title: Low
+        info:
+          type: integer
+          title: Info
+        total:
+          type: integer
+          title: Total
+      type: object
+      required:
+      - critical
+      - high
+      - medium
+      - low
+      - info
+      - total
+      title: FindingsCount
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    InitiateScanRequest:
+      properties:
+        domain:
+          type: string
+          title: Domain
+          description: The target domain to scan
+          example: exmpl.com
+        scan_type:
+          $ref: '#/components/schemas/ScanTypeEnum'
+          description: Type of scan to perform
+          default: passive_ctem
+        verified_domain_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Verified Domain Id
+          description: Required for active scans
+        email:
+          anyOf:
+          - type: string
+            format: email
+          - type: 'null'
+          title: Email
+          description: email to send the report to
+      type: object
+      required:
+      - domain
+      title: InitiateScanRequest
+    InitiateScanResponse:
+      properties:
+        scan_id:
+          type: string
+          format: uuid
+          title: Scan Id
+        status:
+          $ref: '#/components/schemas/ScanStatus'
+      type: object
+      required:
+      - scan_id
+      - status
+      title: InitiateScanResponse
+    LatestMessageSummary:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        comment:
+          type: string
+          title: Comment
+        sender_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sender Name
+        sender_role:
+          type: string
+          title: Sender Role
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - comment
+      - sender_name
+      - sender_role
+      - created_at
+      title: LatestMessageSummary
+    MarkMessagesReadResponse:
+      properties:
+        marked_read:
+          type: integer
+          title: Marked Read
+      type: object
+      required:
+      - marked_read
+      title: MarkMessagesReadResponse
+    MarkNotificationsReadResponse:
+      properties:
+        marked_read:
+          type: integer
+          title: Marked Read
+      type: object
+      required:
+      - marked_read
+      title: MarkNotificationsReadResponse
+    MessageClientSummary:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        full_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Full Name
+        email:
+          type: string
+          title: Email
+      type: object
+      required:
+      - id
+      - full_name
+      - email
+      title: MessageClientSummary
+    MetricsResponse:
+      properties:
+        risk_score:
+          type: integer
+          title: Risk Score
+        risk_level:
+          type: string
+          title: Risk Level
+        findings:
+          $ref: '#/components/schemas/FindingsCount'
+        assets:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Assets
+        services:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Services
+        technologies:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Technologies
+      type: object
+      required:
+      - risk_score
+      - risk_level
+      - findings
+      - assets
+      - services
+      - technologies
+      title: MetricsResponse
+    NotificationListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/NotificationResponse'
+          type: array
+          title: Items
+        unread_count:
+          type: integer
+          title: Unread Count
+        pagination:
+          $ref: '#/components/schemas/EngagementPagination'
+      type: object
+      required:
+      - items
+      - unread_count
+      - pagination
+      title: NotificationListResponse
+    NotificationResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        type:
+          $ref: '#/components/schemas/NotificationType'
+        title:
+          type: string
+          title: Title
+        message:
+          type: string
+          title: Message
+        is_read:
+          type: boolean
+          title: Is Read
+        read_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Read At
+        engagement_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Engagement Id
+        metadata:
+          additionalProperties: true
+          type: object
+          title: Metadata
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - type
+      - title
+      - message
+      - is_read
+      - read_at
+      - engagement_id
+      - metadata
+      - created_at
+      title: NotificationResponse
+    NotificationType:
+      type: string
+      enum:
+      - engagement.requested
+      - engagement.claimed
+      - engagement.assigned
+      - engagement.scheduled
+      - engagement.reassigned
+      - engagement.rescheduled
+      - engagement.started
+      - engagement.review_required
+      - engagement.review_returned
+      - engagement.completed
+      - engagement.cancelled
+      - message.received
+      - retest.requested
+      - retest.completed
+      - report.ready
+      title: NotificationType
+    PentesterConversationListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/PentesterConversationSummary'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: PentesterConversationListResponse
+    PentesterConversationSummary:
+      properties:
+        engagement_id:
+          type: string
+          format: uuid
+          title: Engagement Id
+        engagement_title:
+          type: string
+          title: Engagement Title
+        service_delivery:
+          $ref: '#/components/schemas/MessageClientSummary'
+        last_message:
+          anyOf:
+          - $ref: '#/components/schemas/LatestMessageSummary'
+          - type: 'null'
+        message_count:
+          type: integer
+          title: Message Count
+        unread_count:
+          type: integer
+          title: Unread Count
+      type: object
+      required:
+      - engagement_id
+      - engagement_title
+      - service_delivery
+      - last_message
+      - message_count
+      - unread_count
+      title: PentesterConversationSummary
+    PreviousScanSummary:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        domain:
+          type: string
+          title: Domain
+        completed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completed At
+        relevant_findings:
+          type: integer
+          title: Relevant Findings
+        reviewed_findings:
+          type: integer
+          title: Reviewed Findings
+          default: 0
+      type: object
+      required:
+      - id
+      - domain
+      - relevant_findings
+      title: PreviousScanSummary
+    Report:
+      properties:
+        status:
+          type: string
+          title: Status
+        generated_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Generated At
+        pdf_path:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pdf Path
+        error_message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Message
+      type: object
+      required:
+      - status
+      title: Report
+    ReportCallbackRequest:
+      properties:
+        status:
+          type: string
+          title: Status
+        pdf_path:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Pdf Path
+        error_message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Message
+      type: object
+      required:
+      - status
+      title: ReportCallbackRequest
+    RetestFindingSummary:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        title:
+          type: string
+          title: Title
+        severity:
+          $ref: '#/components/schemas/Severity'
+      type: object
+      required:
+      - id
+      - title
+      - severity
+      title: RetestFindingSummary
+    RetestListItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        finding:
+          $ref: '#/components/schemas/RetestFindingSummary'
+        requested_by:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Requested By
+        assigned_to:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Assigned To
+        status:
+          $ref: '#/components/schemas/RetestStatus'
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+        requested_at:
+          type: string
+          format: date-time
+          title: Requested At
+        completed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completed At
+      type: object
+      required:
+      - id
+      - finding
+      - status
+      - requested_at
+      title: RetestListItem
+    RetestListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/RetestListItem'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: RetestListResponse
+    RetestStatus:
+      type: string
+      enum:
+      - requested
+      - in_progress
+      - resolved
+      - still_vulnerable
+      title: RetestStatus
+    RetestUpdate:
+      properties:
+        status:
+          anyOf:
+          - $ref: '#/components/schemas/RetestStatus'
+          - type: 'null'
+        notes:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Notes
+      type: object
+      title: RetestUpdate
+    RiskHistoryItem:
+      properties:
+        date:
+          type: string
+          title: Date
+        risk_score:
+          type: integer
+          title: Risk Score
+        total_findings:
+          type: integer
+          title: Total Findings
+      type: object
+      required:
+      - date
+      - risk_score
+      - total_findings
+      title: RiskHistoryItem
+    RiskSnapshot:
+      properties:
+        total_findings:
+          type: integer
+          title: Total Findings
+          default: 0
+        critical_count:
+          type: integer
+          title: Critical Count
+          default: 0
+        high_count:
+          type: integer
+          title: High Count
+          default: 0
+        medium_count:
+          type: integer
+          title: Medium Count
+          default: 0
+        low_count:
+          type: integer
+          title: Low Count
+          default: 0
+        info_count:
+          type: integer
+          title: Info Count
+          default: 0
+      type: object
+      title: RiskSnapshot
+    ScanCallbackRequest:
+      properties:
+        status:
+          $ref: '#/components/schemas/ScanStatus'
+        error_message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Message
+      type: object
+      required:
+      - status
+      title: ScanCallbackRequest
+    ScanHistoryItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        domain:
+          type: string
+          title: Domain
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        status:
+          $ref: '#/components/schemas/ScanStatus'
+        scan_type:
+          $ref: '#/components/schemas/ScanTypeEnum'
+        progress:
+          type: integer
+          title: Progress
+        total_findings:
+          type: integer
+          title: Total Findings
+        critical_count:
+          type: integer
+          title: Critical Count
+        high_count:
+          type: integer
+          title: High Count
+        medium_count:
+          type: integer
+          title: Medium Count
+        low_count:
+          type: integer
+          title: Low Count
+      type: object
+      required:
+      - id
+      - domain
+      - created_at
+      - status
+      - scan_type
+      - progress
+      - total_findings
+      - critical_count
+      - high_count
+      - medium_count
+      - low_count
+      title: ScanHistoryItem
+    ScanScheduleCreate:
+      properties:
+        verified_domain_id:
+          type: string
+          format: uuid
+          title: Verified Domain Id
+        scan_type:
+          type: string
+          const: active_vulnerability
+          title: Scan Type
+          default: active_vulnerability
+        frequency:
+          type: string
+          enum:
+          - weekly
+          - monthly
+          title: Frequency
+        run_time:
+          type: string
+          format: time
+          title: Run Time
+        day_of_week:
+          anyOf:
+          - type: integer
+            maximum: 6.0
+            minimum: 0.0
+          - type: 'null'
+          title: Day Of Week
+        day_of_month:
+          anyOf:
+          - type: integer
+            maximum: 28.0
+            minimum: 1.0
+          - type: 'null'
+          title: Day Of Month
+        timezone:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Timezone
+          default: Africa/Johannesburg
+      type: object
+      required:
+      - verified_domain_id
+      - frequency
+      - run_time
+      title: ScanScheduleCreate
+    ScanScheduleResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        user_id:
+          type: string
+          format: uuid
+          title: User Id
+        verified_domain_id:
+          type: string
+          format: uuid
+          title: Verified Domain Id
+        scan_type:
+          $ref: '#/components/schemas/ScanType'
+        frequency:
+          type: string
+          enum:
+          - weekly
+          - monthly
+          title: Frequency
+        run_time:
+          type: string
+          format: time
+          title: Run Time
+        day_of_week:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Day Of Week
+        day_of_month:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Day Of Month
+        timezone:
+          type: string
+          title: Timezone
+        is_active:
+          type: boolean
+          title: Is Active
+        next_run_at:
+          type: string
+          format: date-time
+          title: Next Run At
+        last_run_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Last Run At
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - user_id
+      - verified_domain_id
+      - scan_type
+      - frequency
+      - run_time
+      - day_of_week
+      - day_of_month
+      - timezone
+      - is_active
+      - next_run_at
+      - last_run_at
+      - created_at
+      - updated_at
+      title: ScanScheduleResponse
+    ScanScheduleUpdate:
+      properties:
+        frequency:
+          anyOf:
+          - type: string
+            enum:
+            - weekly
+            - monthly
+          - type: 'null'
+          title: Frequency
+        run_time:
+          anyOf:
+          - type: string
+            format: time
+          - type: 'null'
+          title: Run Time
+        day_of_week:
+          anyOf:
+          - type: integer
+            maximum: 6.0
+            minimum: 0.0
+          - type: 'null'
+          title: Day Of Week
+        day_of_month:
+          anyOf:
+          - type: integer
+            maximum: 28.0
+            minimum: 1.0
+          - type: 'null'
+          title: Day Of Month
+        timezone:
+          anyOf:
+          - type: string
+            maxLength: 64
+            minLength: 1
+          - type: 'null'
+          title: Timezone
+        is_active:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Active
+      type: object
+      title: ScanScheduleUpdate
+    ScanSourceCallbackRequest:
+      properties:
+        status:
+          type: string
+          title: Status
+        raw_result:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Raw Result
+        assets:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Assets
+          default: []
+        services:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Services
+          default: []
+        technologies:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Technologies
+          default: []
+        findings:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Findings
+          default: []
+        error_message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Message
+      type: object
+      required:
+      - status
+      title: ScanSourceCallbackRequest
+    ScanStatus:
+      type: string
+      enum:
+      - queued
+      - running
+      - completed
+      - failed
+      - partial
+      title: ScanStatus
+    ScanSummary:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        domain:
+          type: string
+          title: Domain
+        status:
+          type: string
+          title: Status
+        progress:
+          type: integer
+          title: Progress
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        completed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completed At
+        error_message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Message
+      type: object
+      required:
+      - id
+      - domain
+      - status
+      - progress
+      - created_at
+      title: ScanSummary
+    ScanType:
+      type: string
+      enum:
+      - passive_ctem
+      - active_vulnerability
+      title: ScanType
+    ScanTypeEnum:
+      type: string
+      enum:
+      - passive_ctem
+      - active_vulnerability
+      title: ScanTypeEnum
+    ServiceDeliveryCancelRequest:
+      properties:
+        reason:
+          type: string
+          maxLength: 2000
+          minLength: 1
+          title: Reason
+      type: object
+      required:
+      - reason
+      title: ServiceDeliveryCancelRequest
+    ServiceDeliveryConversationListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ServiceDeliveryConversationSummary'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: ServiceDeliveryConversationListResponse
+    ServiceDeliveryConversationSummary:
+      properties:
+        engagement_id:
+          type: string
+          format: uuid
+          title: Engagement Id
+        engagement_title:
+          type: string
+          title: Engagement Title
+        channel:
+          $ref: '#/components/schemas/EngagementMessageChannel'
+        participant:
+          $ref: '#/components/schemas/MessageClientSummary'
+        last_message:
+          anyOf:
+          - $ref: '#/components/schemas/LatestMessageSummary'
+          - type: 'null'
+        message_count:
+          type: integer
+          title: Message Count
+        unread_count:
+          type: integer
+          title: Unread Count
+      type: object
+      required:
+      - engagement_id
+      - engagement_title
+      - channel
+      - participant
+      - last_message
+      - message_count
+      - unread_count
+      title: ServiceDeliveryConversationSummary
+    ServiceDeliveryDashboardCounts:
+      properties:
+        requested:
+          type: integer
+          title: Requested
+        scoping:
+          type: integer
+          title: Scoping
+        scheduled:
+          type: integer
+          title: Scheduled
+        in_progress:
+          type: integer
+          title: In Progress
+        review:
+          type: integer
+          title: Review
+        completed:
+          type: integer
+          title: Completed
+        cancelled:
+          type: integer
+          title: Cancelled
+        needs_attention:
+          type: integer
+          title: Needs Attention
+      type: object
+      required:
+      - requested
+      - scoping
+      - scheduled
+      - in_progress
+      - review
+      - completed
+      - cancelled
+      - needs_attention
+      title: ServiceDeliveryDashboardCounts
+    ServiceDeliveryDashboardEngagement:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        title:
+          type: string
+          title: Title
+        status:
+          $ref: '#/components/schemas/EngagementStatus'
+        assessment_type:
+          $ref: '#/components/schemas/AssessmentType'
+        priority:
+          type: string
+          title: Priority
+        client:
+          $ref: '#/components/schemas/UserSummary'
+        service_delivery:
+          anyOf:
+          - $ref: '#/components/schemas/UserSummary'
+          - type: 'null'
+        assigned_pentester:
+          anyOf:
+          - $ref: '#/components/schemas/UserSummary'
+          - type: 'null'
+        scheduled_start_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Scheduled Start Date
+        scheduled_end_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Scheduled End Date
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - title
+      - status
+      - assessment_type
+      - priority
+      - client
+      - updated_at
+      title: ServiceDeliveryDashboardEngagement
+    ServiceDeliveryDashboardResponse:
+      properties:
+        counts:
+          $ref: '#/components/schemas/ServiceDeliveryDashboardCounts'
+        unclaimed_requests:
+          items:
+            $ref: '#/components/schemas/ServiceDeliveryDashboardEngagement'
+          type: array
+          title: Unclaimed Requests
+        awaiting_review:
+          items:
+            $ref: '#/components/schemas/ServiceDeliveryDashboardEngagement'
+          type: array
+          title: Awaiting Review
+        upcoming_engagements:
+          items:
+            $ref: '#/components/schemas/ServiceDeliveryDashboardEngagement'
+          type: array
+          title: Upcoming Engagements
+      type: object
+      required:
+      - counts
+      - unclaimed_requests
+      - awaiting_review
+      - upcoming_engagements
+      title: ServiceDeliveryDashboardResponse
+    ServiceDeliveryEngagementActionResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        status:
+          $ref: '#/components/schemas/EngagementStatus'
+        service_delivery_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Service Delivery Id
+        assigned_pentester_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Assigned Pentester Id
+        scheduled_start_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Scheduled Start Date
+        scheduled_end_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Scheduled End Date
+        reviewed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Reviewed At
+        completed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completed At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - status
+      - updated_at
+      title: ServiceDeliveryEngagementActionResponse
+    ServiceDeliveryEngagementDetail:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        title:
+          type: string
+          title: Title
+        engagement_type:
+          $ref: '#/components/schemas/EngagementType'
+        assessment_type:
+          $ref: '#/components/schemas/AssessmentType'
+        priority:
+          type: string
+          title: Priority
+        status:
+          $ref: '#/components/schemas/EngagementStatus'
+        scope:
+          type: string
+          title: Scope
+        objective:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Objective
+        constraints:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Constraints
+        primary_contact:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Primary Contact
+        estimated_quote:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Estimated Quote
+        final_quote:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Final Quote
+        estimated_duration_days:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Estimated Duration Days
+        requested_start_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Requested Start Date
+        requested_end_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Requested End Date
+        scheduled_start_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Scheduled Start Date
+        scheduled_end_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Scheduled End Date
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        completed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completed At
+        reviewed_by:
+          anyOf:
+          - $ref: '#/components/schemas/UserSummary'
+          - type: 'null'
+        reviewed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Reviewed At
+        review_note:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Review Note
+        client:
+          $ref: '#/components/schemas/UserSummary'
+        service_delivery:
+          anyOf:
+          - $ref: '#/components/schemas/UserSummary'
+          - type: 'null'
+        assigned_pentester:
+          anyOf:
+          - $ref: '#/components/schemas/UserSummary'
+          - type: 'null'
+        assets:
+          items:
+            $ref: '#/components/schemas/EngagementAssetResponse'
+          type: array
+          title: Assets
+        finding_summary:
+          $ref: '#/components/schemas/ServiceDeliveryFindingSummary'
+        retest_summary:
+          $ref: '#/components/schemas/ServiceDeliveryRetestSummary'
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - title
+      - engagement_type
+      - assessment_type
+      - priority
+      - status
+      - scope
+      - estimated_quote
+      - client
+      - assets
+      - finding_summary
+      - retest_summary
+      - created_at
+      - updated_at
+      title: ServiceDeliveryEngagementDetail
+    ServiceDeliveryEngagementListItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        title:
+          type: string
+          title: Title
+        client:
+          $ref: '#/components/schemas/UserSummary'
+        engagement_type:
+          $ref: '#/components/schemas/EngagementType'
+        assessment_type:
+          $ref: '#/components/schemas/AssessmentType'
+        priority:
+          type: string
+          title: Priority
+        status:
+          $ref: '#/components/schemas/EngagementStatus'
+        service_delivery:
+          anyOf:
+          - $ref: '#/components/schemas/UserSummary'
+          - type: 'null'
+        assigned_pentester:
+          anyOf:
+          - $ref: '#/components/schemas/UserSummary'
+          - type: 'null'
+        requested_start_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Requested Start Date
+        requested_end_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Requested End Date
+        scheduled_start_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Scheduled Start Date
+        scheduled_end_date:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Scheduled End Date
+        final_quote:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Final Quote
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+        updated_at:
+          type: string
+          format: date-time
+          title: Updated At
+      type: object
+      required:
+      - id
+      - title
+      - client
+      - engagement_type
+      - assessment_type
+      - priority
+      - status
+      - created_at
+      - updated_at
+      title: ServiceDeliveryEngagementListItem
+    ServiceDeliveryEngagementListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ServiceDeliveryEngagementListItem'
+          type: array
+          title: Items
+        pagination:
+          $ref: '#/components/schemas/EngagementPagination'
+      type: object
+      required:
+      - items
+      - pagination
+      title: ServiceDeliveryEngagementListResponse
+    ServiceDeliveryFindingDetail:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        engagement_id:
+          type: string
+          format: uuid
+          title: Engagement Id
+        engagement_asset_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Engagement Asset Id
+        asset_identifier:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Asset Identifier
+        source:
+          type: string
+          title: Source
+        title:
+          type: string
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        recommendation:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Recommendation
+        severity:
+          $ref: '#/components/schemas/Severity'
+        status:
+          $ref: '#/components/schemas/FindingStatus'
+        is_verified:
+          type: boolean
+          title: Is Verified
+        cvss_score:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Cvss Score
+        cve_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cve Id
+        created_by:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Created By
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - engagement_id
+      - source
+      - title
+      - severity
+      - status
+      - is_verified
+      - created_at
+      title: ServiceDeliveryFindingDetail
+    ServiceDeliveryFindingListItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        title:
+          type: string
+          title: Title
+        severity:
+          $ref: '#/components/schemas/Severity'
+        status:
+          $ref: '#/components/schemas/FindingStatus'
+        engagement_asset_id:
+          anyOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+          title: Engagement Asset Id
+        asset_identifier:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Asset Identifier
+        source:
+          type: string
+          title: Source
+        is_verified:
+          type: boolean
+          title: Is Verified
+        cvss_score:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Cvss Score
+        cve_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cve Id
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - title
+      - severity
+      - status
+      - source
+      - is_verified
+      - created_at
+      title: ServiceDeliveryFindingListItem
+    ServiceDeliveryFindingListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ServiceDeliveryFindingListItem'
+          type: array
+          title: Items
+        pagination:
+          $ref: '#/components/schemas/EngagementPagination'
+      type: object
+      required:
+      - items
+      - pagination
+      title: ServiceDeliveryFindingListResponse
+    ServiceDeliveryFindingSummary:
+      properties:
+        total:
+          type: integer
+          title: Total
+        critical:
+          type: integer
+          title: Critical
+        high:
+          type: integer
+          title: High
+        medium:
+          type: integer
+          title: Medium
+        low:
+          type: integer
+          title: Low
+        with_evidence:
+          type: integer
+          title: With Evidence
+      type: object
+      required:
+      - total
+      - critical
+      - high
+      - medium
+      - low
+      - with_evidence
+      title: ServiceDeliveryFindingSummary
+    ServiceDeliveryPentesterAssignment:
+      properties:
+        pentester_id:
+          type: string
+          format: uuid
+          title: Pentester Id
+      type: object
+      required:
+      - pentester_id
+      title: ServiceDeliveryPentesterAssignment
+    ServiceDeliveryPentesterCreate:
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email
+        full_name:
+          type: string
+          maxLength: 255
+          minLength: 1
+          title: Full Name
+        specialisations:
+          items:
+            $ref: '#/components/schemas/AssessmentType'
+          type: array
+          minItems: 1
+          title: Specialisations
+      type: object
+      required:
+      - email
+      - full_name
+      - specialisations
+      title: ServiceDeliveryPentesterCreate
+    ServiceDeliveryPentesterDetail:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        full_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Full Name
+        email:
+          type: string
+          title: Email
+        is_active:
+          type: boolean
+          title: Is Active
+        availability_status:
+          type: string
+          title: Availability Status
+        specialisations:
+          items:
+            $ref: '#/components/schemas/AssessmentType'
+          type: array
+          title: Specialisations
+        assigned_engagements:
+          type: integer
+          title: Assigned Engagements
+        scheduled_engagements:
+          type: integer
+          title: Scheduled Engagements
+        in_progress_engagements:
+          type: integer
+          title: In Progress Engagements
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - full_name
+      - email
+      - is_active
+      - availability_status
+      - specialisations
+      - assigned_engagements
+      - scheduled_engagements
+      - in_progress_engagements
+      - created_at
+      title: ServiceDeliveryPentesterDetail
+    ServiceDeliveryPentesterListItem:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        full_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Full Name
+        email:
+          type: string
+          title: Email
+        is_active:
+          type: boolean
+          title: Is Active
+        availability_status:
+          type: string
+          title: Availability Status
+        specialisations:
+          items:
+            $ref: '#/components/schemas/AssessmentType'
+          type: array
+          title: Specialisations
+        assigned_engagements:
+          type: integer
+          title: Assigned Engagements
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - full_name
+      - email
+      - is_active
+      - availability_status
+      - specialisations
+      - assigned_engagements
+      - created_at
+      title: ServiceDeliveryPentesterListItem
+    ServiceDeliveryPentesterListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/ServiceDeliveryPentesterListItem'
+          type: array
+          title: Items
+        pagination:
+          $ref: '#/components/schemas/EngagementPagination'
+      type: object
+      required:
+      - items
+      - pagination
+      title: ServiceDeliveryPentesterListResponse
+    ServiceDeliveryReassignRequest:
+      properties:
+        pentester_id:
+          type: string
+          format: uuid
+          title: Pentester Id
+        reason:
+          type: string
+          maxLength: 2000
+          minLength: 1
+          title: Reason
+      type: object
+      required:
+      - pentester_id
+      - reason
+      title: ServiceDeliveryReassignRequest
+    ServiceDeliveryRescheduleRequest:
+      properties:
+        scheduled_start_date:
+          type: string
+          format: date
+          title: Scheduled Start Date
+        scheduled_end_date:
+          type: string
+          format: date
+          title: Scheduled End Date
+        reason:
+          type: string
+          maxLength: 2000
+          minLength: 1
+          title: Reason
+      type: object
+      required:
+      - scheduled_start_date
+      - scheduled_end_date
+      - reason
+      title: ServiceDeliveryRescheduleRequest
+    ServiceDeliveryRetestSummary:
+      properties:
+        total:
+          type: integer
+          title: Total
+        requested:
+          type: integer
+          title: Requested
+        in_progress:
+          type: integer
+          title: In Progress
+        resolved:
+          type: integer
+          title: Resolved
+        still_vulnerable:
+          type: integer
+          title: Still Vulnerable
+      type: object
+      required:
+      - total
+      - requested
+      - in_progress
+      - resolved
+      - still_vulnerable
+      title: ServiceDeliveryRetestSummary
+    ServiceDeliveryReviewReturnRequest:
+      properties:
+        review_note:
+          type: string
+          maxLength: 5000
+          minLength: 1
+          title: Review Note
+      type: object
+      required:
+      - review_note
+      title: ServiceDeliveryReviewReturnRequest
+    ServiceDeliveryScheduleRequest:
+      properties:
+        scheduled_start_date:
+          type: string
+          format: date
+          title: Scheduled Start Date
+        scheduled_end_date:
+          type: string
+          format: date
+          title: Scheduled End Date
+      type: object
+      required:
+      - scheduled_start_date
+      - scheduled_end_date
+      title: ServiceDeliveryScheduleRequest
+    ServiceDeliveryScopingUpdate:
+      properties:
+        assessment_type:
+          anyOf:
+          - $ref: '#/components/schemas/AssessmentType'
+          - type: 'null'
+        scope:
+          anyOf:
+          - type: string
+            maxLength: 10000
+            minLength: 1
+          - type: 'null'
+          title: Scope
+        objective:
+          anyOf:
+          - type: string
+            maxLength: 5000
+          - type: 'null'
+          title: Objective
+        constraints:
+          anyOf:
+          - type: string
+            maxLength: 5000
+          - type: 'null'
+          title: Constraints
+        final_quote:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Final Quote
+        estimated_duration_days:
+          anyOf:
+          - type: integer
+            minimum: 1.0
+          - type: 'null'
+          title: Estimated Duration Days
+      type: object
+      title: ServiceDeliveryScopingUpdate
+    ServiceListResponse:
+      properties:
+        total:
+          type: integer
+          title: Total
+        counts:
+          $ref: '#/components/schemas/ServiceSummaryCounts'
+        items:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Items
+      type: object
+      required:
+      - total
+      - counts
+      - items
+      title: ServiceListResponse
+    ServiceSummaryCounts:
+      properties:
+        total:
+          type: integer
+          title: Total
+        tcp:
+          type: integer
+          title: Tcp
+        udp:
+          type: integer
+          title: Udp
+        open:
+          type: integer
+          title: Open
+        filtered:
+          type: integer
+          title: Filtered
+      type: object
+      required:
+      - total
+      - tcp
+      - udp
+      - open
+      - filtered
+      title: ServiceSummaryCounts
+    Severity:
+      type: string
+      enum:
+      - info
+      - low
+      - medium
+      - high
+      - critical
+      title: Severity
+    SortOrder:
+      type: string
+      enum:
+      - asc
+      - desc
+      title: SortOrder
+    SourceCoverageAggregate:
+      properties:
+        sources_total:
+          type: integer
+          title: Sources Total
+          default: 0
+        sources_completed:
+          type: integer
+          title: Sources Completed
+          default: 0
+        sources_failed:
+          type: integer
+          title: Sources Failed
+          default: 0
+        sources_partial:
+          type: integer
+          title: Sources Partial
+          default: 0
+        sources_skipped:
+          type: integer
+          title: Sources Skipped
+          default: 0
+      type: object
+      title: SourceCoverageAggregate
+    SourceCoverageItem:
+      properties:
+        source_name:
+          type: string
+          title: Source Name
+        status:
+          type: string
+          title: Status
+        started_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Started At
+        completed_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Completed At
+        error_message:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Error Message
+      type: object
+      required:
+      - source_name
+      - status
+      title: SourceCoverageItem
+    SourceCoverageSummary:
+      properties:
+        aggregate:
+          $ref: '#/components/schemas/SourceCoverageAggregate'
+        sources:
+          items:
+            $ref: '#/components/schemas/SourceCoverageItem'
+          type: array
+          title: Sources
+      type: object
+      required:
+      - aggregate
+      - sources
+      title: SourceCoverageSummary
+    TopAffectedAsset:
+      properties:
+        identifier:
+          type: string
+          title: Identifier
+        asset_type:
+          type: string
+          title: Asset Type
+        finding_count:
+          type: integer
+          title: Finding Count
+        highest_severity:
+          $ref: '#/components/schemas/Severity'
+      type: object
+      required:
+      - identifier
+      - asset_type
+      - finding_count
+      - highest_severity
+      title: TopAffectedAsset
+    TopFindingPreview:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        severity:
+          $ref: '#/components/schemas/Severity'
+        title:
+          type: string
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        recommendation:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Recommendation
+        source:
+          type: string
+          title: Source
+        asset_identifier:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Asset Identifier
+        asset_type:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Asset Type
+        created_at:
+          type: string
+          format: date-time
+          title: Created At
+      type: object
+      required:
+      - id
+      - severity
+      - title
+      - source
+      - created_at
+      title: TopFindingPreview
+    UserSummary:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        full_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Full Name
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+        role:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Role
+      type: object
+      required:
+      - id
+      title: UserSummary
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    VerifiedDomainResponse:
+      properties:
+        id:
+          type: string
+          format: uuid
+          title: Id
+        domain:
+          type: string
+          title: Domain
+        status:
+          $ref: '#/components/schemas/DomainVerificationStatus'
+        verification_token:
+          type: string
+          title: Verification Token
+        verified_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Verified At
+      type: object
+      required:
+      - id
+      - domain
+      - status
+      - verification_token
+      title: VerifiedDomainResponse
+    app__schemas__finding__FindingListResponse:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/FindingListItem'
+          type: array
+          title: Items
+        pagination:
+          $ref: '#/components/schemas/FindingPagination'
+      type: object
+      required:
+      - items
+      - pagination
+      title: FindingListResponse
+    app__schemas__scan__FindingListResponse:
+      properties:
+        total:
+          type: integer
+          title: Total
+        counts:
+          $ref: '#/components/schemas/FindingSeverityCounts'
+        items:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Items
+      type: object
+      required:
+      - total
+      - counts
+      - items
+      title: FindingListResponse
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer
+

@@ -1,5 +1,5 @@
 "use client";
-
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState} from "react";
 
 import { fetchScanFindings, type DashboardFindingItem } from "@/lib/scanService";
@@ -71,6 +71,9 @@ function sortFindings(findings: DashboardFindingItem[], sort: SortOption): Dashb
 }
 
 export default function FindingsGrid({ scanId }: { scanId: string }) {
+    const searchParams = useSearchParams();
+    const assetFilter = searchParams.get("asset") ?? "";
+
     const [findings, setFindings] = useState<DashboardFindingItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -102,9 +105,10 @@ export default function FindingsGrid({ scanId }: { scanId: string }) {
     const visibleFindings = useMemo(() => {
         const filtered = findings
             .filter((f) => severityFilter === "all" || f.severity.toLowerCase() === severityFilter)
+            .filter((f) => !assetFilter || f.asset_identifier === assetFilter)
             .filter((f) => f.title.toLowerCase().includes(search.trim().toLowerCase()));
         return sortFindings(filtered, sort);
-    }, [findings, severityFilter, search, sort]);
+    }, [findings, severityFilter, search, sort, assetFilter]);
 
     return (
         <section className="min-w-0 pt-6" data-scan-id={scanId}>

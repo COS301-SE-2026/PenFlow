@@ -127,3 +127,48 @@ async def load_report_data(db: AsyncSession, scan_id: str) -> dict[str, Any]:
         "technologies": technologies,
         "report": await get_or_create_report(db, scan_id),
     }
+
+async def get_by_engagement_and_version(
+        db: AsyncSession, engagement_id: str | UUID, version: int 
+) -> Report | None:
+    eng_uuid = UUID(str(engagement_id)) if isinstance(engagement_id, str) else engagement_id 
+    result = await db.execute(
+        select(Report).where(
+            Report.engagement_id == eng_uuid,
+            Report.version == version 
+        )
+    )
+    return result.scalar_one_or_none()
+
+async def create_engagement_report(
+        db: AsyncSession, 
+        engagement_id: str | UUID, 
+        version: int = 1, 
+        task_id: str | None = None       
+) -> Report:
+    eng_uuid = UUID(str(engagement_id)) if isinstance(engagement_id, str) else engagement_id 
+    report = Report(
+        engagement_id=eng_uuid,
+        version=version,
+        task_id=task_id,
+        status=ReportStatus.PENDING
+    )
+    db.add(report)
+    await db.commit()
+    await db.refresh(report) 
+    return report 
+
+async def get_latest_for_engagement(
+        db: AsyncSession,
+        engagement_id: UUID,
+) -> Report | None:
+    stmt = (select(Report).where(
+        Report.engagement_id == engagement_id,
+        ).order_by(
+            Report.version.desc(),
+            Report.created_at.desc(),
+        ).limit(1)
+    )
+
+    result = await db.execute(stmt)
+    return result.scalar_one_or_none()

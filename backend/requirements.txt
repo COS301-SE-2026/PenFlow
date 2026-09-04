@@ -21,3 +21,5 @@ weasyprint>=60.0
 jinja2>=3.1.0
 boto3>=1.42.70
 slowapi>=0.1.9
+python-magic>=0.4.27
+tzdata>=2025.2

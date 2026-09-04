@@ -1,19 +1,24 @@
 import os
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.base import ScanType
+from app.models.base import ReportStatus, ScanType
 from app.queue.celery_app import celery_app
 from app.repositories.report_repository import (
+    create_engagement_report,
+    get_by_engagement_and_version,
     load_report_data,
     mark_report_failed,
     mark_report_generating,
     mark_report_task_queued,
 )
+from app.services.scan_delta_service import build_scan_delta
 from app.utils.phase2_report_context import build_phase2_report_context
+from app.utils.phase3_report_context import build_phase3_report_context
 from app.utils.report_context import build_report_context
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -50,6 +55,10 @@ def build_report_output_path(scan_id: str) -> Path:
     REPORT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     return REPORT_OUTPUT_DIR / f"penflow_report_{scan_id}.pdf"
 
+def build_engagement_report_output_path(engagement_id: str, version: int) -> Path:
+    REPORT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    return REPORT_OUTPUT_DIR / f"engagement_report_{engagement_id}_v{version}.pdf" 
+
 
 async def queue_report_generation(db: AsyncSession, scan_id: str) -> dict[str, Any]:
     try:
@@ -75,6 +84,12 @@ async def queue_report_generation(db: AsyncSession, scan_id: str) -> dict[str, A
                 technologies=report_data["technologies"],
                 scan_sources=report_data["scan_sources"],
             )
+
+            if scan.schedule_id is not None:
+                context["delta"] = await build_scan_delta(
+                    db=db,
+                    current_scan_id=UUID(scan_id),
+                )
 
         else:
             raise ValueError(f"Unknown scan type: {scan.scan_type}")
@@ -102,3 +117,50 @@ async def queue_report_generation(db: AsyncSession, scan_id: str) -> dict[str, A
     except Exception as error:
         await mark_report_failed(db, scan_id, str(error))
         raise
+
+async def queue_engagement_report_generation(
+        db: AsyncSession, engagement_id: str | UUID, version: int = 1
+) -> dict[str, Any]:
+    eng_uuid = UUID(str(engagement_id)) if isinstance(engagement_id, str) else engagement_id
+
+    try: 
+        report = await get_by_engagement_and_version(db, eng_uuid, version) 
+        if not report: 
+            report = await create_engagement_report(db, eng_uuid, version) 
+
+        report.status = ReportStatus.GENERATING 
+        report.error_message = None 
+        await db.commit() 
+
+        context = await build_phase3_report_context(db, eng_uuid, version) 
+        template_env = get_template_environment()
+        template = template_env.get_template("phase3_report_template.html") 
+        html_content = str(template.render(**context)) 
+
+        output_path = build_engagement_report_output_path(str(eng_uuid), version) 
+
+        task = celery_app.send_task(
+            "engagement.render_report",
+            args=[str(eng_uuid), version, html_content, str(output_path)],
+            queue="scans", routing_key="scans",
+        )
+
+        report.task_id = task.id 
+        await db.commit() 
+
+        return {
+            "engagement_id": str(eng_uuid),
+            "version": version, 
+            "task_id": task.id, 
+            "pdf_path": str(output_path),
+            "status": "generating",
+        }
+
+    except Exception as error: 
+        report = await get_by_engagement_and_version(db, eng_uuid, version) 
+        if report: 
+            report.status = ReportStatus.FAILED 
+            report.error_message = str(error) 
+            await db.commit() 
+        raise 
+

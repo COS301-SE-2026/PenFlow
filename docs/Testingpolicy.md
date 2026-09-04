@@ -1,6 +1,6 @@
 # Testing Policy
 # PenFlow by The BroCode
-Update date: 2026/07/07
+Update date: 2026/09/04
 ---
 
 
@@ -258,10 +258,9 @@ Performance testing focuses on the following key metrics:
 
 #### 4.1.3 Testing Framework
 
-Performance testing is conducted using pytest-benchmark for measuring
-individual function execution times and custom load scripts for
-measuring API throughput. WebSocket latency for real-time scan progress
-updates is measured separately against the staging deployment.
+Performance testing is conducted using k6 load scripts for measuring
+API throughput and response times. WebSocket latency for real-time scan
+progress updates is measured separately against the staging deployment.
 
 #### 4.1.4 Test Scenarios
 
@@ -355,13 +354,15 @@ Security testing covers the following areas:
 - **Authentication Bypass:** Testing unauthorized access to
   authenticated endpoints without a valid JWT token.
 - **Authorisation Flaws:** Verifying that a user cannot access another
-  user's scan history, findings, or reports (IDOR prevention).
+  user's scan history, findings, or reports (IDOR prevention) - ownership
+  is enforced via a user_id-scoped lookup, so a cross-user request
+  returns 404 rather than an explicit 403.
 - **Domain Verification Bypass:** Verifying that a Phase 2 scan cannot
   be initiated against an asset that has not been verified.
 - **Input Validation:** Testing for SQL injection, XSS, and malformed
   domain input handling.
 - **Rate Limiting:** Verifying that the IP-based rate limiter blocks
-  more than 3 Phase 1 scan submissions per IP per 24 hours.
+  more than 3 Phase 1 scan submissions per IP per 10 minutes.
 - **Secrets Exposure:** Confirming that API keys, database credentials,
   and environment variables are not exposed in API responses or logs.
 - **Audit Trail Integrity:** Verifying that audit log records cannot be
@@ -369,22 +370,21 @@ Security testing covers the following areas:
 
 #### 4.3.3 Testing Framework
 
-Security testing is conducted using pytest-based test suites for API
-security checks, targeting the staging deployment. Tests assert correct
-HTTP status codes, error response shapes, and the absence of sensitive
-data in responses.
+Security testing is conducted using OWASP ZAP for automated vulnerability
+scanning and k6 scripts for API security checks, targeting the staging
+deployment. Tests assert correct HTTP status codes, error response
+shapes, and the absence of sensitive data in responses.
 
 #### 4.3.4 Security Test Scenarios
 
 Security tests evaluate the following attack vectors:
 
 - Requesting an authenticated endpoint with no Authorization header
-- Requesting another user's scan report using a valid but mismatched
-  JWT token
+- Requesting another user's scan status using no/mismatched auth
 - Initiating a Phase 2 scan against an unverified asset
 - Submitting malformed or oversized domain input to the scan endpoint
 - Submitting more than 3 scan requests from the same IP within a
-  24-hour window
+  10-minute window
 - Attempting to delete or update an audit log record directly via SQL
 
 #### 4.3.5 Security Acceptance Criteria
@@ -392,10 +392,11 @@ Security tests evaluate the following attack vectors:
 Security tests must demonstrate:
 
 - All unauthenticated requests to protected endpoints return 401
-- All cross-user data access attempts return 403
+- All cross-user data access attempts return 404 (ownership-scoped
+  lookup, not an explicit 403 check)
 - Phase 2 scan initiation against an unverified asset returns 403
 - Rate limiter returns 429 on the fourth scan submission from the same
-  IP within 24 hours
+  IP within 10 minutes
 - No sensitive data (API keys, passwords, internal IDs) present in any
   API error response
 - Audit log records cannot be modified or deleted at the database level
@@ -475,4 +476,3 @@ be followed:
 | High     | Feature broken but workaround exists            | Within 2 days   |
 | Medium   | Minor functional issue, feature partially works | Before demo     |
 | Low      | Cosmetic or non-functional issue                | Best effort     |
-

@@ -7,7 +7,7 @@
 .piplineHeadingWrap {
   max-width: 1200px;
   margin: 0 auto;
-  padding: clamp(40px, 6vw, 80px) clamp(16px, 4vw, 40 px) clamp(32px, 5vw, 64px);
+  padding: clamp(40px, 6vw, 80px) clamp(16px, 4vw, 40px) clamp(32px, 5vw, 64px);
 }
 
 .pipelineHeading {
@@ -24,7 +24,7 @@
   align-items: center;
   border-top: 1px solid var(--col-edge);
   gap: 6px;
-  padding: clamp(32px, 5vw, 56px) clamp(16px, 4vw, 40 px) clamp(16px, 2vw, 24px);
+  padding: clamp(32px, 5vw, 56px) clamp(16px, 4vw, 40px) clamp(16px, 2vw, 24px);
 }
 
 .phaseLabel[data-first="true"] {
@@ -47,7 +47,7 @@
 
 .safetyOsintRow {
   background: var(--col-deep);
-  padding: clamp(48px, 7vw, 96px) clamp(16px, 4vw, 40 px);
+  padding: clamp(48px, 7vw, 96px) clamp(16px, 4vw, 40px);
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: clamp(24px, 4vw, 60px);

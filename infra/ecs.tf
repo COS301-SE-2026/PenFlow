@@ -65,7 +65,13 @@ resource "aws_ecs_task_definition" "backend" {
           value = replace(replace(aws_mq_broker.rabbitmq.instances[0].endpoints[0], "amqps://", ""), ":5671", "")
         },
         { name = "RABBITMQ_PORT", value = "5671" },
-        { name = "RABBITMQ_USERNAME", value = var.rabbitmq_username }
+        { name = "RABBITMQ_USERNAME", value = var.rabbitmq_username },
+        { name = "KEYCLOAK_ADMIN_URL", value = "https://${var.auth_domain_name}" },
+        { name = "KEYCLOAK_ADMIN_REALM", value = "penflow" },
+        { name = "KEYCLOAK_PROVISIONER_CLIENT_ID", value = "penflow-user-provisioner" },
+        { name = "KEYCLOAK_INVITE_CLIENT_ID", value = "penflow-web" },
+        { name = "KEYCLOAK_INVITE_REDIRECT_URI", value = "https://${var.domain_name}/login" },
+        { name = "KEYCLOAK_INVITE_LIFESPAN_SECONDS", value = "86400" }
       ]
 
       secrets = [
@@ -74,7 +80,8 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "HIBP_API_KEY", valueFrom = aws_secretsmanager_secret.hibp_api_key.arn },
         { name = "SHODAN_API_KEY", valueFrom = aws_secretsmanager_secret.shodan_api_key.arn },
         { name = "URLSCAN_API_KEY", valueFrom = aws_secretsmanager_secret.urlscan_api_key.arn },
-        { name = "SMTP_PASSWORD", valueFrom = aws_secretsmanager_secret.smtp_password.arn }
+        { name = "SMTP_PASSWORD", valueFrom = aws_secretsmanager_secret.smtp_password.arn },
+        { name = "KEYCLOAK_PROVISIONER_CLIENT_SECRET", valueFrom = aws_secretsmanager_secret.keycloak_provisioner_client_secret.arn }
       ]
 
       logConfiguration = {
@@ -203,6 +210,260 @@ resource "aws_ecs_task_definition" "worker" {
   ])
 }
 
+
+resource "aws_ecs_task_definition" "email_worker" {
+  family                   = "${local.name_prefix}-email-worker"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+
+  cpu    = 512
+  memory = 1024
+
+  execution_role_arn = aws_iam_role.ecs_execution.arn
+  task_role_arn      = aws_iam_role.email_worker_task.arn
+
+  runtime_platform {
+    cpu_architecture        = "X86_64"
+    operating_system_family = "LINUX"
+  }
+
+  container_definitions = jsonencode([
+    {
+      name      = "penflow-email-worker"
+      image     = "${aws_ecr_repository.backend.repository_url}:${var.backend_image_tag}"
+      essential = true
+
+      cpu               = 512
+      memory            = 1024
+      memoryReservation = 768
+
+      command = [
+        "celery",
+        "-A",
+        "app.queue.celery_app:celery_app",
+        "worker",
+        "--loglevel=info",
+        "--queues=email",
+        "--concurrency=2"
+      ]
+
+      environment = [
+        { name = "EMAIL_TRANSPORT", value = "smtp" },
+        { name = "SMTP_HOST", value = var.smtp_host },
+        { name = "SMTP_PORT", value = tostring(var.smtp_port) },
+        { name = "SMTP_USER", value = var.smtp_user },
+        { name = "SMTP_FROM", value = var.smtp_from },
+        { name = "AWS_REGION", value = var.aws_region },
+
+        { name = "REPORT_STORAGE", value = "s3" },
+        { name = "REPORT_S3_BUCKET", value = aws_s3_bucket.reports.bucket },
+
+        { name = "RABBITMQ_PROTOCOL", value = "amqps" },
+        {
+          name = "RABBITMQ_HOST"
+          value = replace(
+            replace(
+              aws_mq_broker.rabbitmq.instances[0].endpoints[0],
+              "amqps://",
+              ""
+            ),
+            ":5671",
+            ""
+          )
+        },
+        { name = "RABBITMQ_PORT", value = "5671" },
+        { name = "RABBITMQ_USERNAME", value = var.rabbitmq_username }
+      ]
+
+      secrets = [
+        {
+          name      = "RABBITMQ_PASSWORD"
+          valueFrom = aws_secretsmanager_secret.rabbitmq_password.arn
+        },
+        {
+          name      = "SMTP_PASSWORD"
+          valueFrom = aws_secretsmanager_secret.smtp_password.arn
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.email_worker.name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
+    }
+  ])
+}
+
+resource "aws_ecs_task_definition" "schedule_worker" {
+  family                   = "${local.name_prefix}-schedule-worker"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 256
+  memory                   = 512
+
+  execution_role_arn = aws_iam_role.ecs_execution.arn
+  task_role_arn      = aws_iam_role.backend_task.arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "penflow-schedule-worker"
+      image     = "${aws_ecr_repository.backend.repository_url}:${var.backend_image_tag}"
+      essential = true
+
+      command = [
+        "celery",
+        "-A",
+        "app.queue.celery_app:celery_app",
+        "worker",
+        "--loglevel=info",
+        "--queues=schedules",
+        "--concurrency=1"
+      ]
+
+      environment = [
+        {
+          name  = "DATABASE_HOST"
+          value = aws_db_instance.main.address
+        },
+        {
+          name  = "DATABASE_PORT"
+          value = tostring(aws_db_instance.main.port)
+        },
+        {
+          name  = "DATABASE_NAME"
+          value = var.db_name
+        },
+        {
+          name  = "DATABASE_USER"
+          value = var.db_username
+        },
+        {
+          name  = "RABBITMQ_PROTOCOL"
+          value = "amqps"
+        },
+        {
+          name = "RABBITMQ_HOST"
+          value = replace(
+            replace(
+              aws_mq_broker.rabbitmq.instances[0].endpoints[0],
+              "amqps://",
+              ""
+            ),
+            ":5671",
+            ""
+          )
+        },
+        {
+          name  = "RABBITMQ_PORT"
+          value = "5671"
+        },
+        {
+          name  = "RABBITMQ_USERNAME"
+          value = var.rabbitmq_username
+        }
+      ]
+
+      secrets = [
+        {
+          name      = "DATABASE_PASSWORD"
+          valueFrom = aws_secretsmanager_secret.db_password.arn
+        },
+        {
+          name      = "RABBITMQ_PASSWORD"
+          valueFrom = aws_secretsmanager_secret.rabbitmq_password.arn
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.schedule_worker.name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "schedule-worker"
+        }
+      }
+    }
+  ])
+}
+
+resource "aws_ecs_task_definition" "celery_beat" {
+  family                   = "${local.name_prefix}-celery-beat"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = 256
+  memory                   = 512
+
+  execution_role_arn = aws_iam_role.ecs_execution.arn
+  task_role_arn      = aws_iam_role.backend_task.arn
+
+  container_definitions = jsonencode([
+    {
+      name      = "penflow-celery-beat"
+      image     = "${aws_ecr_repository.backend.repository_url}:${var.backend_image_tag}"
+      essential = true
+
+      command = [
+        "celery",
+        "-A",
+        "app.queue.celery_app:celery_app",
+        "beat",
+        "--loglevel=info",
+        "--schedule=/tmp/celerybeat-schedule"
+      ]
+
+      environment = [
+        {
+          name  = "RABBITMQ_PROTOCOL"
+          value = "amqps"
+        },
+        {
+          name = "RABBITMQ_HOST"
+          value = replace(
+            replace(
+              aws_mq_broker.rabbitmq.instances[0].endpoints[0],
+              "amqps://",
+              ""
+            ),
+            ":5671",
+            ""
+          )
+        },
+        {
+          name  = "RABBITMQ_PORT"
+          value = "5671"
+        },
+        {
+          name  = "RABBITMQ_USERNAME"
+          value = var.rabbitmq_username
+        }
+      ]
+
+      secrets = [
+        {
+          name      = "RABBITMQ_PASSWORD"
+          valueFrom = aws_secretsmanager_secret.rabbitmq_password.arn
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.celery_beat.name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "celery-beat"
+        }
+      }
+    }
+  ])
+}
+
 resource "aws_ecs_task_definition" "keycloak" {
   family                   = "${local.name_prefix}-keycloak"
   requires_compatibilities = ["FARGATE"]
@@ -227,6 +488,7 @@ resource "aws_ecs_task_definition" "keycloak" {
 
       command = [
         "start",
+        "--optimized",
         "--import-realm"
       ]
 
@@ -244,9 +506,11 @@ resource "aws_ecs_task_definition" "keycloak" {
         { name = "KC_DB", value = "postgres" },
         { name = "KC_DB_URL", value = "jdbc:postgresql://${aws_db_instance.main.address}:${aws_db_instance.main.port}/${var.keycloak_db_name}" },
         { name = "KC_DB_USERNAME", value = var.keycloak_db_username },
+        { name = "KC_CACHE", value = "local" },
         { name = "KC_BOOTSTRAP_ADMIN_USERNAME", value = var.keycloak_bootstrap_admin_username },
         { name = "KC_PROXY_HEADERS", value = "xforwarded" },
         { name = "KC_HTTP_ENABLED", value = "true" },
+        { name = "KC_HOSTNAME_BACKCHANNEL_DYNAMIC", value = "true" },
         { name = "KC_HEALTH_ENABLED", value = "true" },
         { name = "KC_METRICS_ENABLED", value = "true" },
         { name = "KC_HTTP_MANAGEMENT_HEALTH_ENABLED", value = "false" },
@@ -341,6 +605,8 @@ resource "aws_ecs_service" "keycloak" {
   desired_count   = var.keycloak_desired_count
   launch_type     = "FARGATE"
 
+  health_check_grace_period_seconds = 120
+
   network_configuration {
     subnets          = aws_subnet.public[*].id
     security_groups  = [aws_security_group.keycloak.id]
@@ -385,5 +651,76 @@ resource "aws_ecs_service" "worker" {
   depends_on = [
     aws_mq_broker.rabbitmq,
     aws_ecs_service.backend
+  ]
+}
+
+resource "aws_ecs_service" "email_worker" {
+  name            = "${local.name_prefix}-email-worker-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.email_worker.arn
+  desired_count   = var.email_worker_desired_count
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = aws_subnet.public[*].id
+    security_groups  = [aws_security_group.email_worker.id]
+    assign_public_ip = true
+  }
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
+  depends_on = [
+    aws_mq_broker.rabbitmq
+  ]
+}
+
+resource "aws_ecs_service" "schedule_worker" {
+  name            = "${local.name_prefix}-schedule-worker-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.schedule_worker.arn
+  desired_count   = var.schedule_worker_desired_count
+  launch_type     = "FARGATE"
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
+  network_configuration {
+    subnets          = aws_subnet.public[*].id
+    security_groups  = [aws_security_group.scheduler.id]
+    assign_public_ip = true
+  }
+
+  depends_on = [
+    aws_mq_broker.rabbitmq,
+    aws_db_instance.main
+  ]
+}
+
+resource "aws_ecs_service" "celery_beat" {
+  name            = "${local.name_prefix}-celery-beat-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.celery_beat.arn
+  desired_count   = var.celery_beat_desired_count
+  launch_type     = "FARGATE"
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
+  network_configuration {
+    subnets          = aws_subnet.public[*].id
+    security_groups  = [aws_security_group.scheduler.id]
+    assign_public_ip = true
+  }
+
+  depends_on = [
+    aws_mq_broker.rabbitmq,
+    aws_ecs_service.schedule_worker
   ]
 }

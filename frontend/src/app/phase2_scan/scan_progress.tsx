@@ -12,6 +12,8 @@ import {Button} from "@/components/ui/button";
 import {cn} from "@/lib/utils";
 import radarStyles from "@/app/scan/components/ScanConsoleSection.module.css";
 import {fetchScanStatus, type RealTimeScanStatus} from "@/lib/scanService";
+import { Progress } from "@/shared/components/ui/progress";
+
 
 type SourceStatus = "pending" | "running" | "completed" | "failed" | "partial"| "skipped";
 type SourcePhase = "idle" | "line" | "done";
@@ -69,6 +71,15 @@ const dotToneClassName: Record<SourceStatus, string> ={
     skipped: "bg-muted-foreground/40",
 };
 
+const lineToneClassName: Record<SourceStatus, string> ={
+    pending: "stroke-muted-foreground/25",
+    running: "stroke-brand-yellow animate-pulse drop-shadow-[0_0_3px_rgba(245,200,66,0.75)]",
+    completed: "stroke-brand-success/60 drop-shadow-[0_0_3px_rgba(74,222,128,0.75)]",
+    failed:  "stroke-brand-alert/60 drop-shadow-[0_0_3px_rgba(245,95,78,0.6)]",
+    partial: "stroke-brand-yellow/60 drop-shadow-[0_0_3px_rgba(245,200,66,0.6)]",
+    skipped: "stroke-muted-foreground/25",
+};
+
 const cardClassName = "border border-brand-panel-border bg-brand-panel ring-0";
 const sectionTitleClassName = "text-sm font-bold uppercase tracking-[0.15em] text-foreground/90";
 
@@ -91,18 +102,19 @@ function SourceStatusBadge ({status}:{status: SourceStatus}) {
     );
 }
 
-function ScanRadar() {
+function ScanRadar({isComplete}:{isComplete:boolean}) {
+    const playState = isComplete ? "paused" : "running";
     return (
         <div className = {radarStyles.radarScope} aria-hidden = "true">
             <div className = {`${radarStyles.radarRing} ${radarStyles.r1}`} />
             <div className = {`${radarStyles.radarRing} ${radarStyles.r2}`} />
             <div className = {`${radarStyles.radarRing} ${radarStyles.r3}`} />
-            <div className = {radarStyles.radarSweep}/>
-            <div className = {`${radarStyles.radarDot} ${radarStyles.dotCyan}`} />
-            <div className = {`${radarStyles.radarDot} ${radarStyles.dotRed}`} />
-            <div className = {`${radarStyles.radarDot} ${radarStyles.dotOrange}`} />
-            <div className = {`${radarStyles.radarDot} ${radarStyles.dotBlue}`} />
-            <div className = {`${radarStyles.radarDot} ${radarStyles.dotYellow}`} />
+            <div className = {radarStyles.radarSweep} style={{animationPlayState: playState}}/>
+            <div className = {`${radarStyles.radarDot} ${radarStyles.dotCyan}`} style={{animationPlayState: playState}}/>
+            <div className = {`${radarStyles.radarDot} ${radarStyles.dotRed}`} style={{animationPlayState: playState}}/>
+            <div className = {`${radarStyles.radarDot} ${radarStyles.dotOrange}`} style={{animationPlayState: playState}}/>
+            <div className = {`${radarStyles.radarDot} ${radarStyles.dotBlue}`} style={{animationPlayState: playState}}/>
+            <div className = {`${radarStyles.radarDot} ${radarStyles.dotYellow}`} style={{animationPlayState: playState}}/>
         </div>
     );
 }
@@ -156,8 +168,11 @@ function SourceCard({
     const meta = SOURCE_META[sourceName] ?? {...DEFAULT_SOURCE_META, label: sourceName};
     const isDone = phase === "done";
     const isFailed = status === "failed";
-    const toneClassName = isFailed ? "text-brand-alert" : "text-brand-success";
-    const borderClassName = isDone ? (isFailed ? "border-brand-alert" : "border-brand-success") : "border-[#2a3f66]";
+    
+    const isRunning = status === "running";
+    const toneClassName = isFailed ? "text-brand-alert" : isRunning ? "text-brand-yellow": "text-brand-success";
+    const borderClassName = isDone ? (isFailed ? "border-brand-alert": "border-brand-success") : isRunning ? "border-brand-yellow animate-pulse" : "border-[#2a3f66]"
+
     const SourceGlyph = meta.icon;
 
     return (
@@ -179,15 +194,16 @@ function SourceCard({
                 <div className = {cn(
                     "absolute inset-0 flex items-center justify-center gap-2.5 rounded-md border bg-[#102448]/85 px-4 py-3.5 backdrop-blur-sm transition-[box-shadow,border-color] duration-500 [backface-visibility:hidden]",
                     borderClassName,
-                    isDone && (isFailed ? "shadow-[0_0_10px_1px_rgba(255,95,78,0.2)]": "shadow-[0_0_10px_rgba(74, 222, 128, 0.15)]")
+                    isDone && (isFailed ? "shadow-[0_0_10px_1px_rgba(255,95,78,0.2)]": "shadow-[0_0_10px_rgba(74, 222, 128, 0.15)]"),
+                    isRunning && "shadow-[0_0_10px_1px_rgba(255,200,66,0.3)]"
                 )}
                 >
                     <Info className="absolute top-2 right-2 size-3.5 shrink-0 text-white/85"/>
-                    <SourceGlyph className = {cn("size-4 shrink-0 transition-colors duration-500", isDone ? toneClassName : "text-muted-foreground/50")}/>
+                    <SourceGlyph className = {cn("size-4 shrink-0 transition-colors duration-500", (isDone || isRunning) ? toneClassName : "text-muted-foreground/50")}/>
                     <span
                         className = {cn(
                             "text-center font-heading text-sm leading-tight font-bold uppercase tracking-widest transition-colors duration-500",
-                            isDone ? toneClassName : "text-muted-foreground/50"
+                            (isDone || isRunning) ? toneClassName : "text-muted-foreground/50"
                         )
                         }
                         >
@@ -259,7 +275,7 @@ function FanColumn({
                             strokeDashoffset={lineActive ? 0 : 100}
                             className= {cn(
                                 "transition-[stroke,stroke-dashoffset] duration-[700ms] ease-out",
-                                lineActive ? "stroke-brand-success/60 drop-shadow-[0_0_3px_rgba(74,222,128,0.75)]"
+                                lineActive ? lineToneClassName[source.status]
                                 : "stroke-muted-foreground/25"
                             )}
                             strokeWidth={0.4}
@@ -296,7 +312,7 @@ function sourcePhase(status: SourceStatus): SourcePhase {
     return "done";
 }
 
-function ScanNetworkDiagram({sources}: {sources: RealTimeScanStatus["sources"]}) {
+function ScanNetworkDiagram({sources, progress, isComplete}: {sources: RealTimeScanStatus["sources"]; progress: number; isComplete: boolean}) {
     const withPhase = sources.map((s)=> ({
         source_name: s.source_name,
         status: s.status as SourceStatus,
@@ -311,17 +327,25 @@ function ScanNetworkDiagram({sources}: {sources: RealTimeScanStatus["sources"]})
             <div className="origin-top -mb-[62px] scale-90">
                 <div className="grid min-h-[620px] grid-cols-[minmax(240px,1fr)_auto_minmax(240px,1fr)] items-stretch">
                     <FanColumn sources = {left} side = "left"/>
-                    <div className="flex items-center gap-3 px-4">
-                        <span className="h-px w-10 shrink-0 bg-brand-success/60"/>
+                    <div className="flex h-full flex-col items-center justify-center gap-4 px-4">
+                        <div className="flex items-center gap-3">
                         <div className="rounded-2xl border border-[#1c2a42] bg-gradient-to-br from-[#0d1e36] to-[#091829] p-4 shadow-[0_4px_20px_rgba(0,8,24,0.5)]">
-                            <ScanRadar />
-                        </div>
-                        <span className="h-px w-10 shrink-0 bg-brand-success/60"/>
+                                <ScanRadar isComplete={isComplete}/>
+                            </div>
+                    </div>
+                    <div className="flex w-48 flex-col items-center gap-1.5">
+                        <Progress
+                            value = {progress}
+                            className="h-2 bg-muted"
+                            indicatorClassName="bg-brand-success transition-[transform] duration-[3500ms] ease-linear"
+                        />
+                        <span className="text-xs font-semibold text-brand-success"> {progress}%</span>
+                    </div>
                     </div>
                     <FanColumn sources={right} side="right"/>
                 </div>
             </div>
-        </div>
+            </div>
     );
 }
 
@@ -454,7 +478,7 @@ export default function ScanProgress() {
             <Card className={cardClassName} >
                 <CardContent className="flex flex-col gap-4">
                     <h2 className={sectionTitleClassName}> Overall Progress </h2>
-                        <ScanNetworkDiagram sources = {visibleSources} />
+                        <ScanNetworkDiagram sources = {visibleSources} progress={scan.progress} isComplete={TERMINAL_SCAN_STATUSES.has(scan.status)}/>
                         <ScanSourceList sources= {visibleSources} />
                 </CardContent>
             </Card>

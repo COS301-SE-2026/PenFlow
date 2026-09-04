@@ -200,7 +200,7 @@ export default function AssetsGrid({scanId}: {scanId: string}) {
                             </section>
 
                             <Link
-                                href={`/phase2_scan/results/${scanId}/findings`}
+                                href={`/phase2_scan/results/${scanId}/findings?asset=${encodeURIComponent(selectedAsset.identifier)}`}
                                 className="relative mt-3.5 grid gap-1 rounded-lg border border-[#26364e] bg-[#0c1828] px-3.5 py-3 pr-10 text-center no-underline hover:border-[#155da1] hover:bg-[#102036]"
                                 >
                                     <strong className="text-[10px] text-[#70b9ff]">View findings in the Findings tab</strong>

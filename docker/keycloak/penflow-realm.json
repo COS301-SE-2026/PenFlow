@@ -1,0 +1,101 @@
+{
+  "realm": "penflow",
+  "enabled": true,
+
+  "accessTokenLifespan": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "registrationAllowed": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "verifyEmail": false,
+  "resetPasswordAllowed": true,
+  "loginTheme": "penflow",
+  
+  "roles": {
+    "realm": [
+      {
+        "name": "client",
+        "description": "Standard PenFlow client"
+      },
+      {
+        "name": "pentester",
+        "description": "PenFlow penetration tester"
+      },
+      {
+        "name": "admin",
+        "description": "PenFlow administrator"
+      },
+      {
+        "name": "service_delivery",
+        "description": "Penflow service delivery"
+      }
+    ]
+  },
+
+  "defaultRoles": [
+    "user"
+  ],
+
+  "clients": [
+    {
+      "clientId": "penflow-web",
+      "name": "PenFlow Web",
+      "enabled": true,
+
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "clientAuthenticatorType": "client-secret",
+
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+
+      "rootUrl": "http://localhost:3000",
+      "baseUrl": "http://localhost:3000",
+
+      "redirectUris": [
+        "http://localhost:3000/*"
+      ],
+
+      "webOrigins": [
+        "http://localhost:3000"
+      ],
+
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:3000/*",
+        "pkce.code.challenge.method": "S256"
+      },
+
+      "protocolMappers": [
+        {
+          "name": "penflow-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "penflow-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+
+    {
+      "clientId": "penflow-api",
+      "name": "PenFlow API",
+      "enabled": true,
+
+      "protocol": "openid-connect",
+      "publicClient": false,
+
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
+    }
+  ]
+}

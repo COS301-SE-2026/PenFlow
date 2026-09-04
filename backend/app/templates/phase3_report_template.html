@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>
+        PenFlow Manual Penetration Test Report - {{ engagement_title }}
+    </title>
+    <link rel="stylesheet" href="report_styles.css">
+</head>
+
+<body>
+    <!--cover-->
+    <header class="cover">
+        <div class="cover-top">
+            <img src="bluevision_logo.png" class="bluevision-logo" alt="BlueVision logo">
+        </div>
+
+        <div class="cover-label">
+            MANUAL PENETRATION TEST REPORT
+        </div>
+
+        <h1>{{ engagement_title }}</h1>
+
+        <p class="subtitle">
+            Engagement Type: {{ engagement_type | replace("_", " ") | title }} · Assessment: {{ assessment_type | replace("_", " ") | title }}
+        </p>
+
+        <div class="meta-box">
+            <div class="meta-row">
+                <span>Client</span>
+                <strong>{{ client }}</strong>
+            </div>
+            <div class="meta-row">
+                <span>Report Version</span>
+                <strong>v{{ report_version }}</strong>
+            </div>
+            <div class="meta-row">
+                <span>Generated Date</span>
+                <strong>{{ generated_at | default("Pending / Draft", true) }}</strong>
+            </div>
+            <div class="meta-row">
+                <span>Confidentiality</span>
+                <strong>RESTRICTED / CONFIDENTIAL</strong>
+            </div>
+        </div>
+    </header>
+
+    <section>
+        <div class="section-heading">
+            <div>
+                <span class="section-kicker">01</span>
+                <h2>Document Control</h2>
+            </div>
+        </div>
+
+        <table class="methodology-table">
+            <thead>
+                <tr>
+                    <th>Information Item</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Prepared By</td>
+                    <td>BlueVision Security Services (Penetration Testing Team)</td>
+                </tr>
+                <tr>
+                    <td>Reviewed / Approved By</td>
+                    <td>Lead Security Auditor / Service Delivery</td>
+                </tr>
+                <tr>
+                    <td>Document Version</td>
+                    <td>v{{ report_version}}.0</td>
+                </tr>
+                <tr>
+                    <td>Classification</td>
+                    <td>Commercial In Confidence</td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!--executive summary-->
+    <section>
+        <div class="section-heading">
+            <div>
+                <span class="section-kicker">02</span>
+                <h2>Executive Summary</h2>
+            </div>
+        </div>
+
+        <p>
+            BlueVision was engaged to perform a controlled manual penetration test against <strong>{{ engagement_title }}</strong> 
+            The objective of this assessment was to evaluate application security controls, business logic implementation,
+            and resistance to simulated human-led attacks.
+        </p>
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <strong>{{ total_findings }}</strong>
+                <span>Total Findings</span>
+            </div>
+            <div class="summary-card summary-card-risk">
+                <strong>{{ severity_counts.critical + severity_counts.high }}</strong>
+                <span>Critical / High</span>
+            </div>
+            <div class="summary-card">
+                <strong>{{ assets | length }}</strong>
+                <span>In-Scope Assets</span>
+            </div>
+        </div>
+    </section>
+
+    <!--scope and objectives-->
+    <section>
+        <div class="section-heading">
+            <div>
+                <span class="section-kicker">03</span>
+                <h2>Scope and Objectives</h2>
+            </div>
+        </div>
+
+        <p><strong>Primary Objective:</strong> {{ objective | default("Identify practical security vulnerabilities and validate risk exposure across the specified assets.", true)}}</p>
+        <p><strong>Methodology:</strong> Conducted under a {{ engagement_type | replace("_", " ") }} security assessment model.</p>
+
+        <h3>In-Scope Assets</h3>
+        {% if assets %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Asset Identifier</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for asset in assets %}
+                <tr>
+                    <td><strong>{{ asset.identifier }}</strong></td>
+                    <td>{{ asset.asset_type | replace("_", " ") | title }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">No specific assets recorded in scope.</div>
+        {% endif %}
+
+        {% if constraints %}
+        <h3>Engagement Constraints & Limitations</h3>
+        <p>{{ constraints }}</p>
+        {% endif %}
+    </section>
+
+    <!--Risk Summary-->
+    <section>
+        <div class="section-heading">
+            <div>
+                <span class="section-kicker">04</span>
+                <h2>Risk Summary</h2>
+            </div>
+        </div>
+
+        <div class="severity-grid">
+            <div class="severity-card critical">
+                <strong>{{ severity_counts.critical }}</strong>
+                <span>Critical</span>
+            </div>
+            <div class="severity-card high">
+                <strong>{{ severity_counts.high }}</strong>
+                <span>High</span>
+            </div>
+            <div class="severity-card medium">
+                <strong>{{ severity_counts.medium }}</strong>
+                <span>Medium</span>
+            </div>
+            <div class="severity-card low">
+                <strong>{{ severity_counts.low }}</strong>
+                <span>Low</span>
+            </div>
+            <div class="severity-card info">
+                <strong>{{ severity_counts.info }}</strong>
+                <span>Informational</span>
+            </div>
+        </div>
+    </section>
+
+    <!--Detailed-->
+    <section>
+        <div class="section-heading">
+            <div>
+                <span class="section-kicker">05</span>
+                <h2>Detailed Technical Findings</h2>
+            </div>
+        </div>
+
+        {% if findings %}
+            {% for find in findings %}
+            <article class="finding-card finding-{{ find.severity }}">
+                <div class="finding-header">
+                    <div class="finding-title">
+                        <h3>{{ find.title }}</h3>
+                        {% if find.cve_id %}
+                        <span class="finding-cve">{{ find.cve_id }}</span>
+                        {% endif %}
+                    </div>
+                    <span class="badge badge-{{ find.severity }}">{{ find.severity | upper}}</span>
+                </div>
+
+                <div class="finding-meta-grid">
+                    <div>
+                        <span>Status</span>
+                        <strong>{{ find.status | replace("_", " ") | title }}</strong>
+                    </div>
+                    <div>
+                        <span>Source / Discovered By</span>
+                        <strong>{{ find.source }}</strong>
+                    </div>
+                    {% if find.cvss_score is not none %}
+                    <div>
+                        <span>CVSS Score</span>
+                        <strong>{{ find.cvss_score }} / 10</strong>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if find.description %}
+                <div class="finding-section">
+                    <h4>Description & Impact</h4>
+                    <p>{{ find.description }}</p>
+                </div>
+                {% endif %}
+
+                {% if find.evidence_files %}
+                <div class="finding-section">
+                    <h4>Attached Evidence Files</h4>
+                    <ul>
+                        {% for file in find.evidence_files %}
+                        <li>{{ file.file_name }} ({{ file.mime_type }})</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% if find.recommendation %}
+                <div class="remediation-box">
+                    <h4>Recommendation</h4>
+                    <p>{{ find.recommendation }}</p>
+                </div>
+                {% endif %}
+
+                {% if find.retests %}
+                <div class="finding-section">
+                    <h4>Retest Status</h4>
+                    <ul>
+                        {% for retest in find.retests %}
+                        <li>Status: <strong>{{ retest.status | title }}</strong> - Notes: {{ retest.notes | default("None provided", true) }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </article>
+            {% endfor %}
+        {% else %}
+        <div class="empty-state">No technical findings have been submitted for this manual engagement yet.</div>
+        {% endif %}
+    </section>
+
+    <!--Remediation-->
+    <section class="conclusion">
+        <div class="section-heading">
+            <div>
+                <span class="section-kicker">06</span>
+                <h2>Conclusion and Next Steps</h2>
+            </div>
+        </div>
+        <p>
+            Manual verification of vulnerabilities identified during this engagement confirms the need for structured remediation.
+            Clients are advised to prioritise fixes based on CVSS scoring, asset exposure and business risk, followed by requesting a targeted re-test.
+        </p>
+    </section>
+
+    <footer>
+        <p class="footer-brand">BlueVision Practical Cyber Security</p>
+        <p>PenFlow Manual Engagement Report · Engagement ID: {{ engagement.id }}</p>
+    </footer>
+</body>
+</html>

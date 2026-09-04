@@ -1,4 +1,5 @@
 import enum
+from enum import Enum
 
 from sqlalchemy.orm import DeclarativeBase
 
@@ -64,3 +65,67 @@ class FindingStatus(str, enum.Enum):
     RESOLVED = "resolved"
     ACCEPTED_RISK = "accepted_risk"
     FALSE_POSITIVE = "false_positive"
+
+#Engagement type from form
+class EngagementType(str, enum.Enum):
+    BLACK_BOX = "black_box"
+    GREY_BOX = "grey_box"
+    WHITE_BOX = "white_box"
+
+    
+class AssessmentType(str, enum.Enum):
+    WEB_APPLICATION = "web_application"
+    MOBILE_APPLICATION = "mobile_application"
+    API = "api"
+    NETWORK = "network"
+    CLOUD = "cloud"
+    OTHER = "other"
+
+#initial set up for our engagement survey
+class EngagementStatus(str, enum.Enum):
+    REQUESTED = "requested"
+    SCOPING = "scoping"
+    SCHEDULED = "scheduled"
+    IN_PROGRESS = "in_progress"
+    REVIEW = "review"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+
+class RetestStatus(str, enum.Enum):
+    REQUESTED = "requested"
+    IN_PROGRESS = "in_progress"
+    RESOLVED = "resolved"
+    STILL_VULNERABLE = "still_vulnerable"
+
+class UserRole(str, enum.Enum):
+    CLIENT = "client"
+    PENTESTER  = "pentester"
+    SERVICE_DELIVERY = "service_delivery"
+    ADMIN = "admin"
+
+class EngagementMessageChannel(str, enum.Enum):
+    CLIENT_SERVICE_DELIVERY = "client_service_delivery"
+    SERVICE_DELIVERY_PENTESTER = "service_delivery_pentester"
+
+class FindingReviewStatus(str, enum.Enum):
+    DRAFT = "draft"
+    READY_FOR_REVIEW = "ready_for_review"
+    PUBLISHED = "published"
+    NEEDS_REVISION = "needs_revision"
+
+class NotificationType(str, Enum):
+    ENGAGEMENT_REQUESTED = "engagement.requested"
+    ENGAGEMENT_CLAIMED = "engagement.claimed"
+    ENGAGEMENT_ASSIGNED = "engagement.assigned"
+    ENGAGEMENT_SCHEDULED = "engagement.scheduled"
+    ENGAGEMENT_REASSIGNED = "engagement.reassigned"
+    ENGAGEMENT_RESCHEDULED = "engagement.rescheduled"
+    ENGAGEMENT_STARTED = "engagement.started"
+    ENGAGEMENT_REVIEW_REQUIRED = "engagement.review_required"
+    ENGAGEMENT_REVIEW_RETURNED = "engagement.review_returned"
+    ENGAGEMENT_COMPLETED = "engagement.completed"
+    ENGAGEMENT_CANCELLED = "engagement.cancelled"
+    MESSAGE_RECEIVED = "message.received"
+    RETEST_REQUESTED = "retest.requested"
+    RETEST_COMPLETED = "retest.completed"
+    REPORT_READY = "report.ready"

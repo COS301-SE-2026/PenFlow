@@ -1,6 +1,7 @@
 services:
   frontend:
     container_name: penflow-frontend
+    image: ${FRONTEND_IMAGE:-penflow-frontend:local}
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
@@ -14,6 +15,7 @@ services:
       KEYCLOAK_INTERNAL_URL: http://keycloak:8080
       KEYCLOAK_REALM: penflow
       KEYCLOAK_CLIENT_ID: penflow-web
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
     depends_on:
       backend:
         condition: service_started
@@ -51,6 +53,7 @@ services:
 
   backend:
     container_name: penflow-backend
+    image: ${BACKEND_IMAGE:-penflow-backend:local}
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
@@ -121,6 +124,7 @@ services:
 
   workers:
     container_name: penflow-workers
+    image: ${WORKER_IMAGE:-penflow-worker:local}
     build:
       context: .
       dockerfile: docker/Dockerfile.workers
@@ -150,6 +154,109 @@ services:
         condition: service_healthy
     volumes:
       - report-files:/app/generated_reports
+    restart: unless-stopped
+    networks:
+      - penflow-network
+
+
+  email-worker:
+    container_name: penflow-email-worker
+    image: ${BACKEND_IMAGE:-penflow-backend:local}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    command:
+      [
+        "celery",
+        "-A",
+        "app.queue.celery_app:celery_app",
+        "worker",
+        "--loglevel=info",
+        "--queues=email",
+        "--concurrency=2"
+      ]
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_PROTOCOL: amqp
+
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM}
+
+      REPORT_STORAGE: ${REPORT_STORAGE:-local}
+      REPORT_OUTPUT_DIR: ${REPORT_OUTPUT_DIR:-/app/generated_reports}
+      REPORT_S3_BUCKET: ${REPORT_S3_BUCKET:-}
+      AWS_REGION: ${AWS_REGION:-af-south-1}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - report-files:/app/generated_reports
+    restart: unless-stopped
+    networks:
+      - penflow-network
+
+  schedule-worker:
+    container_name: penflow-schedule-worker
+    image: ${BACKEND_IMAGE:-penflow-backend:local}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    command:
+      [
+        "celery",
+        "-A",
+        "app.queue.celery_app:celery_app",
+        "worker",
+        "--loglevel=info",
+        "--queues=schedules",
+        "--concurrency=1"
+      ]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_PROTOCOL: amqp
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - penflow-network
+
+  celery-beat:
+    container_name: penflow-celery-beat
+    image: ${BACKEND_IMAGE:-penflow-backend:local}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    command:
+      [
+        "celery",
+        "-A",
+        "app.queue.celery_app:celery_app",
+        "beat",
+        "--loglevel=info",
+        "--schedule=/tmp/celerybeat-schedule"
+      ]
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_PROTOCOL: amqp
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - penflow-network
@@ -238,8 +345,11 @@ services:
       KEYCLOAK_BOOTSTRAP_ADMIN_USERNAME: admin
       KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: http://localhost:8080
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
     volumes:
-      - ./docker/keycloak:/opt/keycloak/data/import
+      - ./docker/keycloak/penflow-realm.json:/opt/keycloak/data/import/penflow-realm.json:ro
+      - ./docker/keycloak/themes:/opt/keycloak/themes:ro
     command:
       - start-dev
       - --import-realm
