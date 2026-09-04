@@ -114,8 +114,8 @@ function validateAssetValue(type: AssetType, value: string): string | null {
 }
 
 
-//control to have min 7 days for a request
-const MIN_ENGAGEMENT_DAYS = 7;
+//control to have min 3 days for a request
+const MIN_ENGAGEMENT_DAYS = 3;
 
 
 //local date restriction of no past input date
