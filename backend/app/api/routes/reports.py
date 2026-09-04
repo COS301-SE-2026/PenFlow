@@ -94,7 +94,7 @@ async def get_service_delivery_engagement_report(
         "task_id": report.task_id,
         "status": report.status.value if hasattr(report.status, "value") else report.status,
         "pdf_path": report.pdf_path,
-        "generated_at": report.genertaed_at,
+        "generated_at": report.generated_at,
         "created_at": report.created_at,
         "error_message":report.error_message
     }

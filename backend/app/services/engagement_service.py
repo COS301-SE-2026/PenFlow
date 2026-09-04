@@ -12,9 +12,7 @@ from app.models.base import (
 )
 from app.models.engagement import Engagement
 from app.models.finding import Finding
-from app.models.report import Report, ReportStatus
 from app.models.user import User
-from app.queue.celery_app import celery_app
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.engagement_comment_repository import EngagementCommentRepository
 from app.repositories.engagement_repository import EngagementRepository
@@ -53,8 +51,8 @@ from app.schemas.finding import (
     FindingPagination,
 )
 from app.schemas.retest import RetestFindingSummary, RetestListItem, RetestListResponse
-from app.services.report_service import queue_engagement_report_generation
 from app.services.notification_service import NotificationService
+from app.services.report_service import queue_engagement_report_generation
 
 
 class EngagementService:

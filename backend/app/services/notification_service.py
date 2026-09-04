@@ -1,7 +1,6 @@
+import logging
 from typing import Any
 from uuid import UUID
-
-import logging
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession

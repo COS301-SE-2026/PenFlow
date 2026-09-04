@@ -64,9 +64,9 @@ from app.schemas.service_delivery import (
     ServiceDeliveryScheduleRequest,
     ServiceDeliveryScopingUpdate,
 )
-from app.tasks.email_tasks import send_engagement_report_email_task
 from app.services.keycloak_admin_service import KeycloakAdminError, KeycloakAdminService
 from app.services.notification_service import NotificationService
+from app.tasks.email_tasks import send_engagement_report_email_task
 
 logger = logging.getLogger(__name__)
 
@@ -1397,6 +1397,12 @@ class ServiceDeliveryService:
             db,
             user_id=engagement.requested_by,
         )
+
+        if client is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Engagement client could not be found",
+            )
 
         send_engagement_report_email_task.delay(
             client.email,
