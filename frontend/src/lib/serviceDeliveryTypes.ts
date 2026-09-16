@@ -7,6 +7,7 @@ export type EngagementStatus =
     | "in_progress"
     | "review"
     | "completed"
+    | "retesting"
     | "cancelled";
 
 export type AssessmentType = "web_application" | "mobile_application" | "api" | "network" | "cloud" | "other";

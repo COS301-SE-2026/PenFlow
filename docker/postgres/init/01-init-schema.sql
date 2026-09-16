@@ -84,6 +84,7 @@ CREATE TYPE engagement_status AS ENUM (
     'in_progress',
     'review',
     'completed',
+    'retesting',
     'cancelled'
 );
 
