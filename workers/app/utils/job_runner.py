@@ -21,3 +21,53 @@ def dispatch_scan_job(tool_name: str, payload: dict[str, Any]) -> bool:
     else:
         env_vars = {k: v for k, v in os.environ.item() if k in ALLOWED_ENV_VARS}
         return _run_local_docker_container(command, env_vars) 
+
+def _run_fargate_task(command: list[str]) -> bool: 
+    cluster = os.getenv("ECS_CLUSTER_NAME") 
+    task_definition = os.getenv("ECS_TASK_DEFINITION")
+    subnets = [s for s in os.getenv("ECS_SUBNETS", "").split(",") if s]
+    security_groups = [s for s in os.getenv("ECS_SECURITY_GROUPS", "").split(",") if s]
+    assign_public_ip = os.getenv("ECS_ASSIGN_PUBLIC_IP", "DISABLED")
+
+    if not subnets or not security_groups: 
+        logger.error("Missing ECS_SUBNETS or ECS_SECURITY_GROUPS")
+        return False 
+
+    client = boto3.client('ecs', region_name=os.getenv("AWS_REGION", "af-south-1"))
+    logger.info(f"Dispatching Fargate task for: {command[3]}")
+
+    try:
+        response = client.run_task(
+            cluster=cluster,
+            taskDefinition=task_definition,
+            launchType='FARGATE', 
+            networkConfiguration={
+                'awsvpcConfiguration': {
+                    'subnets': subnets, 
+                    'securityGroups': security_groups,
+                    'assignPublicIp': assign_public_ip
+                }
+            }, 
+            overrides={
+                'containerOverrides': [{
+                    'name': 'penflow-worker',
+                    'command': command
+                }]
+            }
+        )
+
+        if not response.get('tasks'): 
+            logger.error(f"Fargate run_task failed: {response.get('failures', [])}")
+            return False 
+
+        task_arn = response['tasks'][0]['taskArn']
+        waiter = client.get_waiter('tasks_stopped')
+        waiter.wait(cluster=cluster, task=[task_arn])
+
+        task_info = client.describe_tasks(cluster=cluster, tasks=[task_arn])
+        exit_code = task_info['tasks'][0]['containers'][0].get('exitCode')
+
+        return exit_code == 0 
+    except Exception as e:
+        logger.error(f"Fargate dispatch failed: {e}")
+        return False
