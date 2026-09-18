@@ -37,3 +37,30 @@ def get_ports_from_db(scan_id: str) -> list[dict[str, Any]]:
     except Exception as e: 
         logger.error(f"Failed to fetch ports from DB for scan {scan_id}: {e}")
         raise
+
+def get_technologies_from_db(scan_id: str) -> list[dict[str, Any]]: 
+    try: 
+        with closing(psycopg2.connect(_get_db_url())) as conn: 
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor: 
+                cursor.execute(
+                    """
+                    SELECT t.technology_type as category, t.product, t.version, 
+                           t.confidence as evidence_score, s.host, s.port, s.protocol, 
+                           t.evidence->>'cpe' as cpe 
+                    FROM detected_technologies t 
+                    LEFT JOIN services s ON t.service_id = s.id 
+                    WHERE t.scan_id = %s
+                    """,
+                    (scan_id,)
+                )
+                rows = [] 
+                for row in cursor.fetchall(): 
+                    r = dict(row) 
+                    r['host'] = r.get('host')
+                    r['port'] = r.get('port') 
+                    r['protocol'] = r.get('protocol')
+                    rows.append(r)
+                return rows 
+    except Exception as e: 
+        logger.error(f"Failed to fetch technologies from DB for scan {scan_id}: {e}")
+        raise
