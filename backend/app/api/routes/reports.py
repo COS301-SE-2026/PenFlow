@@ -45,6 +45,23 @@ async def download_report(
     if not report or not report.pdf_path: 
         raise HTTPException(status_code=404, detail="Report PDF not found") 
 
+    #ownership check if report attach to engagement
+    if report.engagement_id is not None:
+        requester = await resolve_user(db, current_user)
+        engagement = await EngagementRepository.get_by_id(
+            db,
+            engagement_id=report.engagement_id,
+        )
+        #check is it related to the engagement
+        is_related = engagement is not None and (
+            engagement.requested_by == requester.id
+            or engagement.assigned_to == requester.id
+            or engagement.service_delivery_id == requester.id
+            or requester.role == "admin"
+        )
+        if not is_related:
+            raise HTTPException(status_code=404, detail="Report PDF not found")
+        
     if ReportStorageService.is_s3():
         try:
             s3_obj = ReportStorageService.get_s3_object(report.pdf_path) 
