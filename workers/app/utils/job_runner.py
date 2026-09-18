@@ -71,3 +71,30 @@ def _run_fargate_task(command: list[str]) -> bool:
     except Exception as e:
         logger.error(f"Fargate dispatch failed: {e}")
         return False
+
+def _run_local_docker_container(command: list[str], env_vars: dict[str, str]) -> bool:
+    client = docker.from_env() 
+    image_name = os.getenv("WORKER_IMAGE", "penflow-worker:local")
+    network_name = os.getenv("DOCKER_NETWORK", "penflow-network")
+
+    container = None 
+    logger.info(f"Dispatching Local Docker container for: {command[3]}")
+    try:
+        container = client.containers.run(
+            image=image_name, 
+            command=command, 
+            environment=env_vars, 
+            network=network_name, 
+            detach=True,
+        )
+        result = container.wait()
+        return result.get('StatusCode') == 0 
+    except Exception as e: 
+        logger.error(f"Local Docker dispatch failed: {e}")
+        return False
+    finally:
+        if container: 
+            try: 
+                container.remove(force=True)
+            except Exception as e:
+                logger.warning(f"Failed to remove container: {e}")
