@@ -128,7 +128,11 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.workers
+    user: root
     environment:
+      ENVIRONMENT: local 
+      DOCKER_NETWORK: penflow-network
+      WORKER_IMAGE: ${WORKER_IMAGE:-penflow-worker:local}
       BACKEND_API_URL: http://backend:3001/api/v1
       #Remember
       BACKEND_URL: http://backend:3001
@@ -154,6 +158,7 @@ services:
         condition: service_healthy
     volumes:
       - report-files:/app/generated_reports
+      - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
     networks:
       - penflow-network
@@ -370,6 +375,7 @@ services:
 networks:
   penflow-network:
     driver: bridge
+    name: penflow-network
 
 volumes:
   penflow-postgres-data:
