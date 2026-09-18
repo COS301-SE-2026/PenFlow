@@ -161,6 +161,14 @@ resource "aws_security_group" "rds" {
     security_groups = [aws_security_group.scheduler.id]
   }
 
+  ingress {
+    description     = "PostgreSQL from isolated scan workers" 
+    from_port       = 5432 
+    to_port         = 5432 
+    protocol        = "tcp" 
+    security_groups = [aws_security_group.worker.id]
+  }
+
   egress {
     description = "Allow outbound traffic"
     from_port   = 0
