@@ -1905,7 +1905,8 @@ class ServiceDeliveryService:
             service_delivery_id=service_delivery_id,
         )
 
-        if engagement.status != EngagementStatus.COMPLETED:
+        #include retesting
+        if engagement.status not in (EngagementStatus.COMPLETED, EngagementStatus.RETESTING):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Retests are only available for complete engagements.",

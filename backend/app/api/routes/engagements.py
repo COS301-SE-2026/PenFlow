@@ -29,8 +29,18 @@ from app.schemas.engagement import (
     MarkMessagesReadResponse,
     SortOrder,
 )
-from app.schemas.finding import FindingCreate, FindingListItem, FindingListResponse
-from app.schemas.retest import RetestListResponse
+from app.schemas.finding import (
+    ClientFindingListResponse,
+    FindingCreate,
+    FindingListItem,
+    FindingListResponse,
+)
+from app.schemas.retest import (
+    RetestBulkCreate,
+    RetestBulkCreateResponse,
+    RetestEligibleFindingsResponse,
+    RetestListResponse,
+)
 from app.services.engagement_service import EngagementService
 from app.services.report_service import queue_engagement_report_generation
 from app.utils.db import get_db
@@ -210,7 +220,22 @@ async def get_engagement_retests(
         user_id=user.id,
     )
 
-
+@router.get(
+    "/{engagement_id}/client-findings",
+    response_model=ClientFindingListResponse,
+    summary="List published findings with retest status for the client view",
+)
+async def get_client_findings(
+    engagement_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),
+)-> ClientFindingListResponse:
+    user = await resolve_user(db, current_user)
+    return await EngagementService.list_client_findings(
+        db,
+        engagement_id=engagement_id,
+        user_id=user.id,
+    )
 @router.get(
     "/{engagement_id}/messages",
     response_model=EngagementMessageListResponse,
