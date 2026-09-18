@@ -45,12 +45,21 @@ from app.schemas.engagement import (
     UserSummary,
 )
 from app.schemas.finding import (
+    ClientFindingItem,
+    ClientFindingListResponse,
     FindingCreate,
     FindingListItem,
     FindingListResponse,
     FindingPagination,
 )
-from app.schemas.retest import RetestFindingSummary, RetestListItem, RetestListResponse
+from app.schemas.retest import (
+    RetestBulkCreateResponse,
+    RetestEligibleFinding,
+    RetestEligibleFindingsResponse,
+    RetestFindingSummary,
+    RetestListItem,
+    RetestListResponse,
+)
 from app.services.notification_service import NotificationService
 from app.services.report_service import queue_engagement_report_generation
 
@@ -600,11 +609,17 @@ class EngagementService:
         engagement_id: UUID,
         user_id: UUID,
     ) -> RetestListResponse:
-        await EngagementService.require_assigned_engagement(
+        engagement = await EngagementService.require_assigned_engagement(
             db,
             engagement_id=engagement_id,
             user_id=user_id,
         )
+
+        if engagement.status not in (EngagementStatus.COMPLETED, EngagementStatus.RETESTING):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Retests are only available once an engagement has completed.",
+            )
 
         retests = await RetestRepository.list_by_engagement(
             db,
@@ -631,6 +646,69 @@ class EngagementService:
             ]
         )
 
+    @staticmethod
+    async def list_retest_eligible_findings(
+        db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+    ) -> RetestEligibleFindingsResponse:
+        engagement = await EngagementService.require_viewable_engagement(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+
+        if engagement.status != EngagementStatus.COMPLETED:
+            return RetestEligibleFindingsResponse(items=[])
+
+        findings = await RetestRepository.list_eligible_findings(
+            db,
+            engagement_id=engagement_id,
+        )
+
+        return RetestEligibleFindingsResponse(
+            items=[
+                RetestEligibleFinding(
+                    id=finding.id,
+                    title=finding.title,
+                    severity=finding.severity,
+                )
+                for finding in findings
+            ]
+        )
+
+    @staticmethod
+    async def list_client_findings(
+        db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+    ) -> ClientFindingListResponse:
+        await EngagementService.require_viewable_engagement(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+
+        rows = await RetestRepository.list_latest_by_engagement(
+            db,
+            engagement_id=engagement_id,
+        )
+
+        items = [
+            ClientFindingItem(
+                id=finding.id,
+                title=finding.title,
+                severity=finding.severity,
+                description=finding.description,
+                recommendation=finding.recommendation,
+                retest_status=retest.status if retest else None,
+                retest_notes=retest.notes if retest else None,
+                retest_completed_at=retest.completed_at if retest else None,
+            )
+            for finding, retest in rows
+        ]
+
+        return ClientFindingListResponse(items=items)
 
     @staticmethod
     async def list_activity(
