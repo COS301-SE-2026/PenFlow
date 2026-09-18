@@ -710,6 +710,27 @@ class EngagementService:
 
         return ClientFindingListResponse(items=items)
 
+
+    @staticmethod
+    async def request_retest(
+     db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+        finding_ids: list[UUID],
+    ) -> RetestBulkCreateResponse:
+        engagement = await EngagementService.require_viewable_engagement(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+        if engagement.requested_by != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only the client who requested this engagement can request a retest.",
+            )
+        
+
+
     @staticmethod
     async def list_activity(
         db: AsyncSession,
