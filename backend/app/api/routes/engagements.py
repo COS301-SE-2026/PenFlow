@@ -236,6 +236,42 @@ async def get_client_findings(
         engagement_id=engagement_id,
         user_id=user.id,
     )
+#eligible finding is finding that is filtered 
+@router.get(
+    "/{engagement_id}/retests/eligible-findings",
+    response_model=RetestEligibleFindingsResponse,
+    summary="List findings eligible for a retest request",
+)
+async def get_retest_eligible_findings(
+    engagement_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> RetestEligibleFindingsResponse:
+    user = await resolve_user(db, current_user)
+    return await EngagementService.list_retest_eligible_findings(
+        db,
+        engagement_id=engagement_id,
+        user_id=user.id,
+    )
+@router.post(
+    "/{engagement_id}/retests",
+    response_model=RetestBulkCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Request a retest for one or more findings",
+)
+async def create_engagement_retests(
+    engagement_id: UUID,
+    request: RetestBulkCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> RetestBulkCreateResponse:
+    user = await resolve_user(db, current_user)
+    return await EngagementService.request_retest(
+        db,
+        engagement_id=engagement_id,
+        user_id=user.id,
+        finding_ids=request.finding_ids,
+    )
 @router.get(
     "/{engagement_id}/messages",
     response_model=EngagementMessageListResponse,
