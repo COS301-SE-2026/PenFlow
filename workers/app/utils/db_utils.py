@@ -23,3 +23,17 @@ def _get_db_url() -> str:
         raise RuntimeError("Database configuration environment variables are missing.")
 
     return f"postgresql://{quote_plus(db_user)}:{quote_plus(db_pass)}@{db_host}:{db_port}/{db_name}"
+
+def get_ports_from_db(scan_id: str) -> list[dict[str, Any]]:
+    try:
+        with closing(psycopg2.connect(_get_db_url())) as conn: 
+            with conn.cursor(cursor_factory=RealDictCursor) as cursor: 
+                cursor.execute(
+                    "SELECT port, protocol, service_name as service, product, version, state "
+                    "FROM services WHERE scan_id = %s",
+                    (scan_id,)
+                )
+                return [dict(row) for row in cursor.fetchall()]
+    except Exception as e: 
+        logger.error(f"Failed to fetch ports from DB for scan {scan_id}: {e}")
+        raise
