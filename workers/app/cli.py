@@ -43,3 +43,40 @@ def handle_nmap(payload: dict[str, Any]) -> None:
         logger.exception(f"NMAP failed: {error}")
         safe_failure_callback(scan_id, "nmap", error)
         raise 
+
+def handle_tls(payload: dict[str, Any]) -> None:
+    scan_id = payload["scan_id"]
+    ip_address = payload["ip_address"]
+    try:
+        send_source_callback(scan_id=scan_id, source_name="tls", status="running")
+        tls_data = run_tls_scan(ip_address=ip_address, ports=payload["ports"], hostname=payload.get("hostname"))
+
+        findings = []
+        for target in tls_data.get("targets", []):
+            if "error" in target:
+                findings.append({
+                    "source": "tls",  "title": "TLS Handshake Failed", "description": target["error"], 
+                    "recommendation": "Review TLS configuration.", "severity": "low", 
+                    "host": ip_address, "port": target["port"], "protocol": "tcp", "evidence": {"error": target["error"]}
+                })
+                continue 
+
+            cert = target.get("certificate", {})
+            if cert.get("expired"): 
+                findings.append({
+                    "source": "tls", "title": "Expired TLS Certificate", "description": "The TLS certificate has expired.", 
+                    "recommendation": "Renew the certificate.", "severity": "high",
+                    "host": ip_address, "port": target["port"], "protocol": "tcp", "evidence": cert
+                })
+            if cert.get("self_signed"): 
+                findings.append({
+                    "source": "tls", "title": "Self-Signed TLS Certificate", "description": "Using a self-signed certificate.", 
+                    "recommendation": "Use a trusted CA.", "severity": "medium", 
+                    "host": ip_address, "port": target["port"], "protocol": "tcp", "evidence": {"subject": cert.get("subject"), "issuer": cert.get("issuer")} 
+                })
+
+        send_source_callback(scan_id=scan_id, source_name="tls", status="completed", raw_result=tls_data, findings=findings)
+    except Exception as error: 
+        logger.exception(f"TLS failed: {error}")
+        safe_failure_callback(scan_id, "tls", error)
+        raise 
