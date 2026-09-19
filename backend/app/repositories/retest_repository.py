@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import  func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -104,3 +104,44 @@ class RetestRepository:
             await db.refresh(retest, attribute_names=["finding"])
 
         return retests
+
+
+    #order by findings id , then newest finding per finding then 
+    # distinct keep the latest findings
+    @staticmethod
+    async def list_latest_by_engagement(
+        db: AsyncSession,
+        engagement_id: UUID,
+    ) -> list[tuple[Finding, FindingRetest | None]]:
+        query = (
+            select(Finding, FindingRetest)
+            .outerjoin(
+                FindingRetest,
+                FindingRetest.finding_id == Finding.id,
+            )
+            .where(
+                Finding.engagement_id == engagement_id,
+            )
+            .distinct(Finding.id)
+            .order_by(Finding.id, FindingRetest.requested_at.desc())
+        )
+
+        result = await db.execute(query)
+        return [(finding, retest) for finding, retest in result.all()]
+
+    @staticmethod
+    async def count_open_by_engagement(
+        db: AsyncSession,
+        engagement_id: UUID,
+    ) -> int:
+        query = (
+            select(func.count(FindingRetest.id))
+            .join(Finding, Finding.id == FindingRetest.finding_id)
+            .where(
+                Finding.engagement_id == engagement_id,
+                FindingRetest.status.in_(OPEN_RETEST_STATUSES),
+            )
+        )
+
+        result = await db.execute(query)
+        return int(result.scalar_one())
