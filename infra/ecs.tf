@@ -71,7 +71,25 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "KEYCLOAK_PROVISIONER_CLIENT_ID", value = "penflow-user-provisioner" },
         { name = "KEYCLOAK_INVITE_CLIENT_ID", value = "penflow-web" },
         { name = "KEYCLOAK_INVITE_REDIRECT_URI", value = "https://${var.domain_name}/login" },
-        { name = "KEYCLOAK_INVITE_LIFESPAN_SECONDS", value = "86400" }
+        { name = "KEYCLOAK_INVITE_LIFESPAN_SECONDS", value = "86400" },
+        { name = "EMBEDDING_PROVIDER", value = var.embedding_provider },
+        { name = "BEDROCK_REGION", value = var.bedrock_region },
+        { name = "BEDROCK_EMBEDDING_MODEL_ID", value = var.bedrock_embedding_model_id },
+        {
+          name  = "BEDROCK_EMBEDDING_DIMENSIONS"
+          value = tostring(var.bedrock_embedding_dimensions)
+        },
+        { name = "GENERATION_PROVIDER", value = var.generation_provider },
+        { name = "BEDROCK_GENERATION_REGION", value = var.bedrock_generation_region },
+        { name = "BEDROCK_GENERATION_MODEL_ID", value = var.bedrock_generation_model_id },
+        {
+          name  = "BEDROCK_GENERATION_MAX_TOKENS"
+          value = tostring(var.bedrock_generation_max_tokens)
+        },
+        {
+          name  = "BEDROCK_GENERATION_TEMPERATURE"
+          value = tostring(var.bedrock_generation_temperature)
+        }
       ]
 
       secrets = [
@@ -519,7 +537,11 @@ resource "aws_ecs_task_definition" "keycloak" {
 
       secrets = [
         { name = "KC_DB_PASSWORD", valueFrom = aws_secretsmanager_secret.keycloak_db_password.arn },
-        { name = "KC_BOOTSTRAP_ADMIN_PASSWORD", valueFrom = aws_secretsmanager_secret.keycloak_admin_password.arn }
+        { name = "KC_BOOTSTRAP_ADMIN_PASSWORD", valueFrom = aws_secretsmanager_secret.keycloak_admin_password.arn },
+        {
+          name      = "KEYCLOAK_PROVISIONER_CLIENT_SECRET"
+          valueFrom = aws_secretsmanager_secret.keycloak_provisioner_client_secret.arn
+        }
       ]
 
       logConfiguration = {

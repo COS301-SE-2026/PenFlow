@@ -103,20 +103,6 @@ resource "aws_iam_role" "email_worker_task" {
 
 data "aws_iam_policy_document" "email_worker" {
   statement {
-    sid    = "SendEmail"
-    effect = "Allow"
-
-    actions = [
-      "ses:SendEmail",
-      "ses:SendRawEmail"
-    ]
-
-    resources = [
-      var.ses_identity_arn
-    ]
-  }
-
-  statement {
     sid    = "ReadReports"
     effect = "Allow"
 
@@ -176,4 +162,46 @@ resource "aws_iam_role_policy" "email_worker" {
   name   = "${local.name_prefix}-email-worker"
   role   = aws_iam_role.email_worker_task.id
   policy = data.aws_iam_policy_document.email_worker.json
+}
+
+data "aws_partition" "current" {}
+
+data "aws_iam_policy_document" "backend_bedrock" {
+  statement {
+    sid    = "InvokeTitanEmbeddingModel"
+    effect = "Allow"
+
+    actions = [
+      "bedrock:InvokeModel"
+    ]
+
+    resources = [
+      "arn:${data.aws_partition.current.partition}:bedrock:${var.bedrock_region}::foundation-model/${var.bedrock_embedding_model_id}"
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "backend_bedrock" {
+  name   = "${local.name_prefix}-backend-bedrock"
+  role   = aws_iam_role.backend_task.id
+  policy = data.aws_iam_policy_document.backend_bedrock.json
+}
+
+data "aws_iam_policy_document" "backend_bedrock_generation" {
+  statement {
+    sid    = "InvokeGenerationModel"
+    effect = "Allow"
+
+    actions = [
+      "bedrock:InvokeModel"
+    ]
+
+    resources = var.bedrock_generation_resource_arns
+  }
+}
+
+resource "aws_iam_role_policy" "backend_bedrock_generation" {
+  name   = "${local.name_prefix}-backend-bedrock-generation"
+  role   = aws_iam_role.backend_task.id
+  policy = data.aws_iam_policy_document.backend_bedrock_generation.json
 }
