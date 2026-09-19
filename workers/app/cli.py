@@ -80,3 +80,43 @@ def handle_tls(payload: dict[str, Any]) -> None:
         logger.exception(f"TLS failed: {error}")
         safe_failure_callback(scan_id, "tls", error)
         raise 
+
+def handle_http_security(payload: dict[str, Any]) -> None: 
+    scan_id = payload["scan_id"] 
+    ip_address = payload["ip_address"] 
+    try: 
+        send_source_callback(scan_id=scan_id, source_name="http_security", status="running")
+        scan_data = run_http_security_scan(hostname=payload.get("hostname"), ip_address=ip_address, ports=payload["ports"])
+
+        findings = [] 
+        for target in scan_data.get("targets", []):
+            headers = target.get("security_headers", {})
+            if not headers.get("content_security_policy") and not headers.get("content_security_policy_report_only"): 
+                findings.append({
+                    "source": "http_security", "severity": "low", "title": "Missing Content-Security-Policy", 
+                     "description": "No CSP present.", "recommendation": "Create a CSP header.", 
+                     "host": ip_address, "port": target["port"], "protocol": "tcp", "evidence": {"url": target["url"], "header": "Content-Security-Policy"}
+                })
+
+            checks = {
+                "X-Frame-Options": headers.get("x_frame_options"), 
+                "Referrer-Policy": headers.get("referrer_policy"), 
+                "Permissions-Policy": headers.get("permissions_policy"), 
+                "X-Content-Type-Options": headers.get("x_content_type_options"),
+            }
+            if target.get("scheme") == "https": 
+                checks["Strict-Transport-Security"] = headers.get("strict_transport_security")
+
+            for h_name, h_val in checks.items(): 
+                if not h_val: 
+                    findings.append({
+                        "source": "https_security", "severity": "low", "title": f"Missing {h_name}", 
+                        "description": f"{h_name} missing.", "recommendation": f"Configure {h_name}.",
+                        "host": ip_address, "port": target["port"], "protocol": "tcp", "evidence": {"url": target["url"], "header": h_name}
+                    })
+
+        send_source_callback(scan_id=scan_id, source_name="http_security", status="completed", raw_result=scan_data, findings=findings)
+    except Exception as error:
+        logger.exception(f"HTTP Security failed: {error}")
+        safe_failure_callback(scan_id, "http_security", error)
+        raise 
