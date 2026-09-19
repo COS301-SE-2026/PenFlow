@@ -936,6 +936,7 @@ class ScanRepository:
             )
 
         return items, counts
+    
 
     @staticmethod
     async def get_assets_page(
@@ -1039,3 +1040,18 @@ class ScanRepository:
         paginated_items = items[offset : offset + limit]
 
         return paginated_items, counts
+
+
+    @staticmethod
+    async def get_owned_scan(
+        db: AsyncSession,
+        scan_id: UUID,
+        user_id: UUID,
+    ) -> Scan | None:
+        query = select(Scan).where(
+            Scan.id == scan_id,
+            Scan.user_id == user_id,
+        )
+
+        result = await db.execute(query)
+        return result.scalar_one_or_none()
