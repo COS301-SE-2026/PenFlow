@@ -120,3 +120,81 @@ def handle_http_security(payload: dict[str, Any]) -> None:
         logger.exception(f"HTTP Security failed: {error}")
         safe_failure_callback(scan_id, "http_security", error)
         raise 
+
+def handle_fingerprint(payload: dict[str, Any]) -> None:
+    scan_id = payload["scan_id"]
+    target_url = payload["target_url"]
+    try: 
+        send_source_callback(scan_id=scan_id, source_name="fingerprint", status="running")
+
+        svc = FingerprintingService(
+            target_url=target_url, 
+            nmap_data=payload.get("nmap_data", {}), 
+            tls_data=payload.get("tls_data", {})
+        )
+        fingerprint_results = svc.run() 
+
+        software_list = fingerprint_results.get("fingerprint", {}).get("software", [])
+        technologies = [] 
+        confidence_map = {"low": 0.40, "medium": 0.70, "high": 0.95}
+
+        for sw in software_list: 
+            conf_label = sw.get("confidence", "low")
+            technologies.append({
+                "technology_type": sw.get("category", "unknown"),
+                "product": sw.get("product", "unknown"), 
+                "version": sw.get("version"), 
+                "confidence": confidence_map.get(conf_label, 0.40), 
+                "detection_source": "fingerprint", 
+                "evidence": {
+                    "vendor": sw.get("vendor"), 
+                    "evidence_source": sw.get("evidence_score", 0), 
+                    "sources": sw.get("sources", []), 
+                    "confidence_label": conf_label, 
+                    "target_url": target_url,
+                },
+            })
+
+        send_source_callback(
+            scan_id=scan_id, source_name="fingerprint", status="completed", 
+            raw_result=fingerprint_results, technologies=technologies 
+        )
+
+    except Exception as error: 
+        logger.exception(f"Fingerprinting failed: {error}")
+        safe_failure_callback(scan_id, "fingerprint", error)
+        raise 
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser() 
+    parser.add_argument("tool", type=str)
+    parser.add_arguemnt("--payload", type=str, required=True)
+    args = parser.parse_args() 
+
+    try:
+        payload = json.loads(args.payload)
+        scan_id = payload.get("scan_id", "unknown")
+
+        if args.tool == "nmap":
+            handle_nmap(payload)
+        elif args.tool == "tls":
+            handle_tls(payload)
+        elif args.tool == "http_security":
+            handle_http_security(payload)
+        elif args.tool == "fingerprint":
+            handle_fingerprint(payload)
+        else:
+            logger.error(f"Unknown tool requested: {args.tool}")
+            sys.exit(1)
+
+        sys.exit(0)
+    except Exception as e:
+        logger.exception(f"Fatal error in CLI for {args.tool}: {e}")
+        try:
+            payload = json.loads(args.payload)
+            scan_id = payload.get("scan_id")
+            if scan_id:
+                safe_failure_callback(scan_id, args.tool, e)
+        except Exception:
+            pass 
+        sys.exit(1)
