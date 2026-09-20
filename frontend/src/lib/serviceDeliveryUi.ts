@@ -18,6 +18,7 @@ export const statusLabels: Record<EngagementStatus, string> = {
     in_progress: "In Progress",
     review: "Review",
     completed: "Completed",
+    retesting: "Retesting", 
     cancelled: "Cancelled",
 };
 
@@ -28,6 +29,7 @@ export const statusPillClass: Record<EngagementStatus, string> = {
     in_progress: "border-brand-blue/40 bg-brand-blue/10 text-brand-blue",
     review: "border-purple-400/40 bg-purple-400/10 text-purple-300",
     completed: "border-brand-success/40 bg-brand-success/10 text-brand-success",
+    retesting: "border-purple-300/40 bg-purple-300/10 text-purple-300",
     cancelled: "border-brand-alert/40 bg-brand-alert/10 text-brand-alert",
 };
 
@@ -38,6 +40,7 @@ export const statusDotClass: Record<EngagementStatus, string> = {
     in_progress: "bg-brand-blue",
     review: "bg-purple-400",
     completed: "bg-brand-success",
+    retesting: "bg-purple-300",
     cancelled: "bg-brand-alert",
 };
 

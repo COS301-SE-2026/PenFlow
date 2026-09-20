@@ -34,6 +34,7 @@ from app.schemas.engagement import (
     ServiceDeliveryConversationSummary,
     UserSummary,
 )
+from app.schemas.finding import EvidenceFileResponse
 from app.schemas.retest import (
     RetestFindingSummary,
     RetestListItem,
@@ -1853,6 +1854,10 @@ class ServiceDeliveryService:
             cve_id=finding.cve_id,
             created_by=finding.created_by,
             created_at=finding.created_at,
+            evidence_files=[
+                EvidenceFileResponse.model_validate(evidence_file)
+                for evidence_file in finding.evidence_files
+            ],
         )
 
 
@@ -1905,7 +1910,8 @@ class ServiceDeliveryService:
             service_delivery_id=service_delivery_id,
         )
 
-        if engagement.status != EngagementStatus.COMPLETED:
+        #include retesting
+        if engagement.status not in (EngagementStatus.COMPLETED, EngagementStatus.RETESTING):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Retests are only available for complete engagements.",

@@ -45,12 +45,21 @@ from app.schemas.engagement import (
     UserSummary,
 )
 from app.schemas.finding import (
+    ClientFindingItem,
+    ClientFindingListResponse,
     FindingCreate,
     FindingListItem,
     FindingListResponse,
     FindingPagination,
 )
-from app.schemas.retest import RetestFindingSummary, RetestListItem, RetestListResponse
+from app.schemas.retest import (
+    RetestBulkCreateResponse,
+    RetestEligibleFinding,
+    RetestEligibleFindingsResponse,
+    RetestFindingSummary,
+    RetestListItem,
+    RetestListResponse,
+)
 from app.services.notification_service import NotificationService
 from app.services.report_service import queue_engagement_report_generation
 
@@ -600,11 +609,17 @@ class EngagementService:
         engagement_id: UUID,
         user_id: UUID,
     ) -> RetestListResponse:
-        await EngagementService.require_assigned_engagement(
+        engagement = await EngagementService.require_assigned_engagement(
             db,
             engagement_id=engagement_id,
             user_id=user_id,
         )
+
+        if engagement.status not in (EngagementStatus.COMPLETED, EngagementStatus.RETESTING):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Retests are only available once an engagement has completed.",
+            )
 
         retests = await RetestRepository.list_by_engagement(
             db,
@@ -629,6 +644,167 @@ class EngagementService:
                 )
                 for retest in retests
             ]
+        )
+
+    @staticmethod
+    async def list_retest_eligible_findings(
+        db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+    ) -> RetestEligibleFindingsResponse:
+        engagement = await EngagementService.require_viewable_engagement(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+
+        if engagement.status != EngagementStatus.COMPLETED:
+            return RetestEligibleFindingsResponse(items=[])
+
+        findings = await RetestRepository.list_eligible_findings(
+            db,
+            engagement_id=engagement_id,
+        )
+
+        return RetestEligibleFindingsResponse(
+            items=[
+                RetestEligibleFinding(
+                    id=finding.id,
+                    title=finding.title,
+                    severity=finding.severity,
+                )
+                for finding in findings
+            ]
+        )
+
+    @staticmethod
+    async def list_client_findings(
+        db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+    ) -> ClientFindingListResponse:
+        await EngagementService.require_viewable_engagement(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+
+        rows = await RetestRepository.list_latest_by_engagement(
+            db,
+            engagement_id=engagement_id,
+        )
+
+        items = [
+            ClientFindingItem(
+                id=finding.id,
+                title=finding.title,
+                severity=finding.severity,
+                description=finding.description,
+                recommendation=finding.recommendation,
+                retest_status=retest.status if retest else None,
+                retest_notes=retest.notes if retest else None,
+                retest_completed_at=retest.completed_at if retest else None,
+            )
+            for finding, retest in rows
+        ]
+
+        return ClientFindingListResponse(items=items)
+
+
+    #retest 
+    #validate access ,ownership,check engagment status,revalidte is it eligible
+    #create retest, update status , write audit   ,send notification 
+    #let owning client to request retest on completed engagement 
+    @staticmethod
+    async def request_retest(
+     db: AsyncSession,
+        engagement_id: UUID,
+        user_id: UUID,
+        finding_ids: list[UUID],
+    ) -> RetestBulkCreateResponse:
+        engagement = await EngagementService.require_viewable_engagement(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+        if engagement.requested_by != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only the client who requested this engagement can request a retest.",
+            )
+        if engagement.status != EngagementStatus.COMPLETED:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Retests can only be requested for a completed engagement.",
+            )
+        eligible_findings = await RetestRepository.list_eligible_findings(
+            db,
+            engagement_id=engagement_id,
+        )
+        eligible_ids = {finding.id for finding in eligible_findings}
+        requested_ids = set(finding_ids)
+        if not requested_ids or not requested_ids.issubset(eligible_ids):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="One or more findings are not eligible for a retest.",
+            )
+
+        retests = await RetestRepository.create_many(
+            db,
+            finding_ids=list(requested_ids),
+            requested_by=user_id,
+        )
+
+        engagement = await EngagementRepository.update_status(
+            db,
+            engagement=engagement,
+            new_status=EngagementStatus.RETESTING,
+        )
+
+        await AuditRepository.create_log(
+            db,
+            user_id=user_id,
+            action="engagement.retest_requested",
+            entity_type="engagement",
+            entity_id=engagement.id,
+            metadata={
+                "finding_ids": [str(fid) for fid in requested_ids],
+                "count": len(requested_ids),
+            },
+        )
+        notify_targets = {engagement.assigned_to, engagement.service_delivery_id}
+        for recipient_id in notify_targets:
+            if recipient_id is None:
+                continue
+            await NotificationService.notify(
+                db,
+                recipient_id=recipient_id,
+                actor_id=user_id,
+                notification_type=NotificationType.RETEST_REQUESTED,
+                title="Retest requested",
+                message=f"{engagement.title} has {len(requested_ids)} finding(s) awaiting retest.",
+                engagement_id=engagement.id,
+                metadata={"count": len(requested_ids)},
+            )
+        return RetestBulkCreateResponse(
+            created=[
+                RetestListItem(
+                    id=retest.id,
+                    finding=RetestFindingSummary(
+                        id=retest.finding.id,
+                        title=retest.finding.title,
+                        severity=retest.finding.severity,
+                    ),
+                    requested_by=retest.requested_by,
+                    assigned_to=retest.assigned_to,
+                    status=retest.status,
+                    notes=retest.notes,
+                    requested_at=retest.requested_at,
+                    completed_at=retest.completed_at,
+                )
+                for retest in retests
+            ],
+            engagement_status=engagement.status.value,
         )
 
 
