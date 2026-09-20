@@ -92,7 +92,7 @@ const domainsHelp: HelpTopic[] = [
             items={[
                 <><strong>Pending</strong> - the domain has been added but not verified yet.</>,
                 <><strong>Verified</strong> - ownership has been confirmed via the TXT record.</>,
-                <><strong>Failed</strong> - last verification attempt unsuccesful.</>,
+                <><strong>Failed</strong> - last verification attempt unsuccessful.</>,
                 <><strong>Expired</strong> - verification is considered stale and ownership should be reconfirmed.</>,
             ]}
         />
@@ -106,13 +106,13 @@ const homeHelp: HelpTopic[] = [
         title: "Phase 1 - Discover",
         icon: Radar,
         body: (
-            <p>Passive OSINT reconnaissance. PenFlow pulls information about your target from public sources Shodan, HaveIbeenPwned, URLScan.io, crt.sh, WHOIS whithout ever directly interacting with it. No domain verification required for phase 1.
+            <p>Passive OSINT reconnaissance. PenFlow pulls information about your target from public sources: Shodan, HaveIbeenPwned, URLScan.io, crt.sh, WHOIS - without ever directly interacting with it. No domain verification required for phase 1.
             </p>
         ),
     },
     {
         id: "phase-2",
-        title: "Phase 2 Analyse",
+        title: "Phase 2 - Analyse",
         icon: ShieldAlert,
         body: (
             <p>An authorised, active scan of the external perimeter of your domain. - Open ports, service and TLS configuration, and known CVEs - run in an isolated scan with severity scoring. Due to the scan interacting directly with the target, domain verification is required.</p>
@@ -120,7 +120,7 @@ const homeHelp: HelpTopic[] = [
     },
     {
         id: "phase-3",
-        title: "Phase 3",
+        title: "Phase 3 - React",
         icon: Users,
         body: (
             <p>A managed-pentest pipeline. A professional pentester reviews and submits their findings about your domain while you are able to monitor them through an online portal.</p>
@@ -145,7 +145,7 @@ const scanHomeHelp: HelpTopic[] = [
         icon: Radar,
         body: (
             <p>
-                A passive scan only queries public, 3rd party sour ources about a domain - DNS records, certificate transparency logs, Shodan, data breaches. The scan is fully passive and never touches the domain directly. Any domain can be passively scanned.
+                A passive scan only queries public, 3rd party sources about a domain - DNS records, certificate transparency logs, Shodan, data breaches. The scan is fully passive and never touches the domain directly. Any domain can be passively scanned.
             </p>
         ),
     },
@@ -156,6 +156,17 @@ const scanProgressHelp: HelpTopic[] = [
         id: "worker-detail",
         title: "What is a worker?",
         icon: Cog,
+        body: (
+            <p>
+                Click on any worker tile in the grid to see what each worker does.
+            </p>
+        ),
+    },
+    {
+        id: "why-slow",
+        title: "Scan is very slow",
+        icon: Clock3,
+        accent: "warning",
         body: (
             <p>
                 Each step of a scan runs as its own worker task, and some steps depend on earlier steps finishing first. If a
