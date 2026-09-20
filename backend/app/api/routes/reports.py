@@ -53,8 +53,11 @@ async def download_report(
             db,
             engagement_id=report.engagement_id,
         )
+        if engagement is None:
+            raise HTTPException(status_code=404, detail="Report PDF not found")
+
         #check is it related to the engagement
-        is_related = engagement is not None and (
+        is_related = (
             engagement.requested_by == requester.id
             or engagement.assigned_to == requester.id
             or engagement.service_delivery_id == requester.id
