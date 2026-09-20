@@ -34,6 +34,7 @@ from app.schemas.engagement import (
     ServiceDeliveryConversationSummary,
     UserSummary,
 )
+from app.schemas.finding import EvidenceFileResponse
 from app.schemas.retest import (
     RetestFindingSummary,
     RetestListItem,
@@ -1853,6 +1854,10 @@ class ServiceDeliveryService:
             cve_id=finding.cve_id,
             created_by=finding.created_by,
             created_at=finding.created_at,
+            evidence_files=[
+                EvidenceFileResponse.model_validate(evidence_file)
+                for evidence_file in finding.evidence_files
+            ],
         )
 
 
