@@ -407,3 +407,82 @@ const liveEngagementHelp: HelpTopic[] = [
         ),
     },
 ];
+
+const engagementRequestHelp: HelpTopic[] = [
+    {
+        id: "engagement-types",
+        title: "Choosing an engagement type",
+        icon: Eye,
+        body: (
+            <HelpList
+                items={[
+                    <><strong>Black Box</strong> - testers get no internal knowledge, simulating an outside attacker.</>,
+                    <><strong>Grey Box</strong> - testers get partial information, such as limited credentials or architecture docs.</>,
+                    <><strong>White Box</strong> - testers get full knowledge and access, including source code, for the deepest assessment.</>,
+                ]}
+            />
+        ),
+    },
+    {
+        id: "scoping-questionnaire",
+        title: "The scoping questionnaire",
+        icon: ClipboardList,
+        body: (
+            <p>
+                Pick the assessment type (web application, mobile, API, network, cloud, or other),
+                describe your objective, and set a start/end date at least 3 days apart. Constraints
+                (blackout windows, systems to avoid, testing hours) and a primary contact are optional
+                but help testers plan the engagement.
+            </p>
+        ),
+    },
+    {
+        id: "declaring-assets",
+        title: "Declaring assets",
+        icon: ListChecks,
+        accent: "tip",
+        body: (
+            <p>
+                Every domain, IP address, hostname, or URL that should be in scope must be added
+                individually before you can submit - at least one asset is required. Each value is
+                validated against its type (e.g. URLs must start with http:// or https://).
+            </p>
+        ),
+    },
+    {
+        id: "after-submitting",
+        title: "After you submit",
+        icon: CheckCircle2,
+        body: (
+            <p>
+                Submitting captures the request and returns an estimated quote. You can track its
+                progress from the Live Engagement page once it has been scoped and assigned.
+            </p>
+        ),
+    },
+];
+
+const helpContentByRoute: Record<string, HelpTopic[]> = {
+    "/": homeHelp,
+    "/domains": domainsHelp,
+    "/phase2_scan": scanHomeHelp,
+    "/phase2_scan/progress": scanProgressHelp,
+    "/phase2_scan/results": scanResultsHelp,
+    "/scheduled-scans": scheduledScansHelp,
+    "/history": scanHistoryHelp,
+    "/pentesting/console/my-engagements": myEngagementsHelp,
+    "/pentesting/engagement": liveEngagementHelp,
+    "/engagement_request": engagementRequestHelp,
+};
+
+export function getHelpTopics(pathname: string): HelpTopic[] {
+    const matches = Object.keys(helpContentByRoute).filter(
+        (route) => pathname === route || pathname.startsWith(`${route}/`)
+    );
+    if (matches.length === 0) return [];
+    const mostSpecific = matches.reduce(
+        (longest, route) => (route.length > longest.length ? route: longest),
+        matches[0]
+    );
+    return helpContentByRoute[mostSpecific];
+}
