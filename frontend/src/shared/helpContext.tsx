@@ -98,6 +98,7 @@ const domainsHelp: HelpTopic[] = [
         />
     ),
 },
+];
 
 const homeHelp: HelpTopic[] = [
     {
@@ -110,6 +111,113 @@ const homeHelp: HelpTopic[] = [
         ),
     },
     {
-        
-    }
+        id: "phase-2",
+        title: "Phase 2 Analyse",
+        icon: ShieldAlert,
+        body: (
+            <p>An authorised, active scan of the external perimeter of your domain. - Open ports, service and TLS configuration, and known CVEs - run in an isolated scan with severity scoring. Due to the scan interacting directly with the target, domain verification is required.</p>
+        ),
+    },
+    {
+        id: "phase-3",
+        title: "Phase 3",
+        icon: Users,
+        body: (
+            <p>A managed-pentest pipeline. A professional pentester reviews and submits their findings about your domain while you are able to monitor them through an online portal.</p>
+        ),
+    },
+];
+
+const scanHomeHelp: HelpTopic[] = [
+    {
+        id: "active-scan",
+        title: "Active scan",
+        icon: ShieldAlert,
+        body: (
+            <p>
+                An active scan directly interacts with the external perimeter of your domain. This includes: port scanning, TLS handshake, service fingerprinting, and CVE correlation against a domain that is already verified.
+            </p>
+        ),
+    },
+    {
+        id: "passive-scan",
+        title: "Passive scan",
+        icon: Radar,
+        body: (
+            <p>
+                A passive scan only queries public, 3rd party sour ources about a domain - DNS records, certificate transparency logs, Shodan, data breaches. The scan is fully passive and never touches the domain directly. Any domain can be passively scanned.
+            </p>
+        ),
+    },
+];
+
+const scanProgressHelp: HelpTopic[] = [
+    {
+        id: "worker-detail",
+        title: "What is a worker?",
+        icon: Cog,
+        body: (
+            <p>
+                Each step of a scan runs as its own worker task, and some steps depend on earlier steps finishing first. If a
+                worker hits an error such as a rate limit or timeout, it will automatically retry up to 5 times before giving
+                up. This can sometimes make scans take longer than usual.
+            </p>
+        ),
+    },
+];
+
+const scanResultsHelp: HelpTopic[] = [
+    {
+        id: "risk-score",
+        title: "Risk score",
+        icon: Gauge,
+        body: (
+            <p>
+                Summarises how risky the findings of the scan are, taking into account the severity and criticality of each finding.
+            </p>
+        ),
+    },
+    {
+        id: "findings",
+        title: "Findings",
+        icon: FileWarning,
+        body: (
+            <p>
+                Each finding is a specific issue uncovered during the scan, e.g. a missing security header or an outdated TLS configuration.
+                Each finding has a severity level, a CVSS score and a remediation recommendation.
+            </p>
+        ),
+    },
+    {
+        id: "assets",
+        title: "Assets",
+        icon: Server,
+        body: (
+            <p>
+                Everything the scan discovered about your target, such as open ports and resolved IP addresses.
+                Each asset can have one or more findings tied to it.
+            </p>
+        ),
+    },
+    {
+        id: "services",
+        title: "Services",
+        icon: Network,
+        body: (
+            <p>
+                The open ports and running services detected on your target, including the product,
+                version and state.
+            </p>
+        ),
+    },
+    {
+        id: "activity",
+        title: "Activity",
+        icon: Activity,
+        body: (
+            <p>
+                A log of every worker that ran as part of this scan, along with its current status.
+            </p>
+        ),
+    },
 ];
