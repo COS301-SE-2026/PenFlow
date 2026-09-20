@@ -117,5 +117,48 @@ class RAGRepository:
         ]
 
 
+    @staticmethod
+    async def search_scan_text(
+        db: AsyncSession,
+        scan_id: UUID,
+        embedding_model: str,
+        question: str,
+        limit: int
+    ) -> list[tuple[RAGChunk, Finding, float]]:
+        document = func.to_tsvector(
+            "english",
+            RAGChunk.content,
+        )
+        text_query = func.websearch_to_tsquery(
+            "english",
+            question,
+        )
+        rank = func.ts_rank_cd(
+            document,
+            text_query,
+        ).label("text_rank")
 
-    
+        stmt = (
+            select(RAGChunk, Finding, rank).join(
+                Finding,
+                Finding.id == RAGChunk.finding_id,
+            ).where(
+                RAGChunk.scan_id == scan_id,
+                RAGChunk.embedding_model == embedding_model,
+                document.op("@@")(text_query),
+            ).order_by(
+                rank.desc(),
+                RAGChunk.finding_id.asc(),
+            ).limit(limit)
+        )
+
+        result = await db.execute(stmt)
+
+        return [
+            (
+                row[0],
+                row[1],
+                float(row[2]),
+            )
+            for row in result.all()
+        ]

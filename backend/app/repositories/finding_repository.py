@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -222,3 +222,170 @@ class FindingRepository:
 
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
+
+
+    @staticmethod
+    async def get_with_context(
+        db: AsyncSession,
+        finding_id: UUID,
+    ) -> Finding | None:
+        stmt = (
+            select(Finding).options(
+                selectinload(Finding.scan),
+                selectinload(Finding.asset),
+                selectinload(Finding.service),
+                selectinload(Finding.engagement),
+                selectinload(Finding.engagement_asset),
+                selectinload(Finding.evidence_files),
+            ).where(Finding.id == finding_id)
+        )
+
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+
+
+    @staticmethod
+    async def list_prioritized_for_scan(
+        db: AsyncSession,
+        scan_id: UUID,
+        limit: int = 5,
+    ) -> list[Finding]:
+        severity_rank = case(
+            (Finding.severity == Severity.CRITICAL, 5),
+            (Finding.severity == Severity.HIGH, 4),
+            (Finding.severity == Severity.MEDIUM, 3),
+            (Finding.severity == Severity.LOW, 2),
+            else_=1
+        )
+
+        status_rank = case(
+            (Finding.status == FindingStatus.OPEN, 2),
+            (
+                Finding.status == FindingStatus.IN_PROGRESS,
+                1,
+            ),
+            else_=0
+        )
+
+        stmt = (
+            select(Finding).options(
+                selectinload(Finding.scan),
+                selectinload(Finding.asset),
+                selectinload(Finding.service),
+            ).where(
+                Finding.scan_id == scan_id,
+                Finding.status.in_(
+                    [
+                        FindingStatus.OPEN,
+                        FindingStatus.IN_PROGRESS,
+                    ]
+                ),
+            ).order_by(
+                severity_rank.desc(),
+                Finding.cvss_score.desc().nullslast(),
+                Finding.is_verified.desc(),
+                status_rank.desc(),
+                Finding.created_at.desc(),
+                Finding.id.asc(),
+            ).limit(limit)
+        )
+
+        result = await db.execute(stmt)
+
+        return list(result.scalars().all())
+
+
+    @staticmethod
+    async def list_exact_for_scan(
+        db: AsyncSession,
+        *,
+        scan_id: UUID,
+        finding_id: UUID | None = None,
+        cve_id: str | None = None,
+        limit: int = 5,
+    ) -> list[Finding]:
+        if finding_id is None and cve_id is None:
+            return []
+
+        severity_rank = case(
+            (Finding.severity == Severity.CRITICAL, 5),
+            (Finding.severity == Severity.HIGH, 4),
+            (Finding.severity == Severity.MEDIUM, 3),
+            (Finding.severity == Severity.LOW, 2),
+            else_=1
+        )
+
+        status_rank = case(
+            (Finding.status == FindingStatus.OPEN, 5),
+            (
+                Finding.status == FindingStatus.IN_PROGRESS,
+                4,
+            ),
+            (
+                Finding.status == FindingStatus.ACCEPTED_RISK,
+                3,
+            ),
+            (
+                Finding.status == FindingStatus.RESOLVED,
+                2,
+            ),
+            else_=1,
+        )
+
+        stmt = (
+            select(Finding).options(
+                selectinload(Finding.scan),
+                selectinload(Finding.asset),
+                selectinload(Finding.service),
+            ).where(
+                Finding.scan_id == scan_id,
+            )
+        )
+
+        if finding_id is not None:
+            stmt = stmt.where(
+                Finding.id == finding_id,
+            )
+
+        else:
+            assert cve_id is not None
+
+            stmt = stmt.where(
+                Finding.cve_id.ilike(cve_id),
+            )
+
+        stmt = (
+            stmt.order_by(
+                status_rank.desc(),
+                severity_rank.desc(),
+                Finding.cvss_score.desc().nullslast(),
+                Finding.created_at.desc(),
+                Finding.id.asc(),
+            ).limit(limit)
+        )
+
+        result = await db.execute(stmt)
+
+        return list(result.scalars().all())
+
+
+    @staticmethod
+    async def list_for_scan_comparison(
+        db: AsyncSession,
+        scan_id: UUID,
+    ) -> list[Finding]:
+        stmt = (
+            select(Finding).options(
+                selectinload(Finding.scan),
+                selectinload(Finding.asset),
+                selectinload(Finding.service),
+            ).where(
+                Finding.scan_id == scan_id,
+            ).order_by(
+                Finding.id.asc(),
+            )
+        )
+
+        result = await db.execute(stmt)
+
+        return list(result.scalars().all())
