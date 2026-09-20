@@ -322,3 +322,88 @@ const scanHistoryHelp: HelpTopic[] = [
         ),
     },
 ];
+
+const myEngagementsHelp: HelpTopic[] = [
+    {
+        id: "my-engagements-overview",
+        title: "What is this page?",
+        icon: Users,
+        body: (
+            <p>
+                Every penetration testing engagement currently assigned to you as a pentester. The chart
+                breaks your workload down by status so you can see at a glance where things stand.
+            </p>
+        ),
+    },
+    {
+        id: "my-engagements-statuses",
+        title: "Engagement statuses",
+        icon: ListChecks,
+        body: (
+            <HelpList
+                items={[
+                    <><strong>Scoping</strong> - requirements and assets are still being defined.</>,
+                    <><strong>Scheduled</strong> - dates are set, testing hasn&apos;t started.</>,
+                    <><strong>In Progress</strong> - testing is underway.</>,
+                    <><strong>In Review</strong> - testing is done, findings are being finalised.</>,
+                    <><strong>Completed</strong> / <strong>Cancelled</strong> - the engagement has ended.</>,
+                ]}
+            />
+        ),
+    },
+    {
+        id: "my-engagements-filters",
+        title: "Filtering, sorting, and searching",
+        icon: Search,
+        accent: "tip",
+        body: (
+            <p>
+                Use the status dropdown to narrow the table to one status, sort by newest, due date, or
+                client name, and search by engagement title or client. Click an engagement&apos;s title
+                to open its full detail page.
+            </p>
+        ),
+    },
+];
+
+const liveEngagementHelp: HelpTopic[] = [
+    {
+        id: "live-engagement-overview",
+        title: "What is this page?",
+        icon: Users,
+        body: (
+            <p>
+                A list of your organisation&apos;s penetration testing engagements - both ones you&apos;ve
+                requested and ones currently underway - along with the assigned pentester, status, and
+                due date.
+            </p>
+        ),
+    },
+    {
+        id: "live-engagement-columns",
+        title: "Understanding the table",
+        icon: ListChecks,
+        body: (
+            <HelpList
+                items={[
+                    <><strong>Pentester</strong> - who is (or will be) assigned; shows &quot;Unassigned&quot; until one is allocated.</>,
+                    <><strong>Type</strong> - the assessment type requested (e.g. web application, API, network).</>,
+                    <><strong>Assets</strong> - how many in-scope targets were declared.</>,
+                    <><strong>Est. Quote</strong> - the estimated price generated when the request was submitted.</>,
+                ]}
+            />
+        ),
+    },
+    {
+        id: "live-engagement-detail",
+        title: "Viewing details",
+        icon: Eye,
+        accent: "tip",
+        body: (
+            <p>
+                Click an engagement&apos;s title to open its detail page, where you can track progress
+                and, once testing is complete, review the pentester&apos;s findings.
+            </p>
+        ),
+    },
+];
