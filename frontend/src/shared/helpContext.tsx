@@ -221,3 +221,104 @@ const scanResultsHelp: HelpTopic[] = [
         ),
     },
 ];
+
+const scheduledScansHelp: HelpTopic[] = [
+    {
+        id: "what-is-a-schedule",
+        title: "What is a scheduled scan?",
+        icon: CalendarClock,
+        body: (
+            <p>
+                A recurring active vulnerability scan against one of your verified domains. Once created,
+                PenFlow automatically launches a scan for you on the chosen day and time - no need to
+                start it manually.
+            </p>
+        ),
+    },
+    {
+        id: "creating-a-schedule",
+        title: "Creating a schedule",
+        icon: ListChecks,
+        body: (
+            <>
+                <p>Click &quot;New schedule&quot; and set:</p>
+                <HelpList
+                    items={[
+                        <><strong>Verified domain</strong> - only verified domains can be scheduled.</>,
+                        <><strong>Frequency</strong> - weekly (pick a day of the week) or monthly (pick a day of the month, 1-28).</>,
+                        <><strong>Run time and timezone</strong> - when the scan should kick off.</>,
+                    ]}
+                />
+                <p>A domain can only have one schedule per scan type - the target can&apos;t be changed after creation, so create a new schedule instead.</p>
+            </>
+        ),
+    },
+    {
+        id: "pause-resume-delete",
+        title: "Pause, resume, and delete",
+        icon: Pause,
+        accent: "tip",
+        body: (
+            <p>
+                Pausing a schedule keeps its configuration but stops it from creating new scans - use
+                Resume to pick it back up. Deleting a schedule removes it permanently; you&apos;ll be
+                asked to confirm first.
+            </p>
+        ),
+    },
+    {
+        id: "next-last-run",
+        title: "Next run and last run",
+        icon: Clock3,
+        body: (
+            <p>
+                &quot;Next run&quot; shows when the schedule will next fire (only shown while active).
+                &quot;Last run&quot; shows when it last actually created a scan, or &quot;Never&quot; if
+                it hasn&apos;t run yet.
+            </p>
+        ),
+    },
+];
+
+const scanHistoryHelp: HelpTopic[] = [
+    {
+        id: "history-overview",
+        title: "What is shown here?",
+        icon: History,
+        body: (
+            <p>
+                Every scan you&apos;ve ever run, newest first - both passive reconnaissance and active
+                vulnerability scans, whether triggered manually or by a schedule.
+            </p>
+        ),
+    },
+    {
+        id: "history-status",
+        title: "Scan status",
+        icon: ListChecks,
+        body: (
+            <HelpList
+                items={[
+                    <><strong>Queued</strong> - waiting for a worker to pick it up.</>,
+                    <><strong>Running</strong> - currently in progress.</>,
+                    <><strong>Completed</strong> - finished successfully.</>,
+                    <><strong>Partial</strong> - finished, but one or more steps failed.</>,
+                    <><strong>Failed</strong> - the scan could not complete.</>,
+                ]}
+            />
+        ),
+    },
+    {
+        id: "history-actions",
+        title: "Viewing and sharing a report",
+        icon: Download,
+        accent: "tip",
+        body: (
+            <p>
+                Click a row (or &quot;View Results&quot;) to open the full findings for that scan.
+                Use the download icon to save the PDF report, or open the row&apos;s menu to email
+                the report to an address of your choice.
+            </p>
+        ),
+    },
+];
