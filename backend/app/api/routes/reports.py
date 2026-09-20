@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user
+from app.models.base import EngagementStatus
 from app.models.report import Report, ReportStatus
 from app.models.user import User
 from app.queue.celery_app import celery_app
@@ -61,7 +62,13 @@ async def download_report(
         )
         if not is_related:
             raise HTTPException(status_code=404, detail="Report PDF not found")
-        
+
+        # clients can only download once the engagement is complete or retesting
+        is_client = engagement.requested_by == requester.id
+        allowed_client_statuses = (EngagementStatus.COMPLETED, EngagementStatus.RETESTING)
+        if is_client and engagement.status not in allowed_client_statuses:
+            raise HTTPException(status_code=404, detail="Report PDF not found")
+
     if ReportStorageService.is_s3():
         try:
             s3_obj = ReportStorageService.get_s3_object(report.pdf_path) 

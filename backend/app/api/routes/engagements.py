@@ -365,6 +365,17 @@ async def get_engagement_report(
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user), 
 ) -> dict[str, Any]:
+    user = await resolve_user(db, current_user)
+    engagement = await EngagementService.require_viewable_engagement(
+        db,
+        engagement_id=engagement_id,
+        user_id=user.id,
+    )
+    # clients can only see/download the report once the engagement is complete or retesting
+    is_client = engagement.requested_by == user.id
+    allowed_client_statuses = (EngagementStatus.COMPLETED, EngagementStatus.RETESTING)
+    if is_client and engagement.status not in allowed_client_statuses:
+        raise HTTPException(status_code=404, detail="Report not found for this engagement.")
 
     report = await get_by_engagement_and_version(db, engagement_id, version) 
     if not report:
