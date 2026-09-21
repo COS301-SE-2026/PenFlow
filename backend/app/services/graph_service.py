@@ -224,3 +224,91 @@ class GraphService:
                         ),
                     )
                 )
+
+        for t in technologies:
+            node_id = f"technology:{t.id}"
+            data.nodes.append(
+                GraphNode(
+                    id=node_id,
+                    entity_id=t.id,
+                    type="technology",
+                    label=f"{t.product} {t.version}".strip() if t.version else t.product,
+                    risk=GraphRisk(severity=None, max_cvss=None, finding_count=0),
+                    metadata={
+                        "technology_type": t.technology_type,
+                        "detection_source": t.detection_source,
+                        "confidence": float(t.confidence) if t.confidence is not None else None,
+                    },
+                )
+            )
+            data.findings_by_node[node_id] = []
+
+            # fall back to the asset.
+            parent_node_id = None
+            if t.service_id is not None and t.service_id in service_node_id:
+                parent_node_id = service_node_id[t.service_id]
+            elif t.asset_id is not None and t.asset_id in asset_node_id:
+                parent_node_id = asset_node_id[t.asset_id]
+
+            data.logical_key[node_id] = (
+                f"technology:{normalize_text(t.product)}|{normalize_text(t.version)}|"
+                f"{normalize_text(t.technology_type)}|"
+                f"{data.logical_key.get(parent_node_id, '') if parent_node_id else ''}"
+            )
+
+            if parent_node_id is not None:
+                data.edges.append(
+                    GraphEdge(
+                        id=f"runs:{parent_node_id}:{t.id}",
+                        source=parent_node_id,
+                        target=node_id,
+                        type="RUNS",
+                        provenance=GraphEdgeProvenance(
+                            source=t.detection_source or "fingerprint",
+                            observed_at=t.created_at,
+                            confidence=float(t.confidence) if t.confidence is not None else None,
+                        ),
+                    )
+                )
+
+        for f in findings:
+            node_id = f"finding:{f.id}"
+            data.nodes.append(
+                GraphNode(
+                    id=node_id,
+                    entity_id=f.id,
+                    type="finding",
+                    label=f.title,
+                    risk=_risk_from_findings([f]),
+                    metadata={"cve_id": f.cve_id, "status": f.status.value},
+                )
+            )
+            data.findings_by_node[node_id] = [f]
+            data.logical_key[node_id] = (
+                f"finding:{_finding_identity(f, asset_identifier_by_id.get(f.asset_id))}"
+            )
+
+            # Findings attach to whichever node is most specific; there is no
+            # technology to finding link in the schema, so we don't invent one.
+            parent_node_id = None
+            if f.service_id is not None and f.service_id in service_node_id:
+                parent_node_id = service_node_id[f.service_id]
+            elif f.asset_id is not None and f.asset_id in asset_node_id:
+                parent_node_id = asset_node_id[f.asset_id]
+
+            if parent_node_id is not None:
+                data.edges.append(
+                    GraphEdge(
+                        id=f"affected-by:{parent_node_id}:{f.id}",
+                        source=parent_node_id,
+                        target=node_id,
+                        type="AFFECTED_BY",
+                        provenance=GraphEdgeProvenance(
+                            source=f.source,
+                            observed_at=f.created_at,
+                            confidence=1.0 if f.is_verified else None,
+                        ),
+                    )
+                )
+
+        return data
