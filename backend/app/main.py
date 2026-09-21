@@ -9,6 +9,7 @@ from slowapi.errors import RateLimitExceeded
 import app.models  # noqa: F401 — registers all SQLAlchemy mappers before any query runs
 from app.api.middleware.rate_limiter import limiter
 from app.api.routes import (
+    assistant,
     domains,
     engagements,
     findings,
@@ -66,3 +67,4 @@ app.include_router(service_delivery.router, prefix=API_V1_PREFIX)
 app.include_router(notifications.router, prefix=API_V1_PREFIX)
 app.include_router(scan_schedules.router, prefix=API_V1_PREFIX)
 app.include_router(rag.router, prefix=API_V1_PREFIX)
+app.include_router(assistant.router, prefix=API_V1_PREFIX)

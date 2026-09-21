@@ -9,6 +9,7 @@ export default function ScanTabs({scanId}:{scanId:string}) {
 
     const scanTabs = [
         {label: "Overview", href: basePath},
+        {label: "Security Analyst", href: `${basePath}/analyst`},
         {label: "Findings", href: `${basePath}/findings`},
         {label: "Assets", href: `${basePath}/assets`},
         {label: "Services", href: `${basePath}/services`},
