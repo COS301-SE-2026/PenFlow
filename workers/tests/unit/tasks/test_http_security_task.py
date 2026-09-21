@@ -14,7 +14,6 @@ def test_successful_scan(mock_get_ports, mock_dispatch):
         scan_id="scan123",
         domain="hackerone.com",
         ip_address="1.1.1.1", 
-        ports=[]
     )
 
     assert result["status"] == "completed"
@@ -30,7 +29,6 @@ def test_skipped_http_scan(mock_get_ports, mock_callback):
         scan_id="scan123",
         domain="hackerone.com",
         ip_address="1.1.1.1",
-        ports=[]
     )
 
     assert result["status"] == "skipped"
@@ -47,7 +45,6 @@ def test_failed_http_scan(mock_get_ports, mock_dispatch):
            scan_id="scan123",
            domain="hackerone.com",
            ip_address="1.1.1.1",
-           ports=[] 
         )
 
         assert result["status"] == "skipped"

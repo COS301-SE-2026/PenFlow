@@ -20,7 +20,6 @@ def run_http_security_scan_task(
     scan_id: str,
     domain: str,
     ip_address: str,
-    ports: list[Any] = None,
 ) -> dict[str, Any]:
     """
 

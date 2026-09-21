@@ -197,7 +197,7 @@ resource "aws_ecs_task_definition" "worker" {
         { name = "ECS_CLUSTER_NAME", value = aws_ecs_cluster.main.name }, 
         { name = "ECS_TASK_DEFINITION", value = "${local.name_prefix}-ephemeral-worker" }, 
         { name = "ECS_SUBNETS", value = join(",", aws_subnet.public[*].id) }, 
-        { name = "ECS_SECURITY_GROUPS", value = aws_security_group.workerid },
+        { name = "ECS_SECURITY_GROUPS", value = aws_security_group.worker.id },
         { name = "ECS_ASSIGN_PUBLIC_IP", value = "ENABLED" }
       ]
 
@@ -252,15 +252,15 @@ resource "aws_ecs_task_definition" "ephemeral_worker" {
       ]
 
       secrets = [
-        { name = "HIBP_API_KEY", valueForm = aws_secretsmanager_secret.hibp_api_key.arn },
-        { name = "SHODAN_KEY", valueFrom = aws_secretsmanager_secret.shodan_api_key.arn },
+        { name = "HIBP_API_KEY", valueFrom = aws_secretsmanager_secret.hibp_api_key.arn },
+        { name = "SHODAN_API_KEY", valueFrom = aws_secretsmanager_secret.shodan_api_key.arn },
         { name = "URLSCAN_API_KEY", valueFrom = aws_secretsmanager_secret.urlscan_api_key.arn }
       ]
 
       logConfiguration = {
         logDriver = "awslogs" 
         options = {
-          awslogs-group         = aws_cloudwatch_log_group.worker,name 
+          awslogs-group         = aws_cloudwatch_log_group.worker.name 
           awslogs-region        = var.aws_region 
           awslogs-stream-prefix = "ecs-ephemeral"
         }

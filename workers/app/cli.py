@@ -168,7 +168,7 @@ def handle_fingerprint(payload: dict[str, Any]) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser() 
     parser.add_argument("tool", type=str)
-    parser.add_arguemnt("--payload", type=str, required=True)
+    parser.add_argument("--payload", type=str, required=True)
     args = parser.parse_args() 
 
     try:
@@ -184,8 +184,7 @@ if __name__ == "__main__":
         elif args.tool == "fingerprint":
             handle_fingerprint(payload)
         else:
-            logger.error(f"Unknown tool requested: {args.tool}")
-            sys.exit(1)
+            raise ValueError(f"Unknown tool requested: {args.tool}")
 
         sys.exit(0)
     except Exception as e:

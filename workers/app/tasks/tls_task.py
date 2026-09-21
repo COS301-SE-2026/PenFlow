@@ -19,7 +19,6 @@ def run_tls_scan_task(
     self: Any,
     scan_id: str,
     ip_address: str,
-    ports: list[Any],
     domain: str = None
 ) -> dict[str, Any]:
     """
@@ -36,6 +35,6 @@ def run_tls_scan_task(
     success = dispatch_scan_job("tls", payload)
 
     if not success: 
-        raise RuntimeError(f"Fargate/Docker conainer failed for TLS scan {scan_id}")
+        raise RuntimeError(f"Fargate/Docker container failed for TLS scan {scan_id}")
 
     return {"status": "completed", "scan_id": scan_id, "source_name": "tls"}

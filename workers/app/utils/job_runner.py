@@ -19,7 +19,7 @@ def dispatch_scan_job(tool_name: str, payload: dict[str, Any]) -> bool:
     if environment == "production": 
         return _run_fargate_task(command)
     else:
-        env_vars = {k: v for k, v in os.environ.item() if k in ALLOWED_ENV_VARS}
+        env_vars = {k: v for k, v in os.environ.items() if k in ALLOWED_ENV_VARS}
         return _run_local_docker_container(command, env_vars) 
 
 def _run_fargate_task(command: list[str]) -> bool: 

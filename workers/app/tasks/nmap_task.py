@@ -34,8 +34,8 @@ def run_nmap_scan(
     if not success:
         raise RuntimeError(f"Fargate/Docker container failed for NMAP scan {scan_id}")
 
-    celery_app.send_task("scan.phase2_tls", args=[scan_id, ip_address, [], domain])
-    celery_app.send_task("scan.phase2_http_security", args=[scan_id, domain, ip_address, []])
+    celery_app.send_task("scan.phase2_tls", args=[scan_id, ip_address, domain])
+    celery_app.send_task("scan.phase2_http_security", args=[scan_id, domain, ip_address])
     celery_app.send_task("scan.phase2_fingerprint", args=[scan_id, f"https://{domain}", {}, None])
 
     return{"status": "completed", "scan_id": scan_id, "source_name": "nmap"}
