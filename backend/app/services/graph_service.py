@@ -101,4 +101,126 @@ class GraphService:
             )
 
         return scan
-   
+    #core engine all endpoint call this function
+    @staticmethod
+    async def _load_graph_data(db: AsyncSession, scan: Scan) -> _GraphData:
+        #fetch raw data
+        assets = (
+            await db.execute(select(Asset).where(Asset.scan_id == scan.id))
+        ).scalars().all()
+        services = (
+            await db.execute(select(Service).where(Service.scan_id == scan.id))
+        ).scalars().all()
+        technologies = (
+            await db.execute(
+                select(DetectedTechnology).where(DetectedTechnology.scan_id == scan.id)
+            )
+        ).scalars().all()
+        findings = (
+            await db.execute(select(Finding).where(Finding.scan_id == scan.id))
+        ).scalars().all()
+        #set up container and index findings
+        data = _GraphData()
+
+        findings_by_asset: dict[UUID, list[Finding]] = {}
+        findings_by_service: dict[UUID, list[Finding]] = {}
+        for f in findings:
+            if f.asset_id is not None:
+                findings_by_asset.setdefault(f.asset_id, []).append(f)
+            if f.service_id is not None:
+                findings_by_service.setdefault(f.service_id, []).append(f)
+
+        #create domain node
+        domain_id = f"domain:{scan.domain}"
+        domain_findings = list(findings)
+        data.nodes.append(
+            GraphNode(
+                id=domain_id,
+                entity_id=None,
+                type="domain",
+                label=scan.domain,
+                risk=_risk_from_findings(domain_findings),
+                metadata={},
+            )
+        )
+        data.findings_by_node[domain_id] = domain_findings
+        data.logical_key[domain_id] = f"domain:{normalize_text(scan.domain)}"
+        #Build asset nodes and their domain edges
+        asset_identifier_by_id: dict[UUID, str] = {a.id: a.identifier for a in assets}
+
+        asset_node_id: dict[UUID, str] ={}
+        for a in assets:
+            node_id = f"asset:{a.id}"
+            asset_node_id[a.id] = node_id
+            asset_findings = findings_by_asset.get(a.id,[])
+            data.nodes.append(
+                GraphNode(
+                    id=node_id,
+                    entity_id=a.id,
+                    type="asset",
+                    label=a.identifier,
+                    risk=_risk_from_findings(asset_findings),
+                    metadata={"asset_type": a.asset_type, **(a.asset_metadata or {})},
+                )
+            )
+            data.findings_by_node[node_id] = asset_findings
+            data.logical_key[node_id] = (
+                f"asset:{normalize_text(a.identifier)}|{normalize_text(a.asset_type)}"
+            )
+            data.edges.append(
+                GraphEdge(
+                    id=f"resolves-to:{scan.domain}:{a.id}",
+                    source=domain_id,
+                    target=node_id,
+                    type="RESOLVES_TO",
+                    provenance=GraphEdgeProvenance(
+                        source="scan",
+                        observed_at=a.created_at,
+                        confidence=1.0,
+                    ),
+                )
+            )
+
+        #build service node
+            service_node_id: dict[UUID, str] = {}
+        for s in services:
+            node_id = f"service:{s.id}"
+            service_node_id[s.id] = node_id
+            service_findings = findings_by_service.get(s.id,[])
+            data.nodes.append(
+                GraphNode(
+                    id=node_id,
+                    entity_id=s.id,
+                    type="service",
+                    label=f"{(s.service_name or s.protocol).upper()} :{s.port}",
+                    risk=_risk_from_findings(service_findings),
+                    metadata={
+                        "host": s.host,
+                        "port": s.port,
+                        "protocol": s.protocol,
+                        "product": s.product,
+                        "version": s.version,
+                        "tls_enabled": s.tls_enabled,
+                        "state": s.state,
+                    },
+                )
+            )
+            data.findings_by_node[node_id] = service_findings
+            data.logical_key[node_id] = (
+                f"service:{normalize_text(s.host)}:{s.port}/{normalize_text(s.protocol)}"
+            )
+
+            if s.asset_id is not None and s.asset_id in asset_node_id:
+                data.edges.append(
+                    GraphEdge(
+                        id=f"exposes:{s.asset_id}:{s.id}",
+                        source=asset_node_id[s.asset_id],
+                        target=node_id,
+                        type="EXPOSES",
+                        provenance=GraphEdgeProvenance(
+                            source="nmap",
+                            observed_at=s.created_at,
+                            confidence=1.0,
+                        ),
+                    )
+                )
