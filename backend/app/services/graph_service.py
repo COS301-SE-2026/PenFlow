@@ -360,3 +360,69 @@ class GraphService:
             findings=findings,
             provenance=provenance,
         )
+    @staticmethod
+    async def get_summary(db: AsyncSession, scan: Scan) -> GraphSummaryResponse:
+        data = await GraphService._load_graph_data(db, scan)
+
+        counts_by_type: dict[str, int] = {}
+        for n in data.nodes:
+            counts_by_type[n.type] = counts_by_type.get(n.type, 0) + 1
+
+        all_findings = data.findings_by_node.get(f"domain:{scan.domain}", [])
+        severity_counts = dict.fromkeys(("critical", "high", "medium", "low"), 0)
+        for f in all_findings:
+            if f.severity.value in severity_counts:
+                severity_counts[f.severity.value] += 1
+
+        affected_assets = sum(
+            1 for n in data.nodes if n.type == "asset" and n.risk.finding_count > 0
+        )
+
+        ranked = sorted(
+            (n for n in data.nodes if n.type != "domain" and n.risk.severity is not None),
+            key=lambda n: (_SEVERITY_ORDER[Severity(n.risk.severity)], n.risk.max_cvss or 0),
+            reverse=True,
+        )
+        highest_risk_node_id = ranked[0].id if ranked else None
+
+        concentration_candidates = [
+            n for n in data.nodes if n.type in ("asset", "service") and n.risk.finding_count > 0
+        ]
+        concentration_candidates.sort(key=lambda n: n.risk.finding_count, reverse=True)
+
+        concentrations = []
+        for n in concentration_candidates[:5]:
+            node_findings = data.findings_by_node.get(n.id, [])
+            critical_count = sum(1 for f in node_findings if f.severity == Severity.CRITICAL)
+            high_count = sum(1 for f in node_findings if f.severity == Severity.HIGH)
+            concentrations.append(
+                GraphConcentration(
+                    node_id=n.id,
+                    label=n.label,
+                    finding_count=n.risk.finding_count,
+                    critical_count=critical_count,
+                    high_count=high_count,
+                    max_cvss=n.risk.max_cvss,
+                )
+            )
+
+        return GraphSummaryResponse(
+            scan_id=scan.id,
+            counts=GraphSummaryCounts(
+                domains=counts_by_type.get("domain", 0),
+                assets=counts_by_type.get("asset", 0),
+                services=counts_by_type.get("service", 0),
+                technologies=counts_by_type.get("technology", 0),
+                findings=counts_by_type.get("finding", 0),
+                edges=len(data.edges),
+            ),
+            risk=GraphSummaryRisk(
+                critical_findings=severity_counts["critical"],
+                high_findings=severity_counts["high"],
+                medium_findings=severity_counts["medium"],
+                low_findings=severity_counts["low"],
+                affected_assets=affected_assets,
+                highest_risk_node_id=highest_risk_node_id,
+            ),
+            concentrations=concentrations,
+        )
