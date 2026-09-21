@@ -312,3 +312,51 @@ class GraphService:
                 )
 
         return data
+    
+    @staticmethod
+    async def get_graph(db: AsyncSession, scan: Scan) -> GraphResponse:
+        data = await GraphService._load_graph_data(db, scan)
+        return GraphResponse(
+            scan_id=scan.id,
+            domain=scan.domain,
+            generated_at=datetime.now(timezone.utc),
+            nodes=data.nodes,
+            edges=data.edges,
+        )
+
+    @staticmethod
+    async def get_node(
+        db: AsyncSession, scan: Scan, node_id: str
+    ) -> GraphNodeDetailResponse:
+        data = await GraphService._load_graph_data(db, scan)
+
+        node = next((n for n in data.nodes if n.id == node_id), None)
+        if node is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Graph node not found.",
+            )
+
+        incoming = sum(1 for e in data.edges if e.target == node_id)
+        outgoing = sum(1 for e in data.edges if e.source == node_id)
+
+        findings = [
+            GraphFindingSummary(
+                id=f.id,
+                title=f.title,
+                severity=f.severity.value,
+                cvss_score=float(f.cvss_score) if f.cvss_score is not None else None,
+                cve_id=f.cve_id,
+                status=f.status.value,
+            )
+            for f in data.findings_by_node.get(node_id, [])
+        ]
+
+        provenance = [e.provenance for e in data.edges if e.target == node_id]
+
+        return GraphNodeDetailResponse(
+            node=node,
+            relationships=GraphNodeRelationshipCounts(incoming=incoming, outgoing=outgoing),
+            findings=findings,
+            provenance=provenance,
+        )
