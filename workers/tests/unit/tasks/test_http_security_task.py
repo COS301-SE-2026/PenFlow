@@ -1,129 +1,68 @@
+import pytest
+
 from unittest.mock import patch
 
 from app.tasks.http_security_task import run_http_security_scan_task
 
+@patch("app.tasks.http_security_task.dispatch_scan_job")
+@patch("app.tasks.http_security_task.get_ports_from_db")
+def test_successful_scan(mock_get_ports, mock_dispatch):
+    mock_get_ports.return_value = [{"port": 80, "protocol": "tcp", "service": "http"}]
+    mock_dispatch.return_value = True 
 
-##Happy Paths [Successful Scan]
-@patch("app.tasks.http_security_task.send_source_callback")
-@patch("app.tasks.http_security_task.run_http_security_scan")
-def test_successful_scan(mock_scan, mock_callback):
-    """
-    Returns a completed scan result.
-    """
-
-    mock_scan.return_value = \
-    {
-        "targets": []
-    }
-
-    result = run_http_security_scan_task.run\
-    (
+    result = run_http_security_scan_task.run(
         scan_id="scan123",
-        hostname="hackerone.com",
-        ip_address="1.1.1.1",
-        ports=[],
+        domain="hackerone.com",
+        ip_address="1.1.1.1", 
+        ports=[]
     )
 
     assert result["status"] == "completed"
-    assert result["findings"] == []
+    assert result["scan_id"] == "scan123"
+    mock_dispatch.assert_called_once()
 
-    assert mock_callback.call_count == 2
-
-#[Missing Security Headers]
 @patch("app.tasks.http_security_task.send_source_callback")
-@patch("app.tasks.http_security_task.run_http_security_scan")
-def test_missing_security_headers(mock_scan, mock_callback):
-    """
-    Generates findings when important security headers are missing, so missing https for example.
-    """
+@patch("app.tasks.http_security_task.get_ports_from_db")
+def test_skipped_http_scan(mock_get_ports, mock_callback):
+    mock_get_ports.return_value = []
 
-    mock_scan.return_value = \
-    {
-        "targets": [
-            {
-                "url": "https://hackerone.com",
-                "scheme": "https",
-                "port": 443,
-                "status_code": 200,
-                "security_headers": {},
-            }
-        ]
-    }
-
-    result = run_http_security_scan_task.run\
-    (
+    result = run_http_security_scan_task.run(
         scan_id="scan123",
-        hostname="hackerone.com",
+        domain="hackerone.com",
         ip_address="1.1.1.1",
-        ports=[],
+        ports=[]
     )
 
-    titles = [finding["title"] for finding in result["findings"]]
+    assert result["status"] == "skipped"
+    mock_callback.assert_called_once_with(scan_id="scan123", source_name="http_security", status="skipped")
 
-    assert "Missing Content-Security-Policy" in titles
+@patch("app.tasks.http_security_task.dispatch_scan_job")
+@patch("app.tasks.http_security_task.get_ports_from_db")
+def test_failed_http_scan(mock_get_ports, mock_dispatch):
+    mock_get_ports.return_value = [{"port": 80, "protocol": "tcp", "service": "http"}]
+    mock_dispatch.return_value = False 
 
+    with pytest.raises(RuntimeError, match="Fargate/Docker container failed for HTTP Security scan scan123"):
+        run_http_security_scan_task(
+           scan_id="scan123",
+           domain="hackerone.com",
+           ip_address="1.1.1.1",
+           ports=[] 
+        )
 
-##Sad Paths [HTTP ignores HSTS]
-@patch("app.tasks.http_security_task.send_source_callback")
-@patch("app.tasks.http_security_task.run_http_security_scan")
-def test_http_vs_hsts(mock_scan, mock_callback):
-    """
-    HTTP endpoints should not require HSTS.
-    """
+        assert result["status"] == "skipped"
+        mock_callback.assert_called_once_with(scan_id="scan123", source_name="http_security", status="skipped")
 
-    mock_scan.return_value = \
-    {
-        "targets": [
-            {
-                "url": "http://hackerone.com",
-                "protocol": "http",
-                "security_headers": \
-                {
-                    "content_security_policy": "default-src 'self'",
-                    "strict_transport_security": None,
-                    "x_frame_options": "DENY",
-                    "referrer_policy": "strict-origin",
-                    "permissions_policy": "camera=()",
-                    "x_content_type_options": "nosniff",
-                },
-            }
-        ]
-    }
+@patch("app.tasks.http_security_task.dispatch_scan_job")
+@patch("app.tasks.http_security_task.get_ports_from_db")
+def test_failed_http_scan(mock_get_ports, mock_dispatch):
+    mock_get_ports.return_value = [{"port": 80, "protocol": "tcp", "service": "http"}]
+    mock_dispatch.return_value = False 
 
-    result = run_http_security_scan_task.run\
-    (
-        scan_id="scan123",
-        hostname="hackerone.com",
-        ip_address="1.1.1.1",
-        ports=[],
-    )
-
-    titles = [finding["title"] for finding in result["findings"]]
-
-    assert "Missing Strict-Transport-Security" not in titles
-
-# [Scan Failure]
-@patch("app.tasks.http_security_task.send_source_callback")
-@patch("app.tasks.http_security_task.run_http_security_scan")
-def test_scan_failure(mock_scan, mock_callback):
-    """
-    Returns a failed result.
-    """
-
-    mock_scan.side_effect = Exception\
-    (
-        "Unexpected HTTP failure"
-    )
-
-    result = run_http_security_scan_task.run\
-    (
-        scan_id="scan123",
-        hostname="hackerone.com",
-        ip_address="1.1.1.1",
-        ports=[],
-    )
-
-    assert result["status"] == "failed"
-    assert "Unexpected HTTP failure" in result["error_message"]
-
-    assert mock_callback.call_count == 2
+    with pytest.raises(RuntimeError, match="Fargate/Docker container failed for HTTP Security scan scan123"):
+        run_http_security_scan(
+            scan_id="scan123",
+            domain="hackerone.com",
+            ip_address="1.1.1.1",
+            ports=[]
+        )
