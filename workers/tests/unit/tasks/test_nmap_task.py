@@ -1,67 +1,31 @@
+import pytest
+
 from unittest.mock import patch
 
 from app.tasks.nmap_task import run_nmap_scan
 
-
-#Happy Path 1
-#Successful scan with callback
 @patch("app.tasks.nmap_task.celery_app.send_task")
-@patch("app.tasks.nmap_task.send_source_callback")
-@patch("app.tasks.nmap_task.run_live_nmap_scan")
-def test_successful_task(mock_scan, mock_callback, mock_send_task):
+@patch("app.tasks.nmap_task.dispatch_scan_job")
+def test_successful_dispatcher_chaining(mock_dispatch, mock_send_task):
+    mock_dispatch.return_value = True
 
-    mock_scan.return_value = \
-    {
-        "ip": "1.1.1.1",
-        "status": "up",
-        "hostnames": [],
-        "ports":
-        [
-            {
-                "port": 22,
-                "protocol": "tcp",
-                "service": "ssh",
-                "product": "CoolSSH",
-                "version": "9.0",
-                "state": "open",
-            }
-        ],
-    }
-
-    result = run_nmap_scan.run\
-    (
-        scan_id="scan1",
-        ip_address="1.1.1.1",
-        domain="test.com",
-    )
+    result = run_nmap_scan.run(scan_id="scan1", ip_address="1.1.1.1", domain="test.com")
 
     assert result["status"] == "completed"
-    assert len(result["services"]) == 1
-    service = result["services"][0]
-    assert service["host"] == "1.1.1.1"
-    assert service["port"] == 22
-    assert service["protocol"] == "tcp"
-    assert service["service_name"] == "ssh"
-    assert mock_callback.call_count == 2
-    assert mock_send_task.call_count == 3
+    assert mock_dispatch.call_count == 1 
 
-#Sad Path 1
-#Service failure also with callback
-@patch("app.tasks.nmap_task.send_source_callback")
-@patch("app.tasks.nmap_task.run_live_nmap_scan")
-def test_failed_task(mock_scan, mock_callback):
+    assert mock_send_task.call_count == 3 
+    mock_send_task.assert_any_call("scan.phase2_tls", args=["scan1", "1.1.1.1", [], "test.com"])
+    mock_send_task.assert_any_call("scan.phase2_http_security", args=["scan1", "test.com", "1.1.1.1", []])
+    mock_send_task.assert_any_call("scan.phase2_fingerprint", args=["scan1", "https://test.com", {}, None])
 
-    mock_scan.side_effect = Exception("Boom")
+@patch("app.tasks.nmap_task.celery_app.send_task")
+@patch("app.tasks.nmap_task.dispatch_scan_job")
+def test_failed_dispatcher_aborts_chain(mock_dispatch, mock_send_task):
+    mock_dispatch.return_value = False
 
-    result = run_nmap_scan.run\
-    (
-        scan_id="scan1",
-        ip_address="1.1.1.1",
-        domain="test.com",
-    )
+    with pytest.raises(RuntimeError):
+        run_nmap_scan.run(scan_id="scan1", ip_address="1.1.1.1", domain="test.com")
 
-    assert result["status"] == "failed"
-    assert result["services"] == []
-    assert "error_message" in result
-
-    assert mock_callback.call_count == 2
+    assert mock_dispatch.call_count == 1
+    assert mock_send_task.call_count == 0
