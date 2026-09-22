@@ -82,3 +82,10 @@ class VerifiedDomain(Base):
         ),
         nullable=True,
     )
+
+    brand_monitoring: Mapped["BrandMonitoring"] = relationship(
+        "BrandMonitoring",
+        backref="verified_domain",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
