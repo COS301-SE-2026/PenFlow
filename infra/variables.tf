@@ -336,3 +336,17 @@ variable "bedrock_generation_temperature" {
     error_message = "Generation temperature must be between 0 and 1."
   }
 }
+
+variable "rag_retrieval_mode" {
+  description = "Retrieval strategy used by the RAG service."
+  type        = string
+  default     = "vector"
+
+  validation {
+    condition = contains(
+      ["vector", "hybrid"],
+      var.rag_retrieval_mode
+    )
+    error_message = "rag_retrieval_mode must be vector or hybrid."
+  }
+}

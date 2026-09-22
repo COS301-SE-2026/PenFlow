@@ -94,6 +94,38 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false
+    },
+    {
+    "clientId": "penflow-user-provisioner",
+    "name": "PenFlow User Provisioner",
+    "enabled": true,
+
+    "protocol": "openid-connect",
+    "publicClient": false,
+    "clientAuthenticatorType": "client-secret",
+    "secret": "${KEYCLOAK_PROVISIONER_CLIENT_SECRET}",
+
+    "standardFlowEnabled": false,
+    "implicitFlowEnabled": false,
+    "directAccessGrantsEnabled": false,
+    "serviceAccountsEnabled": true,
+    "fullScopeAllowed": false
+  }
+  ],
+
+  "users": [
+    {
+      "username": "service-account-penflow-user-provisioner",
+      "enabled": true,
+      "serviceAccountClientId": "penflow-user-provisioner",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users",
+          "view-realm"
+        ]
+      }
     }
   ]
 }

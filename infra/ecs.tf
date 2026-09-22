@@ -89,7 +89,11 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name  = "BEDROCK_GENERATION_TEMPERATURE"
           value = tostring(var.bedrock_generation_temperature)
-        }
+        },
+        {
+          name  = "RAG_RETRIEVAL_MODE"
+          value = var.rag_retrieval_mode
+        },
       ]
 
       secrets = [
