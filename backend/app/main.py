@@ -12,6 +12,7 @@ from app.api.routes import (
     domains,
     engagements,
     findings,
+    graph,
     health,
     internal,
     notifications,
@@ -51,6 +52,7 @@ API_V1_PREFIX = "/api/v1"
 
 app.include_router(health.router, prefix=API_V1_PREFIX)
 app.include_router(scans.router, prefix=API_V1_PREFIX)
+app.include_router(graph.router, prefix=API_V1_PREFIX)
 app.include_router(stream.router, prefix=API_V1_PREFIX)
 app.include_router(internal.router, prefix=API_V1_PREFIX)
 app.include_router(users.router, prefix=API_V1_PREFIX)
