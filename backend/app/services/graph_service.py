@@ -544,4 +544,94 @@ class GraphService:
             edges=neighborhood_edges,
         )
 
-    
+    #compare scan method
+    @staticmethod
+    async def compare_scans(
+        db: AsyncSession,
+        current_scan: Scan,
+        previous_scan: Scan,
+    ) -> GraphCompareResponse:
+        if normalize_text(current_scan.domain) != normalize_text(previous_scan.domain):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Scans are for different domains and are not comparable.",
+            )
+
+        current = await GraphService._load_graph_data(db, current_scan)
+        previous = await GraphService._load_graph_data(db, previous_scan)
+
+        current_by_key = {current.logical_key[n.id]: n for n in current.nodes}
+        previous_by_key = {previous.logical_key[n.id]: n for n in previous.nodes}
+
+        current_keys = set(current_by_key)
+        previous_keys = set(previous_by_key)
+
+        added_nodes = [current_by_key[k].id for k in sorted(current_keys - previous_keys)]
+        removed_nodes = [previous_by_key[k].id for k in sorted(previous_keys - current_keys)]
+
+        changed_nodes: list[GraphNodeChange] = []
+        for key in sorted(current_keys & previous_keys):
+            current_node = current_by_key[key]
+            previous_node = previous_by_key[key]
+            changes: dict[str, GraphChangedValue] = {}
+
+            if current_node.risk.finding_count != previous_node.risk.finding_count:
+                changes["finding_count"] = GraphChangedValue(
+                    previous=previous_node.risk.finding_count,
+                    current=current_node.risk.finding_count,
+                )
+
+            if current_node.risk.severity != previous_node.risk.severity:
+                changes["severity"] = GraphChangedValue(
+                    previous=previous_node.risk.severity,
+                    current=current_node.risk.severity,
+                )
+
+            if changes:
+                changed_nodes.append(GraphNodeChange(node_id=key, changes=changes))
+
+        def _edge_key(edge: GraphEdge, logical_key: dict[str, str]) -> str:
+            return f"{edge.type}:{logical_key[edge.source]}->{logical_key[edge.target]}"
+
+        current_edge_by_key = {
+            _edge_key(e, current.logical_key): e for e in current.edges
+        }
+        previous_edge_by_key = {
+            _edge_key(e, previous.logical_key): e for e in previous.edges
+        }
+
+        added_edges = [
+            current_edge_by_key[k].id
+            for k in sorted(set(current_edge_by_key) - set(previous_edge_by_key))
+        ]
+        removed_edges = [
+            previous_edge_by_key[k].id
+            for k in sorted(set(previous_edge_by_key) - set(current_edge_by_key))
+        ]
+
+        current_findings = current.findings_by_node.get(f"domain:{current_scan.domain}", [])
+        previous_findings = previous.findings_by_node.get(
+            f"domain:{previous_scan.domain}", []
+        )
+
+        risk_change = {
+            "critical_findings": GraphChangedValue(
+                previous=sum(1 for f in previous_findings if f.severity == Severity.CRITICAL),
+                current=sum(1 for f in current_findings if f.severity == Severity.CRITICAL),
+            ),
+            "high_findings": GraphChangedValue(
+                previous=sum(1 for f in previous_findings if f.severity == Severity.HIGH),
+                current=sum(1 for f in current_findings if f.severity == Severity.HIGH),
+            ),
+        }
+
+        return GraphCompareResponse(
+            current_scan_id=current_scan.id,
+            previous_scan_id=previous_scan.id,
+            added_nodes=added_nodes,
+            removed_nodes=removed_nodes,
+            changed_nodes=changed_nodes,
+            added_edges=added_edges,
+            removed_edges=removed_edges,
+            risk_change=risk_change,
+        )
