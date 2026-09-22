@@ -426,3 +426,76 @@ class GraphService:
             ),
             concentrations=concentrations,
         )
+
+    @staticmethod
+    async def get_paths(
+        db: AsyncSession,
+        scan: Scan,
+        *,
+        severity: str | None = None,
+        finding_id: UUID | None = None,
+        asset_id: UUID | None = None,
+        limit: int = 10,
+    ) -> GraphPathsResponse:
+        data = await GraphService._load_graph_data(db, scan)
+
+        #each node can only have 1 parent
+        #1 edge pointing up to each container
+        #graph is a set of trees with no loop mean
+        #tracking a domainn is a simple walk upwards
+        predecessor: dict[str, GraphEdge] = {e.target: e for e in data.edges}
+
+        finding_nodes = [n for n in data.nodes if n.type == "finding"]
+
+        if severity is not None:
+            min_rank = _SEVERITY_ORDER[Severity(severity)]
+            finding_nodes = [
+                n for n in finding_nodes
+                if n.risk.severity is not None
+                and _SEVERITY_ORDER[Severity(n.risk.severity)] >= min_rank
+            ]
+
+        if finding_id is not None:
+            finding_nodes = [n for n in finding_nodes if n.entity_id == finding_id]
+
+        finding_nodes.sort(
+            key=lambda n: (
+                _SEVERITY_ORDER[Severity(n.risk.severity)] if n.risk.severity else -1,
+                n.risk.max_cvss or 0,
+            ),
+            reverse=True,
+        )
+
+        paths: list[GraphPath] = []
+        for n in finding_nodes:
+            path_node_ids = [n.id]
+            path_edge_ids: list[str] = []
+            current = n.id
+            while current in predecessor:
+                edge = predecessor[current]
+                path_edge_ids.append(edge.id)
+                path_node_ids.append(edge.source)
+                current = edge.source
+            path_node_ids.reverse()
+            path_edge_ids.reverse()
+
+            if asset_id is not None:
+                asset_node_id = f"asset:{asset_id}"
+                if asset_node_id not in path_node_ids:
+                    continue
+
+            paths.append(
+                GraphPath(
+                    id=f"risk-path-{len(paths) + 1}",
+                    risk=n.risk,
+                    nodes=path_node_ids,
+                    edges=path_edge_ids,
+                )
+            )
+
+            if len(paths) >= limit:
+                break
+
+        return GraphPathsResponse(paths=paths)
+
+    
