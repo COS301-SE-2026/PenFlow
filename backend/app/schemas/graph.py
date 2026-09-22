@@ -39,7 +39,7 @@ class GraphResponse(BaseModel):
     domain: str
     generated_at: datetime
     nodes: list[GraphNode]
-    edge: list[GraphEdge]
+    edges: list[GraphEdge]
 
 class GraphFindingSummary(BaseModel):
     id: UUID
@@ -62,7 +62,7 @@ class GraphNodeDetailResponse(BaseModel):
 class GraphSummaryCounts(BaseModel):
     domains: int
     assets: int
-    service: int
+    services: int
     technologies: int
     findings: int
     edges: int
@@ -96,7 +96,7 @@ class GraphPath(BaseModel):
     edges: list[str]
 
 class GraphPathsResponse(BaseModel):
-    path: list[GraphPath]
+    paths: list[GraphPath]
 
 class GraphNeighborhoodResponse(BaseModel):
     root_node_id: str
@@ -118,6 +118,6 @@ class GraphCompareResponse(BaseModel):
     added_nodes: list[str]
     removed_nodes: list[str]
     changed_nodes: list[GraphNodeChange]
-    added_nodes: list[str]
-    removed_nodes: list[str]
-    ris_change: dict[str, GraphChangedValue]
+    added_edges: list[str]
+    removed_edges: list[str]
+    risk_change: dict[str, GraphChangedValue]
