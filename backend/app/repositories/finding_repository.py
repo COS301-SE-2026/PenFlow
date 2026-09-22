@@ -202,7 +202,9 @@ class FindingRepository:
         finding_id: UUID,
         engagement_id: UUID,
     ) -> Finding | None:
-        stmt = select(Finding).where(
+        stmt = select(Finding).options(
+            selectinload(Finding.evidence_files),
+        ).where(
             Finding.id == finding_id,
             Finding.engagement_id == engagement_id,
         )

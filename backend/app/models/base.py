@@ -89,6 +89,7 @@ class EngagementStatus(str, enum.Enum):
     IN_PROGRESS = "in_progress"
     REVIEW = "review"
     COMPLETED = "completed"
+    RETESTING = "retesting"
     CANCELLED = "cancelled"
 
 class RetestStatus(str, enum.Enum):

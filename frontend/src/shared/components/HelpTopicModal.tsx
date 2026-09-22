@@ -20,6 +20,8 @@ export default function HelpTopicModal({topic, onClose}: HelpTopicModalProps) {
     }, [topic, onClose]);
 
     if(!topic) return null;
+    const accent = topic.accent ?? "info";
+    const Icon = topic.icon;
 
     return (
         <>
@@ -30,13 +32,20 @@ export default function HelpTopicModal({topic, onClose}: HelpTopicModalProps) {
                 onClick={onClose}
             />
 
-            <div className={styles.modal}
+            <div className={`${styles.modal} ${styles[`accent-${accent}`] ?? ""}`}
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="help-topic-title"
                 >
                     <div className={styles.header}>
-                        <h2 id="help-topic-title" className={styles.title}>{topic.title}</h2>
+                        <div className={styles.headerText}>
+                            {Icon && (
+                                <span className={`${styles.iconBadge} ${styles[`badge-${accent}`] ?? ""}`}>
+                                    <Icon size={18} />
+                                </span>
+                            )}
+                            <h2 id="help-topic-title" className={styles.title}>{topic.title}</h2>
+                        </div>
                         <button type="button" className={styles.closeBtn} aria-label="Close" onClick = {onClose}>
                             &times;
                         </button>

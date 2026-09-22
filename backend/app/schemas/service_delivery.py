@@ -13,6 +13,7 @@ from app.models.base import (
     Severity,
 )
 from app.schemas.engagement import EngagementAssetResponse, EngagementPagination, UserSummary
+from app.schemas.finding import EvidenceFileResponse
 
 
 class ServiceDeliveryScopingUpdate(BaseModel):
@@ -287,3 +288,4 @@ class ServiceDeliveryFindingDetail(BaseModel):
 
     created_by: UUID | None = None
     created_at: datetime
+    evidence_files: list[EvidenceFileResponse] = []

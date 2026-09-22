@@ -29,8 +29,18 @@ from app.schemas.engagement import (
     MarkMessagesReadResponse,
     SortOrder,
 )
-from app.schemas.finding import FindingCreate, FindingListItem, FindingListResponse
-from app.schemas.retest import RetestListResponse
+from app.schemas.finding import (
+    ClientFindingListResponse,
+    FindingCreate,
+    FindingListItem,
+    FindingListResponse,
+)
+from app.schemas.retest import (
+    RetestBulkCreate,
+    RetestBulkCreateResponse,
+    RetestEligibleFindingsResponse,
+    RetestListResponse,
+)
 from app.services.engagement_service import EngagementService
 from app.services.report_service import queue_engagement_report_generation
 from app.utils.db import get_db
@@ -210,7 +220,58 @@ async def get_engagement_retests(
         user_id=user.id,
     )
 
-
+@router.get(
+    "/{engagement_id}/client-findings",
+    response_model=ClientFindingListResponse,
+    summary="List published findings with retest status for the client view",
+)
+async def get_client_findings(
+    engagement_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),
+)-> ClientFindingListResponse:
+    user = await resolve_user(db, current_user)
+    return await EngagementService.list_client_findings(
+        db,
+        engagement_id=engagement_id,
+        user_id=user.id,
+    )
+#eligible finding is finding that is filtered 
+@router.get(
+    "/{engagement_id}/retests/eligible-findings",
+    response_model=RetestEligibleFindingsResponse,
+    summary="List findings eligible for a retest request",
+)
+async def get_retest_eligible_findings(
+    engagement_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> RetestEligibleFindingsResponse:
+    user = await resolve_user(db, current_user)
+    return await EngagementService.list_retest_eligible_findings(
+        db,
+        engagement_id=engagement_id,
+        user_id=user.id,
+    )
+@router.post(
+    "/{engagement_id}/retests",
+    response_model=RetestBulkCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Request a retest for one or more findings",
+)
+async def create_engagement_retests(
+    engagement_id: UUID,
+    request: RetestBulkCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict[str, Any] = Depends(get_current_user),
+) -> RetestBulkCreateResponse:
+    user = await resolve_user(db, current_user)
+    return await EngagementService.request_retest(
+        db,
+        engagement_id=engagement_id,
+        user_id=user.id,
+        finding_ids=request.finding_ids,
+    )
 @router.get(
     "/{engagement_id}/messages",
     response_model=EngagementMessageListResponse,
@@ -304,6 +365,17 @@ async def get_engagement_report(
     db: AsyncSession = Depends(get_db),
     current_user: dict[str, Any] = Depends(get_current_user), 
 ) -> dict[str, Any]:
+    user = await resolve_user(db, current_user)
+    engagement = await EngagementService.require_viewable_engagement(
+        db,
+        engagement_id=engagement_id,
+        user_id=user.id,
+    )
+    # clients can only see/download the report once the engagement is complete or retesting
+    is_client = engagement.requested_by == user.id
+    allowed_client_statuses = (EngagementStatus.COMPLETED, EngagementStatus.RETESTING)
+    if is_client and engagement.status not in allowed_client_statuses:
+        raise HTTPException(status_code=404, detail="Report not found for this engagement.")
 
     report = await get_by_engagement_and_version(db, engagement_id, version) 
     if not report:
