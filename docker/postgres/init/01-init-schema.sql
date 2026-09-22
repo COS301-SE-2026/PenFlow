@@ -115,6 +115,48 @@ CREATE TYPE retest_status AS ENUM (
     'still_vulnerable'
 );
 
+CREATE TYPE brand_risk_level AS ENUM (
+    'low',
+    'medium',
+    'high',
+    'critical'
+);
+
+CREATE TYPE brand_candidate_status AS ENUM (
+    'new',
+    'under_review',
+    'confirmed_impersonation',
+    'false_positive', 
+    'resolved'
+);
+
+CREATE TABLE brand_monitoring (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    verified_domain_id UUID NOT NULL UNIQUE REFERENCES verified_domains(id) ON DELETE CASCADE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    last_run_at TIMESTAMPTZ, 
+    next_run_at TIMESTAMPTZ, 
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE brand_candidates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    brand_monitoring_id UUID NOT NULL REFERENCES brand_monitoring(id) ON DELETE CASCADE,
+    candidate_domain VARCHAR(255) NOT NULL,
+    normalized_domain VARCHAR(255) NOT NULL,
+    risk_score INTEGER NOT NULL DEFAULT 0,
+    risk_level brand_risk_level NOT NULL DEFAULT 'low',
+    status brand_candidate_status NOT NULL DEFAULT 'new',
+    evidence JSONB NOT NULL DEFAULT '{}'::jsonb, 
+    first_seen TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    resolved_at TIMESTAMPTZ,
+
+    UNIQUE (brand_monitoring_id, normalized_domain), 
+    CHECK (risk_score >= 0 AND risk_score <= 100)
+);
+
 CREATE TABLE organisations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
@@ -469,6 +511,11 @@ CREATE TABLE finding_retests (
     requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     completed_at TIMESTAMPTZ
 );
+
+CREATE INDEX idx_brand_monitoring_domain ON brand_monitoring(verified_domain_id);
+CREATE INDEX idx_brand_candidates_monitor_id ON brand_candidates(brand_monitoring_id);
+CREATE INDEX idx_brand_candidates_status ON brand_candidates(status);
+CREATE INDEX idx_brand_candidates_risk ON brand_candidates(risk_level);
 
 CREATE INDEX idx_users_org_id ON users(organisation_id);
 
