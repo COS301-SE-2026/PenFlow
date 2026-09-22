@@ -498,4 +498,50 @@ class GraphService:
 
         return GraphPathsResponse(paths=paths)
 
+    @staticmethod
+    async def get_neighborhood(
+        db: AsyncSession,
+        scan: Scan,
+        node_id: str,
+        *,
+        depth: int = 2,
+    ) -> GraphNeighborhoodResponse:
+        data = await GraphService._load_graph_data(db, scan)
+
+        if not any(n.id == node_id for n in data.nodes):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Graph node not found.",
+            )
+
+        adjacency: dict[str, list[str]] = {}
+        for e in data.edges:
+            adjacency.setdefault(e.source, []).append(e.target)
+            adjacency.setdefault(e.target, []).append(e.source)
+
+        visited = {node_id}
+        frontier = {node_id}
+        for _ in range(depth):
+            next_frontier: set[str] = set()
+            for nid in frontier:
+                for neighbor in adjacency.get(nid, []):
+                    if neighbor not in visited:
+                        visited.add(neighbor)
+                        next_frontier.add(neighbor)
+            if not next_frontier:
+                break
+            frontier = next_frontier
+
+        neighborhood_nodes = [n for n in data.nodes if n.id in visited]
+        neighborhood_edges = [
+            e for e in data.edges if e.source in visited and e.target in visited
+        ]
+
+        return GraphNeighborhoodResponse(
+            root_node_id=node_id,
+            depth=depth,
+            nodes=neighborhood_nodes,
+            edges=neighborhood_edges,
+        )
+
     
