@@ -28,7 +28,7 @@ type NavItem =
     {label: "Home", href: "/", kind: "link"},
     { label: "Engagements Request", href: "/engagement_request", kind: "link"},
     {label: "Live Engagement", href: "/pentesting/engagement", kind: "link"},
-    //{ label: "Help", kind: "help"},
+    { label: "Help", kind: "help"},
     { label: "Logout", href: "/api/auth/logout", kind: "external"},
   ]
 
@@ -36,7 +36,7 @@ type NavItem =
     //{ label: "Home", href: "/", kind: "link"},
     { label: "My Engagements", href: "/pentesting/console/my-engagements", kind: "link"},
     { label: "Messages", href: "/pentesting/console/messages", kind: "link"},
-    //{ label: "Help", kind: "help"},
+    { label: "Help", kind: "help"},
     { label: "Logout", href: "/api/auth/logout", kind: "external"},
   ]
 
