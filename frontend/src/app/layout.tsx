@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bebas_Neue, Rajdhani } from "next/font/google";
 import "./globals.css";
+import AskPenFlow from "@/shared/components/AskPenFlow";
 import AuthRefresher from "@/shared/components/AuthRresher";
 
 const displayFont = Bebas_Neue({
@@ -31,6 +32,7 @@ export default function RootLayout({
 
         <AuthRefresher/>
         {children}
+        <AskPenFlow/>
       </body>
     </html>
   );
