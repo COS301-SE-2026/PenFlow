@@ -56,6 +56,7 @@ celery_app = Celery(
         "app.tasks.cpe_resolver_task",
         "app.tasks.cve_task",
         "app.tasks.full_scan_tasks",
+        "app.task.brand_monitoring_tasks",
     ],
 )
 
