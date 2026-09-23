@@ -13,7 +13,7 @@ class BrandIntelligenceService:
         self.db = db 
 
     def trigger_monitoring_run(self, verified_domain_id: uuid.UUID) -> BrandMonitoring:
-        domain_record = self.db(VerifiedDomain, verified_domain_id)
+        domain_record = self.db.get(VerifiedDomain, verified_domain_id)
         if not domain_record:
             raise ValueError("Verified domain not found")
 

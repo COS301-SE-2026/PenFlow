@@ -51,7 +51,7 @@ def update_candidate_status(
     except ValueError as err:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(err))
 
-@router.post("/integrate/ingest", status_code=status.HTTP_200_OK)
+@router.post("/internal/ingest", status_code=status.HTTP_200_OK)
 def ingest_monitoring_results(
     payload: BrandIngestionPayload,
     db: Session = Depends(get_db),

@@ -3,7 +3,7 @@ import enum
 from datetime import datetime, timezone 
 
 from sqlalchemy import DateTime, Enum, ForeignKey, String, Integer, JSON, UniqueConstraint, Boolean
-from sqlalchemy.dialect.postgresql import UUID, JSONB 
+from sqlalchemy.dialects.postgresql import UUID, JSONB 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base 
@@ -32,7 +32,7 @@ class BrandMonitoring(Base):
 
     verified_domain_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("verified_domain.id", ondelete="CASCADE"),
+        ForeignKey("verified_domains.id", ondelete="CASCADE"),
         nullable=False, 
         unique=True,
         index=True,
@@ -95,7 +95,7 @@ class BrandCandidate(Base):
     status: Mapped[BrandCandidateStatus] = mapped_column(
         Enum(
             BrandCandidateStatus,
-            value_callable=lambda e: [i.value for i in e],
+            values_callable=lambda e: [i.value for i in e],
             name="brand_candidate_status",
         ),
         nullable=False,
@@ -106,7 +106,7 @@ class BrandCandidate(Base):
     evidence: Mapped[dict] = mapped_column(
         JSONB,
         nullable=False,
-        deault=dict,
+        default=dict,
     )
 
     first_seen: Mapped[datetime] = mapped_column(

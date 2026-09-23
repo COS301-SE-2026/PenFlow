@@ -5,7 +5,7 @@ from typing import Any
 
 from app.queue.celery_app import celery_app 
 from app.services.typosquat_service import TyposquatService 
-from app.services.brand_signals_service import BrandSignalService 
+from app.services.brand_signal_service import BrandSignalService 
 from app.services.brand_scoring_service import BrandScoringService 
 
 logger = logging.getLogger(__name__)
@@ -25,7 +25,7 @@ BACKEND_API_URL = os.getenv(
 def run_brand_monitoring_task(self: Any, brand_monitoring_id: str, domain: str) -> dict[str, Any]:
     logger.info(f"[BrandMonitor] Starting brand impersonation scan for: {domain}")
 
-    mutation = TyposquatService.generate_candidates(domain)
+    mutations = TyposquatService.generate_candidates(domain)
     logger.info(f"[BrandMonitor] Generated {len(mutation)} permutation candidates for {domain}")
 
     discovered_candidates = [] 

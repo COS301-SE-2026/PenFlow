@@ -94,3 +94,4 @@ yarl==1.23.0
 zopfli==0.4.1
 python-nmap==0.7.1
 types-python-nmap==0.7.1.20260508
+tldextract

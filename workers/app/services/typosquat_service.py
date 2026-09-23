@@ -22,7 +22,7 @@ SECURITY_KEYWORDS: list[str] = [
     "account",
 ]
 
-class TyposqautService:
+class TyposquatService:
     @staticmethod
     def extract_domain_parts(domain: str) -> tuple[str, str]:
         """

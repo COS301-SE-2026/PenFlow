@@ -1,7 +1,7 @@
 # type: ignore
 import os
 
-from app.api.routes.brand_intelligence import routes as brand_router
+from app.api.routes.brand_intelligence import router as brand_router
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

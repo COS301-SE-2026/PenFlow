@@ -36,7 +36,7 @@ class BrandSignalService:
             ctx = ssl.create_default_context()
             ctx.check_hostname = False 
             ctx.verify_mode = ssl.CERT_NONE 
-            with socket.create_connection((domain, 443), timeouts=2.0) as sock:
+            with socket.create_connection((domain, 443), timeout=2.0) as sock:
                 with ctx.wrap_socket(sock, server_hostname=domain) as ssock:
                     cert = ssock.getpeercert()
                     signals["has_tls"] = True 
