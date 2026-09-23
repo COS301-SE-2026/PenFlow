@@ -1,6 +1,8 @@
 # type: ignore
 import os
 
+from app.api.routes.brand_intelligence import routes as brand_router
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
@@ -64,3 +66,4 @@ app.include_router(reports.router, prefix=API_V1_PREFIX)
 app.include_router(service_delivery.router, prefix=API_V1_PREFIX)
 app.include_router(notifications.router, prefix=API_V1_PREFIX)
 app.include_router(scan_schedules.router, prefix=API_V1_PREFIX)
+app.include_router(brand_router, prefix="/api/v1")
