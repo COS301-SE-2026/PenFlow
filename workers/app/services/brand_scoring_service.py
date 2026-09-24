@@ -7,6 +7,8 @@ WEIGHTS = {
     "homoglyph": 15, 
     "keyword": 20,
     "omission_or_transposition": 10,
+    "tld_swap": 15, 
+    "newly_registered": 25,
 }
 
 class BrandScoringService:
@@ -17,7 +19,7 @@ class BrandScoringService:
 
         if signals.get("is_resolvable"):
             score += WEIGHTS["is_resolvable"]
-            reasons.append(f"Domain resolves to active IP(s): {', '.join(signals['ip_addresses'])}")
+            reasons.append(f"Domain resolves to active IP(s): {', '.join(signals['ip_addresses'][:2])}")
 
         if signals.get("has_mx"):
             score += WEIGHTS["has_mx"]
@@ -27,6 +29,10 @@ class BrandScoringService:
             score += WEIGHTS["has_tls"]
             reasons.append("HTTPS/TLS enabled on port 443")
 
+        if signals.get("is_newly_registered"):
+            score += WEIGHTS["newly_registered"]
+            reasons.append(f"Smoking Gun: Domain is newly registered ({signals.get('days_old')} days old)")
+
         mutation_type = candidate.get("mutation_type", "")
         if mutation_type == "homoglyph":
             score += WEIGHTS["homoglyph"]
@@ -34,6 +40,9 @@ class BrandScoringService:
         elif "keyword" in mutation_type:
             score += WEIGHTS["keyword"]
             reasons.append(f"Contains sensitive phishing keyword: {candidate.get('mutation_detail')}")
+        elif mutation_type == "tld_swap":
+            score += WEIGHTS["tld_swap"]
+            reasons.append(f"TLD Impersonation: {candidate.get('mutation_detail')}")
         else:
             score += WEIGHTS["omission_or_transposition"]
             reasons.append(f"Lexical variation: {candidate.get('mutation_detail')}")
@@ -56,6 +65,7 @@ class BrandScoringService:
                 "resolvable": signals.get("is_resolvable", False),
                 "mx_enabled": signals.get("has_mx", False),
                 "tls_enabled": signals.get("has_tls", False),
+                "newly_registered": signals.get("is_newly_registered", False),
             },
         }
 

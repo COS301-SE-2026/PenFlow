@@ -26,7 +26,7 @@ def run_brand_monitoring_task(self: Any, brand_monitoring_id: str, domain: str) 
     logger.info(f"[BrandMonitor] Starting brand impersonation scan for: {domain}")
 
     mutations = TyposquatService.generate_candidates(domain)
-    logger.info(f"[BrandMonitor] Generated {len(mutation)} permutation candidates for {domain}")
+    logger.info(f"[BrandMonitor] Generated {len(mutations)} permutation candidates for {domain}")
 
     discovered_candidates = [] 
 

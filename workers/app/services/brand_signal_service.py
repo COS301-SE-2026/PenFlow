@@ -1,6 +1,9 @@
 import socket 
 import ssl 
 import dns.resolver 
+import whois
+import requests 
+from datetime import datetime
 from typing import Any 
 
 class BrandSignalService:
@@ -13,6 +16,11 @@ class BrandSignalService:
             "mx_records": [],
             "has_tls": False,
             "tls_issuer": None,
+            "creation_date": None, 
+            "days_old": None,
+            "is_newly_registered": False,
+            "geo_location": None, 
+            "isp": None,
         }
 
         try:
@@ -24,6 +32,15 @@ class BrandSignalService:
 
         if not signals["is_resolvable"]:
             return signals 
+
+        try:
+            primary_ip = signals["ip_addresses"][0]
+            resp = requests.get(f"http://ip-api.com/json/{primary_ip}", timeout=2.0).json
+            if resp.get("status") == "success":
+                signals["geo_location"] = f"{resp.get('city', 'Unknown')}, {resp.get('countryCode', '')}"
+                signals["isp"] = resp.get("isp")
+        except Exception:
+            pass
 
         try:
             mx_answers = dns.resolver.resolve(domain, "MX", lifetime=2.0)
@@ -43,4 +60,15 @@ class BrandSignalService:
                     signals["tls_issuer"] = str(cert.get("issuer", ""))
         except Exception:
             pass
+
+        try:
+            w = whois.whois(domain)
+            if w.creation_date:
+                creation = w.creation_date[0] if isinstance(w.creation_date, list) else w.creation_date
+                signals["creation_date"] = creation.isoformat()
+                signals["days_old"] = (datetime.now() - creation).days
+                signals["is_newly_registered"] = signals["days_old"] < 30
+        except Exception:
+            pass 
+
         return signals

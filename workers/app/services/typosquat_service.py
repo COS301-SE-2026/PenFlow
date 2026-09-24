@@ -2,13 +2,32 @@ import tldextract
 from typing import Any 
 
 HOMOGLYPHS: dict[str, list[str]] = {
-    "a": ["4", "@"],
-    "e": ["3"],
-    "i": ["1", "l", "!"],
-    "l": ["1", "i"],
-    "o": ["0"],
-    "s": ["5", "$"],
-    "t": ["7"],
+    "a": ["4", "@", "q", "c", "o"],
+    "b": ["8", "6", "d", "p", "q"],
+    "c": ["e", "o", "k"],
+    "d": ["b", "p", "q", "cl"],
+    "e": ["3", "c", "a", "o"],
+    "f": ["t"],
+    "g": ["q", "9", "6"],
+    "h": ["b", "n"],
+    "i": ["1", "l", "!", "j", "y"],
+    "j": ["i", "y"],
+    "k": ["x", "h"],
+    "l": ["1", "i", "|", "I"],
+    "m": ["rn", "n", "nn"],
+    "n": ["m", "h", "r"],
+    "o": ["0", "c", "q", "p", "d"],
+    "p": ["q", "o", "b"],
+    "q": ["g", "p", "9"],
+    "r": ["n", "t"],
+    "s": ["5", "$", "z", "c"],
+    "t": ["7", "f", "l"],
+    "u": ["v", "y", "w"],
+    "v": ["u", "w", "y"],
+    "w": ["vv", "v", "u"],
+    "x": ["k", "y"],
+    "y": ["j", "i", "v", "u"],
+    "z": ["2", "s"],
 }
 
 SECURITY_KEYWORDS: list[str] = [
@@ -20,7 +39,52 @@ SECURITY_KEYWORDS: list[str] = [
     "support",
     "admin",
     "account",
+    "sso",
+    "mfa",
+    "2fa", 
+    "okta",
+    "reset",
+    "password",
+    "enrollment",
+    "service",
+    "helpdesk",
+    "security",
+    "it",
+    "mail",
+    "webmail",
+    "cloud",
+    "app",
+    "dev",
+    "test",
+    "stage",
+    "api",
+    "dashboard",
+    "status",
+    "vpn",
+    "gateway",
+    "connect",
+    "network",
+    "update",
+    "billing",
+    "payments",
+    "invoice",
+    "pay",
+    "checkout",
+    "alert",
+    "checkout",
+    "alert",
+    "notice",
+    "docs"
 ]
+
+SUSPICIOUS_TLDS: list[str] = [
+    "co", "net", "io", "xyz",
+    "online", "ai", "shop", "tech", "info",
+    "net", "org", "app", "dev", "cloud", "network,"
+    "space", "online", "biz", "name", "pro", "cc",
+    "tv", "ws", "me", "pw", "top", "club", "site",
+    "vip", "win", "bid", "review", "download", "zip",
+    "click", "link", "website", "store", "cam", "icu"]
 
 class TyposquatService:
     @staticmethod
@@ -66,5 +130,9 @@ class TyposquatService:
             _add(f"{name}-{kw}.{suffix}", "keyword_suffix", f"Appended keyword '-{kw}'")
             _add(f"{kw}-{name}.{suffix}", "keyword_prefix", f"Prepend keyword '{kw}-'")
             _add(f"{name}{kw}.{suffix}", "keyword_affix", f"Concatenated keyword '{kw}'")
+
+        for tld in SUSPICIOUS_TLDS:
+            if tld != suffix:
+                _add(f"{name}.{tld}", "tld_swap", f"Swapped original TLD for '.{tld}'")
 
         return list(candidates.values())
