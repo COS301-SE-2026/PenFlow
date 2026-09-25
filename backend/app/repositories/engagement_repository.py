@@ -199,7 +199,8 @@ class EngagementRepository:
         if user_role in {"pentester", "admin"}:
             query = query.where(Engagement.assigned_to == user_id)
             count_query = count_query.where(Engagement.assigned_to == user_id)
-        else:
+
+        elif user_role != "service_delivery":
             query = query.where(Engagement.requested_by == user_id)
             count_query = count_query.where(Engagement.requested_by == user_id)
 
@@ -261,7 +262,8 @@ class EngagementRepository:
 
         if user_role in {"pentester", "admin"}:
             query = query.where(Engagement.assigned_to == user_id)
-        else:
+
+        elif user_role != "service_delivery":
             query = query.where(Engagement.requested_by == user_id)
 
         query = query.group_by(Engagement.status)

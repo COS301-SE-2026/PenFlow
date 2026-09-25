@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from uuid import UUID
 
 from sqlalchemy import case, func, select
@@ -384,6 +385,49 @@ class FindingRepository:
             ).where(
                 Finding.scan_id == scan_id,
             ).order_by(
+                Finding.id.asc(),
+            )
+        )
+
+        result = await db.execute(stmt)
+
+        return list(result.scalars().all())
+
+
+    @staticmethod
+    async def list_active_for_scans(
+        db: AsyncSession,
+        scan_ids: Sequence[UUID],
+    ) -> list[Finding]:
+        if not scan_ids:
+            return []
+
+        severity_rank = case(
+            (Finding.severity == Severity.CRITICAL, 5),
+            (Finding.severity == Severity.HIGH, 4),
+            (Finding.severity == Severity.MEDIUM, 3),
+            (Finding.severity == Severity.LOW, 2),
+            else_=1,
+        )
+
+        stmt = (
+            select(Finding).options(
+                selectinload(Finding.scan),
+                selectinload(Finding.asset),
+                selectinload(Finding.service),
+            ).where(
+                Finding.scan_id.in_(scan_ids),
+                Finding.status.in_(
+                    [
+                        FindingStatus.OPEN,
+                        FindingStatus.IN_PROGRESS,
+                    ]
+                ),
+            ).order_by(
+                severity_rank.desc(),
+                Finding.cvss_score.desc().nulls_last(),
+                Finding.is_verified.desc(),
+                Finding.created_at.desc(),
                 Finding.id.asc(),
             )
         )

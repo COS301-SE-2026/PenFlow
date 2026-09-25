@@ -550,6 +550,11 @@ class ScanRepository:
             "scan_type": scan_type,
             "status": scan.status.value,
             "progress": scan.progress,
+            "rag_index_status": scan.rag_index_status.value,
+            "rag_document_schema_version": scan.rag_document_schema_version,
+            "rag_embedding_model": scan.rag_embedding_model,
+            "rag_last_indexed_at": scan.rag_last_indexed_at,
+            "rag_index_failure_reason": scan.rag_index_failure_reason,
             "sources": [
                 {
                     "source_name": source,
@@ -1082,3 +1087,24 @@ class ScanRepository:
         result = await db.execute(stmt)
 
         return result.scalar_one_or_none()
+
+
+    @staticmethod
+    async def list_completed_for_portfolio(
+        db: AsyncSession,
+        user_id: UUID,
+    ) -> list[Scan]:
+        stmt = (
+            select(Scan).where(
+                Scan.user_id == user_id,
+                Scan.status == ScanStatus.COMPLETED,
+            ).order_by(
+                Scan.completed_at.desc().nulls_last(),
+                Scan.created_at.desc(),
+                Scan.id.asc(),
+            )
+        )
+
+        result = await db.execute(stmt)
+
+        return list(result.scalars().all())
