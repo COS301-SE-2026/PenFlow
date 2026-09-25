@@ -16,7 +16,7 @@ class BrandCandidateBase(BaseModel):
 class BrandCandidateIngestItem(BaseModel):
     candidate_domain: str 
     normalized_domain: str 
-    risk_score: int 
+    risk_score: int = Field(ge=0, le=100) 
     risk_level: BrandRiskLevel 
     evidence: dict[str, Any]
 

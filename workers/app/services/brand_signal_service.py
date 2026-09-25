@@ -35,7 +35,7 @@ class BrandSignalService:
 
         try:
             primary_ip = signals["ip_addresses"][0]
-            resp = requests.get(f"http://ip-api.com/json/{primary_ip}", timeout=2.0).json
+            resp = requests.get(f"http://ip-api.com/json/{primary_ip}", timeout=2.0).json()
             if resp.get("status") == "success":
                 signals["geo_location"] = f"{resp.get('city', 'Unknown')}, {resp.get('countryCode', '')}"
                 signals["isp"] = resp.get("isp")
@@ -65,6 +65,7 @@ class BrandSignalService:
             w = whois.whois(domain)
             if w.creation_date:
                 creation = w.creation_date[0] if isinstance(w.creation_date, list) else w.creation_date
+                creation = creation.replace(tzinfo=None)
                 signals["creation_date"] = creation.isoformat()
                 signals["days_old"] = (datetime.now() - creation).days
                 signals["is_newly_registered"] = signals["days_old"] < 30

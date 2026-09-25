@@ -80,7 +80,7 @@ SECURITY_KEYWORDS: list[str] = [
 SUSPICIOUS_TLDS: list[str] = [
     "co", "net", "io", "xyz",
     "online", "ai", "shop", "tech", "info",
-    "net", "org", "app", "dev", "cloud", "network,"
+    "net", "org", "app", "dev", "cloud", "network",
     "space", "online", "biz", "name", "pro", "cc",
     "tv", "ws", "me", "pw", "top", "club", "site",
     "vip", "win", "bid", "review", "download", "zip",

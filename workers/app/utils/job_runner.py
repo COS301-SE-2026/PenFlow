@@ -7,6 +7,15 @@ from typing import Any
 
 logger = logging.getLogger(__name__) 
 
+FARGATE_ENV_VARS = {
+    "BACKEND_URL", "BACKEND_API_URL", "SCAN_MODE"
+}
+
+LOCAL_ENV_VARS = FARGATE_ENV_VARS.union({
+    "URLSCAN_API_KEY", "SHODAN_API_KEY", "HUNTER_API_KEY", 
+    "HIBP_API_KEY", "INTERNAL_WEBHOOK_SECRET"
+})
+
 ALLOWED_ENV_VARS = {
     "BACKEND_URL", "BACKEND_API_URL", "SCAN_MODE", 
     "URLSCAN_API_KEY", "SHODAN_API_KEY", "HUNTER_API_KEY", "HIBP_API_KEY"
@@ -19,7 +28,7 @@ def dispatch_scan_job(tool_name: str, payload: dict[str, Any]) -> bool:
     if environment == "production": 
         return _run_fargate_task(command)
     else:
-        env_vars = {k: v for k, v in os.environ.items() if k in ALLOWED_ENV_VARS}
+        env_vars = {k: v for k, v in os.environ.items() if k in LOCAL_ENV_VARS}
         return _run_local_docker_container(command, env_vars) 
 
 def _run_fargate_task(command: list[str]) -> bool: 
@@ -36,6 +45,12 @@ def _run_fargate_task(command: list[str]) -> bool:
     client = boto3.client('ecs', region_name=os.getenv("AWS_REGION", "af-south-1"))
     logger.info(f"Dispatching Fargate task for: {command[3]}")
 
+    env_vars = [
+        {"name": name, "value": value}
+        for name, value in os.environ.items()
+        if name in FARGATE_ENV_VARS
+    ]
+
     try:
         response = client.run_task(
             cluster=cluster,
@@ -51,7 +66,8 @@ def _run_fargate_task(command: list[str]) -> bool:
             overrides={
                 'containerOverrides': [{
                     'name': 'penflow-worker',
-                    'command': command
+                    'command': command, 
+                    'environment': env_vars
                 }]
             }
         )
@@ -76,8 +92,8 @@ def _run_local_docker_container(command: list[str], env_vars: dict[str, str]) ->
     client = docker.from_env() 
     image_name = os.getenv("WORKER_IMAGE", "penflow-worker:local")
     network_name = os.getenv("DOCKER_NETWORK", "penflow-network")
-
     container = None 
+    
     logger.info(f"Dispatching Local Docker container for: {command[3]}")
     try:
         container = client.containers.run(

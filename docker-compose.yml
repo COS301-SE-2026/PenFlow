@@ -79,6 +79,7 @@ services:
       REPORT_STORAGE: ${REPORT_STORAGE:-local}
       REPORT_OUTPUT_DIR: ${REPORT_OUTPUT_DIR:-/app/generated_reports}
       REPORT_S3_BUCKET: ${REPORT_S3_BUCKET:-}
+      INTERNAL_WEBHOOK_SECRET: ${INTERNAL_WEBHOOK_SECRET:?INTERNAL_WEBHOOK_SECRET must be set in your .env file}
       AWS_REGION: ${AWS_REGION:-af-south-1}
     depends_on:
       rabbitmq:
@@ -134,7 +135,7 @@ services:
       DOCKER_NETWORK: penflow-network
       WORKER_IMAGE: ${WORKER_IMAGE:-penflow-worker:local}
       BACKEND_API_URL: http://backend:3001/api/v1
-      #Remember
+      INTERNAL_WEBHOOK_SECRET: ${INTERNAL_WEBHOOK_SECRET:?INTERNAL_WEBHOOK_SECRET must be set in your .env file}
       BACKEND_URL: http://backend:3001
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
       RABBITMQ_HOST: rabbitmq

@@ -39,7 +39,7 @@ class BrandIntelligenceRepository:
         new_monitor = BrandMonitoring(verified_domain_id=verified_domain_id, is_active=True)
         self.db.add(new_monitor)
         await self.db.commit() 
-        return self.get_monitoring_by_domain_id(verified_domain_id)
+        return await self.get_monitoring_by_domain_id(verified_domain_id)
 
     async def update_run_timestamp(self, monitoring_id: uuid.UUID) -> None:
         stmt = (
@@ -94,6 +94,9 @@ class BrandIntelligenceRepository:
         candidate = await self.db.get(BrandCandidate, candidate_id)
         if not candidate:
             return None
+
+        if status != BrandCandidateStatus.RESOLVED:
+            candidate.resolved_at = None
 
         candidate.status = status
         if status == BrandCandidateStatus.RESOLVED:

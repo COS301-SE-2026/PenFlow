@@ -15,6 +15,8 @@ BACKEND_API_URL = os.getenv(
     "http://penflow-backend.penflow.local:3001/api/v1"
 )
 
+INTERNAL_SECRET = os.getenv("INTERNAL_WEBHOOK_SECRET", "dev_secret_key_123")
+
 @celery_app.task(
     name="brand.monitor_domain",
     bind=True,
@@ -22,7 +24,7 @@ BACKEND_API_URL = os.getenv(
     autoretry_for=(Exception,),
     retry_backoff=True,
 )
-def run_brand_monitoring_task(self: Any, brand_monitoring_id: str, domain: str, token: str) -> dict[str, Any]:
+def run_brand_monitoring_task(self: Any, brand_monitoring_id: str, domain: str) -> dict[str, Any]:
     logger.info(f"[BrandMonitor] Starting brand impersonation scan for: {domain}")
 
     mutations = TyposquatService.generate_candidates(domain)
@@ -54,7 +56,7 @@ def run_brand_monitoring_task(self: Any, brand_monitoring_id: str, domain: str, 
     }
 
     headers = {
-        "Authorization": f"Bearer {token}",
+        "X-Internal-Token": INTERNAL_SECRET,
         "Content-Type": "application/json"
     }
 
