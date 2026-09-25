@@ -12,7 +12,7 @@ class BrandIntelligenceService:
         self.repo = BrandIntelligenceRepository(db)
         self.db = db 
 
-    async def trigger_monitoring_run(self, verified_domain_id: uuid.UUID) -> BrandMonitoring:
+    async def trigger_monitoring_run(self, verified_domain_id: uuid.UUID, token: str) -> BrandMonitoring:
         domain_record = await self.db.get(VerifiedDomain, verified_domain_id)
         if not domain_record:
             raise ValueError("Verified domain not found")
@@ -21,7 +21,7 @@ class BrandIntelligenceService:
 
         celery_app.send_task(
             "brand.monitor_domain",
-            args=[str(monitor.id), domain_record.domain],
+            args=[str(monitor.id), domain_record.domain, token],
         )
 
         return monitor 

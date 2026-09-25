@@ -21,8 +21,7 @@ def run_cpe_resolver_task(
 ) -> JSONDict:
 
     logger.info(
-        f"[CPE_Task] Starting CPE resolution for: {len(software_inventory)} objects.",
-        len(software_inventory),
+        f"[CPE_Task] Starting CPE resolution for: {len(software_inventory)} objects."
     )
 
     resolved_data: list[JSONDict] = []

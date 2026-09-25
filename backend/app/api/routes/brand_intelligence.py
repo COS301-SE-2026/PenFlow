@@ -1,7 +1,10 @@
 import uuid 
 from fastapi import APIRouter, Depends, HTTPException, status 
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession 
+from typing import Annotated, Any
 
+from app.api.middleware.auth import get_current_user
 from app.utils.db import get_db 
 from app.services.brand_intelligence_service import BrandIntelligenceService 
 from app.schemas.brand_intelligence import (
@@ -12,16 +15,22 @@ from app.schemas.brand_intelligence import (
 )
 
 router = APIRouter(prefix="/brand-intelligence", tags=["Brand Intelligence"])
+security_bearer = HTTPBearer()
+
+CurrentUser = Annotated[dict[str, Any], Depends(get_current_user)]
 
 
 @router.post("/trigger/{verified_domain_id}", response_model=BrandMonitoringResponse)
 async def trigger_brand_scan(
     verified_domain_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    auth: HTTPAuthorizationCredentials = Depends(security_bearer),
 ):
     service = BrandIntelligenceService(db)
     try:
-        return await service.trigger_monitoring_run(verified_domain_id)
+        return await service.trigger_monitoring_run(
+            verified_domain_id,
+            token=auth.credentials)
     except ValueError as err:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(err))
 
@@ -54,6 +63,7 @@ async def update_candidate_status(
 @router.post("/internal/ingest", status_code=status.HTTP_200_OK)
 async def ingest_monitoring_results(
     payload: BrandIngestionPayload,
+    current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
 ):
     """

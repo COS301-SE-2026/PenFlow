@@ -22,7 +22,7 @@ BACKEND_API_URL = os.getenv(
     autoretry_for=(Exception,),
     retry_backoff=True,
 )
-def run_brand_monitoring_task(self: Any, brand_monitoring_id: str, domain: str) -> dict[str, Any]:
+def run_brand_monitoring_task(self: Any, brand_monitoring_id: str, domain: str, token: str) -> dict[str, Any]:
     logger.info(f"[BrandMonitor] Starting brand impersonation scan for: {domain}")
 
     mutations = TyposquatService.generate_candidates(domain)
@@ -53,10 +53,16 @@ def run_brand_monitoring_task(self: Any, brand_monitoring_id: str, domain: str) 
         "candidates": discovered_candidates,
     }
 
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
     try:
         response = requests.post(
             f"{BACKEND_API_URL}/brand-intelligence/internal/ingest", 
             json=payload,
+            headers=headers,
             timeout=30,
         )
         response.raise_for_status()
