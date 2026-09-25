@@ -146,7 +146,7 @@ class AssistantAnswerValidator:
         return abs(float(first) - float(second)) < 0.05
 
 
-    @classmethod
+    @staticmethod
     def validate_links(
         links: Iterable[str],
         allowed_links: set[str],

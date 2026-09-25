@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,13 +23,12 @@ from app.schemas.domain import (
 from app.schemas.domain import (
     SortOrder as DomainSortOrder,
 )
-from app.schemas.engagement import EngagementSortField
-from app.schemas.engagement import (
-    SortOrder as EngagementSortOrder,
-)
 from app.services.assistant_conversation import build_routing_text
+from app.services.assistant_engagement_service import (
+    AssistantEngagementIntent,
+    AssistantEngagementService,
+)
 from app.services.domain_service import DomainService
-from app.services.engagement_service import EngagementService
 from app.services.notification_service import NotificationService
 from app.services.scan_schedule_service import ScanScheduleService
 
@@ -42,7 +40,6 @@ class AssistantDataIntent(str, Enum):
     NOTIFICATIONS = "notifications"
     ENGAGEMENTS = "engagements"
     REPORTS = "reports"
-    ENGAGEMENT_CONTEXT = "engagement_context"
     UNKNOWN = "unknown"
 
 
@@ -52,6 +49,7 @@ class AssistantDataResult:
     evidence: str
     sources: list[AssistantSource]
     links: list[AssistantLink]
+    engagement_intent: AssistantEngagementIntent | None = None
 
 
 def enum_value(value: object) -> str:
@@ -79,20 +77,14 @@ def format_datetime(
     )
 
 
-def engagement_href(
-        user_role: str,
-        engagement_id: object,
-) -> str:
-    if user_role == "service_delivery":
-        return f"/service-delivery/engagements/{engagement_id}"
+def engagement_list_href(role: str) -> str:
+    if role == "service_delivery":
+        return "/service-delivery/engagements"
 
-    if user_role == "pentester":
-        return (
-            "/pentesting/console/my-engagements/"
-            f"{engagement_id}/findings"
-        )
+    if role in {"pentester", "admin"}:
+        return "/pentesting/console/my-engagements"
 
-    return f"/pentesting/engagement/{engagement_id}"
+    return "/pentesting/engagement"
 
 
 class AssistantDataService:
@@ -131,8 +123,23 @@ class AssistantDataService:
     ENGAGEMENT_PHRASES = (
         "my engagement",
         "my engagements",
+        "this engagement",
         "engagement status",
         "status of my engagement",
+        "engagements require attention",
+        "engagements need attention",
+        "engagements need scheduling",
+        "engagements awaiting review",
+        "engagements assigned to me",
+        "what should i work on next",
+        "my pentest",
+        "my retest",
+        "engagement report",
+        "which engagements",
+        "engagements are",
+        "no pentester",
+        "who is assigned",
+        "open retest",
     )
 
     REPORT_PHRASES = (
@@ -431,79 +438,6 @@ class AssistantDataService:
 
 
     @staticmethod
-    async def collect_engagements(
-        db: AsyncSession,
-        user: User,
-    ) -> AssistantDataResult:
-        engagements = await EngagementService.list_engagements(
-            db,
-            user_id=user.id,
-            user_role=user.role,
-            engagement_status=None,
-            search=None,
-            sort=EngagementSortField.UPDATED_AT,
-            order=EngagementSortOrder.DESC,
-            limit=5,
-            offset=0,
-        )
-
-        if user.role in {"pentester", "admin"}:
-            engagement_href = "/pentesting/console/my-engagements"
-        else:
-            engagement_href = "/pentesting/engagement"
-
-        lines = [
-            f"Authorized engagement count: {engagements.counts.all}",
-            (
-                "Status totals: "
-                f"requested={engagements.counts.requested}, "
-                f"scoping={engagements.counts.scoping}, "
-                f"scheduled={engagements.counts.scheduled}, "
-                f"in_progress={engagements.counts.in_progress}, "
-                f"review={engagements.counts.review}, "
-                f"completed={engagements.counts.completed}, "
-                f"cancelled={engagements.counts.cancelled}"
-            ),
-        ]
-
-        for engagement in engagements.items:
-            lines.append(
-                (
-                    f"- {engagement.title}; "
-                    f"status={enum_value(engagement.status)}; "
-                    f"priority={engagement.priority}; "
-                    f"assets={engagement.asset_count}; "
-                    f"engagement_id={engagement.id}"
-                )
-            )
-
-        if not engagements.items:
-            lines.append("No engagements are visible to this user.")
-
-        sources = [
-            AssistantSource(
-                source_type=AssistantSourceType.USER_DATA,
-                source_id=str(engagement.id),
-                title=engagement.title,
-                href=engagement_href,
-            )
-            for engagement in engagements.items
-        ]
-
-        return AssistantDataResult(
-            intent=AssistantDataIntent.ENGAGEMENTS,
-            evidence="\n".join(lines),
-            sources=sources,
-            links=[
-                AssistantLink(
-                    label="View engagements",
-                    href=engagement_href,
-                )
-            ],
-        )
-
-
-    @staticmethod
     async def collect_reports(
         db: AsyncSession,
         user: User,
@@ -565,73 +499,116 @@ class AssistantDataService:
 
 
     @staticmethod
-    async def collect_engagement_context(
+    async def collect_engagement_question(
         db: AsyncSession,
         user: User,
-        engagement_id: UUID,
+        request: AssistantQueryRequest,
     ) -> AssistantDataResult:
-        engagement = await EngagementService.get_engagement_detail(
-            db,
-            engagement_id=engagement_id,
-            user_id=user.id,
+        routing_text = build_routing_text(request)
+
+        engagement_intent = (
+            AssistantEngagementService.classify_intent(routing_text)
+        )
+        selected = (
+            request.context.engagement_id is not None
         )
 
-        href = engagement_href(
-            user.role,
-            engagement.id,
-        )
+        detail_only_intents = {
+            AssistantEngagementIntent.FINDINGS,
+            AssistantEngagementIntent.REPORT,
+            AssistantEngagementIntent.RETESTS,
+        }
 
-        lines = [
-            "Selected authorized engagement:",
-            f"- Engagement ID: {engagement.id}",
-            f"- Title: {engagement.title}",
-            f"- Status: {enum_value(engagement.status)}",
-            f"- Priority: {engagement.priority}",
-            f"- Engagement type: {enum_value(engagement.engagement_type)}",
-            f"- Assessment type: {enum_value(engagement.assessment_type)}",
-            f"- Scope: {engagement.scope}",
-            f"- Assets: {engagement.counts.assets}",
-            f"- Manual findings: {engagement.counts.manual_findings}",
-            f"- Automated findings: {engagement.counts.automated_findings}",
-            f"- Requested start: {engagement.requested_start_date}",
-            f"- Scheduled start: {engagement.scheduled_start_date}",
-            f"- Scheduled end: {engagement.scheduled_end_date}",
-            f"- Target date: {engagement.target_date}",
-        ]
+        if selected:
+            engagement_id = (request.context.engagement_id)
 
-        if engagement.recent_findings:
-            lines.append("Recent findings:")
-
-            lines.extend(
-                (
-                    f"- {finding.title}; "
-                    f"severity={enum_value(finding.severity)}; "
-                    f"status={enum_value(finding.status)}; "
-                    f"finding_id={finding.id}"
+            if engagement_id is None:
+                raise RuntimeError(
+                    "Selected engagement ID is missing."
                 )
-                for finding in engagement.recent_findings
+
+            summaries = [
+                await (
+                    AssistantEngagementService.get_engagement_summary(
+                        db,
+                        user=user,
+                        engagement_id=engagement_id,
+                    )
+                )
+            ]
+
+        elif engagement_intent in detail_only_intents:
+            return AssistantDataResult(
+                intent=AssistantDataIntent.ENGAGEMENTS,
+                engagement_intent=engagement_intent,
+                evidence=(
+                    "No engagement was selected. Open an "
+                    "authorized engagement before asking about "
+                    "its findings, report, or retests."
+                ),
+                sources=[],
+                links=[
+                    AssistantLink(
+                        label="View engagements",
+                        href=engagement_list_href(user.role),
+                    )
+                ],
             )
+
+        elif (
+            engagement_intent
+            == AssistantEngagementIntent.ATTENTION
+        ):
+            summaries = await AssistantEngagementService.get_engagement_attention_queue(
+                db,
+                user=user,
+                limit=10,
+            )
+
         else:
-            lines.append("No recent findings were returned.")
+            engagement_status = (
+                AssistantEngagementService.extract_status(
+                    routing_text
+                )
+                if engagement_intent
+                == AssistantEngagementIntent.STATUS
+                else None
+            )
+
+            summaries = await AssistantEngagementService.list_my_engagements(
+                db,
+                user=user,
+                engagement_status=engagement_status,
+                limit=10,
+            )
 
         return AssistantDataResult(
-            intent=AssistantDataIntent.ENGAGEMENT_CONTEXT,
-            evidence="\n".join(lines),
+            intent=AssistantDataIntent.ENGAGEMENTS,
+            engagement_intent=engagement_intent,
+            evidence=(
+                AssistantEngagementService.build_evidence(
+                    summaries,
+                    intent=engagement_intent,
+                    selected=selected,
+                )
+            ),
             sources=[
                 AssistantSource(
                     source_type=AssistantSourceType.USER_DATA,
-                    source_id=str(engagement.id),
-                    title=engagement.title,
-                    href=href,
+                    source_id=str(summary.engagement_id),
+                    title=summary.title,
+                    href=summary.href,
                 )
+                for summary in summaries
             ],
             links=[
                 AssistantLink(
-                    label="Open engagement",
-                    href=href,
+                    label="View engagements",
+                    href=engagement_list_href(user.role),
                 )
             ],
         )
+            
 
 
     @classmethod
@@ -646,15 +623,13 @@ class AssistantDataService:
         )
 
         if (
-            request.context.engagement_id is not None and intent in {
-                AssistantDataIntent.UNKNOWN,
-                AssistantDataIntent.ENGAGEMENTS,
-            }
+            request.context.engagement_id is not None
+            or intent == AssistantDataIntent.ENGAGEMENTS
         ):
-            return await cls.collect_engagement_context(
+            return await cls.collect_engagement_question(
                 db,
                 user=user,
-                engagement_id=request.context.engagement_id,
+                request=request,
             )
 
         if intent == AssistantDataIntent.NEXT_SCAN:
@@ -681,12 +656,6 @@ class AssistantDataService:
                 db,
                 user=user,
                 timezone_name=request.context.timezone,
-            )
-
-        if intent == AssistantDataIntent.ENGAGEMENTS:
-            return await cls.collect_engagements(
-                db,
-                user=user,
             )
 
         if intent == AssistantDataIntent.REPORTS:
