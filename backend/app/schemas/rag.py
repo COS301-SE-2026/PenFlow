@@ -46,13 +46,61 @@ class RAGAnswerSource(BaseModel):
     finding_id: UUID
     title: str
     severity: str
+    evidence_content: str = Field(
+        default="",
+        exclude=True,
+        repr=False,
+    )
+    cvss_score: float | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    cve_id: str | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    status: str | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    is_verified: bool | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    domain: str | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    asset_identifier: str | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    service_host: str | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    service_port: int | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    service_protocol: str | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
 
 
 class RAGAskResponse(BaseModel):
     question: str
-    answer: str = Field(
-        min_length=1
-    )
+    answer: str
     sources: list[RAGAnswerSource]
     
 
@@ -62,6 +110,43 @@ class RAGSearchResult(BaseModel):
     severity: str
     distance: float
     content: str
+    cvss_score: float | None = None
+    cve_id: str | None = None
+    status: str | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    is_verified: bool | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    domain: str | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    asset_identifier: str | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    service_host: str | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    service_port: int | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
+    service_protocol: str | None = Field(
+        default=None,
+        exclude=True,
+        repr=False,
+    )
 
 
 class RAGSearchResponse(BaseModel):

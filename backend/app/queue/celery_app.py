@@ -42,6 +42,12 @@ SCHEDULE_EXCHANGE = Exchange(
     durable=True,
 )
 
+INDEXING_EXCHANGE = Exchange(
+    "indexing",
+    type="direct",
+    durable=True,
+)
+
 
 SCAN_QUEUE = Queue(
     "scans",
@@ -67,12 +73,21 @@ SCHEDULE_QUEUE = Queue(
     queue_arguments={"x-queue-type": "quorum"},
 )
 
+INDEXING_QUEUE = Queue(
+    "indexing",
+    exchange=INDEXING_EXCHANGE,
+    routing_key="indexing",
+    durable=True,
+    queue_arguments={"x-queue-type": "quorum"},
+)
+
 celery_app = Celery(
     "penflow_backend",
     broker=build_broker_url(),
     include=[
         "app.tasks.email_tasks",
         "app.tasks.schedule_tasks",
+        "app.tasks.rag_index_tasks",
     ],
 )
 
@@ -83,6 +98,7 @@ celery_app.conf.update(
         SCAN_QUEUE,
         EMAIL_QUEUE,
         SCHEDULE_QUEUE,
+        INDEXING_QUEUE,
     ),
     broker_transport_options={
         "confirm_publish": True,
@@ -99,6 +115,10 @@ celery_app.conf.update(
         "schedules.*": {
             "queue": "schedules",
             "routing_key": "schedules",
+        },
+        "rag.*": {
+            "queue": "indexing",
+            "routing_key": "indexing",
         },
     },
     beat_schedule = {

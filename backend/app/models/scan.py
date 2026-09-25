@@ -5,7 +5,7 @@ from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.models.base import Base, ScanStatus, ScanType
+from app.models.base import Base, RAGIndexStatus, ScanStatus, ScanType
 
 
 class Scan(Base):
@@ -78,6 +78,39 @@ class Scan(Base):
     )
 
     progress = Column(Integer, nullable=False, default=0)
+
+    rag_index_status = Column(
+        Enum(
+            RAGIndexStatus,
+            values_callable=lambda enum: [
+                item.value for item in enum
+            ],
+            name="rag_index_status",
+        ),
+        nullable=False,
+        default=RAGIndexStatus.PENDING,
+        index=True,
+    )
+
+    rag_document_schema_version = Column(
+        String(50),
+        nullable=True,
+    )
+
+    rag_embedding_model = Column(
+        String(100),
+        nullable=True,
+    )
+
+    rag_last_indexed_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    rag_index_failure_reason = Column(
+        Text,
+        nullable=True,
+    )
 
     created_at = Column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)

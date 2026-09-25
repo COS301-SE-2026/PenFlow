@@ -189,6 +189,9 @@ class EngagementListItem(BaseModel):
     priority: str
     status: EngagementStatus
     requested_start_date: date | None = None
+    requested_end_date: date | None = None
+    scheduled_start_date: date | None = None
+    scheduled_end_date: date | None = None
     estimated_duration_days: int | None = None
     updated_at: datetime
     client_name: str
