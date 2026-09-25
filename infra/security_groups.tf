@@ -106,6 +106,24 @@ resource "aws_security_group" "worker" {
   }
 }
 
+resource "aws_security_group" "indexing_worker" {
+  name        = "${local.name_prefix}-indexing-worker-sg"
+  description = "Security group for the background RAG indexing worker."
+  vpc_id      = aws_vpc.main.id
+
+  egress {
+    description = "Allow outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${local.name_prefix}-indexing-worker-sg"
+  }
+}
+
 resource "aws_security_group" "keycloak" {
   name        = "${local.name_prefix}-keycloak-sg"
   description = "Allow Keycloak traffic only from the ALB."
@@ -159,6 +177,14 @@ resource "aws_security_group" "rds" {
     to_port         = 5432
     protocol        = "tcp"
     security_groups = [aws_security_group.scheduler.id]
+  }
+
+  ingress {
+    description     = "PostgreSQL from indexing worker"
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.indexing_worker.id]
   }
 
   egress {

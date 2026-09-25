@@ -23,13 +23,15 @@ concurrency:
 
 env:
   AWS_REGION: af-south-1
-  AWS_ACCOUNT_ID: "428792079342"
-
+  AWS_ACCOUNT_ID: "576394965728"
   ECS_CLUSTER: penflow-production-cluster
 
   BACKEND_SERVICE: penflow-production-backend-service
   BACKEND_CONTAINER: penflow-backend
   BACKEND_ECR_REPOSITORY: penflow-production-backend
+
+  INDEXING_WORKER_SERVICE: penflow-production-indexing-worker-service
+  INDEXING_WORKER_CONTAINER: penflow-indexing-worker
 
   FRONTEND_SERVICE: penflow-production-frontend-service
   FRONTEND_CONTAINER: penflow-frontend
@@ -100,6 +102,18 @@ jobs:
             "$BACKEND_CONTAINER" \
             "$IMAGE"
 
+      - name: Deploy indexing worker
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.deploy.outputs.tag }}
+        run: |
+          IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$BACKEND_ECR_REPOSITORY:$IMAGE_TAG"
+
+          ./scripts/deploy-ecs-service.sh \
+            "$ECS_CLUSTER" \
+            "$INDEXING_WORKER_SERVICE" \
+            "$INDEXING_WORKER_CONTAINER" \
+            "$IMAGE"
 
       - name: Deploy worker
         shell: bash        

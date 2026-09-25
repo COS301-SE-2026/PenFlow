@@ -32,3 +32,8 @@ resource "aws_cloudwatch_log_group" "celery_beat" {
   name              = "/ecs/${var.project_name}/celery-beat"
   retention_in_days = 14
 }
+
+resource "aws_cloudwatch_log_group" "indexing_worker" {
+  name              = "/ecs/${var.project_name}/indexing-worker"
+  retention_in_days = 14
+}
