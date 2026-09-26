@@ -251,3 +251,42 @@ function buildColumns(graph: ScanGraphResponse | null): LayoutColumn[] {
 
     return columns;
 }
+
+interface Anchor {
+    left: number;
+    right: number;
+    y: number;
+}
+
+function SeverityBadge({ severity }: { severity: Severity }) {
+    return (
+        <span className={cn("w-fit shrink-0 rounded-[5px] border px-2 py-1 text-[9px] font-bold uppercase", SEVERITY_BADGE_CLASS[severity])}>
+            {severity}
+        </span>
+    );
+}
+
+function GraphNodeCard({
+    node,
+    isSelected,
+    isNew,
+    isBusy,
+    isAddedSinceCompare,
+    onSelect,
+    registerRef,
+}: {
+    node: GraphNode;
+    isSelected: boolean;
+    isNew: boolean;
+    isBusy: boolean;
+    isAddedSinceCompare: boolean;
+    onSelect: (id: string) => void;
+    registerRef: (id: string, el: HTMLButtonElement | null) => void;
+}) {
+    const visual = nodeVisual(node);
+    const Icon = visual.icon;
+
+    return (
+        <></>
+    )
+}
