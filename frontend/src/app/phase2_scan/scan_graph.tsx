@@ -287,6 +287,61 @@ function GraphNodeCard({
     const Icon = visual.icon;
 
     return (
-        <></>
+        <button
+            type="button"
+            ref={(el) => registerRef(node.id, el)}
+            onClick={() => onSelect(node.id)}
+            aria-pressed={isSelected}
+            title={isBusy ? "The scan is still looking for more here" : undefined}
+            className={cn(
+                "relative flex w-full items-center gap-2.5 rounded-lg border bg-[#102448]/85 px-3 py-2.5 text-left backdrop-blur-sm transition-[box-shadow,border-color] duration-200",
+                visual.border,
+                (isNew || isBusy) && "animate-pulse shadow-[0_0_14px_rgba(43,216,245,0.45)]",
+                isSelected && "shadow-[0_0_0_1px_currentColor,0_0_18px_rgba(43,216,245,0.25)]",
+            )}
+        >
+            {node.risk.finding_count > 0 && node.type !== "finding" && (
+                <span className={cn(
+                    "absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full border px-1 text-[9px] font-bold",
+                    SEVERITY_BADGE_CLASS[normalizeSeverity(node.risk.severity)],
+                )}>
+                    {node.risk.finding_count}
+                </span>
+            )}
+            {isAddedSinceCompare && (
+                <span
+                    title="New since the compared scan"
+                    className="absolute -top-1.5 -left-1.5 rounded-full border border-brand-success/60 bg-brand-success/15 px-1 py-0.5 text-[8px] font-bold text-brand-success"
+                >
+                    NEW
+                </span>
+            )}
+            <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-md border", visual.border, visual.iconBg, visual.text)}>
+                <Icon className="size-4" />
+            </span>
+            <span className="min-w-0">
+                <span className={cn("block truncate text-[13px] font-semibold", visual.text)}>{node.label}</span>
+                <span className="block truncate text-[10px] text-muted-foreground">{nodeSublabel(node)}</span>
+            </span>
+        </button>
     )
+}
+
+function InternetNodeCard({ registerRef }: { registerRef: (id: string, el: HTMLButtonElement | null) => void }) {
+    return (
+        <button
+            type="button"
+            ref={(el) => registerRef(INTERNET_ID, el)}
+            disabled
+            className="flex w-full items-center gap-2.5 rounded-lg border border-[#2a3f66] bg-[#102448]/85 px-3 py-2.5 text-left backdrop-blur-sm"
+        >
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-md border border-[#2a3f66] bg-white/5 text-muted-foreground">
+                <Globe className="size-4" />
+            </span>
+            <span className="min-w-0">
+                <span className="block truncate text-[13px] font-semibold text-muted-foreground">Internet</span>
+                <span className="block truncate text-[10px] text-muted-foreground">External</span>
+            </span>
+        </button>
+    );
 }
