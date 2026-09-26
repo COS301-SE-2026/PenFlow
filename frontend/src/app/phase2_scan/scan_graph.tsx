@@ -417,3 +417,80 @@ function HotSpotPills({
         </div>
     )
 }
+//add tab button style and risk path
+function tabButtonClass(active: boolean) {
+    return cn(
+        "rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors",
+        active ?"bg-brand-cyan/10 text-brand-cyan":"text-muted-foreground hover:text-foreground",
+    );
+}
+
+function RiskPathsTab({
+    scanId,
+    node,
+    nodesById,
+    onSelectFinding,
+}: {
+    scanId: string;
+    node: GraphNode;
+    nodesById: Map<string, GraphNode>;
+    onSelectFinding:(id: string)=>void;
+}) {
+    const [paths,setPaths] =useState<GraphPath[] | null>(null);
+    const [loading,setLoading] =useState(true);
+    const [error,setError]=useState<string | null>(null);
+
+    useEffect(() => {
+        //Ignore stale responses scan changes mid fetch
+        let cancelled = false;
+        setLoading(true);
+        setError(null);
+        setPaths(null);
+        //Scope paths to a specific asset when available
+        const params = node.type === "asset" && node.entity_id
+            ? { asset_id: node.entity_id, limit: 5 }
+            : { limit: 5 };
+
+        fetchScanGraphPaths(scanId, params)
+            .then((res) => { if (!cancelled) setPaths(res.paths); })
+            .catch((err: unknown) =>{if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load risk paths"); })
+            .finally(() => { if (!cancelled) setLoading(false); });
+
+        return ()=> { cancelled = true};
+    }, [scanId, node.id, node.type, node.entity_id]);
+
+    if (loading)return <p className="p-3 text-[11px] text-muted-foreground">Loading risk paths...</p>;
+    if (error)return <p className="p-3 text-[11px] text-brand-alert">{error}</p>;
+    if (!paths || paths.length === 0) return <p className="p-3 text-[11px] text-muted-foreground">No risk paths found here.</p>;
+
+    return (
+        <div className="flex flex-col gap-2.5 p-3">
+            {paths.map((path) => {
+                const findingId = path.nodes[path.nodes.length - 1];
+                return (
+                    <button
+                        key={path.id}
+                        type="button"
+                        onClick={() => onSelectFinding(findingId)}
+                        className="flex flex-col gap-1.5 rounded-lg border border-brand-panel-border bg-[#0f1c30] p-3 text-left hover:bg-[#131f34]"
+                    >
+                        <div className="flex items-center justify-between gap-2">
+                            <SeverityBadge severity={normalizeSeverity(path.risk.severity)} />
+                            {path.risk.max_cvss !== null && (
+                                <span className="text-[10px] text-muted-foreground">CVSS {path.risk.max_cvss}</span>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1 text-[10px] text-[#cbd5e1]">
+                            {path.nodes.map((nodeId, index) => (
+                                <span key={nodeId} className="flex items-center gap-1">
+                                    {index > 0 && <ChevronRight className="size-3 text-muted-foreground" />}
+                                    <span className="truncate">{nodesById.get(nodeId)?.label ?? nodeId}</span>
+                                </span>
+                            ))}
+                        </div>
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
