@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class AssistantCapability(str, Enum):
@@ -12,6 +12,20 @@ class AssistantCapability(str, Enum):
     FINDING_EXPLANATION = "finding_explanation"
     SECURITY_ANALYSIS = "security_analysis"
     UNSUPPORTED = "unsupported"
+
+
+class AssistantRoutingSource(str, Enum):
+    MODEL = "model"
+    DETERMINISTIC_FALLBACK = "deterministic_fallback"
+
+
+class AssistantRouteDecision(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    capability: AssistantCapability
+    source: AssistantRoutingSource = (
+        AssistantRoutingSource.MODEL
+    )
 
 
 class AssistantAudience(str, Enum):

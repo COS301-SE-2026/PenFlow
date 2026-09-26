@@ -3,6 +3,8 @@ from typing import Any
 
 from app.models.finding import Finding
 
+FINDING_DOCUMENT_SCHEMA_VERSION = "finding-v1"
+
 
 def display(value: Any, fallback: str = "Not provided") -> str:
     if value is None:

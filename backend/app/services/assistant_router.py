@@ -39,6 +39,22 @@ class AssistantRouter:
         "available reports",
         "reports are available",
         "unread notifications",
+        "this engagement",
+        "engagements require attention",
+        "engagements need attention",
+        "engagements need scheduling",
+        "engagements awaiting review",
+        "engagements assigned to me",
+        "what should i work on next",
+        "my pentest",
+        "my retest",
+        "engagement report",
+        "which engagements",
+        "engagements are",
+        "no pentester",
+        "who is assigned",
+        "open retest",
+        "my report",
     )
 
     PRODUCT_TERMS = (
@@ -87,11 +103,55 @@ class AssistantRouter:
         "security issue",
     )
 
+    PORTFOLIO_SECURITY_PHRASES = (
+        "across my scans",
+        "across all scans",
+        "across my domains",
+        "overall security posture",
+        "portfolio",
+        "recurring findings",
+        "recurring vulnerabilities",
+        "keep coming back",
+        "keeps coming back",
+        "prioritize this week",
+        "priority this week",
+    )
+
+    PORTFOLIO_DOMAIN_PHRASES = (
+        "all my domains",
+        "which domain",
+        "which of my domains",
+    )
+
     CONTINUABLE_CAPABILITIES = {
         AssistantCapability.PRODUCT_HELP,
         AssistantCapability.NAVIGATION,
         AssistantCapability.USER_DATA,
     }
+
+
+    @classmethod
+    def is_portfolio_security_question(
+        cls,
+        question: str,
+    ) -> bool:
+        if any(
+            phrase in question
+            for phrase in cls.PORTFOLIO_SECURITY_PHRASES
+        ):
+            return True
+
+        has_domain_scope = any(
+            phrase in question
+            for phrase in cls.PORTFOLIO_DOMAIN_PHRASES
+        )
+
+        has_security_subject = any(
+            term in question
+            for term in cls.SECURITY_TERMS
+        )
+
+        return has_domain_scope and has_security_subject
 
 
     @classmethod
@@ -108,6 +168,9 @@ class AssistantRouter:
         ):
             return AssistantCapability.NAVIGATION
 
+        if cls.is_portfolio_security_question(question):
+            return AssistantCapability.SECURITY_ANALYSIS
+        
         if any(
             phrase in question
             for phrase in cls.USER_DATA_PHRASES
