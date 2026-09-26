@@ -15,7 +15,7 @@ BACKEND_API_URL = os.getenv(
     "http://penflow-backend.penflow.local:3001/api/v1"
 )
 
-INTERNAL_SECRET = os.getenv("INTERNAL_WEBHOOK_SECRET", "dev_secret_key_123")
+INTERNAL_SECRET = os.environ["INTERNAL_WEBHOOK_SECRET"]
 
 @celery_app.task(
     name="brand.monitor_domain",

@@ -44,7 +44,8 @@ data "aws_iam_policy_document" "ecs_execution_secrets" {
       aws_secretsmanager_secret.shodan_api_key.arn,
       aws_secretsmanager_secret.urlscan_api_key.arn,
       aws_secretsmanager_secret.smtp_password.arn,
-      aws_secretsmanager_secret.keycloak_provisioner_client_secret.arn
+      aws_secretsmanager_secret.keycloak_provisioner_client_secret.arn,
+      aws_secretsmanager_secret.internal_webhook_secret.arn
     ]
   }
 }

@@ -17,6 +17,7 @@ RABBITMQ_PASSWORD="$4"
 : "${SHODAN_API_KEY:?SHODAN_API_KEY environment variable is required}"
 : "${URLSCAN_API_KEY:?URLSCAN_API_KEY environment variable is required}"
 : "${SMTP_PASSWORD:?SMTP_PASSWORD environment variable is required}"
+: "${INTERNAL_WEBHOOK_SECRET:?INTERNAL_WEBHOOK_SECRET environment variable is required}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 INFRA_DIR="$REPO_ROOT/infra"
@@ -57,7 +58,8 @@ terraform -chdir="$INFRA_DIR" apply \
     -auto-approve \
     -target=aws_acm_certificate.main \
     -var="db_password=$DB_PASSWORD" \
-    -var="rabbitmq_password=$RABBITMQ_PASSWORD"
+    -var="rabbitmq_password=$RABBITMQ_PASSWORD" \
+    -var="internal_webhook_secret=$INTERNAL_WEBHOOK_SECRET"
 
 
 echo "4. DNS certificate validation"
@@ -102,7 +104,8 @@ terraform -chdir="$INFRA_DIR" apply \
     -var="email_worker_desired_count=0" \
     -var="keycloak_desired_count=0" \
     -var="schedule_worker_desired_count=0" \
-    -var="celery_beat_desired_count=0"
+    -var="celery_beat_desired_count=0" \
+    -var="internal_webhook_secret=$INTERNAL_WEBHOOK_SECRET"
 
 
 echo "6. Reading Terraform outputs"
@@ -250,6 +253,10 @@ SMTP_SECRET_ARN="$(
     get_secret_arn aws_secretsmanager_secret.smtp_password
 )"
 
+WEBHOOK_SECRET_ARN="$(
+    get_secret_arn aws_secretsmanager_secret.internal_webhook_secret
+)"
+
 for secret in \
     "$DB_SECRET_ARN" \
     "$KC_DB_SECRET_ARN" \
@@ -258,7 +265,8 @@ for secret in \
     "$HIBP_SECRET_ARN" \
     "$SHODAN_SECRET_ARN" \
     "$URLSCAN_SECRET_ARN" \
-    "$SMTP_SECRET_ARN"
+    "$SMTP_SECRET_ARN" \
+    "$WEBHOOK_SECRET_ARN"
 do
     if [ -z "$secret" ]; then
         echo "Failed to resolve a Secrets Manager ARN."
@@ -304,6 +312,11 @@ aws secretsmanager put-secret-value \
 aws secretsmanager put-secret-value \
     --secret-id "$SMTP_SECRET_ARN" \
     --secret-string "$SMTP_PASSWORD" \
+    >/dev/null
+
+aws secretsmanager put-secret-value \
+    --secret-id "$WEBHOOK_SECRET_ARN" \
+    --secret-string "$INTERNAL_WEBHOOK_SECRET" \
     >/dev/null
 
 echo "Secrets populated."
@@ -381,7 +394,8 @@ terraform -chdir="$INFRA_DIR" apply \
     -var="email_worker_desired_count=1" \
     -var="keycloak_desired_count=1" \
     -var="schedule_worker_desired_count=1" \
-    -var="celery_beat_desired_count=1"
+    -var="celery_beat_desired_count=1" \
+    -var="internal_webhook_secret=$INTERNAL_WEBHOOK_SECRET"
 
 
 echo "13. Deployment information"

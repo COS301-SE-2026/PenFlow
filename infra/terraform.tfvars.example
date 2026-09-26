@@ -31,3 +31,4 @@ schedule_worker_desired_count = 1
 celery_beat_desired_count     = 1
 
 # Secret values are not stored here. They are supplied to scripts/bootstrap-infra.sh through environment variables.
+internal_webhook_secret = "your-secure-webhook-secret-here"

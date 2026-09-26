@@ -241,3 +241,9 @@ variable "celery_beat_desired_count" {
     error_message = "celery_beat_desired_count must be either 0 or 1."
   }
 }
+
+variable "internal_webhook_secret" {
+  description = "Webhook secret"
+  type        = string
+  sensitive   = true
+}

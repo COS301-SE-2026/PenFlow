@@ -81,7 +81,8 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "SHODAN_API_KEY", valueFrom = aws_secretsmanager_secret.shodan_api_key.arn },
         { name = "URLSCAN_API_KEY", valueFrom = aws_secretsmanager_secret.urlscan_api_key.arn },
         { name = "SMTP_PASSWORD", valueFrom = aws_secretsmanager_secret.smtp_password.arn },
-        { name = "KEYCLOAK_PROVISIONER_CLIENT_SECRET", valueFrom = aws_secretsmanager_secret.keycloak_provisioner_client_secret.arn }
+        { name = "KEYCLOAK_PROVISIONER_CLIENT_SECRET", valueFrom = aws_secretsmanager_secret.keycloak_provisioner_client_secret.arn },
+        { name = "INTERNAL_WEBHOOK_SECRET", valueFrom = aws_secretsmanager_secret.internal_webhook_secret.arn }
       ]
 
       logConfiguration = {
@@ -206,7 +207,8 @@ resource "aws_ecs_task_definition" "worker" {
         { name = "HIBP_API_KEY", valueFrom = aws_secretsmanager_secret.hibp_api_key.arn },
         { name = "SHODAN_API_KEY", valueFrom = aws_secretsmanager_secret.shodan_api_key.arn },
         { name = "URLSCAN_API_KEY", valueFrom = aws_secretsmanager_secret.urlscan_api_key.arn }, 
-        { name = "DATABASE_PASSWORD", valueFrom = aws_secretsmanager_secret.db_password.arn }
+        { name = "DATABASE_PASSWORD", valueFrom = aws_secretsmanager_secret.db_password.arn }, 
+        { name = "INTERNAL_WEBHOOK_SECRET", valueFrom =aws_secretsmanager_secret.internal_webhook_secret.arn }
       ]
 
       logConfiguration = {
@@ -254,7 +256,8 @@ resource "aws_ecs_task_definition" "ephemeral_worker" {
       secrets = [
         { name = "HIBP_API_KEY", valueFrom = aws_secretsmanager_secret.hibp_api_key.arn },
         { name = "SHODAN_API_KEY", valueFrom = aws_secretsmanager_secret.shodan_api_key.arn },
-        { name = "URLSCAN_API_KEY", valueFrom = aws_secretsmanager_secret.urlscan_api_key.arn }
+        { name = "URLSCAN_API_KEY", valueFrom = aws_secretsmanager_secret.urlscan_api_key.arn },
+        { name = "INTERNAL_WEBHOOK_SECRET", valueFrom = aws_secretsmanager_secret.internal_webhook_secret.arn }
       ]
 
       logConfiguration = {
@@ -782,4 +785,13 @@ resource "aws_ecs_service" "celery_beat" {
     aws_mq_broker.rabbitmq,
     aws_ecs_service.schedule_worker
   ]
+}
+
+resource "aws_secretsmanager_secret" "internal_webhook_secret" {
+  name = "penflow/production/internal-webhook-secret"
+}
+
+resource "aws_secretsmanager_secret_version" "internal_webhook_secret" {
+  secret_id     = aws_secretsmanager_secret.internal_webhook_secret.id
+  secret_string = var.internal_webhook_secret
 }

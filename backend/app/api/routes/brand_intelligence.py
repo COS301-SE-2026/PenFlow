@@ -22,7 +22,7 @@ security_bearer = HTTPBearer()
 
 CurrentUser = Annotated[dict[str, Any], Depends(get_current_user)]
 
-INTERNAL_SECRET = os.getenv("INTERNAL_WEBHOOK_SECRET", "dev_secret_key_123")
+INTERNAL_SECRET = os.environ["INTERNAL_WEBHOOK_SECRET"]
 
 @router.post("/trigger/{verified_domain_id}", response_model=BrandMonitoringResponse)
 async def trigger_brand_scan(
