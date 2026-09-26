@@ -89,3 +89,14 @@ export function deriveAssistantContext(
     timezone,
   };
 }
+
+export function assistantContextKey(
+  context: AssistantContext,
+): string {
+  return [
+    context.page,
+    context.scan_id ?? "",
+    context.finding_id ?? "",
+    context.engagement_id ?? "",
+  ].join(":");
+}

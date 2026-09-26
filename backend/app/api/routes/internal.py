@@ -10,6 +10,7 @@ from app.models.asset import Asset
 from app.models.base import ReportStatus, ScanSourceStatus, ScanStatus, Severity
 from app.models.finding import Finding
 from app.models.scan_source import ScanSource
+from app.queue.celery_app import celery_app
 from app.repositories.report_repository import (
     get_by_engagement_and_version,
     get_report_by_scan_id,
@@ -99,6 +100,13 @@ async def update_scan_status_callback(
 
         if payload.status in [ScanStatus.COMPLETED, ScanStatus.PARTIAL]:
             queued_report = await queue_report_generation(db, str(scan_id))
+
+            celery_app.send_task(
+                "rag.index_scan",
+                args=[str(scan_id)],
+                queue="indexing",
+                routing_key="indexing",
+            )
 
         logger.info("Scan %s updated to %s", scan_id, payload.status.value)
 
@@ -191,6 +199,14 @@ async def update_scan_source_callback(
                 ReportStatus.COMPLETED,
             ]:
                 report_queued = await queue_report_generation(db, str(scan_id))
+
+            celery_app.send_task(
+                "rag.index_scan",
+                args=[str(scan_id)],
+                queue="indexing",
+                routing_key="indexing",
+            )
+
         return {
             "scan_id": str(scan.id),
             "source_name": source_name,
@@ -220,42 +236,42 @@ async def update_scan_source_callback(
         "/reports/engagement/{engagement_id}/version/{version}/callback",
         status_code=status.HTTP_200_OK)
 async def update_engagement_report_status_callback(
-    engagement_id: UUID, 
+    engagement_id: UUID,
     version: int,
     payload: ReportCallbackRequest,
     db: AsyncSession = Depends(get_db),
-) -> dict[str, Any]: 
+) -> dict[str, Any]:
     try:
-        report = await get_by_engagement_and_version(db, engagement_id, version) 
-        if not report: 
+        report = await get_by_engagement_and_version(db, engagement_id, version)
+        if not report:
             raise HTTPException(status_code=404, detail="Engagement report not found")
 
-        if payload.status == "completed": 
-            if not payload.pdf_path: 
+        if payload.status == "completed":
+            if not payload.pdf_path:
                 raise HTTPException(status_code=400, detail="pdf_path is required")
-            report.status = ReportStatus.COMPLETED 
-            report.pdf_path = payload.pdf_path 
-        elif payload.status == "failed": 
-            report.status = ReportStatus.FAILED 
+            report.status = ReportStatus.COMPLETED
+            report.pdf_path = payload.pdf_path
+        elif payload.status == "failed":
+            report.status = ReportStatus.FAILED
             report.error_message = payload.error_message or "Report generation failed"
         else:
             raise HTTPException(status_code=400, detail="Invalid report status")
 
-        await db.commit() 
-        await db.refresh(report) 
+        await db.commit()
+        await db.refresh(report)
 
-        status_val = report.status.value if hasattr(report.status, "value") else report.status 
+        status_val = report.status.value if hasattr(report.status, "value") else report.status
 
         return {
-            "engagement_id": str(engagement_id), 
-            "version": version, 
+            "engagement_id": str(engagement_id),
+            "version": version,
             "report_status": status_val,
         }
 
-    except HTTPException: 
-        raise 
-    except Exception: 
-        await db.rollback() 
+    except HTTPException:
+        raise
+    except Exception:
+        await db.rollback()
         logger.exception(
             "Failed to process engagement report callback for %s (v%s)",
             engagement_id,

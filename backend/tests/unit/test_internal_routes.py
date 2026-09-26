@@ -16,9 +16,14 @@ from app.schemas.scan import ScanCallbackRequest, ScanSourceCallbackRequest
 
 
 @pytest.mark.asyncio
+@patch("app.api.routes.internal.celery_app.send_task")
 @patch("app.api.routes.internal.queue_report_generation", new_callable=AsyncMock)
 @patch("app.api.routes.internal.ScanRepository.get_scan_by_id", new_callable=AsyncMock)
-async def test_update_scan_status_completed_queues_report(mock_scan, mock_queue_report):
+async def test_update_scan_status_completed_queues_report(
+    mock_scan, 
+    mock_queue_report, 
+    mock_send_task
+):
     scan_id = uuid4()
     db = AsyncMock()
 
@@ -41,6 +46,12 @@ async def test_update_scan_status_completed_queues_report(mock_scan, mock_queue_
     assert scan.progress == 100
     db.commit.assert_awaited_once()
     mock_queue_report.assert_awaited_once_with(db, str(scan_id))
+    mock_send_task.assert_called_once_with(
+        "rag.index_scan",
+        args=[str(scan_id)],
+        queue="indexing",
+        routing_key="indexing",
+    )
 
     assert result == {
         "scan_id": str(scan_id),
@@ -50,9 +61,14 @@ async def test_update_scan_status_completed_queues_report(mock_scan, mock_queue_
 
 
 @pytest.mark.asyncio
+@patch("app.api.routes.internal.celery_app.send_task")
 @patch("app.api.routes.internal.queue_report_generation", new_callable=AsyncMock)
 @patch("app.api.routes.internal.ScanRepository.get_scan_by_id", new_callable=AsyncMock)
-async def test_update_scan_status_running_does_not_queue_report(mock_scan, mock_queue_report):
+async def test_update_scan_status_running_does_not_queue_report(
+    mock_scan, 
+    mock_queue_report, 
+    mock_send_task
+):
     scan_id = uuid4()
     db = AsyncMock()
 
@@ -74,6 +90,7 @@ async def test_update_scan_status_running_does_not_queue_report(mock_scan, mock_
 
     db.commit.assert_awaited_once()
     mock_queue_report.assert_not_awaited()
+    mock_send_task.assert_not_called()
 
     assert result == {
         "scan_id": str(scan_id),
@@ -184,8 +201,9 @@ async def test_update_report_status_invalid():
 
 
 @pytest.mark.asyncio
+@patch("app.api.routes.internal.celery_app.send_task")
 @patch("app.api.routes.internal.ScanRepository.save_source_result", new_callable=AsyncMock)
-async def test_update_scan_source_callback(mock_save_source_result):
+async def test_update_scan_source_callback(mock_save_source_result, mock_send_task):
     scan_id = uuid4()
     db = AsyncMock()
 
@@ -213,6 +231,7 @@ async def test_update_scan_source_callback(mock_save_source_result):
         source_name = "dns",
         payload = payload.model_dump(),
     )
+    mock_send_task.assert_not_called()
 
     assert result == {
         "scan_id": str(scan_id),
@@ -244,3 +263,62 @@ async def test_update_scan_source_callback_scan_not_found(mock_save_source_resul
 
     assert excep.value.status_code == 404
     assert excep.value.detail == "Scan not found"
+
+
+@pytest.mark.asyncio
+@patch("app.api.routes.internal.celery_app.send_task")
+@patch("app.api.routes.internal.queue_report_generation", new_callable=AsyncMock)
+@patch("app.api.routes.internal.get_report_by_scan_id", new_callable=AsyncMock)
+@patch("app.api.routes.internal.ScanRepository.save_source_result", new_callable=AsyncMock)
+async def test_completed_source_callback_queues_indexing(
+    mock_save_source_result,
+    mock_get_report,
+    mock_queue_report,
+    mock_send_task,
+):
+    scan_id = uuid4()
+    db = AsyncMock()
+
+    mock_save_source_result.return_value = (
+        SimpleNamespace(
+            id=scan_id,
+            status=ScanStatus.COMPLETED,
+            progress=100,
+        )
+    )
+    mock_get_report.value = None
+    mock_queue_report.return_value = {
+        "status": "generating",
+    }
+
+    payload = ScanSourceCallbackRequest(
+        status="completed",
+        raw_result={},
+        assets=[],
+        services=[],
+        technologies=[],
+        findings=[],
+        error_message=None,
+    )
+
+    result = await update_scan_source_callback(
+        scan_id,
+        "dns",
+        payload,
+        db,
+    )
+
+    mock_send_task.assert_called_once_with(
+        "rag.index_scan",
+        args=[str(scan_id)],
+        queue="indexing",
+        routing_key="indexing",
+    )
+
+    assert result == {
+        "scan_id": str(scan_id),
+        "source_name": "dns",
+        "scan_status": "completed",
+        "progress": 100,
+        "report_status": "generating",
+    }
