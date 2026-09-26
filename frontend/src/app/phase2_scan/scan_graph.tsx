@@ -139,3 +139,115 @@ const SEVERITY_BADGE_CLASS: Record<Severity, string> = {
     low: "border-[#18549a] text-[#60a5fa] bg-[#18549a]/[0.08]",
     info: "border-[#334155] text-muted-foreground bg-[#334155]/[0.08]",
 };
+
+const CONTEXT_BOX_CLASS = "grid gap-1 rounded-[7px] border border-[#26364e] bg-[#0c1828] p-2.5";
+const INTERNET_ID ="__internet__";
+
+function normalizeSeverity(value: string | null): Severity {
+    if (value ==="critical" || value === "high" || value === "medium" || value === "low" || value === "info") return value;
+    return "info";
+}
+
+function nodeVisual(node: GraphNode): Accent & { icon: LucideIcon } {
+    if (node.type ==="finding") {
+        const accent =SEVERITY_ACCENT[normalizeSeverity(node.risk.severity)];
+        return { ...accent, icon: Bug };
+    }
+    if (node.type=== "technology") return {...KIND_STYLE.technology, icon: Fingerprint };
+    if (node.type=== "service") return {...KIND_STYLE.service, icon: Crosshair };
+    if (node.type=== "domain") return {...KIND_STYLE.domain, icon: Globe };
+
+    const assetType = typeof node.metadata.asset_type === "string" ? node.metadata.asset_type.toLowerCase() : "";
+    if (assetType === "ipv4" || assetType === "ipv6") return { ...KIND_STYLE.ip, icon: Network };
+    if (assetType === "email") return { ...KIND_STYLE.asset, icon: Mail };
+    return {...KIND_STYLE.asset, icon: Globe };
+}
+
+function nodeSublabel(node: GraphNode): string {
+    if (node.type === "domain") return "Domain";
+    if (node.type === "service") return "Service";
+    if (node.type === "technology") return "Technology";
+    if (node.type === "finding") return `${capitalize(normalizeSeverity(node.risk.severity))} Finding`;
+
+    const assetType = typeof node.metadata.asset_type === "string" ? node.metadata.asset_type : "";
+    if (assetType === "ipv4" || assetType === "ipv6") return "IP Address";
+    if (assetType === "subdomain") return "Subdomain";
+    if (assetType === "email") return "Email";
+    return "Asset";
+}
+
+function nodeDescription(node: GraphNode): string {
+    switch (node.type) {
+        case "domain":
+            return "The verified domain this scan targets.";
+        case "service":
+            return "An open port and running service discovered by the port scan.";
+        case "technology":
+            return "A technology fingerprinted from the service or asset it runs on.";
+        case "asset": {
+            const assetType = typeof node.metadata.asset_type === "string" ? node.metadata.asset_type : "";
+            if (assetType === "ipv4" || assetType === "ipv6") return "An IP address the domain resolves to.";
+            if (assetType === "subdomain") return "A subdomain discovered during reconnaissance.";
+            if (assetType === "email") return "An email address associated with this domain.";
+            return "An asset discovered during the scan.";
+        }
+        default:
+            return "";
+    }
+}
+
+interface LayoutColumn {
+    key: string;
+    nodes: GraphNode[];
+}
+
+function buildColumns(graph: ScanGraphResponse | null): LayoutColumn[] {
+    if (!graph || graph.nodes.length === 0) return [];
+
+    const domainNode = graph.nodes.find((n) => n.type === "domain");
+    if (!domainNode) return [];
+
+    const children = new Map<string, string[]>();
+    for (const edge of graph.edges) {
+        const list = children.get(edge.source) ?? [];
+        list.push(edge.target);
+        children.set(edge.source, list);
+    }
+
+    const depthById = new Map<string, number>();
+    depthById.set(domainNode.id, 1);
+    let frontier = [domainNode.id];
+    while (frontier.length > 0) {
+        const next: string[] = [];
+        for (const id of frontier) {
+            const depth = depthById.get(id)!;
+            for (const childId of children.get(id) ?? []) {
+                if (!depthById.has(childId)) {
+                    depthById.set(childId, depth + 1);
+                    next.push(childId);
+                }
+            }
+        }
+        frontier = next;
+    }
+
+    const maxDepth = Math.max(...Array.from(depthById.values()), 1);
+    const orphanDepth = maxDepth + 1;
+
+    const byDepth = new Map<number, GraphNode[]>();
+    for (const node of graph.nodes) {
+        const depth = depthById.get(node.id) ?? orphanDepth;
+        const list = byDepth.get(depth) ?? [];
+        list.push(node);
+        byDepth.set(depth, list);
+    }
+
+    const columns: LayoutColumn[] = [{ key: INTERNET_ID, nodes: [] }];
+    const maxUsedDepth = Math.max(...Array.from(byDepth.keys()));
+    for (let depth = 1; depth <= maxUsedDepth; depth += 1) {
+        const columnNodes = (byDepth.get(depth) ?? []).slice().sort((a, b) => a.id.localeCompare(b.id));
+        if (columnNodes.length > 0) columns.push({ key: `depth-${depth}`, nodes: columnNodes });
+    }
+
+    return columns;
+}
