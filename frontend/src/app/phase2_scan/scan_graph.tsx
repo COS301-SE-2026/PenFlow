@@ -345,3 +345,75 @@ function InternetNodeCard({ registerRef }: { registerRef: (id: string, el: HTMLB
         </button>
     );
 }
+
+function GraphLegend() {
+    const nodeLegend: { label: string; className: string }[] = [
+        { label: "Domain", className: "bg-brand-blue" },
+        { label: "IP Address", className: "bg-brand-cyan" },
+        { label: "Asset", className: "bg-brand-blue" },
+        { label: "Service", className: "bg-[#a855f7]" },
+        { label: "Technology", className: "bg-brand-success" },
+        { label: "Finding", className: "bg-brand-alert" },
+    ];
+
+    return (
+        <div className="flex flex-wrap items-start gap-3">
+            <div className="rounded-lg border border-brand-panel-border bg-[#0b1625]/95 p-3.5 text-[11px]">
+                <h3 className="mb-2.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Node Legend</h3>
+                <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                    {nodeLegend.map((item)=>(
+                        <li key={item.label} className="flex items-center gap-2 whitespace-nowrap text-[#cbd5e1]">
+                            <span className={cn("size-2.5 shrink-0 rounded-full", item.className)} />
+                            {item.label}
+                        </li>
+                    ))}
+                </ul>
+            </div>
+
+            <div className="rounded-lg border border-brand-panel-border bg-[#0b1625]/95 p-3.5 text-[11px]">
+                <h3 className="mb-2.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Activity</h3>
+                <ul className="flex flex-col gap-1.5 text-[#cbd5e1]">
+                    <li className="flex items-center gap-2 whitespace-nowrap">
+                        <span className="size-2.5 shrink-0 animate-pulse rounded-full bg-brand-cyan" /> Scan still looking here
+                    </li>
+                    <li className="flex items-center gap-2 whitespace-nowrap"><span className="h-0.5 w-4 bg-brand-cyan" /> Discovered</li>
+                    <li className="flex items-center gap-2 whitespace-nowrap"><span className="h-0.5 w-4 animate-pulse bg-brand-cyan" /> Just found</li>
+                </ul>
+            </div>
+        </div>
+    )
+}
+
+function HotSpotPills({
+    concentrations,
+    onSelect,
+}:{
+    concentrations: GraphConcentration[];
+    onSelect: (nodeId: string) => void;
+}) {
+    if (concentrations.length === 0) return null;
+
+    return (
+        <div className="flex flex-wrap items-center gap-1.5">
+            <span className="flex items-center gap-1 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                <Flame size={12} className="text-brand-alert" /> Hot spots
+            </span>
+            {concentrations.slice(0, 3).map((c) => (
+                <button
+                    key={c.node_id}
+                    type="button"
+                    onClick={() => onSelect(c.node_id)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-brand-panel-border bg-[#0b1625] px-2.5 py-1 text-[10px] text-[#cbd5e1] hover:border-brand-cyan hover:text-brand-cyan"
+                >
+                    <span className="max-w-[110px] truncate">{c.label}</span>
+                    <span className={cn(
+                        "shrink-0 rounded-full px-1 text-[9px] font-bold",
+                        c.critical_count > 0 ?"text-[#ef4444]":"text-[#f97316]",
+                    )}>
+                        {c.finding_count}
+                    </span>
+                </button>
+            ))}
+        </div>
+    )
+}
