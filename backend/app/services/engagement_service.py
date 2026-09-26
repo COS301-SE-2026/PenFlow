@@ -117,7 +117,7 @@ class EngagementService:
             engagement.requested_by == user_id
             or engagement.assigned_to == user_id
             or engagement.service_delivery_id == user_id
-            or user.role == "admin"
+            or user.role in {"admin", "service_delivery"}
         ):
             return engagement
 
@@ -265,6 +265,9 @@ class EngagementService:
                 status=engagement.status,
                 asset_count=asset_count,
                 requested_start_date=engagement.requested_start_date,
+                requested_end_date=engagement.requested_end_date,
+                scheduled_start_date=engagement.scheduled_start_date,
+                scheduled_end_date=engagement.scheduled_end_date,
                 estimated_duration_days=engagement.estimated_duration_days,
                 target_date=EngagementRepository.calc_target_date(
                     engagement.requested_start_date,
