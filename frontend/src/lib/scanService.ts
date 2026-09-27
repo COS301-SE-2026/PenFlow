@@ -346,6 +346,39 @@ export async function fetchScanMetrics(scanId: string): Promise<ScanMetrics> {
   return response.json();
 }
 
+export type GraphNodeType = "domain" | "asset" | "service" | "technology" | "finding";
+export type GraphEdgeType = "RESOLVES_TO" | "EXPOSES" | "RUNS" | "AFFECTED_BY";
+
+export interface GraphRisk {
+  severity: string | null;
+  max_cvss: number | null;
+  finding_count: number;
+}
+
+export interface GraphNode {
+  id: string;
+  entity_id: string | null;
+  type: GraphNodeType;
+  label: string;
+  risk: GraphRisk;
+  metadata: Record<string, unknown>;
+}
+
+export interface GraphEdgeProvenance {
+  source: string;
+  observed_at: string | null;
+  confidence: number | null;
+}
+
+export interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  type: GraphEdgeType;
+  provenance: GraphEdgeProvenance;
+}
+
+
 export async function sendReportEmail(scanId: string, email: string): Promise<void> {
   const response = await fetch(`${API_BASE}/${scanId}/email-report`, {
     method: "POST",
