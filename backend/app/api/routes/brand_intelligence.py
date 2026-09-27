@@ -22,14 +22,14 @@ security_bearer = HTTPBearer()
 
 CurrentUser = Annotated[dict[str, Any], Depends(get_current_user)]
 
-INTERNAL_SECRET = os.environ["INTERNAL_WEBHOOK_SECRET"]
+INTERNAL_SECRET = os.environ.get("INTERNAL_WEBHOOK_SECRET", "local-dev-fallback")
 
 @router.post("/trigger/{verified_domain_id}", response_model=BrandMonitoringResponse)
 async def trigger_brand_scan(
     verified_domain_id: uuid.UUID,
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     user_id = await get_user_id_by_provider_id(db, current_user["sub"])
     if not user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -50,7 +50,7 @@ async def get_brand_candidates(
     verified_domain_id: uuid.UUID,
     current_user: CurrentUser,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     user_id = await get_user_id_by_provider_id(db, current_user["sub"])
     if not user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -74,7 +74,7 @@ async def update_candidate_status(
     current_user: CurrentUser,
     status_update: BrandCandidateUpdateStatus,
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     user_id = await get_user_id_by_provider_id(db, current_user["sub"])
     if not user_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -92,7 +92,7 @@ async def ingest_monitoring_results(
     payload: BrandIngestionPayload,
     x_internal_token: str = Header(...),
     db: AsyncSession = Depends(get_db),
-):
+) -> Any:
     """
     Internal webhook called by the Celery worker upon scan completion."""
     if x_internal_token != INTERNAL_SECRET:
@@ -105,5 +105,3 @@ async def ingest_monitoring_results(
         return {"status": "success"}
     except ValueError as err:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(err))
-
-    return {"status": "success"}

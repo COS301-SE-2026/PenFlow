@@ -6,7 +6,7 @@ from app.tasks.fingerprinting_task import run_fingerprinting_scan_task
 
 
 @patch("app.tasks.fingerprinting_task.celery_app.send_task")
-@patch("app.task.fingerprinting_task.get_technologies_from_db")
+@patch("app.tasks.fingerprinting_task.get_technologies_from_db")
 @patch("app.tasks.fingerprinting_task.dispatch_scan_job")
 @patch("app.tasks.fingerprinting_task.get_ports_from_db")
 def test_run_fingerprinting_scan_task_success(
@@ -34,8 +34,8 @@ def test_run_fingerprinting_scan_task_success(
 
 
 @patch("app.tasks.fingerprinting_task.celery_app.send_task")
-@patch("app.task.fingerprinting_task.dispatch_scan_job")
-@patch("app.task.fingerprinting_task.get_ports_from_db")
+@patch("app.tasks.fingerprinting_task.dispatch_scan_job")
+@patch("app.tasks.fingerprinting_task.get_ports_from_db")
 def test_run_fingerprinting_scan_task_failure(mock_get_ports, mock_dispatch, mock_send_task):
     mock_get_ports.return_value = [{"port": 443, "protocol": "tcp", "service": "https"}]
     mock_dispatch.return_value = False

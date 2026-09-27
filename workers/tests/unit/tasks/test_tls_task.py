@@ -17,7 +17,7 @@ def test_successful_tls_scan(mock_get_ports, mock_dispatch):
     mock_dispatch.return_value = True
 
     result = run_tls_scan_task.run(
-        scan_id="scan123", ip_address="1.1.1.1", domain="hackerone.com", ports=[]
+        scan_id="scan123", ip_address="1.1.1.1", domain="hackerone.com"
     )
 
     assert result["status"] == "completed"
@@ -31,7 +31,7 @@ def test_skipped_tls_scan(mock_get_ports, mock_callback):
     mock_get_ports.return_value = []
 
     result = run_tls_scan_task.run(
-        scan_id="scan123", ip_address="1.1.1.1", domain="hackerone.com", ports=[]
+        scan_id="scan123", ip_address="1.1.1.1", domain="hackerone.com"
     )
 
     assert result["status"] == "skipped"
@@ -46,5 +46,5 @@ def test_failed_tls_scan(mock_get_ports, mock_dispatch):
 
     with pytest.raises(RuntimeError, match="Fargate/Docker container failed for TLS scan scan123"):
         run_tls_scan_task.run(
-            scan_id="scan123", ip_address="1.1.1.1", domain="hackerone.com", ports=[]
+            scan_id="scan123", ip_address="1.1.1.1", domain="hackerone.com"
         )

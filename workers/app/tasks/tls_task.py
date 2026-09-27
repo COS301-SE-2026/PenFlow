@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
     name="scan.phase2_tls", bind=True, max_retries=2, autoretry_for=(Exception,), retry_backoff=True
 )
 def run_tls_scan_task(
-    self: Any, scan_id: str, ip_address: str, domain: str = None
+    self: Any, scan_id: str, ip_address: str, domain: str | None = None
 ) -> dict[str, Any]:
     """
     Does tls inspection off of the valid ports provided by nmap

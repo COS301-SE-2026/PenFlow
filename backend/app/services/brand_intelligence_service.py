@@ -16,7 +16,7 @@ class BrandIntelligenceService:
 
     async def trigger_monitoring_run(
         self, verified_domain_id: uuid.UUID, user_id: str
-        ) -> BrandMonitoring:
+        ) -> BrandMonitoring | None:
         domain_record = await self.db.get(VerifiedDomain, verified_domain_id)
         if not domain_record:
             raise ValueError("Verified domain not found")
@@ -28,6 +28,8 @@ class BrandIntelligenceService:
             raise PermissionError("You do not have permission to scan this domain")
 
         monitor = await self.repo.create_or_activate_monitoring(verified_domain_id)
+        if not monitor:
+            raise ValueError("Failed to create or activate monitoring record")
 
         celery_app.send_task(
             "brand.monitor_domain",
@@ -49,19 +51,23 @@ class BrandIntelligenceService:
 
     async def update_status(
         self, candidate_id: uuid.UUID, status: BrandCandidateStatus, user_id: str
-    ) -> BrandCandidate:
+    ) -> BrandCandidate | None:
         candidate = await self.db.get(BrandCandidate, candidate_id)
         if not candidate:
             raise ValueError("Candidate not found")
 
         monitor = await self .db.get(BrandMonitoring, candidate.brand_monitoring_id)
+        if not monitor:
+            raise ValueError("Monitoring record not found")
+        
         domain_record = await self.db.get(VerifiedDomain, monitor.verified_domain_id)
+        if not domain_record:
+            raise ValueError("Verified domain not found")
 
         if str(domain_record.user_id) != user_id:
             raise PermissionError("You do not have permission to update this candidate")
 
         return await self.repo.update_candidate_status(candidate_id, status)
-        return candidate 
 
     async def get_monitoring_overview(
         self, verified_domain_id: uuid.UUID, user_id: str

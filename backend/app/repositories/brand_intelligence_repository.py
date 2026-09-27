@@ -33,7 +33,8 @@ class BrandIntelligenceRepository:
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
-    async def create_or_activate_monitoring(self, verified_domain_id: uuid.UUID) -> BrandMonitoring:
+    async def create_or_activate_monitoring(
+        self, verified_domain_id: uuid.UUID) -> BrandMonitoring | None:
         existing = await self.get_monitoring_by_domain_id(verified_domain_id)
         if existing:
             existing.is_active = True 

@@ -4,8 +4,8 @@ from contextlib import closing
 from typing import Any
 from urllib.parse import quote_plus
 
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import psycopg2  # type: ignore
+from psycopg2.extras import RealDictCursor  # type: ignore
 
 logger = logging.getLogger(__name__)
 
