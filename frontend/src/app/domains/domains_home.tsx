@@ -1,9 +1,9 @@
 "use client";
-
+import Link from "next/link";
 import type {ReactNode} from "react";
 import { validateDomain } from "@/lib/domainValidator";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, Check, CheckCircle2, ChevronDown, Clock, Copy, Globe, MoreVertical, Plus,
+import { AlertTriangle, Check, CheckCircle2, ChevronDown, Clock, Copy, Globe, MoreVertical, Plus, Radar,
     Search, Trash2, X, XCircle,
 } from "lucide-react";
 
@@ -222,7 +222,16 @@ import PageHero from "@/shared/components/PageHero";
             </div>
          </>
       )}
-
+        {domain.status === "verified" && (
+           <Button asChild className="w-full gap-2">
+              <Link
+                 href={`/domains/${domain.id}/brand-intelligence?domain=${encodeURIComponent(domain.domain)}`}
+              >
+                 <Radar className="size-4" />
+                 Brand Intelligence
+              </Link>
+           </Button>
+        )}
       <Separator className = "bg-brand-panel-border" />
       <div className = "flex flex-col gap-1">
          <h3 className = "mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
