@@ -9,9 +9,8 @@ def test_run_cve_scan_task_success(
     mock_run_scan,
     mock_callback,
 ):
-    #fake nvd response
-    fake_vulnerabilities = \
-    [
+    # fake nvd response
+    fake_vulnerabilities = [
         {
             "cve_id": "CVE-2025-1234",
             "severity": "HIGH",
@@ -24,8 +23,7 @@ def test_run_cve_scan_task_success(
 
     mock_run_scan.return_value = fake_vulnerabilities
 
-    result = run_cve_scan_task.run\
-    (
+    result = run_cve_scan_task.run(
         scan_id="scan-123",
         resolved_inventory=[],
     )
@@ -47,8 +45,7 @@ def test_run_cve_scan_task_success(
         scan_id="scan-123",
         source_name="cve",
         status="completed",
-        raw_result=
-        {
+        raw_result={
             "vulnerabilities": fake_vulnerabilities,
         },
         findings=result["findings"],
@@ -65,11 +62,10 @@ def test_run_cve_scan_task_empty(
     mock_run_scan,
     mock_callback,
 ):
-    #no NVD response
+    # no NVD response
     mock_run_scan.return_value = []
 
-    result = run_cve_scan_task.run\
-    (
+    result = run_cve_scan_task.run(
         scan_id="scan-123",
         resolved_inventory=[],
     )
@@ -89,8 +85,7 @@ def test_run_cve_scan_task_failure(
 ):
     mock_run_scan.side_effect = Exception("NVD unavailable")
 
-    result = run_cve_scan_task.run\
-    (
+    result = run_cve_scan_task.run(
         scan_id="scan-456",
         resolved_inventory=[],
     )
@@ -105,8 +100,7 @@ def test_run_cve_scan_task_failure(
         scan_id="scan-456",
         source_name="cve",
         status="failed",
-        raw_result=
-        {
+        raw_result={
             "error": "NVD unavailable",
         },
         findings=[],

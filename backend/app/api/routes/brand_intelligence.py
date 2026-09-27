@@ -1,21 +1,21 @@
 import os
-import uuid 
-from fastapi import APIRouter, Depends, Header, HTTPException, status 
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.ext.asyncio import AsyncSession 
+import uuid
 from typing import Annotated, Any
 
-from app.api.middleware.auth import get_current_user
-from app.utils.db import get_db 
-from app.services.brand_intelligence_service import BrandIntelligenceService 
-from app.schemas.brand_intelligence import (
-    BrandMonitoringResponse, 
-    BrandCandidateResponse, 
-    BrandCandidateUpdateStatus, 
-    BrandIngestionPayload,
-)
+from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi.security import HTTPBearer
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.user_repo import get_user_id_by_provider_id 
+from app.api.middleware.auth import get_current_user
+from app.repositories.user_repo import get_user_id_by_provider_id
+from app.schemas.brand_intelligence import (
+    BrandCandidateResponse,
+    BrandCandidateUpdateStatus,
+    BrandIngestionPayload,
+    BrandMonitoringResponse,
+)
+from app.services.brand_intelligence_service import BrandIntelligenceService
+from app.utils.db import get_db
 
 router = APIRouter(prefix="/brand-intelligence", tags=["Brand Intelligence"])
 security_bearer = HTTPBearer()

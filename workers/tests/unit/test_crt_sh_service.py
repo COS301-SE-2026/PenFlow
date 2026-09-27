@@ -9,15 +9,15 @@ from app.tasks.crtsh_tasks import run_crt_sh
 @patch("app.services.crt_sh_service.httpx.Client.get")
 def test_crt_sh_live_happy_path(mock_get, mock_send_callback):
     """Test that the worker successfully extracts and deduplicates live subdomains."""
-    
+
     # Fake successful HTTP response
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.text = "Valid JSON string here"
     mock_response.json.return_value = [
         {"name_value": "acorns.com"},
-        {"name_value": "api.acorns.com\n*.acorns.com"}, 
-        {"name_value": "app.acorns.com"}
+        {"name_value": "api.acorns.com\n*.acorns.com"},
+        {"name_value": "app.acorns.com"},
     ]
     mock_get.return_value = mock_response
 
@@ -38,11 +38,11 @@ def test_crt_sh_live_happy_path(mock_get, mock_send_callback):
 # Test sad paths for api issues
 @patch("app.tasks.crtsh_tasks.send_source_callback")
 @patch("app.services.crt_sh_service.SCAN_MODE", "LIVE")
-@patch("app.services.crt_sh_service.time.sleep") 
+@patch("app.services.crt_sh_service.time.sleep")
 @patch("app.services.crt_sh_service.httpx.Client.get")
 def test_crt_sh_sad_path_502_loop(mock_get, mock_sleep, mock_send_callback):
     """Test that the worker exhausts its retries on 502 Bad Gateway without crashing."""
-    
+
     # Fake a perpetually failing HTTP server
     mock_response = MagicMock()
     mock_response.status_code = 502
@@ -50,28 +50,28 @@ def test_crt_sh_sad_path_502_loop(mock_get, mock_sleep, mock_send_callback):
 
     result = run_crt_sh("scan-123", "acorns.com")
 
-    #we cant return errors beacuse the pdf builder expects specific data, 
+    # we cant return errors beacuse the pdf builder expects specific data,
     # test to see how we handle errors and if we fail gracefully with the expected output.
     assert result["status"] == "failed"
     assert result["raw_result"]["subdomains"]["total_found"] == 0
     assert result["raw_result"]["subdomains"]["discovered_names"] == []
-    
+
     # Prove our "Fail Fast" retry loops fired exactly 6 times
     assert mock_get.call_count == 3
     assert mock_sleep.call_count == 2
     assert mock_send_callback.call_count == 2
 
 
-#test mock mode to see if it loads
+# test mock mode to see if it loads
 @patch("app.tasks.crtsh_tasks.send_source_callback")
 @patch("app.services.crt_sh_service.SCAN_MODE", "MOCK")
 @patch("app.services.crt_sh_service.httpx.Client.get")
 def test_crt_sh_mock_mode_fallback(mock_get, mock_send_callback):
     """Test that the worker safely bypasses the internet and loads local data in MOCK mode."""
-    
+
     result = run_crt_sh("scan-123", "acorns.com")
-    
-    #mock shouldnt run httpx or any requests.
+
+    # mock shouldnt run httpx or any requests.
     assert not mock_get.called
     assert result["status"] == "completed"
     assert result["raw_result"]["subdomains"]["total_found"] > 0
@@ -99,13 +99,13 @@ def test_crtsh_exception(mock_raw_data, mock_send_callback):
 
     assert mock_send_callback.call_count == 2
     mock_send_callback.assert_any_call(
-        scan_id = "scan-1234",
-        source_name = "crt.sh",
-        status = "failed",
-        raw_result = {"error": "Some crt.sh exception"},
-        findings = [],
-        assets = [],
-        services = [],
-        technologies = [],
-        error_message = "Some crt.sh exception",
+        scan_id="scan-1234",
+        source_name="crt.sh",
+        status="failed",
+        raw_result={"error": "Some crt.sh exception"},
+        findings=[],
+        assets=[],
+        services=[],
+        technologies=[],
+        error_message="Some crt.sh exception",
     )

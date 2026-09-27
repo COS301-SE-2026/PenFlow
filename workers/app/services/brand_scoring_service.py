@@ -1,25 +1,30 @@
-from typing import Any 
+from typing import Any
 
 WEIGHTS = {
     "is_resolvable": 25,
     "has_mx": 30,
     "has_tls": 20,
-    "homoglyph": 15, 
+    "homoglyph": 15,
     "keyword": 20,
     "omission_or_transposition": 10,
-    "tld_swap": 15, 
+    "tld_swap": 15,
     "newly_registered": 25,
 }
 
+
 class BrandScoringService:
-    @staticmethod 
-    def evaluate(candidate: dict[str, Any], signals: dict[str, Any]) -> tuple[int, str, dict[str, Any]]:
+    @staticmethod
+    def evaluate(
+        candidate: dict[str, Any], signals: dict[str, Any]
+    ) -> tuple[int, str, dict[str, Any]]:
         score = 0
-        reasons: list[str] = [] 
+        reasons: list[str] = []
 
         if signals.get("is_resolvable"):
             score += WEIGHTS["is_resolvable"]
-            reasons.append(f"Domain resolves to active IP(s): {', '.join(signals['ip_addresses'][:2])}")
+            reasons.append(
+                f"Domain resolves to active IP(s): {', '.join(signals['ip_addresses'][:2])}"
+            )
 
         if signals.get("has_mx"):
             score += WEIGHTS["has_mx"]
@@ -31,7 +36,9 @@ class BrandScoringService:
 
         if signals.get("is_newly_registered"):
             score += WEIGHTS["newly_registered"]
-            reasons.append(f"Smoking Gun: Domain is newly registered ({signals.get('days_old')} days old)")
+            reasons.append(
+                f"Smoking Gun: Domain is newly registered ({signals.get('days_old')} days old)"
+            )
 
         mutation_type = candidate.get("mutation_type", "")
         if mutation_type == "homoglyph":
@@ -39,7 +46,9 @@ class BrandScoringService:
             reasons.append(f"Visual deception: {candidate.get('mutation_detail')}")
         elif "keyword" in mutation_type:
             score += WEIGHTS["keyword"]
-            reasons.append(f"Contains sensitive phishing keyword: {candidate.get('mutation_detail')}")
+            reasons.append(
+                f"Contains sensitive phishing keyword: {candidate.get('mutation_detail')}"
+            )
         elif mutation_type == "tld_swap":
             score += WEIGHTS["tld_swap"]
             reasons.append(f"TLD Impersonation: {candidate.get('mutation_detail')}")
@@ -57,8 +66,8 @@ class BrandScoringService:
             risk_level = "low"
 
         evidence = {
-            "mutation": candidate, 
-            "signals": signals, 
+            "mutation": candidate,
+            "signals": signals,
             "reasons": reasons,
             "weights_applied": {
                 "base_mutation": mutation_type,
@@ -69,4 +78,4 @@ class BrandScoringService:
             },
         }
 
-        return final_score, risk_level, evidence 
+        return final_score, risk_level, evidence

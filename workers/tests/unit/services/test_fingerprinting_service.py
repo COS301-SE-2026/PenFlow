@@ -7,26 +7,24 @@ from app.services.fingerprinting_service import FingerprintingService
 
 @pytest.fixture
 def base_service():
-    return FingerprintingService\
-    (
+    return FingerprintingService(
         target_url="https://hackerone.com",
     )
 
-#can we collect http data correctly, do we build the cache properly
+
+# can we collect http data correctly, do we build the cache properly
 @patch("app.services.fingerprinting_service.requests.get")
 def test_collect_http_data_success(mock_get, base_service):
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.url = "https://hackerone.com/"
-    mock_response.headers = \
-    {
+    mock_response.headers = {
         "Server": "nginx/1.18.0",
         "X-Powered-By": "PHP/7.4",
     }
 
     mock_cookies = MagicMock()
-    mock_cookies.get_dict.return_value = \
-    {
+    mock_cookies.get_dict.return_value = {
         "PHPSESSID": "12345",
     }
 
@@ -66,15 +64,12 @@ def test_collect_http_data_exception(mock_get, base_service):
 
 
 def test_extract_version_header(base_service):
-    base_service.cache["headers"] = \
-    {
+    base_service.cache["headers"] = {
         "server": "apache/2.4.41 (ubuntu)",
     }
 
-    rules = \
-    {
-        "version_extractors":
-        [
+    rules = {
+        "version_extractors": [
             {
                 "type": "header",
                 "target": "server",
@@ -87,20 +82,18 @@ def test_extract_version_header(base_service):
 
     assert result == "2.4.41"
 
-#do we get version
+
+# do we get version
 def test_extract_version_meta(base_service):
-    base_service.cache["meta_tags"] = \
-    [
+    base_service.cache["meta_tags"] = [
         {
             "name": "generator",
             "content": "Joomla! 3.9",
         }
     ]
 
-    rules = \
-    {
-        "version_extractors":
-        [
+    rules = {
+        "version_extractors": [
             {
                 "type": "meta",
                 "target": "generator",
@@ -115,15 +108,12 @@ def test_extract_version_meta(base_service):
 
 
 def test_extract_version_none(base_service):
-    base_service.cache["headers"] = \
-    {
+    base_service.cache["headers"] = {
         "server": "apache",
     }
 
-    rules = \
-    {
-        "version_extractors":
-        [
+    rules = {
+        "version_extractors": [
             {
                 "type": "header",
                 "target": "server",
@@ -136,9 +126,9 @@ def test_extract_version_none(base_service):
 
     assert result is None
 
+
 def test_merge_nmap_existing(base_service):
-    base_service.discovered["f5_nginx"] = \
-    {
+    base_service.discovered["f5_nginx"] = {
         "category": "web_server",
         "vendor": "f5",
         "product": "nginx",
@@ -147,10 +137,8 @@ def test_merge_nmap_existing(base_service):
         "sources": ["header"],
     }
 
-    base_service.nmap_data = \
-    {
-        "ports":
-        [
+    base_service.nmap_data = {
+        "ports": [
             {
                 "product": "nginx",
                 "version": "1.18.0",
@@ -168,10 +156,8 @@ def test_merge_nmap_existing(base_service):
 
 
 def test_merge_nmap_new(base_service):
-    base_service.nmap_data = \
-    {
-        "ports":
-        [
+    base_service.nmap_data = {
+        "ports": [
             {
                 "product": "OpenSSH",
                 "version": "8.2p1",
@@ -190,15 +176,11 @@ def test_merge_nmap_new(base_service):
 
 
 def test_merge_tls_cloudflare(base_service):
-    base_service.tls_data = \
-    {
-        "targets":
-        [
+    base_service.tls_data = {
+        "targets": [
             {
-                "certificate":
-                {
-                    "issuer":
-                    {
+                "certificate": {
+                    "issuer": {
                         "organizationName": "Cloudflare, Inc.",
                     }
                 }
@@ -223,8 +205,7 @@ def test_merge_tls_exception(base_service):
 
 
 def test_export_confidence_calculation(base_service):
-    base_service.discovered["vendor1_prod1"] = \
-    {
+    base_service.discovered["vendor1_prod1"] = {
         "category": "test",
         "vendor": "vendor1",
         "product": "prod1",
@@ -233,8 +214,7 @@ def test_export_confidence_calculation(base_service):
         "sources": [],
     }
 
-    base_service.discovered["vendor2_prod2"] = \
-    {
+    base_service.discovered["vendor2_prod2"] = {
         "category": "test",
         "vendor": "vendor2",
         "product": "prod2",
@@ -243,8 +223,7 @@ def test_export_confidence_calculation(base_service):
         "sources": [],
     }
 
-    base_service.discovered["vendor3_prod3"] = \
-    {
+    base_service.discovered["vendor3_prod3"] = {
         "category": "test",
         "vendor": "vendor3",
         "product": "prod3",
@@ -271,22 +250,16 @@ def test_log_unmatched_tech(base_service):
 
     base_service._log_unmatched_tech()
 
-    assert \
-    (
-        "unimatrix-server-1701"
-        in base_service.telemetry["unknown_server_strings"]
-    )
+    assert "unimatrix-server-1701" in base_service.telemetry["unknown_server_strings"]
 
 
 @patch("app.services.fingerprinting_service.Path.open", new_callable=mock_open)
 def test_write_telemetry_file(mock_file_open, base_service):
-    base_service.telemetry["unknown_server_strings"] = \
-    [
+    base_service.telemetry["unknown_server_strings"] = [
         "unimatrix-server-1701",
     ]
 
-    base_service.telemetry["unknown_headers"] = \
-    [
+    base_service.telemetry["unknown_headers"] = [
         "x-custom-tracking",
     ]
 
@@ -305,8 +278,7 @@ def test_write_telemetry_file(mock_file_open, base_service):
 @patch.object(FingerprintingService, "merge_with_nmap")
 @patch.object(FingerprintingService, "_evaluate_signatures")
 @patch.object(FingerprintingService, "collect_http_data")
-def test_run_orchestration\
-(
+def test_run_orchestration(
     mock_collect,
     mock_evaluate,
     mock_merge_nmap,
@@ -315,8 +287,7 @@ def test_run_orchestration\
     mock_file_open,
     base_service,
 ):
-    mock_export.return_value = \
-    {
+    mock_export.return_value = {
         "status": "success",
     }
 

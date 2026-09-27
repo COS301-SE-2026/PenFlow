@@ -18,7 +18,7 @@ def run_shodan(scan_id: str, domain: str) -> JSONDict:
     try:
         send_source_callback(scan_id=scan_id, source_name="shodan", status="running")
     except Exception:
-        logger.warning("[SHODAN_Task] Failed to send `running` callback for %s",scan_id)
+        logger.warning("[SHODAN_Task] Failed to send `running` callback for %s", scan_id)
 
     try:
         raw_data = collect_raw_data(domain)

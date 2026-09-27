@@ -8,11 +8,10 @@ from app.services.cve_service import (
 )
 
 
-#mock architecture we find in fingerprint and cpe resolver
+# mock architecture we find in fingerprint and cpe resolver
 @pytest.fixture
 def resolved_inventory():
-    return \
-    [
+    return [
         {
             "vendor": "apache",
             "product": "tomcat",
@@ -22,10 +21,10 @@ def resolved_inventory():
         }
     ]
 
-#do we skip what we are unsure of
+
+# do we skip what we are unsure of
 def test_skip_low_confidence():
-    service = CVEService\
-    (
+    service = CVEService(
         [
             {
                 "confidence": "low",
@@ -36,10 +35,10 @@ def test_skip_low_confidence():
 
     assert service.run() == []
 
-#high should run but no cpe means no query info
+
+# high should run but no cpe means no query info
 def test_skip_missing_cpe():
-    service = CVEService\
-    (
+    service = CVEService(
         [
             {
                 "confidence": "high",
@@ -49,11 +48,11 @@ def test_skip_missing_cpe():
 
     assert service.run() == []
 
-#wildcard return entire NVD list, we do not want wildcards
-#no version means we cant query otherwise we will get the wildcard
+
+# wildcard return entire NVD list, we do not want wildcards
+# no version means we cant query otherwise we will get the wildcard
 def test_skip_wildcard_version():
-    service = CVEService\
-    (
+    service = CVEService(
         [
             {
                 "confidence": "high",
@@ -65,11 +64,11 @@ def test_skip_wildcard_version():
 
     assert service.run() == []
 
+
 def test_deduplicate():
     service = CVEService([])
 
-    service.vulnerabilities = \
-    [
+    service.vulnerabilities = [
         {
             "cve_id": "CVE-123",
             "affected_software": "apache",
@@ -88,52 +87,44 @@ def test_deduplicate():
 
     assert len(result) == 2
 
-#can we succesfully query with the correct info
+
+# can we succesfully query with the correct info
 @patch("app.services.cve_service.requests.get")
 def test_lookup_nvd_success(mock_get, resolved_inventory):
     mock_response = MagicMock()
     mock_response.status_code = 200
 
-    mock_response.json.return_value = \
-    {
-        "vulnerabilities":
-        [
+    mock_response.json.return_value = {
+        "vulnerabilities": [
             {
-                "cve":
-                {
+                "cve": {
                     "id": "CVE-2025-0001",
-                    "descriptions":
-                    [
+                    "descriptions": [
                         {
                             "lang": "en",
                             "value": "Tomcat vulnerability.",
                         }
                     ],
-                    "metrics":
-                    {
-                        "cvssMetricV31":
-                        [
+                    "metrics": {
+                        "cvssMetricV31": [
                             {
-                                "cvssData":
-                                {
+                                "cvssData": {
                                     "baseSeverity": "HIGH",
                                     "baseScore": 9.8,
                                 }
                             }
                         ]
                     },
-                    "configurations":
-                    [
+                    "configurations": [
                         {
-                            "nodes":
-                            [
+                            "nodes": [
                                 {
-                                    "cpeMatch":
-                                    [
+                                    "cpeMatch": [
                                         {
                                             "vulnerable": True,
-                                            "criteria":
-                                            "cpe:2.3:a:apache:tomcat:10.1.0:*:*:*:*:*:*:*",
+                                            "criteria": (
+                                                "cpe:2.3:a:apache:tomcat:10.1.0:*:*:*:*:*:*:*"
+                                            ),
                                         }
                                     ]
                                 }
@@ -149,8 +140,7 @@ def test_lookup_nvd_success(mock_get, resolved_inventory):
 
     service = CVEService(resolved_inventory)
 
-    result = service._lookup_nvd\
-    (
+    result = service._lookup_nvd(
         resolved_inventory[0]["cpe"],
         resolved_inventory[0],
     )
@@ -166,8 +156,7 @@ def test_lookup_nvd_exception(mock_get, resolved_inventory):
 
     service = CVEService(resolved_inventory)
 
-    result = service._lookup_nvd\
-    (
+    result = service._lookup_nvd(
         resolved_inventory[0]["cpe"],
         resolved_inventory[0],
     )
@@ -177,8 +166,7 @@ def test_lookup_nvd_exception(mock_get, resolved_inventory):
 
 @patch.object(CVEService, "run")
 def test_run_cve_scan_wrapper(mock_run, resolved_inventory):
-    mock_run.return_value = \
-    [
+    mock_run.return_value = [
         {
             "cve_id": "CVE-2025-0001",
         }

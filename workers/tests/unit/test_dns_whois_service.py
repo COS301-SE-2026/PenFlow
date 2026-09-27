@@ -74,10 +74,7 @@ def test_dns_scan_happy_path(mock_dns, mock_whois, mock_send_callback):
     assert domain_security["provider"] == "DNS/RDAP"
     assert "Slack" in domain_security["detected_services"]
 
-    records = {
-        record["record_type"]: record
-        for record in domain_security["records"]
-    }
+    records = {record["record_type"]: record for record in domain_security["records"]}
 
     assert records["MX"]["status"] == "Pass"
     assert records["SPF"]["status"] == "Pass"
@@ -123,20 +120,14 @@ def test_dns_scan_missing_email_security_records(mock_dns, mock_whois, mock_send
 
     domain_security = result["raw_result"]["domain_security"]
 
-    records = {
-        record["record_type"]: record
-        for record in domain_security["records"]
-    }
+    records = {record["record_type"]: record for record in domain_security["records"]}
 
     assert records["MX"]["status"] == "Warning"
     assert records["SPF"]["status"] == "Warning"
     assert records["DMARC"]["status"] == "Warning"
     assert records["WHOIS/RDAP"]["status"] == "Unknown"
 
-    finding_titles = [
-        finding["title"]
-        for finding in result["findings"]
-    ]
+    finding_titles = [finding["title"] for finding in result["findings"]]
 
     assert "Weak SPF configuration" in finding_titles
     assert "Weak or missing DMARC policy" in finding_titles
@@ -172,18 +163,12 @@ def test_dns_scan_detects_spf_fail_policy(mock_dns, mock_whois, mock_send_callba
 
     domain_security = result["raw_result"]["domain_security"]
 
-    records = {
-        record["record_type"]: record
-        for record in domain_security["records"]
-    }
+    records = {record["record_type"]: record for record in domain_security["records"]}
 
     assert records["SPF"]["status"] == "Fail"
     assert records["DMARC"]["status"] == "Warning"
 
-    severities = {
-        finding["title"]: finding["severity"]
-        for finding in result["findings"]
-    }
+    severities = {finding["title"]: finding["severity"] for finding in result["findings"]}
 
     assert severities["Weak SPF configuration"] == "medium"
     assert severities["Weak or missing DMARC policy"] == "medium"
@@ -211,13 +196,13 @@ def test_run_dns_exception(mock_collect_dns, mock_send_callback):
 
     assert mock_send_callback.call_count == 2
     mock_send_callback.assert_any_call(
-        scan_id = "scan-1234",
-        source_name = "dns",
-        status = "failed",
-        raw_result = {"error": "Some DNS exception"},
-        findings = [],
-        assets = [],
-        services = [],
-        technologies = [],
-        error_message = "Some DNS exception",
+        scan_id="scan-1234",
+        source_name="dns",
+        status="failed",
+        raw_result={"error": "Some DNS exception"},
+        findings=[],
+        assets=[],
+        services=[],
+        technologies=[],
+        error_message="Some DNS exception",
     )

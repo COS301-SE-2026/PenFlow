@@ -298,7 +298,7 @@ class FingerprintingService:
                 continue
 
             nmap_product = port_product.lower()
-            matched =False
+            matched = False
             for software in self.discovered.values():
                 software_product = software["product"].lower()
 
@@ -311,7 +311,7 @@ class FingerprintingService:
                         weight=25,
                         source="nmap",
                     )
-                    matched =True
+                    matched = True
                     break
             if not matched:
                 self._add_software(

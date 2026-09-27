@@ -7,8 +7,7 @@ from app.tasks.cpe_resolver_task import run_cpe_resolver_task
 @patch("app.tasks.cpe_resolver_task.send_source_callback")
 @patch("app.tasks.cpe_resolver_task.run_cpe_resolution")
 def test_run_cpe_resolver_task_success(mock_run, mock_callback, mock_send_task):
-    resolved_inventory = \
-    [
+    resolved_inventory = [
         {
             "vendor": "apache",
             "product": "tomcat",
@@ -18,8 +17,7 @@ def test_run_cpe_resolver_task_success(mock_run, mock_callback, mock_send_task):
 
     mock_run.return_value = resolved_inventory
 
-    result = run_cpe_resolver_task.run\
-    (
+    result = run_cpe_resolver_task.run(
         scan_id="scan-123",
         software_inventory=[],
     )
@@ -46,8 +44,7 @@ def test_run_cpe_resolver_task_success(mock_run, mock_callback, mock_send_task):
 def test_run_cpe_resolver_task_empty(mock_run, mock_callback, mock_send_task):
     mock_run.return_value = []
 
-    result = run_cpe_resolver_task.run\
-    (
+    result = run_cpe_resolver_task.run(
         scan_id="scan-123",
         software_inventory=[],
     )
@@ -67,8 +64,7 @@ def test_run_cpe_resolver_task_empty(mock_run, mock_callback, mock_send_task):
 def test_run_cpe_resolver_task_failure(mock_run, mock_callback):
     mock_run.side_effect = Exception("Resolver failed")
 
-    result = run_cpe_resolver_task.run\
-    (
+    result = run_cpe_resolver_task.run(
         scan_id="scan-456",
         software_inventory=[],
     )

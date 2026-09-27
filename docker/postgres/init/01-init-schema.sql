@@ -130,7 +130,7 @@ CREATE TYPE brand_candidate_status AS ENUM (
     'confirmed_impersonation',
     'false_positive', 
     'resolved'
-):
+);
 
 CREATE TYPE rag_index_status AS ENUM (
     'pending',

@@ -1,8 +1,6 @@
 # type: ignore
 import os
 
-from app.api.routes.brand_intelligence import router as brand_router
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
@@ -29,6 +27,7 @@ from app.api.routes import (
     summary,
     users,
 )
+from app.api.routes.brand_intelligence import router as brand_router
 from app.realtime import stream
 
 app = FastAPI(

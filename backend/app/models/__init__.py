@@ -1,9 +1,9 @@
 # type: ignore
 from app.models.asset import Asset as Asset
 from app.models.audit_log import AuditLog as AuditLog
-from app.models.base import Base, ScanStatus, Severity
-from app.models.brand_intelligence import BrandMonitoring, BrandCandidate
 from app.models.base import Base, RAGIndexStatus, ScanStatus, Severity
+from app.models.brand_intelligence import BrandCandidate as BrandCandidate
+from app.models.brand_intelligence import BrandMonitoring
 from app.models.detected_technology import DetectedTechnology as DetectedTechnology
 from app.models.engagement import Engagement as Engagement
 from app.models.engagement_asset import EngagementAsset as EngagementAsset
@@ -25,7 +25,9 @@ from app.models.verified_domain import VerifiedDomain as VerifiedDomain
 __all__ = [
     "Asset",
     "AuditLog",
-    "Base", 
+    "Base",
+    "BrandCandidate",
+    "BrandMonitoring", 
     "Engagement",
     "EngagementAsset",
     "EngagementComment",

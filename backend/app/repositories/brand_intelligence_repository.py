@@ -1,17 +1,21 @@
-import uuid 
-from datetime import datetime, timezone 
-from sqlalchemy import select, update 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session, selectinload
+import uuid
+from datetime import datetime, timezone
 
-from app.models.brand_intelligence import BrandMonitoring, BrandCandidate, BrandCandidateStatus 
-from app.schemas.brand_intelligence import BrandCandidateIngestItem 
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
+from app.models.brand_intelligence import BrandCandidate, BrandCandidateStatus, BrandMonitoring
+from app.schemas.brand_intelligence import BrandCandidateIngestItem
+
 
 class BrandIntelligenceRepository:
     def __init__(self, db: AsyncSession):
         self.db = db 
 
-    async def get_monitoring_by_domain_id(self, verified_domain_id: uuid.UUID) -> BrandMonitoring | None:
+    async def get_monitoring_by_domain_id(
+        self, verified_domain_id: uuid.UUID
+        ) -> BrandMonitoring | None:
         query = (
             select(BrandMonitoring)
             .where(BrandMonitoring.verified_domain_id == verified_domain_id)

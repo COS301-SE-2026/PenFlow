@@ -14,7 +14,7 @@ def test_generate_pdf_from_html(mock_html, mock_css, tmp_path):
     mock_html.return_value = mock_html_inst
 
     result = generate_pdf_from_html(html_body, output_path)
-    
+
     assert result == output_path
     assert output_path.parent.exists()
 

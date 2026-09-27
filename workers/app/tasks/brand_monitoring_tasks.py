@@ -1,21 +1,20 @@
-import os 
-import logging 
-import requests 
-from typing import Any 
+import logging
+import os
+from typing import Any
 
-from app.queue.celery_app import celery_app 
-from app.services.typosquat_service import TyposquatService 
-from app.services.brand_signal_service import BrandSignalService 
-from app.services.brand_scoring_service import BrandScoringService 
+import requests
+
+from app.queue.celery_app import celery_app
+from app.services.brand_scoring_service import BrandScoringService
+from app.services.brand_signal_service import BrandSignalService
+from app.services.typosquat_service import TyposquatService
 
 logger = logging.getLogger(__name__)
 
-BACKEND_API_URL = os.getenv(
-    "BACKEND_API_URL", 
-    "http://penflow-backend.penflow.local:3001/api/v1"
-)
+BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://penflow-backend.penflow.local:3001/api/v1")
 
 INTERNAL_SECRET = os.environ["INTERNAL_WEBHOOK_SECRET"]
+
 
 @celery_app.task(
     name="brand.monitor_domain",
@@ -30,7 +29,7 @@ def run_brand_monitoring_task(self: Any, brand_monitoring_id: str, domain: str) 
     mutations = TyposquatService.generate_candidates(domain)
     logger.info(f"[BrandMonitor] Generated {len(mutations)} permutation candidates for {domain}")
 
-    discovered_candidates = [] 
+    discovered_candidates = []
 
     for mut in mutations:
         candidate_domain = mut["candidate_domain"]
@@ -38,16 +37,19 @@ def run_brand_monitoring_task(self: Any, brand_monitoring_id: str, domain: str) 
 
         if signals.get("is_resolvable"):
             score, risk_level, evidence = BrandScoringService.evaluate(mut, signals)
-            discovered_candidates.append({
-                "candidate_domain": candidate_domain, 
-                "normalized_domain": mut["normalized_domain"],
-                "risk_score": score, 
-                "risk_level": risk_level, 
-                "evidence": evidence,
-            })
+            discovered_candidates.append(
+                {
+                    "candidate_domain": candidate_domain,
+                    "normalized_domain": mut["normalized_domain"],
+                    "risk_score": score,
+                    "risk_level": risk_level,
+                    "evidence": evidence,
+                }
+            )
 
     logger.info(
-        f"[BrandMonitor] Found {len(discovered_candidates)} active/resolving candidates for {domain}"
+        "[BrandMonitor] Found "
+        f"{len(discovered_candidates)} active/resolving candidates for {domain}"
     )
 
     payload = {
@@ -55,14 +57,11 @@ def run_brand_monitoring_task(self: Any, brand_monitoring_id: str, domain: str) 
         "candidates": discovered_candidates,
     }
 
-    headers = {
-        "X-Internal-Token": INTERNAL_SECRET,
-        "Content-Type": "application/json"
-    }
+    headers = {"X-Internal-Token": INTERNAL_SECRET, "Content-Type": "application/json"}
 
     try:
         response = requests.post(
-            f"{BACKEND_API_URL}/brand-intelligence/internal/ingest", 
+            f"{BACKEND_API_URL}/brand-intelligence/internal/ingest",
             json=payload,
             headers=headers,
             timeout=30,
@@ -70,10 +69,10 @@ def run_brand_monitoring_task(self: Any, brand_monitoring_id: str, domain: str) 
         response.raise_for_status()
     except Exception as exc:
         logger.error(f"[BrandMonitor] Failed to ingest results into backend: {exc}")
-        raise exc 
+        raise exc
 
     return {
-        "status": "completed", 
-        "brand_monitoring_id": brand_monitoring_id, 
+        "status": "completed",
+        "brand_monitoring_id": brand_monitoring_id,
         "candidates_found": len(discovered_candidates),
     }
