@@ -6,13 +6,20 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.rag_repository import RAGRepository
+from app.schemas.assistant import AssistantAudience
 from app.schemas.rag import (
     RAGAnswerSource,
     RAGAskResponse,
     RAGSearchResult,
 )
-from app.services.rag.document_builder import build_finding_text
-from app.services.rag.embedding_provider import EmbeddingProvider
+from app.services.rag.document_builder import (
+    FINDING_DOCUMENT_SCHEMA_VERSION,
+    build_finding_text,
+)
+from app.services.rag.embedding_provider import (
+    EmbeddingProvider,
+    EmbeddingProviderError,
+)
 from app.services.rag.generation_provider import GenerationProvider
 from app.services.rag.prompt_builder import build_grounded_answer_prompts
 
@@ -27,86 +34,139 @@ class RAGService:
         scan_id: UUID,
         embedding_service: EmbeddingProvider,
     ) -> dict[str, int]:
-        findings = await RAGRepository.list_enriched_findings_for_scan(
+        scan = await RAGRepository.get_scan_for_indexing(
             db,
             scan_id,
         )
 
-        existing_chunks = await RAGRepository.list_chunks_for_scan(
-            db,
-            scan_id,
-        )
-
-        existing_by_finding_id = {
-            chunk.finding_id: chunk
-            for chunk in existing_chunks
-        }
-
-        pending: list[tuple[Any, str, str]] = []
-        unchanged = 0
-
-        for finding in findings:
-            content = build_finding_text(finding)
-            content_hash = hashlib.sha256(
-                content.encode("utf-8")
-            ).hexdigest()
-
-            existing = existing_by_finding_id.get(finding.id)
-
-            if (
-                existing is not None
-                and existing.content_hash == content_hash
-                and existing.embedding_model == embedding_service.model
-            ):
-                unchanged += 1
-                continue
-
-            pending.append((finding, content, content_hash))
-
-        embeddings = await embedding_service.embed_batch(
-            [
-                content
-                for _, content, _ in pending
-            ]
-        )
-
-        rows: list[dict[str, Any]] = []
-
-        for (
-            finding,
-            content,
-            content_hash,
-        ), embedding in zip(
-            pending,
-            embeddings,
-            strict=True,
-        ):
-            rows.append(
-                {
-                    "finding_id": finding.id,
-                    "scan_id": scan_id,
-                    "content": content,
-                    "content_hash": content_hash,
-                    "embedding_model": embedding_service.model,
-                    "embedding": embedding,
-                }
+        if scan is None:
+            raise ValueError(
+                f"Scan {scan_id} was not found."
             )
 
-        await RAGRepository.synchronize_chunks(
-            db,
-            scan_id=scan_id,
-            rows=rows,
-            current_finding_ids=[
-                finding.id
-                for finding in findings
-            ],
+        force_reindex = (
+            scan.rag_document_schema_version
+            != FINDING_DOCUMENT_SCHEMA_VERSION
         )
 
-        return {
-            "total_findings": len(findings),
-            "indexed": len(rows),
-            "unchanged": unchanged,
-        }
+        await RAGRepository.mark_scan_indexing(
+            db,
+            scan_id,
+        )
+
+        try:
+            findings = (
+                await RAGRepository.list_enriched_findings_for_scan(
+                    db,
+                    scan_id,
+                )
+            )
+
+            existing_chunks = await RAGRepository.list_chunks_for_scan(
+                db,
+                scan_id,
+            )
+
+
+            existing_by_finding_id = {
+                chunk.finding_id: chunk
+                for chunk in existing_chunks
+            }
+
+            pending: list[tuple[Any, str, str]] = []
+            unchanged = 0
+
+            for finding in findings:
+                content = build_finding_text(finding)
+                content_hash = hashlib.sha256(
+                    content.encode("utf-8")
+                ).hexdigest()
+
+                existing = existing_by_finding_id.get(finding.id)
+
+                if (
+                    not force_reindex
+                    and existing is not None
+                    and existing.content_hash == content_hash
+                    and existing.embedding_model == embedding_service.model
+                ):
+                    unchanged += 1
+                    continue
+
+                pending.append((finding, content, content_hash))
+
+            embeddings = (
+                await embedding_service.embed_batch(
+                    [
+                        content
+                        for _, content, _ in pending
+                    ]
+                )
+                if pending
+                else []
+            )
+
+            rows: list[dict[str, Any]] = []
+
+            for (
+                finding,
+                content,
+                content_hash,
+            ), embedding in zip(
+                pending,
+                embeddings,
+                strict=True,
+            ):
+                rows.append(
+                    {
+                        "finding_id": finding.id,
+                        "scan_id": scan_id,
+                        "content": content,
+                        "content_hash": content_hash,
+                        "embedding_model": embedding_service.model,
+                        "embedding": embedding,
+                    }
+                )
+
+            await RAGRepository.synchronize_chunks(
+                db,
+                scan_id=scan_id,
+                rows=rows,
+                current_finding_ids=[
+                    finding.id
+                    for finding in findings
+                ],
+            )
+
+            await RAGRepository.mark_scan_index_ready(
+                db,
+                scan_id,
+                document_schema_version=FINDING_DOCUMENT_SCHEMA_VERSION,
+                embedding_model=embedding_service.model,
+            )
+
+            return {
+                "total_findings": len(findings),
+                "indexed": len(rows),
+                "unchanged": unchanged,
+            }
+
+        except Exception as exc:
+            await db.rollback()
+
+            failure_reason = (
+                "Embedding generation failed."
+                if isinstance(exc, EmbeddingProviderError)
+                else "Finding indexing failed."
+            )
+
+            await RAGRepository.mark_scan_index_failed(
+                db,
+                scan_id,
+                failure_reason=failure_reason,
+            )
+
+            raise
 
 
     @staticmethod
@@ -242,6 +302,28 @@ class RAGService:
             ),
         )
 
+        max_distance_value = os.getenv(
+            "RAG_MAX_VECTOR_DISTANCE",
+            "0.65",
+        )
+
+        try:
+            max_vector_distance = float(max_distance_value)
+
+        except ValueError:
+            max_vector_distance = 0.65
+
+        max_vector_distance = min(
+            max(max_vector_distance, 0.0),
+            2.0,
+        )
+
+        vector_rows = [
+            row
+            for row in vector_rows
+            if row[2] <= max_vector_distance
+        ]
+
         if retrieval_mode == "hybrid":
             text_rows = await RAGRepository.search_scan_text(
                 db,
@@ -268,6 +350,14 @@ class RAGService:
                 if hasattr(finding.severity, "value")
                 else str(finding.severity)
             )
+            status = (
+                finding.status.value
+                if hasattr(finding.status, "value")
+                else str(finding.status)
+            )
+            scan = finding.scan
+            asset = finding.asset
+            service = finding.service
 
             results.append(
                 RAGSearchResult(
@@ -276,6 +366,39 @@ class RAGService:
                     severity=severity,
                     distance=distance,
                     content=chunk.content,
+                    cvss_score=(
+                        float(finding.cvss_score)
+                        if finding.cvss_score is not None
+                        else None
+                    ),
+                    cve_id=finding.cve_id,
+                    status=status,
+                    is_verified=finding.is_verified,
+                    domain=(
+                        str(scan.domain)
+                        if scan is not None
+                        else None
+                    ),
+                    asset_identifier=(
+                        asset.identifier
+                        if asset is not None
+                        else None
+                    ),
+                    service_host=(
+                        service.host
+                        if service is not None
+                        else None
+                    ),
+                    service_port=(
+                        service.port
+                        if service is not None
+                        else None
+                    ),
+                    service_protocol=(
+                        service.protocol
+                        if service is not None
+                        else None
+                    ),
                 )
             )
 
@@ -291,6 +414,7 @@ class RAGService:
         embedding_service: EmbeddingProvider,
         generation_provider: GenerationProvider,
         retrieval_question: str | None = None,
+        audience: AssistantAudience = AssistantAudience.SECURITY,
     ) -> RAGAskResponse:
         results = await RAGService.search_scan(
             db,
@@ -305,6 +429,16 @@ class RAGService:
                 finding_id=result.finding_id,
                 title=result.title,
                 severity=result.severity,
+                evidence_content=result.content,
+                cvss_score=result.cvss_score,
+                cve_id=result.cve_id,
+                status=result.status,
+                is_verified=result.is_verified,
+                domain=result.domain,
+                asset_identifier=result.asset_identifier,
+                service_host=result.service_host,
+                service_port=result.service_port,
+                service_protocol=result.service_protocol,
             )
             for result in results
         ]
@@ -324,6 +458,7 @@ class RAGService:
             build_grounded_answer_prompts(
                 question=question,
                 results=results,
+                audience=audience,
             )
         )
 

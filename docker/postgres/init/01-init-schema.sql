@@ -117,6 +117,13 @@ CREATE TYPE retest_status AS ENUM (
     'still_vulnerable'
 );
 
+CREATE TYPE rag_index_status AS ENUM (
+    'pending',
+    'indexing',
+    'ready',
+    'failed'
+);
+
 CREATE TABLE organisations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
@@ -223,6 +230,11 @@ CREATE TABLE scans (
     email VARCHAR(255),
     status scan_status NOT NULL DEFAULT 'queued',
     progress INTEGER NOT NULL DEFAULT 0,
+    rag_index_status rag_index_status NOT NULL DEFAULT 'pending',
+    rag_document_schema_version VARCHAR(50),
+    rag_embedding_model VARCHAR(100),
+    rag_last_indexed_at TIMESTAMPTZ,
+    rag_index_failure_reason TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
@@ -490,6 +502,7 @@ CREATE INDEX idx_scans_org_id ON scans(organisation_id);
 CREATE INDEX idx_scans_user_id ON scans(user_id);
 CREATE INDEX idx_scans_domain ON scans(domain);
 CREATE INDEX idx_scans_status ON scans(status);
+CREATE INDEX idx_scans_rag_index_status ON scans(rag_index_status);
 
 CREATE INDEX idx_assets_scan_id ON assets(scan_id);
 CREATE INDEX idx_assets_org_id ON assets(organisation_id);

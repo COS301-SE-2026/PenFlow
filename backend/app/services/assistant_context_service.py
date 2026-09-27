@@ -1,6 +1,7 @@
 import json
 from dataclasses import dataclass
 from enum import Enum
+from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,8 +13,10 @@ from app.schemas.assistant import (
     AssistantLink,
     AssistantQueryRequest,
     AssistantSource,
+    AssistantSourceMetadata,
     AssistantSourceType,
 )
+from app.services.assistant_answer_validator import AssistantFindingEvidence
 from app.services.engagement_service import EngagementService
 from app.services.scan_service import ScanService
 
@@ -23,6 +26,12 @@ class FindingContextResult:
     evidence: str
     sources: list[AssistantSource]
     links: list[AssistantLink]
+    grounding_evidence: tuple[
+        AssistantFindingEvidence,
+        ...,
+    ] = ()
+    authorized_entity_ids: tuple[UUID, ...] = ()
+    allowed_links: tuple[str, ...] = ()
 
 
 def display(value: object | None) -> str:
@@ -307,6 +316,23 @@ class AssistantContextService:
         else:
             href = None
 
+        asset_identifier = None
+
+        if scan_authorized and finding.asset is not None:
+            asset_identifier = finding.asset.identifier
+
+        elif (
+            engagement_authorized
+            and finding.engagement_asset is not None
+        ):
+            asset_identifier = finding.engagement_asset.identifier
+
+        service = (
+            finding.service
+            if scan_authorized
+            else None
+        )
+
         sources = [
             AssistantSource(
                 source_type=AssistantSourceType.FINDING,
@@ -314,6 +340,43 @@ class AssistantContextService:
                 title=finding.title,
                 severity=display(finding.severity),
                 href=href,
+                metadata=AssistantSourceMetadata(
+                    cve_id=finding.cve_id,
+                    cvss_score=(
+                        float(finding.cvss_score)
+                        if finding.cvss_score is not None
+                        else None
+                    ),
+                    status=display(finding.status),
+                    is_verified=finding.is_verified,
+                    domain=(
+                        str(finding.scan.domain)
+                        if (
+                            scan_authorized
+                            and finding.scan is not None
+                        )
+                        else None
+                    ),
+                    asset_identifier=asset_identifier,
+                    service_host=(
+                        service.host
+                        if service is not None
+                        else None
+                    ),
+                    service_port=(
+                        service.port
+                        if service is not None
+                        else None
+                    ),
+                    service_protocol=(
+                        service.protocol
+                        if service is not None
+                        else None
+                    ),
+                    selection_reasons=[
+                        "Selected finding",
+                    ],
+                ),
             )
         ]
 
@@ -328,8 +391,43 @@ class AssistantContextService:
             else []
         )
 
+        authorized_entity_ids = [finding.id]
+
+        if scan_authorized and finding.scan_id is not None:
+            authorized_entity_ids.append(finding.scan_id)
+
+        if (
+            engagement_authorized
+            and finding.engagement_id is not None
+        ):
+            authorized_entity_ids.append(finding.engagement_id)
+
+        grounding_evidence = (
+            AssistantFindingEvidence(
+                finding_id=finding.id,
+                severity=display(finding.severity),
+                cvss_score=(
+                    float(finding.cvss_score)
+                    if finding.cvss_score is not None
+                    else None
+                ),
+                cves=(
+                    (finding.cve_id,)
+                    if finding.cve_id
+                    else ()
+                ),
+            ),
+        )
+
         return FindingContextResult(
             evidence=evidence,
             sources=sources,
             links=links,
+            grounding_evidence=grounding_evidence,
+            authorized_entity_ids=tuple(authorized_entity_ids),
+            allowed_links=(
+                (href,)
+                if href is not None
+                else ()
+            ),
         )

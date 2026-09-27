@@ -1,13 +1,15 @@
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.base import RAGIndexStatus
 from app.models.finding import Finding
 from app.models.rag_chunk import RAGChunk
+from app.models.scan import Scan
 
 
 class RAGRepository:
@@ -41,6 +43,69 @@ class RAGRepository:
 
         result = await db.execute(query)
         return list(result.scalars().all())
+
+
+    @staticmethod
+    async def get_scan_for_indexing(
+        db: AsyncSession,
+        scan_id: UUID,
+    ) -> Scan | None:
+        result = await db.execute(
+            select(Scan).where(Scan.id == scan_id)
+        )
+
+        return result.scalar_one_or_none()
+
+
+    @staticmethod
+    async def mark_scan_indexing(
+        db: AsyncSession,
+        scan_id: UUID,
+    ) -> None:
+        await db.execute(
+            update(Scan).where(Scan.id == scan_id).values(
+                rag_index_status=RAGIndexStatus.INDEXING,
+                rag_index_failure_reason=None,
+            )
+        )
+
+        await db.commit()
+
+
+    @staticmethod
+    async def mark_scan_index_ready(
+        db: AsyncSession,
+        scan_id: UUID,
+        document_schema_version: str,
+        embedding_model: str,
+    ) -> None:
+        await db.execute(
+            update(Scan).where(Scan.id == scan_id).values(
+                rag_index_status=RAGIndexStatus.READY,
+                rag_document_schema_version=document_schema_version,
+                rag_embedding_model=embedding_model,
+                rag_last_indexed_at=func.now(),
+                rag_index_failure_reason=None,
+            )
+        )
+
+        await db.commit()
+
+
+    @staticmethod
+    async def mark_scan_index_failed(
+        db: AsyncSession,
+        scan_id: UUID,
+        failure_reason: str,
+    ) -> None:
+        await db.execute(
+            update(Scan).where(Scan.id == scan_id).values(
+                rag_index_status=RAGIndexStatus.FAILED,
+                rag_index_failure_reason=failure_reason,
+            )
+        )
+
+        await db.commit()
 
 
     @staticmethod
@@ -103,6 +168,10 @@ class RAGRepository:
             select(RAGChunk, Finding, distance).join(
                 Finding,
                 Finding.id == RAGChunk.finding_id,
+            ).options(
+                selectinload(Finding.scan),
+                selectinload(Finding.asset),
+                selectinload(Finding.service),
             ).where(
                 RAGChunk.scan_id == scan_id,
                 RAGChunk.embedding_model == embedding_model,
@@ -142,6 +211,10 @@ class RAGRepository:
             select(RAGChunk, Finding, rank).join(
                 Finding,
                 Finding.id == RAGChunk.finding_id,
+            ).options(
+                selectinload(Finding.scan),
+                selectinload(Finding.asset),
+                selectinload(Finding.service),
             ).where(
                 RAGChunk.scan_id == scan_id,
                 RAGChunk.embedding_model == embedding_model,

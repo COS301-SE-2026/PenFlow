@@ -130,3 +130,10 @@ class NotificationType(str, Enum):
     RETEST_REQUESTED = "retest.requested"
     RETEST_COMPLETED = "retest.completed"
     REPORT_READY = "report.ready"
+
+
+class RAGIndexStatus(str, enum.Enum):
+    PENDING = "pending"
+    INDEXING = "indexing"
+    READY = "ready"
+    FAILED = "failed"

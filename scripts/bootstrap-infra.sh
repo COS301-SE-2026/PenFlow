@@ -100,6 +100,7 @@ terraform -chdir="$INFRA_DIR" apply \
     -var="backend_desired_count=0" \
     -var="frontend_desired_count=0" \
     -var="worker_desired_count=0" \
+    -var="indexing_worker_desired_count=0" \
     -var="email_worker_desired_count=0" \
     -var="keycloak_desired_count=0" \
     -var="schedule_worker_desired_count=0" \
@@ -389,6 +390,7 @@ terraform -chdir="$INFRA_DIR" apply \
     -var="backend_desired_count=1" \
     -var="frontend_desired_count=1" \
     -var="worker_desired_count=1" \
+    -var="indexing_worker_desired_count=1" \
     -var="email_worker_desired_count=1" \
     -var="keycloak_desired_count=1" \
     -var="schedule_worker_desired_count=1" \

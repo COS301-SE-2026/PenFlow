@@ -1,7 +1,7 @@
 # type: ignore
 from app.models.asset import Asset as Asset
 from app.models.audit_log import AuditLog as AuditLog
-from app.models.base import Base, ScanStatus, Severity
+from app.models.base import Base, RAGIndexStatus, ScanStatus, Severity
 from app.models.detected_technology import DetectedTechnology as DetectedTechnology
 from app.models.engagement import Engagement as Engagement
 from app.models.engagement_asset import EngagementAsset as EngagementAsset
@@ -32,6 +32,7 @@ __all__ = [
     "FindingRetest",
     "Organisation",
     "RAGChunk",
+    "RAGIndexStatus",
     "Report",
     "Scan",
     "ScanSchedule",

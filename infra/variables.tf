@@ -103,6 +103,12 @@ variable "worker_desired_count" {
   default     = 0
 }
 
+variable "indexing_worker_desired_count" {
+  description = "Desired background RAG indexing worker ECS task count."
+  type        = number
+  default     = 0
+}
+
 variable "keycloak_desired_count" {
   description = "Desired keycloak ECS task count."
   type        = number

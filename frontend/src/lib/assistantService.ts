@@ -1,4 +1,4 @@
-export type AssistantCapability = 
+export type AssistantCapability =
   | "product_help"
   | "navigation"
   | "user_data"
@@ -6,7 +6,7 @@ export type AssistantCapability =
   | "security_analysis"
   | "unsupported";
 
-export type AssistantPage = 
+export type AssistantPage =
   | "general"
   | "dashboard"
   | "domains"
@@ -16,13 +16,13 @@ export type AssistantPage =
   | "engagement"
   | "report";
 
-export type AssistantSourceType = 
+export type AssistantSourceType =
   | "finding"
   | "product_guide"
   | "user_data"
   | "navigation";
 
-export type SecurityQueryIntent = 
+export type SecurityQueryIntent =
   | "risk_prioritization"
   | "exact_lookup"
   | "semantic_search"
@@ -44,6 +44,7 @@ export interface AssistantSource {
   title: string;
   severity: string | null;
   href: string | null;
+  metadata: AssistantSourceMetadata | null;
 }
 
 export interface AssistantLink {
@@ -58,6 +59,7 @@ export interface AssistantQueryResponse {
   sources: AssistantSource[];
   links: AssistantLink[];
   security_intent?: SecurityQueryIntent | null;
+  answer_state: AssistantAnswerState;
 }
 
 export interface AssistantConversationMessage {
@@ -65,36 +67,90 @@ export interface AssistantConversationMessage {
   content: string;
 }
 
+export type AssistantAnswerState =
+  | "complete"
+  | "insufficient_evidence"
+  | "validation_fallback";
+
+export interface AssistantSourceMetadata {
+  cve_id: string | null;
+  cvss_score: number | null;
+  status: string | null;
+  is_verified: boolean | null;
+  domain: string | null;
+  asset_identifier: string | null;
+  service_host: string | null;
+  service_port: number | null;
+  service_protocol: string | null;
+  change:
+    | "new"
+    | "persistent"
+    | "no_longer_detected"
+    | null;
+  selection_reasons: string[];
+}
+
+export type AssistantAudience =
+  | "executive"
+  | "it_manager"
+  | "developer"
+  | "security";
+
 interface AssistantQueryRequest {
   question: string;
   context: AssistantContext;
-  audience?: "executive" | "it_manager" | "developer" | "security";
+  audience?: AssistantAudience;
   history?: AssistantConversationMessage[];
   previous_capability?: AssistantCapability;
 }
 
+export const ASSISTANT_REQUEST_TIMEOUT_MS = 90_000;
+
 export async function queryAssistant(
   request: AssistantQueryRequest,
 ): Promise<AssistantQueryResponse> {
-  const response = await fetch("/api/assistant/query", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(request),
-  });
 
-  const body = (await response.json().catch(() => null)) as {
-    detail?: string;
-  } | AssistantQueryResponse | null;
+  const controller = new AbortController();
 
-  if(!response.ok) {
-    const detail = body && "detail" in body ? body.detail : undefined;
+  const timeoutId = globalThis.setTimeout(
+    () => controller.abort(),
+    ASSISTANT_REQUEST_TIMEOUT_MS,
+  );
 
-    throw new Error(
-      detail ?? "Ask PenFlow is temporarily unavailable.",
-    );
+  try {
+    const response = await fetch("/api/assistant/query", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(request),
+      signal: controller.signal,
+    });
+
+    const body = (await response.json().catch(() => null)) as {
+      detail?: string;
+    } | AssistantQueryResponse | null;
+
+    if(!response.ok) {
+      const detail = body && "detail" in body ? body.detail : undefined;
+
+      throw new Error(
+        detail ?? "Ask PenFlow is temporarily unavailable.",
+      );
+    }
+
+    return body as AssistantQueryResponse;
+  } catch(caughtError) {
+    if(controller.signal.aborted) {
+      throw new Error("Ask PenFlow took too long to respond. Please try again.");
+    }
+
+    if(caughtError instanceof Error) {
+      throw caughtError;
+    }
+
+    throw new Error("Ask PenFlow is temporarily unavailable.");
+  } finally {
+    globalThis.clearTimeout(timeoutId);
   }
-
-  return body as AssistantQueryResponse;
 }

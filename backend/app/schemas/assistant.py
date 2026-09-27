@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class AssistantCapability(str, Enum):
@@ -12,6 +12,20 @@ class AssistantCapability(str, Enum):
     FINDING_EXPLANATION = "finding_explanation"
     SECURITY_ANALYSIS = "security_analysis"
     UNSUPPORTED = "unsupported"
+
+
+class AssistantRoutingSource(str, Enum):
+    MODEL = "model"
+    DETERMINISTIC_FALLBACK = "deterministic_fallback"
+
+
+class AssistantRouteDecision(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    capability: AssistantCapability
+    source: AssistantRoutingSource = (
+        AssistantRoutingSource.MODEL
+    )
 
 
 class AssistantAudience(str, Enum):
@@ -37,6 +51,12 @@ class AssistantSourceType(str, Enum):
     PRODUCT_GUIDE = "product_guide"
     USER_DATA = "user_data"
     NAVIGATION = "navigation"
+
+
+class AssistantAnswerState(str, Enum):
+    COMPLETE = "complete"
+    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+    VALIDATION_FALLBACK = "validation_fallback"
 
 
 class AssistantContext(BaseModel):
@@ -98,6 +118,34 @@ class AssistantQueryRequest(BaseModel):
     previous_capability: AssistantCapability | None = None
 
 
+class AssistantSourceMetadata(BaseModel):
+    cve_id: str | None = None
+    cvss_score: float | None = Field(
+        default=None,
+        ge=0,
+        le=10,
+    )
+    status: str | None = None
+    is_verified: bool | None = None
+    domain: str | None = None
+    asset_identifier: str | None = None
+    service_host: str | None = None
+    service_port: int | None = Field(
+        default=None,
+        ge=0,
+        le=65535,
+    )
+    service_protocol: str | None = None
+    change: Literal[
+        "new",
+        "persistent",
+        "no_longer_detected",
+    ] | None = None
+    selection_reasons: list[str] = Field(
+        default_factory=list,
+    )
+
+
 class AssistantSource(BaseModel):
     source_type: AssistantSourceType
     source_id: str
@@ -107,6 +155,7 @@ class AssistantSource(BaseModel):
         default=None,
         pattern=r"^/",
     )
+    metadata: AssistantSourceMetadata | None = None
 
 
 class AssistantLink(BaseModel):
@@ -130,3 +179,6 @@ class AssistantQueryResponse(BaseModel):
     sources: list[AssistantSource] = Field(default_factory=list)
     links: list[AssistantLink] = Field(default_factory=list)
     security_intent: SecurityQueryIntent | None = None
+    answer_state: AssistantAnswerState = (
+        AssistantAnswerState.COMPLETE
+    )
