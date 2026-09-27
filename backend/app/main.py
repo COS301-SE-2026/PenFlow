@@ -27,6 +27,7 @@ from app.api.routes import (
     summary,
     users,
 )
+from app.api.routes.brand_intelligence import router as brand_router
 from app.realtime import stream
 
 app = FastAPI(
@@ -68,5 +69,6 @@ app.include_router(reports.router, prefix=API_V1_PREFIX)
 app.include_router(service_delivery.router, prefix=API_V1_PREFIX)
 app.include_router(notifications.router, prefix=API_V1_PREFIX)
 app.include_router(scan_schedules.router, prefix=API_V1_PREFIX)
+app.include_router(brand_router, prefix=API_V1_PREFIX)
 app.include_router(rag.router, prefix=API_V1_PREFIX)
 app.include_router(assistant.router, prefix=API_V1_PREFIX)

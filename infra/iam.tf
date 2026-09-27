@@ -44,7 +44,8 @@ data "aws_iam_policy_document" "ecs_execution_secrets" {
       aws_secretsmanager_secret.shodan_api_key.arn,
       aws_secretsmanager_secret.urlscan_api_key.arn,
       aws_secretsmanager_secret.smtp_password.arn,
-      aws_secretsmanager_secret.keycloak_provisioner_client_secret.arn
+      aws_secretsmanager_secret.keycloak_provisioner_client_secret.arn,
+      aws_secretsmanager_secret.internal_webhook_secret.arn
     ]
   }
 }
@@ -90,7 +91,6 @@ resource "aws_iam_role" "keycloak_task" {
     Name = "${local.name_prefix}-keycloak-task-role"
   }
 }
-
 
 resource "aws_iam_role" "email_worker_task" {
   name               = "${local.name_prefix}-email-worker-task-role"
@@ -162,6 +162,54 @@ resource "aws_iam_role_policy" "email_worker" {
   name   = "${local.name_prefix}-email-worker"
   role   = aws_iam_role.email_worker_task.id
   policy = data.aws_iam_policy_document.email_worker.json
+}
+
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {} 
+
+resource "aws_iam_role" "ephemeral_worker_task" {
+  name               = "${local.name_prefix}-ephemeral-worker-task" 
+  assume_role_policy = data.aws_iam_policy_document.ecs_task_assume_role.json 
+
+  tags = {
+    Name = "${local.name_prefix}-ephemeral-worker-task"
+  }
+}
+
+data "aws_iam_policy_document" "worker_ecs_dispatch" {
+  statement {
+    sid    = "AllowRunTask" 
+    effect = "Allow" 
+    actions = ["ecs:RunTask"] 
+    resources = [
+      "arn:aws:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:task-definition/${local.name_prefix}-ephemeral-worker:*", 
+      "arn:aws:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:task-definition/${local.name_prefix}-ephemeral-worker"
+    ]
+  }
+
+  statement {
+    sid    = "AllowPassRole"
+    effect = "Allow" 
+    actions = ["ecs:DescribeTasks"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "AllowPassRole" 
+    effect = "Allow" 
+    actions = ["iam:PassRole"]
+    resources = [
+      aws_iam_role.worker_task.arn, 
+      aws_iam_role.ecs_execution.arn, 
+      aws_iam_role.ephemeral_worker_task.arn
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "worker_ecs_dispatch_policy" {
+  name   = "${local.name_prefix}-worker-dispatch" 
+  role   = aws_iam_role.worker_task.id 
+  policy = data.aws_iam_policy_document.worker_ecs_dispatch.json 
 }
 
 data "aws_partition" "current" {}

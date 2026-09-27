@@ -18,7 +18,7 @@ def run_hunter(scan_id: str, domain: str) -> JSONDict:
     try:
         send_source_callback(scan_id=scan_id, source_name="hunter.io", status="running")
     except Exception:
-        logger.warning("[Hunter_Task] Failed to send `running` callback for %s",scan_id)
+        logger.warning("[Hunter_Task] Failed to send `running` callback for %s", scan_id)
 
     try:
         raw_data = collect_raw_data(domain)

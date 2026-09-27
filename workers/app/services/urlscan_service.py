@@ -101,8 +101,8 @@ def collect_raw_data(domain: str) -> dict:
         for attempt in range(poll_attempts):
             time.sleep(poll_interval_seconds)
             logger.info(f"[URLScan] Polling for results (Attempt {attempt + 1}/6)...")
-            res = client.get(result_url,headers=headers, timeout=10.0)
-            
+            res = client.get(result_url, headers=headers, timeout=10.0)
+
             if res.status_code == 200:
                 raw_result = res.json()
                 logger.info("[URLScan] Scan complete and data retrieved!")

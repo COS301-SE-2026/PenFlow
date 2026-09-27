@@ -28,29 +28,29 @@ def run_target_resolution(
     try:
         send_source_callback(scan_id=scan_id, source_name="target_resolution", status="running")
     except Exception:
-        logger.warning("[Target Resolution] Failed to send `running` callback for %s",scan_id)
+        logger.warning("[Target Resolution] Failed to send `running` callback for %s", scan_id)
 
     try:
         ip_data = resolve_target_ips(domain)
         assets = [
-                     {
-                         "identifier": ip,
-                         "asset_type": "ipv4",
-                         "asset_metadata": {
-                             "source_domain": domain,
-                         }
-                     }
-                     for ip in ip_data["ipv4"]
-                 ] + [
-                     {
-                         "identifier": ip,
-                         "asset_type": "ipv6",
-                         "asset_metadata": {
-                             "source_domain": domain,
-                         }
-                     }
-                     for ip in ip_data["ipv6"]
-                 ]
+            {
+                "identifier": ip,
+                "asset_type": "ipv4",
+                "asset_metadata": {
+                    "source_domain": domain,
+                },
+            }
+            for ip in ip_data["ipv4"]
+        ] + [
+            {
+                "identifier": ip,
+                "asset_type": "ipv6",
+                "asset_metadata": {
+                    "source_domain": domain,
+                },
+            }
+            for ip in ip_data["ipv6"]
+        ]
 
         has_targets = bool(ip_data["ipv4"] or ip_data["ipv6"])
 
@@ -101,7 +101,7 @@ def run_target_resolution(
         findings=result["findings"],
         error_message=result.get("error_message"),
     )
-    
+
     if result["status"] == "completed":
         ipv4_addresses = result["raw_result"].get("ipv4", [])
 
@@ -111,10 +111,10 @@ def run_target_resolution(
                 args=[scan_id, ipv4_addresses[0], domain],
             )
 
-        #for ip_address in result["raw_result"]["ipv4"]:
+        # for ip_address in result["raw_result"]["ipv4"]:
         #    celery_app.send_task(
         #        "scan.phase2_nmap",
         #        args=[scan_id, ip_address, domain],
         #    )
-        
+
     return result

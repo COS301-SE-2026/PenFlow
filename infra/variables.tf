@@ -238,6 +238,12 @@ variable "celery_beat_desired_count" {
   }
 }
 
+variable "internal_webhook_secret" {
+  description = "Webhook secret"
+  type        = string
+  sensitive   = true
+}
+
 variable "embedding_provider" {
   description = "Embedding provider used by the backend."
   type        = string

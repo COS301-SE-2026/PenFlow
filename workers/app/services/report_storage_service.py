@@ -8,8 +8,8 @@ REPORT_STORAGE = os.getenv("REPORT_STORAGE", "local").lower()
 REPORT_S3_BUCKET = os.getenv("REPORT_S3_BUCKET")
 AWS_REGION = os.getenv("AWS_REGION", "af-south-1")
 
-class ReportStorageService:
 
+class ReportStorageService:
     @staticmethod
     def store_report(local_path: str | Path, scan_id: str) -> str:
         path = Path(local_path)
@@ -38,32 +38,30 @@ class ReportStorageService:
             except (BotoCoreError, ClientError) as err:
                 raise Exception(f"Failed to upload report to S3: {storage_key}") from err
 
-            
             return storage_key
 
         raise Exception(f"Unsupported REPORT_STORAGE mode: {REPORT_STORAGE}")
 
-
-    @staticmethod 
+    @staticmethod
     def store_engagement_report(local_path: Path, engagement_id: str, version: int) -> str:
-        if REPORT_STORAGE == "local": 
-            return str(local_path) 
+        if REPORT_STORAGE == "local":
+            return str(local_path)
 
-        if REPORT_STORAGE == "s3": 
-            if not REPORT_S3_BUCKET: 
-                raise Exception("S3 bucket is not configured") 
+        if REPORT_STORAGE == "s3":
+            if not REPORT_S3_BUCKET:
+                raise Exception("S3 bucket is not configured")
 
-            s3_key = f"engagements/{engagement_id}/reports/v{version}.pdf" 
+            s3_key = f"engagements/{engagement_id}/reports/v{version}.pdf"
 
-            try: 
-                client = boto3.client("s3", region_name=AWS_REGION) 
-                client.upload_file(str(local_path), REPORT_S3_BUCKET, s3_key) 
+            try:
+                client = boto3.client("s3", region_name=AWS_REGION)
+                client.upload_file(str(local_path), REPORT_S3_BUCKET, s3_key)
 
-                if local_path.exists(): 
-                    local_path.unlink() 
+                if local_path.exists():
+                    local_path.unlink()
 
-                return s3_key 
-            except (BotoCoreError, ClientError) as err: 
+                return s3_key
+            except (BotoCoreError, ClientError) as err:
                 raise Exception(f"Failed to upload engagement report to S3: {err}") from err
 
         raise Exception(f"Unsupported REPORT_STORAGE mode: {REPORT_STORAGE}")

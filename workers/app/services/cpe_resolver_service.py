@@ -4,46 +4,40 @@ from typing import Any
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
-#Maps software names from the fingerprint worker
-#to official NVD vendor/product names.
-#will probably extend over time
+# Maps software names from the fingerprint worker
+# to official NVD vendor/product names.
+# will probably extend over time
 KNOWN_PRODUCTS = {
-    "apache httpd": \
-    {
+    "apache httpd": {
         "vendor": "apache",
         "product": "http_server",
     },
-    "nginx": \
-    {
+    "nginx": {
         "vendor": "nginx",
         "product": "nginx",
     },
-    "openssl": \
-    {
+    "openssl": {
         "vendor": "openssl",
         "product": "openssl",
     },
-    "openssh": \
-    {
+    "openssh": {
         "vendor": "openbsd",
         "product": "openssh",
     },
-    "tomcat": \
-    {
+    "tomcat": {
         "vendor": "apache",
         "product": "tomcat",
     },
-    "mysql": \
-    {
+    "mysql": {
         "vendor": "oracle",
         "product": "mysql",
     },
-    "postgresql": \
-    {
+    "postgresql": {
         "vendor": "postgresql",
         "product": "postgresql",
     },
 }
+
 
 class CPEResolverService:
     def __init__(self, software_inventory: list[JSONDict]):
@@ -75,8 +69,7 @@ class CPEResolverService:
             mapping = KNOWN_PRODUCTS.get(product_name)
 
             if mapping is None:
-                logger.warning\
-                (
+                logger.warning(
                     "[CPE_Resolver] No CPE mapping exists for '%s'",
                     product_name,
                 )

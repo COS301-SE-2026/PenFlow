@@ -12,12 +12,13 @@ from app.utils.callback import send_source_callback
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
+
 @celery_app.task(name="scan.wappalyzer")
 def run_wappalyzer(scan_id: str, domain: str) -> JSONDict:
     try:
         send_source_callback(scan_id=scan_id, source_name="wappalyzer", status="running")
     except Exception:
-        logger.warning("[Wappalyzer_Task] Failed to send `running` callback for %s",scan_id)
+        logger.warning("[Wappalyzer_Task] Failed to send `running` callback for %s", scan_id)
 
     try:
         raw_data = collect_raw_data(domain)
@@ -41,9 +42,7 @@ def run_wappalyzer(scan_id: str, domain: str) -> JSONDict:
                         "technology_type": technology_type,
                         "product": tech.get("name", "unknown"),
                         "version": (
-                            None
-                            if tech.get("version") == "Unknown"
-                            else tech.get("version")
+                            None if tech.get("version") == "Unknown" else tech.get("version")
                         ),
                         "confidence": None,
                         "detection_source": "wappalyzer",

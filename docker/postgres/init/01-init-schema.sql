@@ -117,6 +117,21 @@ CREATE TYPE retest_status AS ENUM (
     'still_vulnerable'
 );
 
+CREATE TYPE brand_risk_level AS ENUM (
+    'low',
+    'medium',
+    'high',
+    'critical'
+);
+
+CREATE TYPE brand_candidate_status AS ENUM (
+    'new',
+    'under_review',
+    'confirmed_impersonation',
+    'false_positive', 
+    'resolved'
+);
+
 CREATE TYPE rag_index_status AS ENUM (
     'pending',
     'indexing',
@@ -496,6 +511,33 @@ CREATE TABLE finding_retests (
     completed_at TIMESTAMPTZ
 );
 
+CREATE TABLE brand_monitoring (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    verified_domain_id UUID NOT NULL UNIQUE REFERENCES verified_domains(id) ON DELETE CASCADE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    last_run_at TIMESTAMPTZ, 
+    next_run_at TIMESTAMPTZ, 
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE brand_candidates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    brand_monitoring_id UUID NOT NULL REFERENCES brand_monitoring(id) ON DELETE CASCADE,
+    candidate_domain VARCHAR(255) NOT NULL,
+    normalized_domain VARCHAR(255) NOT NULL,
+    risk_score INTEGER NOT NULL DEFAULT 0,
+    risk_level brand_risk_level NOT NULL DEFAULT 'low',
+    status brand_candidate_status NOT NULL DEFAULT 'new',
+    evidence JSONB NOT NULL DEFAULT '{}'::jsonb, 
+    first_seen TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_seen TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    resolved_at TIMESTAMPTZ,
+
+    UNIQUE (brand_monitoring_id, normalized_domain), 
+    CHECK (risk_score >= 0 AND risk_score <= 100)
+);
+
 CREATE INDEX idx_users_org_id ON users(organisation_id);
 
 CREATE INDEX idx_scans_org_id ON scans(organisation_id);
@@ -555,13 +597,17 @@ CREATE INDEX idx_notification_user ON notifications(user_id);
 CREATE INDEX idx_audit_logs_user ON audit_logs(user_id);
 
 CREATE INDEX idx_finding_retests_finding_id ON finding_retests(finding_id);
-
 CREATE INDEX idx_finding_retest_status ON finding_retests(status);
 CREATE INDEX idx_audit_logs_created_at ON audit_logs(created_at DESC);
 CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
 
 CREATE INDEX idx_notifications_user_id_created_at ON notifications(user_id, created_at DESC);
 CREATE INDEX idx_notifications_user_id_is_read ON notifications(user_id, is_read);
+
+CREATE INDEX idx_brand_monitoring_domain ON brand_monitoring(verified_domain_id);
+CREATE INDEX idx_brand_candidates_monitor_id ON brand_candidates(brand_monitoring_id);
+CREATE INDEX idx_brand_candidates_status ON brand_candidates(status);
+CREATE INDEX idx_brand_candidates_risk ON brand_candidates(risk_level);
 
 CREATE INDEX idx_rag_chunks_scan_id ON rag_chunks(scan_id);
 CREATE INDEX idx_rag_chunks_embedding_model ON rag_chunks(embedding_model);

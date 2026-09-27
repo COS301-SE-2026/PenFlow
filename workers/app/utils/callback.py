@@ -12,12 +12,12 @@ if not temp_backend_url:
 
 backend_url: str = temp_backend_url
 
+
 def build_api_url(path: str) -> str:
     return f"{backend_url.rstrip('/')}/api/v1{path}"
 
-def send_scan_callback(
-    scan_id: str, status: str, error_message: str | None = None
-) -> None:
+
+def send_scan_callback(scan_id: str, status: str, error_message: str | None = None) -> None:
     url = build_api_url(f"/internal/scans/{scan_id}/status")
     payload = {
         "status": status,
@@ -52,15 +52,15 @@ def send_report_callback(
 
 
 def send_source_callback(
-        scan_id: str,
-        source_name: str,
-        status: str,
-        raw_result: dict | None = None,
-        findings: list[dict] | None = None,
-        assets: list[dict] | None = None,
-        services: list[dict] | None = None,
-        technologies: list[dict] | None = None,
-        error_message: str | None = None,
+    scan_id: str,
+    source_name: str,
+    status: str,
+    raw_result: dict | None = None,
+    findings: list[dict] | None = None,
+    assets: list[dict] | None = None,
+    services: list[dict] | None = None,
+    technologies: list[dict] | None = None,
+    error_message: str | None = None,
 ) -> None:
     url = build_api_url(f"/internal/scans/{scan_id}/sources/{source_name}")
 
@@ -87,24 +87,25 @@ def send_source_callback(
         )
         raise
 
+
 def send_engagement_report_callback(
-        engagement_id: str,
-        version: int, 
-        status: str, 
-        pdf_path: str | None = None, 
-        error_message: str | None = None,
-        max_retries: int = 3,
+    engagement_id: str,
+    version: int,
+    status: str,
+    pdf_path: str | None = None,
+    error_message: str | None = None,
+    max_retries: int = 3,
 ) -> None:
     """
-    Sends a callback to the API indicating that a Phase 3  manualengagement 
-    report generation has completed or failed. 
+    Sends a callback to the API indicating that a Phase 3  manualengagement
+    report generation has completed or failed.
     """
 
     url = build_api_url(f"/internal/reports/engagement/{engagement_id}/version/{version}/callback")
 
     payload = {
-        "status": status, 
-        "pdf_path": pdf_path, 
+        "status": status,
+        "pdf_path": pdf_path,
         "error_message": error_message,
     }
 
@@ -112,14 +113,13 @@ def send_engagement_report_callback(
         try:
             with httpx.Client(timeout=30) as client:
                 response = client.put(url, json=payload)
-                response.raise_for_status() 
+                response.raise_for_status()
                 return
-        except Exception: 
+        except Exception:
             logger.warning(f"Callback attempt {attempt} failed for engagement {engagement_id}")
-            if attempt == max_retries: 
+            if attempt == max_retries:
                 logger.exception(
-                    "Failed to send engagement report callback for %s (v%s)",
-                    engagement_id, version
+                    "Failed to send engagement report callback for %s (v%s)", engagement_id, version
                 )
                 raise
-            time.sleep(2 ** attempt)
+            time.sleep(2**attempt)

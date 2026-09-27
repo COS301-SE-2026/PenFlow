@@ -3,9 +3,10 @@ from datetime import datetime, timezone
 
 from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, DomainVerificationCode, DomainVerificationStatus
+from app.models.brand_intelligence import BrandMonitoring  # noqa: F401
 
 
 class VerifiedDomain(Base):
@@ -81,4 +82,11 @@ class VerifiedDomain(Base):
             name="domain_verification_code",
         ),
         nullable=True,
+    )
+
+    brand_monitoring: Mapped["BrandMonitoring"] = relationship(
+        "BrandMonitoring",
+        backref="verified_domain",
+        uselist=False,
+        cascade="all, delete-orphan"
     )

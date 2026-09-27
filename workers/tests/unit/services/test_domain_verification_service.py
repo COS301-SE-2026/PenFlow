@@ -23,6 +23,7 @@ def create_mock_dns_answer(txt_records: list[str]) -> MagicMock:
 
 # 1 happy path [Token found]
 
+
 @patch("app.services.domain_verification_service.dns.resolver.resolve")
 def test_verify_txt_record_token_found(mock_resolve):
     """
@@ -31,20 +32,22 @@ def test_verify_txt_record_token_found(mock_resolve):
 
     domain = "hackerone.com"
     token = "penflow-verify=abc123"
-    mock_resolve.return_value = create_mock_dns_answer([
-        "v=spf1 include:_spf.google.com ~all",
-        token,
-    ])
+    mock_resolve.return_value = create_mock_dns_answer(
+        [
+            "v=spf1 include:_spf.google.com ~all",
+            token,
+        ]
+    )
     result = verify_txt_record(domain, token)
     assert result is True
     mock_resolve.assert_called_once_with(domain, "TXT")
 
 
-
 # 4 verification failure cases
 # [Token not found] [DNS timeout] [Domain not found] [Unexpected error]
 
-#Token not foud
+
+# Token not foud
 @patch("app.services.domain_verification_service.dns.resolver.resolve")
 def test_verify_txt_record_token_not_found(mock_resolve):
     """
@@ -52,15 +55,18 @@ def test_verify_txt_record_token_not_found(mock_resolve):
     """
     domain = "hackerone.com"
     token = "penflow-verify=abc123"
-    mock_resolve.return_value = create_mock_dns_answer([
-        "google-site-verification=test",
-        "v=spf1 include:_spf.google.com ~all",
-    ])
+    mock_resolve.return_value = create_mock_dns_answer(
+        [
+            "google-site-verification=test",
+            "v=spf1 include:_spf.google.com ~all",
+        ]
+    )
     result = verify_txt_record(domain, token)
     assert result is False
     mock_resolve.assert_called_once_with(domain, "TXT")
 
-#domain not found
+
+# domain not found
 @patch("app.services.domain_verification_service.dns.resolver.resolve")
 def test_verify_txt_record_domain_not_found(mock_resolve):
     """
@@ -74,7 +80,8 @@ def test_verify_txt_record_domain_not_found(mock_resolve):
     assert result is False
     mock_resolve.assert_called_once_with(domain, "TXT")
 
-#DNS Timeout
+
+# DNS Timeout
 @patch("app.services.domain_verification_service.dns.resolver.resolve")
 def test_verify_txt_record_timeout(mock_resolve):
     """
@@ -88,7 +95,8 @@ def test_verify_txt_record_timeout(mock_resolve):
     assert result is False
     mock_resolve.assert_called_once_with(domain, "TXT")
 
-#unexpected error
+
+# unexpected error
 @patch("app.services.domain_verification_service.dns.resolver.resolve")
 def test_verify_txt_record_unexpected_exception(mock_resolve):
     """
