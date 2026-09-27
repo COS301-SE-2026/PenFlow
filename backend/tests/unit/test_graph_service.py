@@ -146,7 +146,7 @@ async def test_get_node_returns_relationship_counts_and_findings():
     assert len(detail.findings) == 1
     assert detail.findings[0].id == finding.id
 
-#404 when get nodes
+#error path when get nodes
 @pytest.mark.asyncio
 async def test_get_node_raises_404_for_unknown_node():
     scan = _scan()
@@ -156,3 +156,79 @@ async def test_get_node_raises_404_for_unknown_node():
         await GraphService.get_node(db, scan, "asset:does-not-exist")
 
     assert exc_info.value.status_code == 404
+
+#happy path for get summary
+@pytest.mark.asyncio
+async def test_get_summary_counts_and_concentrations():
+    scan = _scan()
+    asset = _asset(scan.id)
+    service = _service(scan.id, asset.id)
+    findings = [
+        _finding(scan.id, asset_id=asset.id, service_id=service.id, severity=Severity.CRITICAL),
+        _finding(scan.id, asset_id=asset.id, service_id=service.id, severity=Severity.HIGH),
+    ]
+
+    db = _make_db([asset], [service], [], findings)
+
+    summary = await GraphService.get_summary(db, scan)
+
+    assert summary.counts.assets == 1
+    assert summary.counts.services == 1
+    assert summary.counts.findings == 2
+    assert summary.risk.critical_findings == 1
+    assert summary.risk.high_findings == 1
+    assert summary.risk.affected_assets == 1
+    assert len(summary.concentrations) >= 1
+    assert summary.concentrations[0].finding_count == 2
+
+#graph service denies non owner  
+@pytest.mark.asyncio
+@patch("app.services.graph_service.ScanRepository.get_scan_by_id", new_callable=AsyncMock)
+async def test_require_scan_access_denies_non_owner(mock_get_scan):
+    scan = _scan(user_id=uuid4())
+    mock_get_scan.return_value = scan
+    other_user = SimpleNamespace(id=uuid4(), role="client")
+
+    with pytest.raises(HTTPException) as exc_info:
+        await GraphService.require_scan_access(AsyncMock(), scan.id, other_user)
+
+    assert exc_info.value.status_code == 404
+
+
+# happy-path for get path
+@pytest.mark.asyncio
+async def test_get_paths_traces_domain_to_finding_chain():
+    scan = _scan()
+    asset = _asset(scan.id)
+    service = _service(scan.id, asset.id)
+    finding = _finding(scan.id, asset_id=asset.id, service_id=service.id)
+
+    db = _make_db([asset], [service], [], [finding])
+
+    result = await GraphService.get_paths(db, scan)
+
+    assert len(result.paths) == 1
+    path = result.paths[0]
+    assert path.nodes == [
+        f"domain:{scan.domain}",
+        f"asset:{asset.id}",
+        f"service:{service.id}",
+        f"finding:{finding.id}",
+    ]
+    assert len(path.edges) == 3
+
+#test filtering of get path
+@pytest.mark.asyncio
+async def test_get_paths_filters_by_severity_and_respects_limit():
+    scan = _scan()
+    asset = _asset(scan.id)
+    critical = _finding(scan.id, asset_id=asset.id, severity=Severity.CRITICAL)
+    low = _finding(scan.id, asset_id=asset.id, severity=Severity.LOW)
+
+    db = _make_db([asset], [], [], [critical, low])
+
+    result = await GraphService.get_paths(db, scan, severity="high")
+
+    assert len(result.paths) == 1
+    assert result.paths[0].nodes[-1] == f"finding:{critical.id}"
+
