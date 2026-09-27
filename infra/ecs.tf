@@ -71,7 +71,29 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "KEYCLOAK_PROVISIONER_CLIENT_ID", value = "penflow-user-provisioner" },
         { name = "KEYCLOAK_INVITE_CLIENT_ID", value = "penflow-web" },
         { name = "KEYCLOAK_INVITE_REDIRECT_URI", value = "https://${var.domain_name}/login" },
-        { name = "KEYCLOAK_INVITE_LIFESPAN_SECONDS", value = "86400" }
+        { name = "KEYCLOAK_INVITE_LIFESPAN_SECONDS", value = "86400" },
+        { name = "EMBEDDING_PROVIDER", value = var.embedding_provider },
+        { name = "BEDROCK_REGION", value = var.bedrock_region },
+        { name = "BEDROCK_EMBEDDING_MODEL_ID", value = var.bedrock_embedding_model_id },
+        {
+          name  = "BEDROCK_EMBEDDING_DIMENSIONS"
+          value = tostring(var.bedrock_embedding_dimensions)
+        },
+        { name = "GENERATION_PROVIDER", value = var.generation_provider },
+        { name = "BEDROCK_GENERATION_REGION", value = var.bedrock_generation_region },
+        { name = "BEDROCK_GENERATION_MODEL_ID", value = var.bedrock_generation_model_id },
+        {
+          name  = "BEDROCK_GENERATION_MAX_TOKENS"
+          value = tostring(var.bedrock_generation_max_tokens)
+        },
+        {
+          name  = "BEDROCK_GENERATION_TEMPERATURE"
+          value = tostring(var.bedrock_generation_temperature)
+        },
+        {
+          name  = "RAG_RETRIEVAL_MODE"
+          value = var.rag_retrieval_mode
+        },
       ]
 
       secrets = [
@@ -92,6 +114,137 @@ resource "aws_ecs_task_definition" "backend" {
           awslogs-group         = aws_cloudwatch_log_group.backend.name
           awslogs-region        = var.aws_region
           awslogs-stream-prefix = "ecs"
+        }
+      }
+    }
+  ])
+}
+
+resource "aws_ecs_task_definition" "indexing_worker" {
+  family                   = "${local.name_prefix}-indexing-worker"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
+
+  cpu    = 512
+  memory = 1024
+
+  execution_role_arn = aws_iam_role.ecs_execution.arn
+  task_role_arn      = aws_iam_role.backend_task.arn
+
+  runtime_platform {
+    cpu_architecture        = "X86_64"
+    operating_system_family = "LINUX"
+  }
+
+  container_definitions = jsonencode([
+    {
+      name      = "penflow-indexing-worker"
+      image     = "${aws_ecr_repository.backend.repository_url}:${var.backend_image_tag}"
+      essential = true
+
+      cpu               = 512
+      memory            = 1024
+      memoryReservation = 768
+
+      command = [
+        "celery",
+        "-A",
+        "app.queue.celery_app:celery_app",
+        "worker",
+        "--loglevel=info",
+        "--queues=indexing",
+        "--concurrency=1"
+      ]
+
+      environment = [
+        {
+          name  = "APP_ENV"
+          value = var.app_env
+        },
+        {
+          name  = "LOG_LEVEL"
+          value = var.log_level
+        },
+        {
+          name  = "AWS_REGION"
+          value = var.aws_region
+        },
+        {
+          name  = "DATABASE_HOST"
+          value = aws_db_instance.main.address
+        },
+        {
+          name  = "DATABASE_PORT"
+          value = tostring(aws_db_instance.main.port)
+        },
+        {
+          name  = "DATABASE_NAME"
+          value = var.db_name
+        },
+        {
+          name  = "DATABASE_USER"
+          value = var.db_username
+        },
+        {
+          name  = "RABBITMQ_PROTOCOL"
+          value = "amqps"
+        },
+        {
+          name = "RABBITMQ_HOST"
+          value = replace(
+            replace(
+              aws_mq_broker.rabbitmq.instances[0].endpoints[0],
+              "amqps://",
+              ""
+            ),
+            ":5671",
+            ""
+          )
+        },
+        {
+          name  = "RABBITMQ_PORT"
+          value = "5671"
+        },
+        {
+          name  = "RABBITMQ_USERNAME"
+          value = var.rabbitmq_username
+        },
+        {
+          name  = "EMBEDDING_PROVIDER"
+          value = var.embedding_provider
+        },
+        {
+          name  = "BEDROCK_REGION"
+          value = var.bedrock_region
+        },
+        {
+          name  = "BEDROCK_EMBEDDING_MODEL_ID"
+          value = var.bedrock_embedding_model_id
+        },
+        {
+          name  = "BEDROCK_EMBEDDING_DIMENSIONS"
+          value = tostring(var.bedrock_embedding_dimensions)
+        }
+      ]
+
+      secrets = [
+        {
+          name      = "DATABASE_PASSWORD"
+          valueFrom = aws_secretsmanager_secret.db_password.arn
+        },
+        {
+          name      = "RABBITMQ_PASSWORD"
+          valueFrom = aws_secretsmanager_secret.rabbitmq_password.arn
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.indexing_worker.name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "indexing-worker"
         }
       }
     }
@@ -581,7 +734,11 @@ resource "aws_ecs_task_definition" "keycloak" {
 
       secrets = [
         { name = "KC_DB_PASSWORD", valueFrom = aws_secretsmanager_secret.keycloak_db_password.arn },
-        { name = "KC_BOOTSTRAP_ADMIN_PASSWORD", valueFrom = aws_secretsmanager_secret.keycloak_admin_password.arn }
+        { name = "KC_BOOTSTRAP_ADMIN_PASSWORD", valueFrom = aws_secretsmanager_secret.keycloak_admin_password.arn },
+        {
+          name      = "KEYCLOAK_PROVISIONER_CLIENT_SECRET"
+          valueFrom = aws_secretsmanager_secret.keycloak_provisioner_client_secret.arn
+        }
       ]
 
       logConfiguration = {
@@ -628,6 +785,30 @@ resource "aws_ecs_service" "backend" {
 
   depends_on = [
     aws_lb_listener.https
+  ]
+}
+
+resource "aws_ecs_service" "indexing_worker" {
+  name            = "${local.name_prefix}-indexing-worker-service"
+  cluster         = aws_ecs_cluster.main.id
+  task_definition = aws_ecs_task_definition.indexing_worker.arn
+  desired_count   = var.indexing_worker_desired_count
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = aws_subnet.public[*].id
+    security_groups  = [aws_security_group.indexing_worker.id]
+    assign_public_ip = true
+  }
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
+  depends_on = [
+    aws_mq_broker.rabbitmq,
+    aws_db_instance.main
   ]
 }
 

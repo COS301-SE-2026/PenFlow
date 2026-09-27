@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.base import FindingStatus, Severity
+from app.models.base import FindingStatus, RetestStatus, Severity
 
 
 class EvidenceFileResponse(BaseModel):
@@ -66,3 +66,17 @@ class FindingPagination(BaseModel):
 class FindingListResponse(BaseModel):
     items: list[FindingListItem]
     pagination: FindingPagination
+
+#client finding
+class ClientFindingItem(BaseModel):
+    id: UUID
+    title: str
+    severity: Severity
+    description: str | None = None
+    recommendation: str | None = None
+    retest_status: RetestStatus | None = None
+    retest_notes: str | None = None
+    retest_completed_at: datetime | None = None
+
+class ClientFindingListResponse(BaseModel):
+    items: list[ClientFindingItem]

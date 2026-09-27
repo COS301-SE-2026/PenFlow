@@ -215,6 +215,12 @@ export interface FetchScanServicesParams {
   offset?: number;
 }
 
+export type RAGIndexStatus =
+  | "pending"
+  | "indexing"
+  | "ready"
+  | "failed";
+
 export async function fetchScanServices(
   scanId: string,
   params: FetchScanServicesParams = {}
@@ -304,6 +310,11 @@ export interface RealTimeScanStatus {
   progress: number;
   sources: ScanSourceStatus[];
   report_status: ReportStatus | null;
+  rag_index_status: RAGIndexStatus;
+  rag_document_schema_version: string | null;
+  rag_embedding_model: string | null;
+  rag_last_indexed_at: string | null;
+  rag_index_failure_reason: string | null;
 }
 
 export async function fetchScanStatus(scanId: string): Promise<RealTimeScanStatus> {

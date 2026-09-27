@@ -30,7 +30,7 @@ env:
   KEYCLOAK_CLIENT_SECRET: ${{ secrets.CI_KEYCLOAK_CLIENT_SECRET}}
 
   AWS_REGION: af-south-1
-  AWS_ACCOUNT_ID: "428792079342"
+  AWS_ACCOUNT_ID: "576394965728"
 
   BACKEND_ECR_REPOSITORY: penflow-production-backend
   FRONTEND_ECR_REPOSITORY: penflow-production-frontend

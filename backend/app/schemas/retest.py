@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.base import RetestStatus, Severity
 
@@ -27,3 +27,22 @@ class RetestUpdate(BaseModel):
 
 class RetestListResponse(BaseModel):
     items: list[RetestListItem]
+
+#findings the client allow to access
+class RetestEligibleFinding(BaseModel):
+    id: UUID
+    title: str
+    severity: Severity
+
+class RetestEligibleFindingsResponse(BaseModel):
+    items: list[RetestEligibleFinding]
+
+#create many request at once
+class RetestBulkCreate(BaseModel):
+    finding_ids: list[UUID] = Field(..., min_length=1)
+
+class RetestBulkCreateResponse(BaseModel):
+    created: list[RetestListItem]
+    engagement_status: str
+
+

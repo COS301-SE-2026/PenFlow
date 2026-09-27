@@ -18,6 +18,7 @@ RABBITMQ_PASSWORD="$4"
 : "${URLSCAN_API_KEY:?URLSCAN_API_KEY environment variable is required}"
 : "${SMTP_PASSWORD:?SMTP_PASSWORD environment variable is required}"
 : "${INTERNAL_WEBHOOK_SECRET:?INTERNAL_WEBHOOK_SECRET environment variable is required}"
+: "${KEYCLOAK_PROVISIONER_CLIENT_SECRET:?KEYCLOAK_PROVISIONER_CLIENT_SECRET environment variable is required}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 INFRA_DIR="$REPO_ROOT/infra"
@@ -101,6 +102,7 @@ terraform -chdir="$INFRA_DIR" apply \
     -var="backend_desired_count=0" \
     -var="frontend_desired_count=0" \
     -var="worker_desired_count=0" \
+    -var="indexing_worker_desired_count=0" \
     -var="email_worker_desired_count=0" \
     -var="keycloak_desired_count=0" \
     -var="schedule_worker_desired_count=0" \
@@ -233,6 +235,10 @@ KC_ADMIN_SECRET_ARN="$(
     get_secret_arn aws_secretsmanager_secret.keycloak_admin_password
 )"
 
+KC_PROVISIONER_SECRET_ARN="$(
+    get_secret_arn aws_secretsmanager_secret.keycloak_provisioner_client_secret
+)"
+
 RABBIT_SECRET_ARN="$(
     get_secret_arn aws_secretsmanager_secret.rabbitmq_password
 )"
@@ -261,6 +267,7 @@ for secret in \
     "$DB_SECRET_ARN" \
     "$KC_DB_SECRET_ARN" \
     "$KC_ADMIN_SECRET_ARN" \
+    "$KC_PROVISIONER_SECRET_ARN" \
     "$RABBIT_SECRET_ARN" \
     "$HIBP_SECRET_ARN" \
     "$SHODAN_SECRET_ARN" \
@@ -287,6 +294,11 @@ aws secretsmanager put-secret-value \
 aws secretsmanager put-secret-value \
     --secret-id "$KC_ADMIN_SECRET_ARN" \
     --secret-string "$KEYCLOAK_ADMIN_PASSWORD" \
+    >/dev/null
+
+aws secretsmanager put-secret-value \
+    --secret-id "$KC_PROVISIONER_SECRET_ARN" \
+    --secret-string "$KEYCLOAK_PROVISIONER_CLIENT_SECRET" \
     >/dev/null
 
 aws secretsmanager put-secret-value \
@@ -391,6 +403,7 @@ terraform -chdir="$INFRA_DIR" apply \
     -var="backend_desired_count=1" \
     -var="frontend_desired_count=1" \
     -var="worker_desired_count=1" \
+    -var="indexing_worker_desired_count=1" \
     -var="email_worker_desired_count=1" \
     -var="keycloak_desired_count=1" \
     -var="schedule_worker_desired_count=1" \

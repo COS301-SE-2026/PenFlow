@@ -52,7 +52,9 @@ class ScanScheduleRepository:
         user_id: UUID,
     ) -> list[ScanSchedule]:
         result = await db.execute(
-            select(ScanSchedule).where(
+            select(ScanSchedule).options(
+                selectinload(ScanSchedule.verified_domain),
+            ).where(
                 ScanSchedule.user_id == user_id,
             ).order_by(
                 ScanSchedule.is_active.desc(),

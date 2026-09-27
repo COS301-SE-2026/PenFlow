@@ -3,6 +3,7 @@ from app.models.asset import Asset as Asset
 from app.models.audit_log import AuditLog as AuditLog
 from app.models.base import Base, ScanStatus, Severity
 from app.models.brand_intelligence import BrandMonitoring, BrandCandidate
+from app.models.base import Base, RAGIndexStatus, ScanStatus, Severity
 from app.models.detected_technology import DetectedTechnology as DetectedTechnology
 from app.models.engagement import Engagement as Engagement
 from app.models.engagement_asset import EngagementAsset as EngagementAsset
@@ -12,6 +13,7 @@ from app.models.finding import Finding as Finding
 from app.models.finding_retest import FindingRetest as FindingRetest
 from app.models.organisation import Organisation as Organisation
 from app.models.pentester_profile import PentesterProfile as PentesterProfile
+from app.models.rag_chunk import RAGChunk as RAGChunk
 from app.models.report import Report as Report
 from app.models.scan import Scan as Scan
 from app.models.scan_schedule import ScanSchedule as ScanSchedule
@@ -31,6 +33,8 @@ __all__ = [
     "Finding",
     "FindingRetest",
     "Organisation",
+    "RAGChunk",
+    "RAGIndexStatus",
     "Report",
     "Scan",
     "ScanSchedule",
