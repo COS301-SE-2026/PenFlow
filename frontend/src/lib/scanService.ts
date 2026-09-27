@@ -378,6 +378,65 @@ export interface GraphEdge {
   provenance: GraphEdgeProvenance;
 }
 
+export interface ScanGraphResponse {
+  scan_id: string;
+  domain: string;
+  generated_at: string;
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+export async function fetchScanGraph(scanId: string): Promise<ScanGraphResponse> {
+  const response = await authenticatedFetch(`/api/scans/${scanId}/graph`);
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: "Failed to load scan graph" }));
+    throw new Error(err.detail ?? "Failed to load scan graph");
+  }
+  return response.json();
+}
+
+export interface GraphSummaryCounts {
+  domains: number;
+  assets: number;
+  services: number;
+  technologies: number;
+  findings: number;
+  edges: number;
+}
+
+export interface GraphSummaryRisk {
+  critical_findings: number;
+  high_findings: number;
+  medium_findings: number;
+  low_findings: number;
+  affected_assets: number;
+  highest_risk_node_id: string | null;
+}
+
+export interface GraphConcentration {
+  node_id: string;
+  label: string;
+  finding_count: number;
+  critical_count: number;
+  high_count: number;
+  max_cvss: number | null;
+}
+
+export interface GraphSummaryResponse {
+  scan_id: string;
+  counts: GraphSummaryCounts;
+  risk: GraphSummaryRisk;
+  concentrations: GraphConcentration[];
+}
+
+export async function fetchScanGraphSummary(scanId: string): Promise<GraphSummaryResponse> {
+  const response = await authenticatedFetch(`/api/scans/${scanId}/graph/summary`);
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: "Failed to load scan graph summary" }));
+    throw new Error(err.detail ?? "Failed to load scan graph summary");
+  }
+  return response.json();
+}
 
 export async function sendReportEmail(scanId: string, email: string): Promise<void> {
   const response = await fetch(`${API_BASE}/${scanId}/email-report`, {
