@@ -494,3 +494,168 @@ function RiskPathsTab({
         </div>
     );
 }
+
+function DetailsPanel({
+    scanId,
+    node,
+    edges,
+    nodesById,
+    findingsByEntityId,
+    onSelectFinding,
+}: {
+    scanId: string;
+    node: GraphNode;
+    edges: GraphEdge[];
+    nodesById: Map<string, GraphNode>;
+    findingsByEntityId: Map<string, DashboardFindingItem>;
+    onSelectFinding: (id: string) => void;
+}) {
+    const [tab, setTab] = useState<"details" | "findings" | "paths">("details");
+    const visual = nodeVisual(node);
+    const Icon = visual.icon;
+
+    const findingDetail = node.type === "finding" && node.entity_id ? findingsByEntityId.get(node.entity_id) : undefined;
+    const incoming = edges.filter((e)=> e.target === node.id).length;
+    const outgoing = edges.filter((e)=> e.source === node.id).length;
+    const sourceEdge = edges.find((e)=> e.target === node.id);
+    // For the domain node, surface every finding in the scan
+    // for other nodes only findin directly linked via AFFECTED_BY.
+    const relatedFindings: GraphNode[] = node.type === "domain"
+        ? Array.from(nodesById.values()).filter((n)=> n.type === "finding")
+        : edges
+            .filter((e) => e.source === node.id && e.type === "AFFECTED_BY")
+            .map((e) => nodesById.get(e.target))
+            .filter((n): n is GraphNode => Boolean(n));
+
+    return (
+        <aside className="flex min-w-0 flex-col overflow-hidden rounded-[10px] border border-brand-panel-border bg-[#0b1625]">
+            <div className="flex gap-1 border-b border-brand-panel-border p-2">
+                <button type="button" onClick={() => setTab("details")} className={tabButtonClass(tab === "details")}>
+                    Details
+                </button>
+                <button type="button" onClick={() => setTab("findings")} className={tabButtonClass(tab === "findings")}>
+                    Findings ({relatedFindings.length})
+                </button>
+                <button type="button" onClick={() => setTab("paths")} className={tabButtonClass(tab === "paths")}>
+                    Paths
+                </button>
+            </div>
+
+            {tab === "details" ? (
+                <div className="flex flex-col gap-4 p-4">
+                    <div className="flex items-start gap-3">
+                        <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg border", visual.border, visual.iconBg, visual.text)}>
+                            <Icon className="size-4.5" />
+                        </span>
+                        <div className="min-w-0">
+                            <h2 className="m-0 text-[15px] leading-snug text-foreground">{node.label}</h2>
+                            <p className="m-0 mt-0.5 text-[11px] text-muted-foreground">{nodeSublabel(node)}</p>
+                        </div>
+                    </div>
+
+                    {node.type === "finding" ? (
+                        <div className="flex flex-wrap gap-2">
+                            <SeverityBadge severity={normalizeSeverity(node.risk.severity)} />
+                            {node.risk.max_cvss !== null && (
+                                <span className="rounded-[5px] border border-[#26364e] bg-[#091523] px-2 py-1 text-[10px] text-[#9eacbd]">
+                                    CVSS {node.risk.max_cvss}
+                                </span>
+                            )}
+                            {typeof node.metadata.cve_id === "string" && node.metadata.cve_id && (
+                                <span className="rounded-[5px] border border-[#26364e] bg-[#091523] px-2 py-1 text-[10px] text-[#9eacbd]">
+                                    {node.metadata.cve_id}
+                                </span>
+                            )}
+                        </div>
+                    ) : node.risk.finding_count > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                            <SeverityBadge severity={normalizeSeverity(node.risk.severity)} />
+                            <span className="rounded-[5px] border border-[#26364e] bg-[#091523] px-2 py-1 text-[10px] text-[#9eacbd]">
+                                {node.risk.finding_count} finding{node.risk.finding_count === 1 ? "" : "s"}
+                            </span>
+                        </div>
+                    )}
+
+                    <dl className="m-0 grid grid-cols-2 gap-2.5">
+                        <div className={CONTEXT_BOX_CLASS}>
+                            <dt className="text-[9px] text-muted-foreground">Discovered via</dt>
+                            <dd className="m-0 [overflow-wrap:anywhere] text-[10px] text-[#d1dae6]">
+                                {sourceEdge?.provenance.source ?? "Scan target"}
+                            </dd>
+                        </div>
+                        <div className={CONTEXT_BOX_CLASS}>
+                            <dt className="text-[9px] text-muted-foreground">Connections</dt>
+                            <dd className="m-0 text-[10px] text-[#d1dae6]">{incoming} in &bull; {outgoing} out</dd>
+                        </div>
+                        {node.type === "service" && (
+                            <>
+                                <div className={CONTEXT_BOX_CLASS}>
+                                    <dt className="text-[9px] text-muted-foreground">Host : Port</dt>
+                                    <dd className="m-0 [overflow-wrap:anywhere] text-[10px] text-[#d1dae6]">
+                                        {String(node.metadata.host ?? "-")} : {String(node.metadata.port ?? "-")}
+                                    </dd>
+                                </div>
+                                <div className={CONTEXT_BOX_CLASS}>
+                                    <dt className="text-[9px] text-muted-foreground">Product</dt>
+                                    <dd className="m-0 [overflow-wrap:anywhere] text-[10px] text-[#d1dae6]">
+                                        {String(node.metadata.product ?? "Unknown")} {String(node.metadata.version ?? "")}
+                                    </dd>
+                                </div>
+                            </>
+                        )}
+                        {node.type === "technology" && (
+                            <div className={CONTEXT_BOX_CLASS}>
+                                <dt className="text-[9px] text-muted-foreground">Detected by</dt>
+                                <dd className="m-0 [overflow-wrap:anywhere] text-[10px] text-[#d1dae6]">
+                                    {String(node.metadata.detection_source ?? "Unknown")}
+                                </dd>
+                            </div>
+                        )}
+                    </dl>
+
+                    <section>
+                        <h3 className="m-0 mb-2 text-[11px] uppercase text-muted-foreground">Description</h3>
+                        <p className="m-0 text-[11px] leading-relaxed text-[#abb7c7]">
+                            {findingDetail?.description ?? nodeDescription(node) ?? "No description available."}
+                        </p>
+                    </section>
+
+                    {node.type === "finding" && findingDetail?.recommendation && (
+                        <section>
+                            <h3 className="m-0 mb-2 text-[11px] uppercase text-muted-foreground">Remediation</h3>
+                            <p className="m-0 text-[11px] leading-relaxed text-[#abb7c7]">{findingDetail.recommendation}</p>
+                        </section>
+                    )}
+                </div>
+            ) : tab === "findings" ? (
+                <div className="flex flex-col gap-2.5 p-3">
+                    {relatedFindings.length === 0 ? (
+                        <p className="p-2 text-[11px] text-muted-foreground">No findings tied to this node yet.</p>
+                    ) : (
+                        relatedFindings.map((finding) => (
+                            <button
+                                key={finding.id}
+                                type="button"
+                                onClick={() => onSelectFinding(finding.id)}
+                                className={cn(
+                                    "flex flex-col gap-1.5 rounded-lg border bg-[#0f1c30] p-3 text-left hover:bg-[#131f34]",
+                                    finding.id === node.id ? "border-brand-cyan" : "border-brand-panel-border",
+                                )}
+                            >
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-[12px] font-semibold text-foreground">{finding.label}</span>
+                                    <SeverityBadge severity={normalizeSeverity(finding.risk.severity)} />
+                                </div>
+                                {finding.risk.max_cvss !== null && (
+                                    <span className="text-[10px] text-muted-foreground">CVSS {finding.risk.max_cvss}</span>
+                                )}
+                            </button>
+                        ))
+                    )}
+                </div>
+            ) : (
+                <RiskPathsTab scanId={scanId} node={node} nodesById={nodesById} onSelectFinding={onSelectFinding} />
+            )}
+        </aside>
+    );
+}
