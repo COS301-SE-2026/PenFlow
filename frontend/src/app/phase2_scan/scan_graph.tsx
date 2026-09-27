@@ -712,3 +712,92 @@ function WorkerActivityTable ({ sources }: { sources: ScanSourceStatus[] }) {
         </Card>
     )
 }
+
+interface ScanGraphProps {
+    scanId?: string;
+    variant?: "standalone" | "embedded";
+}
+
+export default function ScanGraph({scanId: scanIdProp, variant = "standalone" }: ScanGraphProps = {}){
+    const searchParams = useSearchParams();
+    const scanId = scanIdProp ?? searchParams.get("scan_id");
+
+    const [scan, setScan] = useState<RealTimeScanStatus | null>(null);
+    const [graph, setGraph] = useState<ScanGraphResponse | null>(null);
+    const [findings, setFindings] = useState<DashboardFindingItem[]>([]);
+    const [summary, setSummary] = useState<GraphSummaryResponse | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    const [newIds, setNewIds] = useState<Set<string>>(new Set());
+
+    const [focusMode, setFocusMode] = useState(false);
+    const [neighborhood, setNeighborhood] = useState<GraphNeighborhoodResponse | null>(null);
+    const [neighborhoodLoading, setNeighborhoodLoading] = useState(false);
+
+    const [previousScanId, setPreviousScanId] = useState<string | null>(null);
+    const [compare, setCompare] = useState<GraphCompareResponse | null>(null);
+    const [compareLoading, setCompareLoading] = useState(false);
+    const [compareError, setCompareError] = useState<string | null>(null);
+    const [showCompare, setShowCompare] = useState(false);
+
+    const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const newIdsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const prevNodeIdsRef = useRef<Set<string>>(new Set());
+
+    const containerRef = useRef<HTMLDivElement>(null);
+    const nodeRefs = useRef(new Map<string, HTMLButtonElement>());
+    const [anchors, setAnchors] = useState<Record<string, Anchor>>({});
+
+    const poll = useCallback(async (id: string) => {
+        try {
+            const [statusResult, graphResult] = await Promise.all([
+                fetchScanStatus(id),
+                fetchScanGraph(id),
+            ])
+            setScan(statusResult);
+            setGraph(graphResult);
+            setError(null);
+
+            if (TERMINAL_SCAN_STATUSES.has(statusResult.status) && pollRef.current) {
+                clearInterval(pollRef.current);
+                pollRef.current = null;
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message:"Unable to load the scan graph");
+        }
+
+        fetchScanFindings(id, { limit: 200 }).then(setFindings).catch(()=>{});
+        fetchScanGraphSummary(id).then(setSummary).catch(()=>{});
+    }, []);
+
+    useEffect(() => {
+        if (!scanId) return;
+        void poll(scanId);
+        pollRef.current = setInterval(() => void poll(scanId), POLL_INTERVAL_MS);
+        return () => {
+            if (pollRef.current) clearInterval(pollRef.current);
+            if (newIdsTimeoutRef.current) clearTimeout(newIdsTimeoutRef.current);
+        };
+    }, [scanId, poll]);
+
+    useEffect(() => {
+        if (!graph) return;
+        const currentIds = new Set(graph.nodes.map((n) => n.id));
+        const prev = prevNodeIdsRef.current;
+        const added = new Set<string>();
+        currentIds.forEach((id) => {
+            if (!prev.has(id)) added.add(id);
+        });
+        prevNodeIdsRef.current = currentIds;
+
+        if (added.size > 0 && prev.size > 0) {
+            setNewIds(added);
+            if (newIdsTimeoutRef.current) clearTimeout(newIdsTimeoutRef.current);
+            newIdsTimeoutRef.current = setTimeout(() => setNewIds(new Set()), NEW_NODE_HIGHLIGHT_MS);
+        }
+    }, [graph]);
+
+}
+
+
+
