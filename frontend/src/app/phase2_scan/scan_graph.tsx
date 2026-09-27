@@ -659,3 +659,56 @@ function DetailsPanel({
         </aside>
     );
 }
+
+function WorkerActivityTable ({ sources }: { sources: ScanSourceStatus[] }) {
+    const visibleSources = sources.filter((s) => s.source_name !== "hunter.io");
+    
+    return(
+        <Card className="border border-brand-panel-border bg-brand-panel">
+            <CardContent className="flex flex-col gap-4">
+            <div>
+                <h2 className="m-0 text-sm font-bold tracking-[0.15em] text-foreground/90 uppercase">Live Worker Activity</h2>
+                <p className="mt-1 text-[11px] text-muted-foreground">What each scan step is doing right now.</p>
+            </div>
+            <div className="overflow-x-auto">
+                <table className="w-full min-w-[560px] border-collapse">
+                    <thead>
+                        <tr>
+                            {["Worker", "Description", "Status", "Error"].map((h) => (
+                                <th key={h} className="border-b border-brand-panel-border px-3 py-2.5 text-left text-[10px] text-muted-foreground uppercase">{h}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                            {visibleSources.map((source) => {
+                            const meta = SOURCE_META[source.source_name] ?? {...DEFAULT_SOURCE_META, label: source.source_name };
+                            const statusInfo = sourceStatusConfig[source.status] ?? sourceStatusConfig.pending;
+                            const Icon = meta.icon;
+                            return (
+                                <tr key={source.source_name} className="hover:bg-[#101e30]">
+                                    <td className="border-b border-brand-panel-border/75 px-3 py-3 text-[12px]  text-foreground">
+                                        <span className="flex items-center gap-2">
+                                            <Icon className="size-3.5 text-brand-cyan"/>
+                                            {meta.label}
+                                        </span>
+                                    </td>
+                                    <td className="border-b border-brand-panel-border/75 px-3 py-3 text-[11px] text-muted-foreground">{meta.description}</td>
+                                    <td className="border-b border-brand-panel-border/75 px-3 py-3 text-[11px]">
+                                        <span className={cn("inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase", statusInfo.className)}>
+                                            <span className={cn("size-1.5 rounded-full",source.status === "running" ? "animate-pulse bg-brand-cyan" : "bg-current")}/>
+                                            {statusInfo.label}
+                                        </span>
+                                    </td>
+                                    <td className="border-b border-brand-panel-border/75 px-3 py-3 text-[11px] text-muted-foreground">
+                                        {source.error_message ?? "-"}
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+            </CardContent>
+        </Card>
+    )
+}
