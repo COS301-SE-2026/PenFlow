@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from app.models.base import FindingStatus, Severity
 from app.services.graph_service import GraphService
 
+
 #define mock data
 def _scan(**overrides):
     defaults = {
