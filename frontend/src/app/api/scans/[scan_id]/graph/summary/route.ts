@@ -9,5 +9,5 @@ export async function GET(
     if(!isValidScanId(scan_id)) {
         return NextResponse.json({detail: "Invalid scan id"}, {status: 400});
     }
-    return proxyToScansApi(`/${scan_id}/graph`);
+    return proxyToScansApi(`/${scan_id}/graph/summary`);
 }
