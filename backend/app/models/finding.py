@@ -144,11 +144,6 @@ class Finding(Base):
         default=lambda: datetime.now(timezone.utc)
     )
 
-    scan = relationship("Scan", back_populates="findings")
-    asset = relationship("Asset", back_populates="findings")
-    engagement = relationship("Engagement", back_populates="findings")
-    engagement_asset = relationship("EngagementAsset")
-
     evidence_files = relationship(
         "EvidenceFile",
         back_populates="finding",
@@ -160,3 +155,9 @@ class Finding(Base):
         back_populates="finding",
         cascade="all, delete-orphan",
     )
+
+    scan = relationship("Scan", back_populates="findings")
+    asset = relationship("Asset", back_populates="findings")
+    service = relationship("Service")
+    engagement = relationship("Engagement", back_populates="findings")
+    engagement_asset = relationship("EngagementAsset")

@@ -80,6 +80,20 @@ services:
       REPORT_OUTPUT_DIR: ${REPORT_OUTPUT_DIR:-/app/generated_reports}
       REPORT_S3_BUCKET: ${REPORT_S3_BUCKET:-}
       AWS_REGION: ${AWS_REGION:-af-south-1}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai_compatible}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      OPENAI_TIMEOUT_SECONDS: ${OPENAI_TIMEOUT_SECONDS:-30}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      BEDROCK_REGION: ${BEDROCK_REGION:-}
+      BEDROCK_EMBEDDING_MODEL_ID: ${BEDROCK_EMBEDDING_MODEL_ID:-amazon.titan-embed-text-v2:0}
+      BEDROCK_EMBEDDING_DIMENSIONS: ${BEDROCK_EMBEDDING_DIMENSIONS:-1024}
+      GENERATION_PROVIDER: ${GENERATION_PROVIDER:-bedrock}
+      BEDROCK_GENERATION_REGION: ${BEDROCK_GENERATION_REGION:-}
+      BEDROCK_GENERATION_MODEL_ID: ${BEDROCK_GENERATION_MODEL_ID:-}
+      BEDROCK_GENERATION_MAX_TOKENS: ${BEDROCK_GENERATION_MAX_TOKENS:-800}
+      BEDROCK_GENERATION_TEMPERATURE: ${BEDROCK_GENERATION_TEMPERATURE:-0.1}
+
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -278,7 +292,7 @@ services:
 
   postgres:
     container_name: penflow-postgres
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     ports:
       - "5432:5432"
     environment:
@@ -301,7 +315,7 @@ services:
   postgres-test:
     profiles: ["test"]
     container_name: penflow-postgres-test
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_TEST_USER} -d ${POSTGRES_TEST_DB}"]
       interval: 5s

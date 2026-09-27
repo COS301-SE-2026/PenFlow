@@ -1,4 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TYPE scan_status AS ENUM (
     'queued',
@@ -359,6 +360,18 @@ CREATE TABLE findings (
     CHECK ((scan_id IS NOT NULL) OR (engagement_id IS NOT NULL))
 );
 
+CREATE TABLE rag_chunks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    finding_id UUID NOT NULL UNIQUE REFERENCES findings(id) ON DELETE CASCADE,
+    scan_id UUID NOT NULL REFERENCES scans(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    content_hash CHAR(64) NOT NULL,
+    embedding_model VARCHAR(100) NOT NULL,
+    embedding VECTOR NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE reports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     scan_id UUID UNIQUE REFERENCES scans(id) ON DELETE CASCADE,
@@ -536,3 +549,6 @@ CREATE INDEX idx_audit_logs_entity ON audit_logs(entity_type, entity_id);
 
 CREATE INDEX idx_notifications_user_id_created_at ON notifications(user_id, created_at DESC);
 CREATE INDEX idx_notifications_user_id_is_read ON notifications(user_id, is_read);
+
+CREATE INDEX idx_rag_chunks_scan_id ON rag_chunks(scan_id);
+CREATE INDEX idx_rag_chunks_embedding_model ON rag_chunks(embedding_model);

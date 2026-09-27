@@ -73,6 +73,7 @@ function sortFindings(findings: DashboardFindingItem[], sort: SortOption): Dashb
 export default function FindingsGrid({ scanId }: { scanId: string }) {
     const searchParams = useSearchParams();
     const assetFilter = searchParams.get("asset") ?? "";
+    const findingFilter = searchParams.get("finding") ?? "";
 
     const [findings, setFindings] = useState<DashboardFindingItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -92,6 +93,20 @@ export default function FindingsGrid({ scanId }: { scanId: string }) {
             .catch((err: unknown) => setError(err instanceof Error ? err.message : "Failed to load findings"))
             .finally(() => setLoading(false));
     }, [scanId]);
+
+    useEffect(() => {
+        if(!findingFilter) {
+            return;
+        }
+
+        const requestedFinding = findings.find(
+            (finding) => finding.id === findingFilter,
+        );
+
+        if(requestedFinding) {
+            setSelectedFinding(requestedFinding);
+        }
+    }, [findingFilter, findings]);
 
     const severityCounts = useMemo(() => {
         const counts: Record<string, number> = { critical: 0, high: 0, medium: 0, low: 0};
