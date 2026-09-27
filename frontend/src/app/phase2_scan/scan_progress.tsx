@@ -62,6 +62,25 @@ const sourceStatusConfig: Record<SourceStatus, {label: string; className: string
     skipped: {label: "Skipped", className: "border-muted-foreground/30 text-muted-foreground bg-muted/40"},
 };
 
+const ragIndexStatusConfig = {
+    pending: {
+        label: "Pending",
+        className: "border-muted-foreground/30 bg-muted/40 text-muted-foreground",
+    },
+    indexing: {
+        label: "Preparing",
+        className: "border-brand-cyan bg-brand-cyan/10 text-brand-cyan",
+    },
+    ready: {
+        label: "Ready",
+        className: "border-brand-success bg-brand-success/10 text-brand-success",
+    },
+    failed: {
+        label: "Needs retry",
+        className: "border-brand-alert bg-brand-alert/10 text-brand-alert",
+    },
+} as const;
+
 const dotToneClassName: Record<SourceStatus, string> ={
     pending: "bg-muted-foreground/40",
     running: "bg-brand-cyan animate-pulse",
@@ -121,6 +140,7 @@ function ScanRadar({isComplete}:{isComplete:boolean}) {
 
 function ScanDetailsBar({scan}: {scan:RealTimeScanStatus}) {
     const completedCount = scan.sources.filter((s)=> TERMINAL_SOURCE_STATUSES.has(s.status as SourceStatus)).length;
+    const ragIndexState = ragIndexStatusConfig[scan.rag_index_status];
     const items: {label:string; value:ReactNode}[] = [
         {label: "Domain", value: scan.domain},
         {label: "Scan Type", value: scanTypeLabel[scan.scan_type] ?? scan.scan_type},
@@ -129,6 +149,14 @@ function ScanDetailsBar({scan}: {scan:RealTimeScanStatus}) {
                 <span className = "size-1.5 rounded-full bg-brand-cyan"/>
                 {scan.status}
             </span>),
+        },
+        {
+            label: "AI Evidence",
+            value: (
+                <Badge variant="outline" className={ragIndexState.className}>
+                    {ragIndexState.label}
+                </Badge>
+            ),
         },
         {
             label: "Elapsed Time", value: formatElapsed(scan.created_at)},
@@ -381,7 +409,15 @@ export default function ScanProgress() {
             const result = await fetchScanStatus(id);
             setScan(result);
             setError(null);
-            if(TERMINAL_SCAN_STATUSES.has(result.status) && pollRef.current) {
+            const indexFinished =
+                result.status === "failed" ||
+                result.rag_index_status === "ready" ||
+                result.rag_index_status === "failed";
+            
+            if (
+                TERMINAL_SCAN_STATUSES.has(result.status) &&
+                indexFinished && pollRef.current
+            ) {
                 clearInterval(pollRef.current);
                 pollRef.current = null;
             }

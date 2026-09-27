@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.base import NotificationType, RetestStatus
+from app.models.base import EngagementStatus, NotificationType, RetestStatus
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.engagement_repository import EngagementRepository
 from app.repositories.retest_repository import RetestRepository
@@ -109,6 +109,42 @@ class RetestService:
                 engagement_id=engagement.id,
                 metadata=notification_metadata,
             )
+
+            #a pentester finish last open retest it flips to completed
+            #if the finding is resolve or still vulnerable 
+            if engagement.status == EngagementStatus.RETESTING:
+                open_count = await RetestRepository.count_open_by_engagement(
+                    db,
+                    engagement_id=engagement_id,
+                )
+                if open_count == 0:
+                    await EngagementRepository.update_status(
+                        db,
+                        engagement=engagement,
+                        new_status=EngagementStatus.COMPLETED,
+                    )
+                    latest_by_finding = await RetestRepository.list_latest_by_engagement(
+                        db,
+                        engagement_id=engagement_id,
+                    )
+                    has_unresolved = any(
+                        latest_retest is not None
+                        and latest_retest.status == RetestStatus.STILL_VULNERABLE
+                        for _, latest_retest in latest_by_finding
+                    )
+
+                    await AuditRepository.create_log(
+                        db,
+                        user_id=user_id,
+                        action=(
+                            "engagement.retest_cycle_closed_with_unresolved"
+                            if has_unresolved
+                            else "engagement.retest_all_resolved"
+                        ),
+                        entity_type="engagement",
+                        entity_id=engagement.id,
+                        metadata={"has_unresolved": has_unresolved},
+                    )
 
         return RetestListItem(
             id=retest.id,

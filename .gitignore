@@ -54,3 +54,5 @@ crash.*.log
 *.zip
 infra/terraform.tfstate
 infra/terraform.tfvars.example
+
+backend/evals/results/

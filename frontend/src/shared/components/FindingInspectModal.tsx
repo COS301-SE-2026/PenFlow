@@ -7,7 +7,7 @@ import { downloadEvidence } from "@/lib/serviceDeliveryService";
 import type { FindingDetail } from "@/lib/serviceDeliveryTypes";
 
 export default function FindingInspectModal({ finding, onClose }: { finding: FindingDetail; onClose: () => void }) {
-    const files = finding.evidence_files;
+    const files = finding.evidence_files ?? [];
 
     async function handleDownload(evidenceId: string, fileName: string) {
         const blob = await downloadEvidence(evidenceId, fileName);

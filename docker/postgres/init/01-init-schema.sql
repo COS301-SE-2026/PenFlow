@@ -1,4 +1,5 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TYPE scan_status AS ENUM (
     'queued',
@@ -84,6 +85,7 @@ CREATE TYPE engagement_status AS ENUM (
     'in_progress',
     'review',
     'completed',
+    'retesting',
     'cancelled'
 );
 
@@ -128,6 +130,13 @@ CREATE TYPE brand_candidate_status AS ENUM (
     'confirmed_impersonation',
     'false_positive', 
     'resolved'
+):
+
+CREATE TYPE rag_index_status AS ENUM (
+    'pending',
+    'indexing',
+    'ready',
+    'failed'
 );
 
 CREATE TABLE organisations (
@@ -236,6 +245,11 @@ CREATE TABLE scans (
     email VARCHAR(255),
     status scan_status NOT NULL DEFAULT 'queued',
     progress INTEGER NOT NULL DEFAULT 0,
+    rag_index_status rag_index_status NOT NULL DEFAULT 'pending',
+    rag_document_schema_version VARCHAR(50),
+    rag_embedding_model VARCHAR(100),
+    rag_last_indexed_at TIMESTAMPTZ,
+    rag_index_failure_reason TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
@@ -371,6 +385,18 @@ CREATE TABLE findings (
 
     CHECK (cvss_score IS NULL or (cvss_score >= 0 AND cvss_score <= 10)),
     CHECK ((scan_id IS NOT NULL) OR (engagement_id IS NOT NULL))
+);
+
+CREATE TABLE rag_chunks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    finding_id UUID NOT NULL UNIQUE REFERENCES findings(id) ON DELETE CASCADE,
+    scan_id UUID NOT NULL REFERENCES scans(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    content_hash CHAR(64) NOT NULL,
+    embedding_model VARCHAR(100) NOT NULL,
+    embedding VECTOR NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE reports (
@@ -518,6 +544,7 @@ CREATE INDEX idx_scans_org_id ON scans(organisation_id);
 CREATE INDEX idx_scans_user_id ON scans(user_id);
 CREATE INDEX idx_scans_domain ON scans(domain);
 CREATE INDEX idx_scans_status ON scans(status);
+CREATE INDEX idx_scans_rag_index_status ON scans(rag_index_status);
 
 CREATE INDEX idx_assets_scan_id ON assets(scan_id);
 CREATE INDEX idx_assets_org_id ON assets(organisation_id);
@@ -581,3 +608,6 @@ CREATE INDEX idx_brand_monitoring_domain ON brand_monitoring(verified_domain_id)
 CREATE INDEX idx_brand_candidates_monitor_id ON brand_candidates(brand_monitoring_id);
 CREATE INDEX idx_brand_candidates_status ON brand_candidates(status);
 CREATE INDEX idx_brand_candidates_risk ON brand_candidates(risk_level);
+
+CREATE INDEX idx_rag_chunks_scan_id ON rag_chunks(scan_id);
+CREATE INDEX idx_rag_chunks_embedding_model ON rag_chunks(embedding_model);
