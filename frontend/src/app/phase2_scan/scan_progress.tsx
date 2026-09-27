@@ -451,6 +451,11 @@ export default function ScanProgress() {
                     </p>
                 </div>
                 <div className="flex gap-2">
+                    <Link href={`/phase2_scan/graph?scan_id=${scan.scan_id}`}>
+                        <Button variant="outline" className="gap-2 border-brand-panel-border text-foreground hover:border-brand-cyan hover:text-brand-cyan">
+                            View Scan Graph
+                        </Button>
+                    </Link>
                     {TERMINAL_SCAN_STATUSES.has(scan.status) ? (
                         <Link href = {`/phase2_scan/results/${scan.scan_id}`}>
                             <Button className="gap-2 bg-brand-cyan text-black hover:bg-brand-cyan/85">
