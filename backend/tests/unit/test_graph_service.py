@@ -232,3 +232,85 @@ async def test_get_paths_filters_by_severity_and_respects_limit():
     assert len(result.paths) == 1
     assert result.paths[0].nodes[-1] == f"finding:{critical.id}"
 
+#test get get_neighborhood
+@pytest.mark.asyncio
+async def test_get_neighborhood_depth_one_excludes_grandchildren():
+    scan = _scan()
+    asset = _asset(scan.id)
+    service = _service(scan.id, asset.id)
+    finding = _finding(scan.id, service_id=service.id)
+
+    db = _make_db([asset], [service], [], [finding])
+
+    result = await GraphService.get_neighborhood(
+        db, scan, f"asset:{asset.id}", depth=1
+    )
+
+    node_ids = {n.id for n in result.nodes}
+    assert node_ids == {f"domain:{scan.domain}", f"asset:{asset.id}", f"service:{service.id}"}
+    assert f"finding:{finding.id}" not in node_ids
+
+#error path of get neighbourhood
+@pytest.mark.asyncio
+async def test_get_neighborhood_unknown_node_raises_404():
+    scan = _scan()
+    db = _make_db([], [], [], [])
+
+    with pytest.raises(HTTPException) as exc_info:
+        await GraphService.get_neighborhood(db, scan, "asset:does-not-exist")
+
+    assert exc_info.value.status_code == 404
+
+#compare action after change node 
+@pytest.mark.asyncio
+async def test_compare_scans_detects_added_removed_and_changed():
+    current_scan = _scan(domain="example.com")
+    previous_scan = _scan(domain="example.com")
+
+    # same logical asset exists in both scans, but its DB id differs
+    current_asset = _asset(current_scan.id, identifier="203.0.113.10")
+    previous_asset = _asset(previous_scan.id, identifier="203.0.113.10")
+
+    # finding only present in the current scan , plus another finding
+    #on the same asset so its finding_count differs from the previous scan
+    new_finding = _finding(
+        current_scan.id, asset_id=current_asset.id, title="New critical finding"
+    )
+    extra_finding = _finding(
+        current_scan.id, asset_id=current_asset.id, title="Second finding on asset"
+    )
+    # finding only present in the previous scan 
+    old_finding = _finding(
+        previous_scan.id, asset_id=previous_asset.id, title="Old resolved finding"
+    )
+
+    # compare_scans loads the current scan's data first, then the previous
+    db = AsyncMock()
+    results = iter(
+        [
+            _ScalarsResult([current_asset]),
+            _ScalarsResult([]),
+            _ScalarsResult([]),
+            _ScalarsResult([new_finding, extra_finding]),
+            _ScalarsResult([previous_asset]),
+            _ScalarsResult([]),
+            _ScalarsResult([]),
+            _ScalarsResult([old_finding]),
+        ]
+    )
+    db.execute = AsyncMock(side_effect=lambda *_a, **_k: next(results))
+
+    result = await GraphService.compare_scans(db, current_scan, previous_scan)
+
+    assert set(result.added_nodes) == {
+        f"finding:{new_finding.id}",
+        f"finding:{extra_finding.id}",
+    }
+    assert result.removed_nodes == [f"finding:{old_finding.id}"]
+
+    # the asset itself is unchanged in identity but its finding_count changed
+    changed_ids = {c.node_id for c in result.changed_nodes}
+    assert any(cid.startswith("asset:") for cid in changed_ids)
+
+    assert result.risk_change["critical_findings"].current == 2
+    assert result.risk_change["critical_findings"].previous == 1
