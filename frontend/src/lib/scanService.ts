@@ -438,6 +438,76 @@ export async function fetchScanGraphSummary(scanId: string): Promise<GraphSummar
   return response.json();
 }
 
+export interface GraphPath {
+  id: string;
+  risk: GraphRisk;
+  nodes: string[];
+  edges: string[];
+}
+
+export interface GraphPathsResponse {
+  paths: GraphPath[];
+}
+
+export interface FetchScanGraphPathsParams {
+  severity?: "high" | "critical";
+  finding_id?: string;
+  asset_id?: string;
+  limit?: number;
+}
+
+export async function fetchScanGraphPaths(
+  scanId: string,
+  params: FetchScanGraphPathsParams = {}
+): Promise<GraphPathsResponse> {
+  const query = new URLSearchParams();
+  if (params.severity) query.set("severity", params.severity);
+  if (params.finding_id) query.set("finding_id", params.finding_id);
+  if (params.asset_id) query.set("asset_id", params.asset_id);
+  if (params.limit !== undefined) query.set("limit", String(params.limit));
+
+  const qs = query.toString();
+  const response = await authenticatedFetch(`/api/scans/${scanId}/graph/paths${qs ? `?${qs}` : ""}`);
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: "Failed to load risk paths" }));
+    throw new Error(err.detail ?? "Failed to load risk paths");
+  }
+  return response.json();
+}
+
+export interface GraphChangedValue {
+  previous: unknown;
+  current: unknown;
+}
+
+export interface GraphNodeChange {
+  node_id: string;
+  changes: Record<string, GraphChangedValue>;
+}
+
+export interface GraphCompareResponse {
+  current_scan_id: string;
+  previous_scan_id: string;
+  added_nodes: string[];
+  removed_nodes: string[];
+  changed_nodes: GraphNodeChange[];
+  added_edges: string[];
+  removed_edges: string[];
+  risk_change: Record<string, GraphChangedValue>;
+}
+
+export async function fetchScanGraphCompare(
+  scanId: string,
+  previousScanId: string
+): Promise<GraphCompareResponse> {
+  const response = await authenticatedFetch(`/api/scans/${scanId}/graph/compare/${previousScanId}`);
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: "Failed to compare scans" }));
+    throw new Error(err.detail ?? "Failed to compare scans");
+  }
+  return response.json();
+}
+
 export async function sendReportEmail(scanId: string, email: string): Promise<void> {
   const response = await fetch(`${API_BASE}/${scanId}/email-report`, {
     method: "POST",
