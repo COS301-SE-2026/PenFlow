@@ -34,7 +34,7 @@ import {
     fetchScanFindings,
     fetchScanGraph,
     fetchScanGraphCompare,
-    fetchScanGraphNeighborhood,
+    //fetchScanGraphNeighborhood,
     fetchScanGraphPaths,
     fetchScanGraphSummary,
     fetchScanHistory,
@@ -43,7 +43,7 @@ import {
     type GraphCompareResponse,
     type GraphConcentration,
     type GraphEdge,
-    type GraphNeighborhoodResponse,
+    //type GraphNeighborhoodResponse,
     type GraphNode,
     type GraphPath,
     type GraphSummaryResponse,
@@ -731,7 +731,7 @@ export default function ScanGraph({scanId: scanIdProp, variant = "standalone" }:
     const [newIds, setNewIds] = useState<Set<string>>(new Set());
 
     const [focusMode, setFocusMode] = useState(false);
-    const [neighborhood, setNeighborhood] = useState<GraphNeighborhoodResponse | null>(null);
+    //const [neighborhood, setNeighborhood] = useState<GraphNeighborhoodResponse | null>(null);
     const [neighborhoodLoading, setNeighborhoodLoading] = useState(false);
 
     const [previousScanId, setPreviousScanId] = useState<string | null>(null);
@@ -1152,6 +1152,25 @@ export default function ScanGraph({scanId: scanIdProp, variant = "standalone" }:
                     ))}
                 </div>
             </div>
+
+            {error && <p className="text-xs text-brand-alert">{error}</p>}
+
+            {variant === "standalone" ? (
+                <>
+                    {graphCard}
+                    <div className="grid grid-cols-[minmax(0,1fr)_360px] items-start gap-5 max-[1100px]:grid-cols-1">
+                        <WorkerActivityTable sources={scan.sources} />
+                        {detailsPanel}
+                    </div>
+                </>
+            ) : (
+                <>
+                    {graphCard}
+                    {detailsPanel}
+                </>
+            )}
+        </div>
+    );
 
 }
 
