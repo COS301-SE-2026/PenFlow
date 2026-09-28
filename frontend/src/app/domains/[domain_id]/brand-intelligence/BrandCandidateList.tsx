@@ -1,3 +1,12 @@
+"use client";
+
+import
+{
+    useEffect,
+    useState,
+} from "react";
+import { ScanSearch } from "lucide-react";
+
 import type
 {
     brand_candidate,
@@ -5,7 +14,8 @@ import type
     brand_risk_level,
 } from "@/lib/brandIntelligenceTypes";
 import { cn } from "@/lib/utils";
-
+import { Button } from "@/shared/components/ui/button";
+import BrandCandidateInvestigation from "./BrandCandidateInvestigation";
 
 interface BrandCandidateListProps
 {
@@ -77,6 +87,37 @@ export default function BrandCandidateList
     candidates,
 }: BrandCandidateListProps)
 {
+    const [selected_candidate_id, set_selected_candidate_id] =
+        useState<string | null>(null);
+
+
+    const selected_candidate =
+        candidates.find
+        (
+            (candidate) => candidate.id === selected_candidate_id
+        ) ?? null;
+
+    //allow the investigation popup to close with escape
+    useEffect(() =>
+    {
+        if (!selected_candidate)
+            return;
+
+        function handle_key_down(event: KeyboardEvent)
+        {
+            if (event.key === "Escape")
+                set_selected_candidate_id(null);
+        }
+
+        window.addEventListener("keydown", handle_key_down);
+
+        return () =>
+        {
+            window.removeEventListener("keydown", handle_key_down);
+        };
+
+    }, [selected_candidate]);
+
     //summary numbers for the monitoring overview
     const high_risk = candidates.filter
     (
@@ -171,6 +212,9 @@ export default function BrandCandidateList
                                     <th className="px-4 py-3 font-medium">
                                         Last seen
                                     </th>
+                                    <th className="px-4 py-3 font-medium">
+                                        Investigation
+                                    </th>
                                 </tr>
                             </thead>
 
@@ -239,6 +283,28 @@ export default function BrandCandidateList
                                                 {format_timestamp(candidate.last_seen)}
                                             </td>
 
+
+                                            <td className="px-4 py-3">
+
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className={
+                                                        "border-brand-cyan/50 bg-brand-cyan/10 " +
+                                                        "text-brand-cyan transition-all duration-200 " +
+                                                        "hover:border-brand-cyan hover:bg-brand-cyan " +
+                                                        "hover:text-white hover:shadow-md"
+                                                    }
+                                                    onClick={() =>
+                                                        set_selected_candidate_id(candidate.id)
+                                                    }
+                                                >
+                                                    <ScanSearch className="size-4" />
+                                                    Investigate
+                                                </Button>
+
+                                            </td>
+
                                         </tr>
                                     );
                                 })}
@@ -251,7 +317,42 @@ export default function BrandCandidateList
                 )}
 
             </div>
+            {selected_candidate && (
+                <div
+                    className={
+                        "fixed inset-0 z-50 flex items-center " +
+                        "justify-center p-4 sm:p-6"
+                    }
+                >
 
+                    {/*dull the page so th focus stays on investigation*/}
+                    <button
+                        type="button"
+                        aria-label="Close candidate investigation"
+                        className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
+                        onClick={() => set_selected_candidate_id(null)}
+                    />
+
+
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={`Investigation for ${selected_candidate.candidate_domain}`}
+                        className={
+                            "relative z-10 max-h-[90vh] w-full max-w-6xl " +
+                            "overflow-y-auto rounded-xl shadow-2xl"
+                        }
+                    >
+
+                        <BrandCandidateInvestigation
+                            candidate={selected_candidate}
+                            onClose={() => set_selected_candidate_id(null)}
+                        />
+
+                    </div>
+
+                </div>
+            )}
         </section>
     );
 }
