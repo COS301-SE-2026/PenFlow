@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import
 {
     Globe2,
@@ -55,8 +56,10 @@ function mutation_label(value?: string): string
 }
 
 
-function format_timestamp(value: string): string
+function format_timestamp(value?: string | null): string
 {
+    if (!value)
+        return "Unavailable";
     const date = new Date(value);
     if (Number.isNaN(date.getTime()))
         return "Unavailable";
@@ -319,7 +322,7 @@ export default function BrandCandidateInvestigation
                 <EvidenceSummary
                     icon={<Globe2 className="size-4" />}
                     label="Registered"
-                    value={format_date(signals?.creation_date)}
+                    value={format_timestamp(signals?.creation_date)}
                 />
 
                 <EvidenceSummary
@@ -423,7 +426,7 @@ function EvidenceSummary
     label,
     value,
 }: {
-    icon: React.ReactNode;
+    icon: ReactNode;
     label: string;
     value: string;
 })

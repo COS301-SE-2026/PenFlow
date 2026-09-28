@@ -1,11 +1,12 @@
 "use client";
-
+import type { ReactNode } from "react";
 import
 {
     useEffect,
+    useMemo,
     useState,
 } from "react";
-import { ScanSearch } from "lucide-react";
+import { RotateCcw, ScanSearch, Search} from "lucide-react";
 
 import type
 {
@@ -21,6 +22,21 @@ interface BrandCandidateListProps
 {
     candidates: brand_candidate[];
 }
+//filters
+type risk_filter =
+    | "all"
+    | brand_risk_level;
+
+type status_filter =
+    | "all"
+    | brand_candidate_status;
+
+type candidate_sort =
+    | "risk_high"
+    | "risk_low"
+    | "newest"
+    | "oldest"
+    | "recent";
 
 
 //keep the risk colours in one place
@@ -82,6 +98,18 @@ function format_timestamp(value: string): string
 }
 
 
+//turn stored timestamps into numbers so candidates can be sorted
+function timestamp_value(value: string): number
+{
+    const timestamp = new Date(value).getTime();
+
+    if (Number.isNaN(timestamp))
+        return 0;
+
+    return timestamp;
+}
+
+
 export default function BrandCandidateList
 ({
     candidates,
@@ -90,6 +118,10 @@ export default function BrandCandidateList
     const [selected_candidate_id, set_selected_candidate_id] =
         useState<string | null>(null);
 
+    const [search_query, set_search_query] = useState("");
+    const [selected_risk, set_selected_risk] = useState<risk_filter>("all");
+    const [selected_status, set_selected_status] = useState<status_filter>("all");
+    const [selected_sort, set_selected_sort] = useState<candidate_sort>("risk_high");
 
     const selected_candidate =
         candidates.find
@@ -117,6 +149,81 @@ export default function BrandCandidateList
         };
 
     }, [selected_candidate]);
+
+    //filter and sort without changing backen
+    const visible_candidates = useMemo(() =>
+    {
+        const query = search_query.trim().toLowerCase();
+        const filtered = candidates.filter((candidate) =>
+        {
+            const matches_search =
+                !query ||
+                candidate.candidate_domain
+                    .toLowerCase()
+                    .includes(query);
+
+            const matches_risk =
+                selected_risk === "all" ||
+                candidate.risk_level === selected_risk;
+
+            const matches_status =
+                selected_status === "all" ||
+                candidate.status === selected_status;
+
+            return (
+                matches_search &&
+                matches_risk &&
+                matches_status
+            );
+        });
+
+
+        return [...filtered].sort((first, second) =>
+        {
+            switch (selected_sort)
+            {
+                case "risk_low":
+                    return first.risk_score - second.risk_score;
+
+                case "newest":
+                    return (
+                        timestamp_value(second.first_seen) -
+                        timestamp_value(first.first_seen)
+                    );
+
+                case "oldest":
+                    return (
+                        timestamp_value(first.first_seen) -
+                        timestamp_value(second.first_seen)
+                    );
+
+                case "recent":
+                    return (
+                        timestamp_value(second.last_seen) -
+                        timestamp_value(first.last_seen)
+                    );
+
+                default:
+                    return second.risk_score - first.risk_score;
+            }
+        });
+
+    }, [
+        candidates,
+        search_query,
+        selected_risk,
+        selected_sort,
+        selected_status,
+    ]);
+
+
+    function reset_filters()
+    {
+        set_search_query("");
+        set_selected_risk("all");
+        set_selected_status("all");
+        set_selected_sort("risk_high");
+    }
 
     //summary numbers for the monitoring overview
     const high_risk = candidates.filter
@@ -173,20 +280,149 @@ export default function BrandCandidateList
 
             </div>
 
+            <div className="rounded-lg border border-brand-panel-border bg-brand-panel p-4">
+               <div className="flex flex-col gap-4 xl:flex-row xl:items-end">
+                    <div className="flex-1">
+                        <label
+                            htmlFor="brand-candidate-search"
+                            className="text-xs uppercase tracking-wide text-muted-foreground"
+                        >
+                            Search candidates
+                        </label>
+                        <div className="relative mt-2">
+                            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"/>
+
+                            <input
+                                id="brand-candidate-search"
+                                type="search"
+                                value={search_query}
+                                placeholder="Search domain..."
+                                onChange={(event) =>
+                                    set_search_query(event.target.value)
+                                }
+                                className={
+                                    "h-10 w-full rounded-md border " +
+                                    "border-brand-panel-border bg-brand-panel-deep " +
+                                    "pl-9 pr-3 text-sm text-foreground outline-none " +
+                                    "placeholder:text-muted-foreground " +
+                                    "focus:border-brand-cyan"
+                                }
+                            />
+
+                        </div>
+
+                    </div>
+
+
+                    <FilterSelect
+                        label="Risk"
+                        value={selected_risk}
+                        onChange={(value) =>
+                            set_selected_risk(value as risk_filter)
+                        }
+                    >
+                        <option value="all">All risks</option>
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </FilterSelect>
+
+
+                    <FilterSelect
+                        label="Status"
+                        value={selected_status}
+                        onChange={(value) =>
+                            set_selected_status(value as status_filter)
+                        }
+                    >
+                        <option value="all">All statuses</option>
+                        <option value="new">New</option>
+                        <option value="under_review">Under review</option>
+                        <option value="confirmed_impersonation">
+                            Confirmed
+                        </option>
+                        <option value="false_positive">
+                            False positive
+                        </option>
+                        <option value="resolved">
+                            Resolved
+                        </option>
+                    </FilterSelect>
+
+
+                    <FilterSelect
+                        label="Sort by"
+                        value={selected_sort}
+                        onChange={(value) =>
+                            set_selected_sort(value as candidate_sort)
+                        }
+                    >
+                        <option value="risk_high">
+                            Highest risk
+                        </option>
+                        <option value="risk_low">
+                            Lowest risk
+                        </option>
+                        <option value="newest">
+                            Newest first
+                        </option>
+                        <option value="oldest">
+                            Oldest first
+                        </option>
+                        <option value="recent">
+                            Recently seen
+                        </option>
+                    </FilterSelect>
+
+
+                    <Button
+                        variant="outline"
+                        className="h-10 shrink-0"
+                        onClick={reset_filters}
+                    >
+                        <RotateCcw className="size-4" />
+                        Reset
+                    </Button>
+
+                </div>
+
+
+                <p className="mt-3 text-xs text-muted-foreground">
+                    Showing {visible_candidates.length} of {candidates.length} candidates
+                </p>
+
+            </div>
 
             <div className="overflow-hidden rounded-lg border border-brand-panel-border bg-brand-panel">
-
                 {candidates.length === 0 ? (
                     <div className="p-8 text-center">
-
                         <p className="font-medium text-foreground">
-                            No impersonation candidates found
+                            No candidates match the filters in place
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Run monitoring to discover more possible domain impersonations.
+                        </p>
+                    </div>
+
+                ) : visible_candidates.length === 0 ? (
+
+                    <div className="p-8 text-center">
+                        <p className="font-medium text-foreground">
+                            No candidates match these filters
+                        </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Change the search or filter options to show more candidates.
                         </p>
 
-                        <p className="mt-1 text-sm text-muted-foreground">
-                            Candidates discovered by the next monitoring run
-                            will appear here.
-                        </p>
+                        <Button
+                            variant="outline"
+                            className="mt-4"
+                            onClick={reset_filters}
+                        >
+                            <RotateCcw className="size-4" />
+                            Clear filters
+                        </Button>
 
                     </div>
                 ) : (
@@ -221,7 +457,7 @@ export default function BrandCandidateList
 
                             <tbody>
 
-                                {candidates.map((candidate) =>
+                                {visible_candidates.map((candidate) =>
                                 {
                                     const first_reason =
                                         candidate.evidence.reasons?.[0];
@@ -377,6 +613,46 @@ function SummaryCard
             <p className="mt-1 text-2xl font-semibold text-foreground">
                 {value}
             </p>
+
+        </div>
+    );
+}
+
+
+function FilterSelect
+({
+    label,
+    value,
+    onChange,
+    children,
+}: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    children: ReactNode;
+})
+{
+    return (
+        <div className="min-w-40">
+
+            <label className="text-xs uppercase tracking-wide text-muted-foreground">
+                {label}
+            </label>
+
+            <select
+                value={value}
+                onChange={(event) =>
+                    onChange(event.target.value)
+                }
+                className={
+                    "mt-2 h-10 w-full rounded-md border " +
+                    "border-brand-panel-border bg-brand-panel-deep " +
+                    "px-3 text-sm text-foreground outline-none " +
+                    "focus:border-brand-cyan"
+                }
+            >
+                {children}
+            </select>
 
         </div>
     );
