@@ -891,6 +891,47 @@ export default function ScanGraph({scanId: scanIdProp, variant = "standalone" }:
         );
     }
 
+    if (error && !scan) {
+        return (
+            <div className={variant === "standalone" ? "mx-auto flex w-full max-w-[1700px] flex-col gap-4" : "flex min-w-0 flex-col gap-4"}>
+                <p className="text-sm text-brand-alert">{error}</p>
+            </div>
+        );
+    }
+
+    if (!scan) {
+        return (
+            <div className={variant === "standalone" ? "mx-auto flex w-full max-w-[1700px] flex-col gap-4" : "flex min-w-0 flex-col gap-4"}>
+                <p className="text-sm text-muted-foreground">Loading scan graph...</p>
+            </div>
+        );
+    }
+
+    const selectedNode = (selectedId && nodesById.get(selectedId)) || domainNode;
+    const assetsDiscovered = summary
+        ? summary.counts.assets + summary.counts.services + summary.counts.technologies
+        : graph?.nodes.filter((n) => n.type === "asset" || n.type === "service" || n.type === "technology").length ?? 0;
+    const findingsTotal = summary?.counts.findings ?? domainNode?.risk.finding_count ?? 0;
+    const criticalCount = summary?.risk.critical_findings
+        ?? graph?.nodes.filter((n) => n.type === "finding" && n.risk.severity === "critical").length ?? 0;
+    const isRunning = !TERMINAL_SCAN_STATUSES.has(scan.status);
+
+    const addedNodeIds = showCompare && compare ? new Set(compare.added_nodes) : null;
+
+    // A node with no children yet may just not have been reached by the scan
+    // yet - pulse it while the scan is still running so it reads as "waiting",
+    // not stalled. Finding/technology nodes are always leaves, so they never
+    // qualify, even mid-scan.
+    const childCounts = new Map<string, number>();
+    for (const edge of edges) {
+        childCounts.set(edge.source, (childCounts.get(edge.source) ?? 0) + 1);
+    }
+    function isNodeBusy(node: GraphNode): boolean {
+        if (!isRunning) return false;
+        if (node.type !== "domain" && node.type !== "asset" && node.type !== "service") return false;
+        return (childCounts.get(node.id) ?? 0) === 0;
+    }
+
 }
 
 
