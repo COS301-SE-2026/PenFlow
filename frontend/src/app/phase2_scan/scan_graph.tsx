@@ -932,6 +932,59 @@ export default function ScanGraph({scanId: scanIdProp, variant = "standalone" }:
         return (childCounts.get(node.id) ?? 0) === 0;
     }
 
+    const statChips = [
+        { icon: Network, value: assetsDiscovered, label: "Assets Discovered", accent: KIND_STYLE.ip },
+        { icon: Bug, value: findingsTotal, label: "Findings", accent: SEVERITY_ACCENT.high },
+        { icon: AlertTriangle, value: criticalCount, label: "Critical", accent: SEVERITY_ACCENT.critical },
+        { icon: Gauge, value: `${scan.progress}%`, label: "Scan Progress", accent: KIND_STYLE.technology },
+    ];
+
+    const compareChips = compare ? [
+        { icon: Plus, value: compare.added_nodes.length, label: "New nodes", accent: "text-brand-success" },
+        { icon: Minus, value: compare.removed_nodes.length, label: "Removed", accent: "text-brand-alert" },
+        { icon: GitCompare, value: compare.changed_nodes.length, label: "Changed", accent: "text-brand-cyan" },
+        { icon: Link2, value: compare.added_edges.length, label: "New links", accent: "text-brand-cyan" },
+    ] : [];
+
+    const graphCard = (
+        <Card className="border border-brand-panel-border bg-brand-panel">
+            <CardContent className="flex flex-col gap-4">
+                <div>
+                    <h2 className="m-0 text-sm font-bold tracking-[0.15em] text-foreground/90 uppercase">Live Scan Graph</h2>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                        Builds up as the active scan discovers assets, services and findings. Click a node for details.
+                    </p>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand-panel-border bg-[#0b1625]/60 px-3 py-2">
+                    <div className="flex items-center gap-1">
+                        {previousScanId && (
+                            <button
+                                type="button"
+                                onClick={toggleCompare}
+                                className={cn(
+                                    "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide",
+                                    showCompare ? "bg-brand-success/10 text-brand-success" : "text-muted-foreground hover:bg-white/5 hover:text-foreground",
+                                )}
+                            >
+                                <GitCompare size={13} />
+                                Compare
+                            </button>
+                        )}
+                    </div>
+
+                    {summary && <HotSpotPills concentrations={summary.concentrations} onSelect={setSelectedId} />}
+                </div>
+
+                {showCompare && (
+                    <div className="rounded-lg border border-brand-panel-border bg-[#0b1625]/95 p-3.5">
+                        <div className="mb-2.5 flex items-center justify-between">
+                            <h3 className="m-0 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">Compared to previous scan</h3>
+                            <button type="button" onClick={() => setShowCompare(false)} aria-label="Close comparison" className="text-muted-foreground hover:text-foreground">
+                                <X size={14} />
+                            </button>
+                        </div>
+
 }
 
 
