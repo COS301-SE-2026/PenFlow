@@ -797,6 +797,47 @@ export default function ScanGraph({scanId: scanIdProp, variant = "standalone" }:
         }
     }, [graph]);
 
+    useEffect(() => {
+        if (!graph || selectedId) return;
+        const findingNodes = graph.nodes.filter((n) => n.type === "finding");
+        const best = [...findingNodes].sort(
+            (a, b) => SEVERITY_ORDER[normalizeSeverity(b.risk.severity)] - SEVERITY_ORDER[normalizeSeverity(a.risk.severity)],
+        )[0];
+        const domainNode = graph.nodes.find((n) => n.type === "domain");
+        setSelectedId(best?.id ?? domainNode?.id ?? null);
+    }, [graph, selectedId]);
+
+    const previousScanLookupDoneRef = useRef(false);
+    useEffect(() => {
+        if (!scan || previousScanLookupDoneRef.current) return;
+        previousScanLookupDoneRef.current = true;
+
+        fetchScanHistory()
+            .then((history: ScanHistoryItem[]) => {
+                const candidates = history
+                    .filter((h) => h.id !== scan.scan_id && h.domain === scan.domain && h.created_at < scan.created_at)
+                    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+                if (candidates.length > 0) setPreviousScanId(candidates[0].id);
+            })
+            .catch(() => {});
+    }, [scan]);
+
+    function toggleCompare() {
+        if (showCompare) {
+            setShowCompare(false);
+            return;
+        }
+        setShowCompare(true);
+        if (compare || compareLoading || !scanId || !previousScanId) return;
+
+        setCompareLoading(true);
+        setCompareError(null);
+        fetchScanGraphCompare(scanId, previousScanId)
+            .then(setCompare)
+            .catch((err: unknown) => setCompareError(err instanceof Error ? err.message : "Failed to compare scans"))
+            .finally(() => setCompareLoading(false));
+    }
+
 }
 
 
