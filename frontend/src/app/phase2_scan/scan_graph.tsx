@@ -838,6 +838,59 @@ export default function ScanGraph({scanId: scanIdProp, variant = "standalone" }:
             .finally(() => setCompareLoading(false));
     }
 
+    function registerRef(id: string, el: HTMLButtonElement | null) {
+        if (el) nodeRefs.current.set(id, el);
+        else nodeRefs.current.delete(id);
+    }
+
+    useLayoutEffect(() => {
+        function measure() {
+            const container = containerRef.current;
+            if (!container) return;
+            const containerRect = container.getBoundingClientRect();
+            const next: Record<string, Anchor> = {};
+            nodeRefs.current.forEach((el, id) => {
+                const r = el.getBoundingClientRect();
+                next[id] = {
+                    left: r.left - containerRect.left,
+                    right: r.right - containerRect.left,
+                    y: r.top - containerRect.top + r.height / 2,
+                };
+            });
+            setAnchors(next);
+        }
+        measure();
+        const ro = new ResizeObserver(measure);
+        if (containerRef.current) ro.observe(containerRef.current);
+        window.addEventListener("resize", measure);
+        return () => {
+            ro.disconnect();
+            window.removeEventListener("resize", measure);
+        };
+    }, [graph]);
+
+    const columns = useMemo(() => buildColumns(graph), [graph]);
+    const nodesById = useMemo(() => new Map((graph?.nodes ?? []).map((n) => [n.id, n])), [graph]);
+    const findingsByEntityId = useMemo(() => new Map(findings.map((f) => [f.id, f])), [findings]);
+    const domainNode = graph?.nodes.find((n) => n.type === "domain");
+
+    const edges = useMemo(() => {
+        if (!graph) return [];
+        const domainEdge = domainNode ? [{ id: "internet-domain", source: INTERNET_ID, target: domainNode.id, type: "RESOLVES_TO" as const, provenance: { source: "scan", observed_at: null, confidence: 1 } }] : [];
+        return [...domainEdge, ...graph.edges];
+    }, [graph, domainNode]);
+
+    if (!scanId) {
+        return (
+            <div className={variant === "standalone" ? "mx-auto flex w-full max-w-[1700px] flex-col gap-4" : "flex min-w-0 flex-col gap-4"}>
+                <p className="text-sm text-muted-foreground">
+                    No scan selected. Start a new scan from the{" "}
+                    <Link href="/phase2_scan" className="text-brand-cyan hover:underline">Scans</Link> page.
+                </p>
+            </div>
+        );
+    }
+
 }
 
 
