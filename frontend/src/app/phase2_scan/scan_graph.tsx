@@ -1057,6 +1057,102 @@ export default function ScanGraph({scanId: scanIdProp, variant = "standalone" }:
                                 })}
                             </svg>
 
+                            <div className="grid gap-x-8 gap-y-4" style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(150px, 1fr))` }}>
+                                {columns.map((column) => (
+                                    <div key={column.key} className="flex flex-col justify-center gap-4">
+                                        {column.key === INTERNET_ID ? (
+                                            <InternetNodeCard registerRef={registerRef} />
+                                        ) : (
+                                            column.nodes.map((node) => (
+                                                <GraphNodeCard
+                                                    key={node.id}
+                                                    node={node}
+                                                    isSelected={node.id === selectedId}
+                                                    isNew={newIds.has(node.id)}
+                                                    isBusy={isNodeBusy(node)}
+                                                    isAddedSinceCompare={addedNodeIds?.has(node.id) ?? false}
+                                                    onSelect={setSelectedId}
+                                                    registerRef={registerRef}
+                                                />
+                                            ))
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+
+    const detailsPanel = selectedNode && (
+        <DetailsPanel
+            scanId={scanId}
+            node={selectedNode}
+            edges={edges}
+            nodesById={nodesById}
+            findingsByEntityId={findingsByEntityId}
+            onSelectFinding={setSelectedId}
+        />
+    );
+
+    return (
+        <div className={variant === "standalone" ? "mx-auto flex w-full max-w-[1700px] flex-col gap-6" : "flex min-w-0 flex-col gap-6"}>
+            {variant === "standalone" && (
+                <>
+                    <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Link href="/phase2_scan" className="hover:text-foreground hover:underline">Scans</Link>
+                        <ChevronRight className="size-4" />
+                        <span>{scan.domain}</span>
+                        <ChevronRight className="size-4" />
+                        <span className="text-foreground">Scan Graph</span>
+                    </nav>
+
+                    <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <h1 className="text-2xl font-semibold text-foreground">{scan.domain}</h1>
+                                <Badge className="bg-brand-cyan text-black capitalize">{scan.status}</Badge>
+                                {isRunning && (
+                                    <span className="inline-flex items-center gap-1.5 text-[11px] text-brand-cyan">
+                                        <span className="size-1.5 animate-pulse rounded-full bg-brand-cyan" />
+                                        Live
+                                    </span>
+                                )}
+                            </div>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                {scanTypeLabel[scan.scan_type] ?? scan.scan_type} &bull; {scan.progress}% complete
+                            </p>
+                        </div>
+                        <Link
+                            href={`/phase2_scan/progress?scan_id=${scanId}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-brand-panel-border px-4 py-2.5 text-sm text-foreground hover:border-brand-cyan hover:text-brand-cyan"
+                        >
+                            View worker timeline
+                        </Link>
+                    </div>
+                </>
+            )}
+
+            <div className="flex flex-wrap items-start gap-4">
+                <GraphLegend />
+
+                <div className="grid min-w-[280px] flex-1 grid-cols-4 gap-3 max-[900px]:grid-cols-2 max-[500px]:grid-cols-1">
+                    {statChips.map((chip) => (
+                        <div key={chip.label} className="flex items-center gap-3 rounded-xl border border-brand-panel-border bg-brand-panel p-3.5">
+                            <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg border", chip.accent.border, chip.accent.iconBg, chip.accent.text)}>
+                                <chip.icon className="size-4" />
+                            </span>
+                            <div className="flex flex-col">
+                                <strong className="text-xl text-foreground">{chip.value}</strong>
+                                <span className="text-[11px] tracking-wide text-muted-foreground uppercase">{chip.label}</span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
 }
 
 
