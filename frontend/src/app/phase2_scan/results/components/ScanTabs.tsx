@@ -14,6 +14,7 @@ export default function ScanTabs({scanId}:{scanId:string}) {
         {label: "Assets", href: `${basePath}/assets`},
         {label: "Services", href: `${basePath}/services`},
         {label: "Activity", href: `${basePath}/activity`},
+        {label: "Graph", href: `${basePath}/graph`},
     ];
 
     return (
