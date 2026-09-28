@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import NavBar from "@/components/NavBar";
-import { fetchScanHistory, getReportPdfUrl, formatDate, sendReportEmail } from "@/lib/scanService";
+import { fetchScanHistory, getReportPdfUrl, formatDate } from "@/lib/scanService";
 import type { ScanHistoryItem } from "@/lib/scanService";
 import Image from "next/image";
 import submarineImage from "@/app/images/images/submarine.png";
@@ -14,17 +14,7 @@ import {Card , CardContent} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils"
 import Link from "next/link";
-
-const handleSendEmail = async (scanId: string) => {
-  const email = window.prompt("Send this report to which email address?"); 
-  if (!email || !email.trim()) return;
-  try {
-    await sendReportEmail(scanId, email.trim());
-    alert("Report sent.");
-  } catch (err) {
-    console.error(err);
-    alert("Failed to send report email");
-  };}
+import EmailReportDialog from "@/shared/components/EmailReportDialog";
 
 const scanTypeLabel: Record<string, string> = {
     active_vulnerability: "Active Vulnerability Scan",
@@ -68,6 +58,7 @@ export default function HistoryPage() {
   const [loading, setLoading] = useState(true);
 
   const [modal, setModal] = useState<ScanHistoryItem | null>(null);
+  const [emailScan, setEmailScan] = useState<ScanHistoryItem | null>(null);
   const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
   const dragOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const isDragging = useRef(false);
@@ -241,7 +232,7 @@ export default function HistoryPage() {
           <button
             type="button"
             className={`${styles.modalBtn} ${styles.modalBtnSend}`} 
-            onClick={() => handleSendEmail (modal.id)}
+            onClick={() => {setEmailScan(modal); closeModal();}}
             >
                 SEND EMAIL
           </button>
@@ -249,6 +240,9 @@ export default function HistoryPage() {
         
         </div>
       </>
+    )}
+    {emailScan && (
+      <EmailReportDialog scanId={emailScan.id} domain={emailScan.domain} onClose={() => setEmailScan(null)} />
     )}
     </div>
   );
