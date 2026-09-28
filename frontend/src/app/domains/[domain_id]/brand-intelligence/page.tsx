@@ -13,11 +13,14 @@ export default async function BrandIntelligencePage
     searchParams,
 }: BrandIntelligencePageProps)
 {
-    const [{ domain_id }, { domain }] = await Promise.all([params, searchParams]);
-
-    return(
+    const { domain_id } = await params;
+    const { domain } = await searchParams;
+    return (
         <DashboardLayout>
-            <BrandMonitoringOverview domainId={domain_id} domain={domain ?? null} />
+            <BrandMonitoringOverview
+                domainId={domain_id}
+                domain={domain ?? null}
+            />
         </DashboardLayout>
     );
 }
