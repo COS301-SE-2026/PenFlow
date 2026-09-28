@@ -5,11 +5,12 @@ import
 {
     AlertTriangle,
     ArrowLeft,
+    Play,
     RefreshCw,
     ShieldCheck,
 } from "lucide-react";
 
-import { fetch_brand_monitoring } from "@/lib/brandIntelligenceService";
+import { fetch_brand_monitoring, trigger_brand_monitoring } from "@/lib/brandIntelligenceService";
 import type { brand_monitoring } from "@/lib/brandIntelligenceTypes";
 import { Button } from "@/shared/components/ui/button";
 import PageHero from "@/shared/components/PageHero";
@@ -68,6 +69,9 @@ export default function BrandMonitoringOverview
 {
     const [state, set_state] = useState<monitoring_state>({ status: "loading" });
     const [refresh_key, set_refresh_key] = useState(0);
+    const [triggering, set_triggering] = useState(false);
+    const [trigger_error, set_trigger_error] = useState<string | null>(null);
+    const [trigger_notice, set_trigger_notice] = useState<string | null>(null);
 
 
     useEffect(() =>
@@ -123,6 +127,43 @@ export default function BrandMonitoringOverview
         };
 
     }, [domainId, refresh_key]);
+
+
+    async function handle_trigger_monitoring()
+    {
+        if (triggering)
+            return;
+
+        set_triggering(true);
+        set_trigger_error(null);
+        set_trigger_notice(null);
+
+        try
+        {
+            const monitoring = await trigger_brand_monitoring(domainId);
+
+            set_state
+            ({
+                status: "ready",
+                monitoring,
+            });
+
+            set_trigger_notice
+            (
+                "Monitoring run started. Results will appear once the worker finishes."
+            );
+        }
+        catch (error)
+        {
+            set_trigger_error(error_message(error));
+        }
+        finally
+        {
+            set_triggering(false);
+        }
+    }
+
+
     const display_domain = domain ?? domainId;
     return (
         <div className="flex flex-col gap-6">
@@ -136,15 +177,57 @@ export default function BrandMonitoringOverview
                     <ArrowLeft className="size-4" />
                     Back to Domains
                 </Link>
-                <Button
-                    variant="outline"
-                    disabled={state.status === "loading"}
-                    onClick={() => set_refresh_key((current) => current + 1)}>
-                    <RefreshCw className="size-4" />
-                    Refresh
-                </Button>
+                <div className="flex items-center gap-2">
+
+                    <Button
+                        variant="outline"
+                        disabled={state.status === "loading"}
+                        onClick={() => set_refresh_key((current) => current + 1)}
+                    >
+                        <RefreshCw className="size-4" />
+                        Refresh
+                    </Button>
+
+                    <Button
+                        disabled={state.status === "loading" || triggering}
+                        onClick={() => void handle_trigger_monitoring()}
+                    >
+                        {triggering ? (
+                            <RefreshCw className="size-4 animate-spin" />
+                        ) : (
+                            <Play className="size-4" />
+                        )}
+
+                        {triggering
+                            ? "Starting..."
+                            : state.status === "not_configured"
+                                ? "Start monitoring"
+                                : "Run monitoring"}
+                    </Button>
+
+                </div>
+
 
             </div>
+
+            {trigger_error && (
+                <div
+                    role="alert"
+                    className="rounded-lg border border-brand-alert/30 bg-brand-alert/5 px-4 py-3 text-sm text-brand-alert"
+                >
+                    {trigger_error}
+                </div>
+            )}
+
+
+            {trigger_notice && (
+                <div
+                    role="status"
+                    className="rounded-lg border border-brand-success/30 bg-brand-success/5 px-4 py-3 text-sm text-brand-success"
+                >
+                    {trigger_notice}
+                </div>
+            )}
 
 
             <section className="rounded-lg border border-brand-panel-border bg-brand-panel p-6">
