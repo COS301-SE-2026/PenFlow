@@ -10,7 +10,7 @@ import {
     FileSearch,
     Fingerprint,
     Flame,
-    Focus,
+    //Focus,
     Gauge,
     GitCompare,
     Globe,
@@ -730,9 +730,9 @@ export default function ScanGraph({scanId: scanIdProp, variant = "standalone" }:
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [newIds, setNewIds] = useState<Set<string>>(new Set());
 
-    const [focusMode, setFocusMode] = useState(false);
+    //const [focusMode, setFocusMode] = useState(false);
     //const [neighborhood, setNeighborhood] = useState<GraphNeighborhoodResponse | null>(null);
-    const [neighborhoodLoading, setNeighborhoodLoading] = useState(false);
+    //const [neighborhoodLoading, setNeighborhoodLoading] = useState(false);
 
     const [previousScanId, setPreviousScanId] = useState<string | null>(null);
     const [compare, setCompare] = useState<GraphCompareResponse | null>(null);
