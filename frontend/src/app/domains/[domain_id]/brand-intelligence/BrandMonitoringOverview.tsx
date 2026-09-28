@@ -22,6 +22,10 @@ interface BrandMonitoringOverviewProps
     domainId: string;
     domain: string | null;
 }
+
+//timing to poll
+const MONITORING_POLL_MS = 5000;
+const MONITORING_TIMEOUT_MS = 10 * 60 * 1000;
 //monitored states
 type monitoring_state =
     | { status: "loading" }
@@ -60,6 +64,24 @@ function format_timestamp(value: string | null): string
     );
 }
 
+//wait between checks so we dont spam the backend while the worker is busy
+function wait(milliseconds: number): Promise<void>
+{
+    return new Promise((resolve) =>
+    {
+        setTimeout(resolve, milliseconds);
+    });
+}
+
+
+//timer to show progress
+function format_elapsed(seconds: number): string
+{
+    const minutes = Math.floor(seconds / 60);
+    const remaining_seconds = seconds % 60;
+    return `${minutes}:${remaining_seconds.toString().padStart(2, "0")}`;
+}
+
 
 export default function BrandMonitoringOverview
 ({
@@ -70,6 +92,8 @@ export default function BrandMonitoringOverview
     const [state, set_state] = useState<monitoring_state>({ status: "loading" });
     const [refresh_key, set_refresh_key] = useState(0);
     const [triggering, set_triggering] = useState(false);
+    const [monitoring_running, set_monitoring_running] = useState(false);
+    const [run_elapsed, set_run_elapsed] = useState(0);
     const [trigger_error, set_trigger_error] = useState<string | null>(null);
     const [trigger_notice, set_trigger_notice] = useState<string | null>(null);
 
@@ -128,11 +152,42 @@ export default function BrandMonitoringOverview
 
     }, [domainId, refresh_key]);
 
+    useEffect(() =>
+    {
+        if (!monitoring_running)
+        {
+            set_run_elapsed(0);
+            return;
+        }
+
+        const started_at = Date.now();
+
+        const timer = setInterval(() =>
+        {
+            set_run_elapsed
+            (
+                Math.floor((Date.now() - started_at) / 1000)
+            );
+        }, 1000);
+
+        return () =>
+        {
+            clearInterval(timer);
+        };
+
+    }, [monitoring_running]);
+
 
     async function handle_trigger_monitoring()
     {
-        if (triggering)
+        if (triggering || monitoring_running)
             return;
+
+        //we compare against this to know when the worker has actually finished
+        const previous_last_run =
+            state.status === "ready"
+                ? state.monitoring.last_run_at
+                : null;
 
         set_triggering(true);
         set_trigger_error(null);
@@ -148,18 +203,62 @@ export default function BrandMonitoringOverview
                 monitoring,
             });
 
+            //the POST only queues the celery job, it doesnt mean the scan is done
+            set_triggering(false);
+            set_monitoring_running(true);
+
             set_trigger_notice
             (
-                "Monitoring run started. Results will appear once the worker finishes."
+                "Monitoring is running. Waiting for the worker to finish."
+            );
+
+            const timeout_at = Date.now() + MONITORING_TIMEOUT_MS;
+
+            while (Date.now() < timeout_at)
+            {
+                await wait(MONITORING_POLL_MS);
+
+                const updated_monitoring =
+                    await fetch_brand_monitoring(domainId);
+
+                set_state
+                ({
+                    status: "ready",
+                    monitoring: updated_monitoring,
+                });
+
+                //last_run_at is only updated once worker results are stored
+                if
+                (
+                    updated_monitoring.last_run_at &&
+                    updated_monitoring.last_run_at !== previous_last_run
+                )
+                {
+                    set_trigger_notice
+                    (
+                        "Monitoring complete. Results have been refreshed."
+                    );
+
+                    return;
+                }
+            }
+
+            set_trigger_notice(null);
+            set_trigger_error
+            (
+                "Monitoring is taking longer than expected. " +
+                "Refresh the page in a moment."
             );
         }
         catch (error)
         {
+            set_trigger_notice(null);
             set_trigger_error(error_message(error));
         }
         finally
         {
             set_triggering(false);
+            set_monitoring_running(false);
         }
     }
 
@@ -181,7 +280,7 @@ export default function BrandMonitoringOverview
 
                     <Button
                         variant="outline"
-                        disabled={state.status === "loading"}
+                        disabled={state.status === "loading" || triggering || monitoring_running}
                         onClick={() => set_refresh_key((current) => current + 1)}
                     >
                         <RefreshCw className="size-4" />
@@ -189,10 +288,10 @@ export default function BrandMonitoringOverview
                     </Button>
 
                     <Button
-                        disabled={state.status === "loading" || triggering}
+                        disabled={state.status === "loading" || triggering || monitoring_running}
                         onClick={() => void handle_trigger_monitoring()}
                     >
-                        {triggering ? (
+                        {triggering || monitoring_running? (
                             <RefreshCw className="size-4 animate-spin" />
                         ) : (
                             <Play className="size-4" />
@@ -200,9 +299,11 @@ export default function BrandMonitoringOverview
 
                         {triggering
                             ? "Starting..."
-                            : state.status === "not_configured"
-                                ? "Start monitoring"
-                                : "Run monitoring"}
+                            :monitoring_running
+                                ? `Running ${format_elapsed(run_elapsed)}`
+                                : state.status === "not_configured"
+                                    ? "Start monitoring"
+                                    : "Run monitoring"}
                     </Button>
 
                 </div>
@@ -223,7 +324,11 @@ export default function BrandMonitoringOverview
             {trigger_notice && (
                 <div
                     role="status"
-                    className="rounded-lg border border-brand-success/30 bg-brand-success/5 px-4 py-3 text-sm text-brand-success"
+                    className={
+                        "rounded-lg border border-brand-success/30 " +
+                        "bg-brand-success/5 px-4 py-3 text-sm text-brand-success " +
+                        (monitoring_running ? "animate-pulse" : "")
+                    }
                 >
                     {trigger_notice}
                 </div>
