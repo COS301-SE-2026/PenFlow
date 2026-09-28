@@ -250,7 +250,7 @@ export default function BrandMonitoringOverview
                 "Refresh the page in a moment."
             );
         }
-        catch (error)r
+        catch (error)
         {
             set_trigger_notice(null);
             set_trigger_error(error_message(error));
