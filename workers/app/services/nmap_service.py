@@ -57,11 +57,27 @@ def run_live_nmap_scan(
             arguments=scan_args,
         )
 
-        if not scanner.all_hosts():
-            (logger.warning(f"[NMAP_Service] No response received from target: {ip_address}"))
-            return result
+        hosts = scanner.all_hosts()
 
-        host = scanner.all_hosts()[0]
+        if not hosts:
+            logger.warning(
+                f"[NMAP_Service] No response received from target: "
+                f"{ip_address}. Retrying once."
+            )
+            scanner.scan(
+                hosts=ip_address,
+                arguments=scan_args,
+            )
+            hosts = scanner.all_hosts()
+
+        if not hosts:
+            raise RuntimeError(
+                f"Nmap received no usable response from target: "
+                f"{ip_address}"
+            )
+
+        host = hosts[0]
+
         result["ip"] = host
         host_data = scanner[host]
 

@@ -1,4 +1,5 @@
 import logging
+from ipaddress import ip_address
 from typing import Any
 
 import dns.exception
@@ -67,3 +68,76 @@ def resolve_target_ips(domain: str) -> JSONDict:
         )
 
     return result
+
+
+def resolve_target_scope(
+        hostnames: list[str],
+        max_ipv4_per_hostname: int = 2,
+        max_ipv6_per_hostname: int = 2,
+        max_unique_ips: int = 24,
+) -> JSONDict:
+    targets: list[JSONDict] = []
+    ip_to_hostnames: dict[str, list[str]] = {}
+
+    for hostname in hostnames:
+        resolved = resolve_target_ips(hostname)
+
+        accepted_ipv4: list[str] = []
+        accepted_ipv6: list[str] = []
+
+        for version, addresses, limit, accepted in (
+            (4, resolved["ipv4"], max_ipv4_per_hostname, accepted_ipv4),
+            (6, resolved["ipv6"], max_ipv6_per_hostname, accepted_ipv6),
+        ):
+            for value in addresses:
+                try:
+                    parsed_address = ip_address(value)
+
+                except ValueError:
+                    logger.warning(
+                        "[Target Resolution] Ignoring invalid address %s for %s",
+                        value,
+                        hostname,
+                    )
+                    continue
+
+                if parsed_address.version != version or not parsed_address.is_global:
+                    logger.warning(
+                        "[Target Resolution] Ignoring non-public address %s for %s",
+                        value,
+                        hostname,
+                    )
+                    continue
+
+                address = str(parsed_address)
+
+                if address in accepted:
+                    continue
+
+                if (
+                    address not in ip_to_hostnames
+                    and len(ip_to_hostnames) >= max_unique_ips
+                ):
+                    continue
+
+                ip_to_hostnames.setdefault(address, [])
+                if hostname not in ip_to_hostnames[address]:
+                    ip_to_hostnames[address].append(hostname)
+
+                accepted.append(address)
+
+                if len(accepted) >= limit:
+                    break
+
+        targets.append(
+            {
+                "hostname": hostname,
+                "ipv4": accepted_ipv4,
+                "ipv6": accepted_ipv6,
+            }
+        )
+
+    return {
+        "targets": targets,
+        "ip_to_hostnames": ip_to_hostnames,
+    }

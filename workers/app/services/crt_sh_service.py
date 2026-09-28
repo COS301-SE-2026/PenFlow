@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import time
 from pathlib import Path
 
@@ -11,6 +12,61 @@ logger = logging.getLogger(__name__)
 CRT_SH_PROVIDER = "crt.sh"
 SCAN_MODE = os.getenv("SCAN_MODE", "MOCK").upper()
 WORKERS_ROOT = Path(__file__).resolve().parent.parent.parent
+_HOSTNAME_LABEL_PATTERN = re.compile(
+    r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
+)
+
+def _normalize_hostname(value: str) -> str | None:
+    hostname = value.strip().lower().rstrip(".")
+
+    if not hostname or hostname.startswith("*."):
+        return None
+
+    try:
+        hostname = hostname.encode("idna").decode("ascii")
+    except UnicodeError:
+        return None
+
+    if len(hostname) > 253:
+        return None
+
+    labels = hostname.split(".")
+    if any(_HOSTNAME_LABEL_PATTERN.fullmatch(label) is None for label in labels):
+        return None
+
+    return hostname
+
+
+def build_active_scan_scope(
+        domain: str,
+        discovered_names: list[str],
+        max_hostnames: int = 10,
+) -> list[str]:
+    apex = _normalize_hostname(domain)
+
+    if apex is None or max_hostnames < 1:
+        return []
+
+    suffix = f".{apex}"
+    scoped_names = {apex}
+
+    for name in discovered_names:
+        if not isinstance(name, str):
+            continue
+
+        hostname = _normalize_hostname(name)
+        if hostname is None:
+            continue
+
+        if hostname == apex or hostname.endswith(suffix):
+            scoped_names.add(hostname)
+
+    ordered_names = [
+        apex,
+        *sorted(scoped_names - {apex}),
+    ]
+
+    return ordered_names[:max_hostnames]
 
 
 # collect raw data from mocks or from crt.sh depending on mode
@@ -43,11 +99,18 @@ def fetch_live_data(domain: str) -> dict:
     url = f"https://crt.sh/?q=%.{domain}&output=json&exclude=expired"
     # crt.sh is very bad with reliable requests,
     # we have to do a lot of retry logic to try get a good response.
-    max_attempts = 3
-    timeout_seconds = 8.0
-    retry_delay_seconds = 3
+    max_attempts = 4
+    timeout_seconds = 6.0
+    retry_delays = (0.5, 1.0, 2.0)
+    retryable_status_codes = {429, 502, 503, 504}
 
-    with httpx.Client() as client:
+    with httpx.Client(
+        follow_redirects=True,
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "PenFlow/1.0",
+        },
+    ) as client:
         for attempt in range(1, max_attempts + 1):
             logger.info(
                 f"[CRT.sh] Polling database (Attempt {attempt}/{max_attempts}) "
@@ -58,24 +121,30 @@ def fetch_live_data(domain: str) -> dict:
                 res = client.get(url, timeout=timeout_seconds)
 
                 # Catch 502 Bad Gateway / 503 Service Unavailable natively
-                if res.status_code in [502, 503, 504]:
-                    logger.warning(f"[CRT.sh] Server returned {res.status_code}. Retrying...")
-
+                if res.status_code in retryable_status_codes:
+                    logger.warning(
+                        f"[CRT.sh] Server returned "
+                        f"{res.status_code}. Retrying..."
+                    )
                 else:
                     res.raise_for_status()
-                    # crt.sh sometimes returns a completely blank page when it struggles
+
                     if not res.text.strip():
-                        logger.warning("[CRT.sh] Returned a blank response. Retrying...")
+                        logger.warning(
+                            "[CRT.sh] Returned a blank response. Retrying..."
+                        )
                     else:
                         try:
-                            return {"certificates": res.json()}
-                        # Try to parse the JSON. If it's half-broken, catch it and retry.
+                            certificates = res.json()
                         except json.JSONDecodeError:
-                            logger.warning(
-                                "[CRT.sh] Request timed out after %.1fs.",
-                                timeout_seconds,
-                            )
+                            logger.warning("[CRT.sh] Returned invalid JSON. Retrying...")
+                        else:
+                            if isinstance(certificates, list):
+                                return {
+                                    "certificates": certificates,
+                                }
 
+                            logger.warning("[CRT.sh] Returned an unexpected JSON payload. Retrying...")
             except httpx.TimeoutException:
                 logger.warning(f"[CRT.sh] Timeout reached ({timeout_seconds}s). Retrying...")
 
@@ -83,7 +152,7 @@ def fetch_live_data(domain: str) -> dict:
                 logger.warning(f"[CRT.sh] HTTP Error: {e}. Retrying...")
 
             if attempt < max_attempts:
-                time.sleep(retry_delay_seconds)
+                time.sleep(retry_delays[attempt - 1])
 
         # If we exhaust all 5 attempts, fail gracefully
         logger.error(f"[CRT.sh] X Completely failed after {max_attempts} attempts.")
