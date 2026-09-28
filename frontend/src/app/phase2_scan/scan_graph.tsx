@@ -985,6 +985,78 @@ export default function ScanGraph({scanId: scanIdProp, variant = "standalone" }:
                             </button>
                         </div>
 
+                         {compareLoading ? (
+                            <p className="m-0 text-[11px] text-muted-foreground">Comparing against the previous scan...</p>
+                        ) : compareError ? (
+                            <p className="m-0 text-[11px] text-brand-alert">{compareError}</p>
+                        ) : compare ? (
+                            <div className="flex flex-col gap-3">
+                                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                                    {compareChips.map((chip) => (
+                                        <div key={chip.label} className="flex items-center gap-2 rounded-md border border-brand-panel-border bg-[#0f1c30] px-2.5 py-2">
+                                            <chip.icon size={14} className={chip.accent} />
+                                            <div className="flex flex-col leading-tight">
+                                                <strong className="text-[13px] text-foreground">{chip.value}</strong>
+                                                <span className="text-[9px] tracking-wide text-muted-foreground uppercase">{chip.label}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                {("critical_findings" in compare.risk_change || "high_findings" in compare.risk_change) && (
+                                    <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px]">
+                                        {"critical_findings" in compare.risk_change && (
+                                            <span className="text-[#ef4444]">
+                                                Critical {String(compare.risk_change.critical_findings.previous)} &rarr; {String(compare.risk_change.critical_findings.current)}
+                                            </span>
+                                        )}
+                                        {"high_findings" in compare.risk_change && (
+                                            <span className="text-[#f97316]">
+                                                High {String(compare.risk_change.high_findings.previous)} &rarr; {String(compare.risk_change.high_findings.current)}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ) : null}
+                    </div>
+                )}
+
+                {columns.length <= 2 ? (
+                    <div className="flex min-h-[220px] flex-col items-center justify-center rounded-[0.8rem] border border-dashed border-brand-panel-border bg-[rgba(16,24,39,0.55)] p-8 text-center text-muted-foreground">
+                        <Globe size={28} className="mb-2 text-brand-cyan" />
+                        <h3 className="m-0 text-[0.95rem] text-foreground">
+                            {isRunning ? "Waiting for the scan to discover assets" : "No graph data was recorded for this scan"}
+                        </h3>
+                        <p className="mt-1.5 mb-0 text-[0.78rem]">
+                            {isRunning ? "The graph fills in as domain resolution, port scanning, and CVE matching complete." : "Nothing was discovered before the scan finished."}
+                        </p>
+                    </div>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <div ref={containerRef} className="relative" style={{ minWidth: `${Math.max(columns.length * 180, 720)}px` }}>
+                            <svg className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+                                {edges.map((edge) => {
+                                    const p = anchors[edge.source];
+                                    const c = anchors[edge.target];
+                                    if (!p || !c) return null;
+                                    const targetNode = nodesById.get(edge.target);
+                                    const isNew = newIds.has(edge.target);
+                                    const accent = targetNode ? nodeVisual(targetNode) : KIND_STYLE.domain;
+                                    const midX = (p.right + c.left) / 2;
+                                    const d = `M ${p.right} ${p.y} C ${midX} ${p.y}, ${midX} ${c.y}, ${c.left} ${c.y}`;
+                                    return (
+                                        <path
+                                            key={edge.id}
+                                            d={d}
+                                            fill="none"
+                                            strokeWidth={1.5}
+                                            strokeLinecap="round"
+                                            className={isNew ? "stroke-brand-cyan animate-pulse" : accent.strokeMuted}
+                                        />
+                                    );
+                                })}
+                            </svg>
+
 }
 
 
