@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 #the attack graph element
 GraphNodeType = Literal["domain", "asset", "service", "technology", "finding"]
-GraphEdgeType = Literal["RESOLVES_TO", "EXPOSES", "RUNS", "AFFECTED_BY"]
+GraphEdgeType = Literal["DISCOVERED", "RESOLVES_TO", "EXPOSES", "RUNS", "AFFECTED_BY"]
 
 
 class GraphRisk(BaseModel):
