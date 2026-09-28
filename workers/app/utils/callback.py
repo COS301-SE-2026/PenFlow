@@ -61,10 +61,13 @@ def send_source_callback(
     services: list[dict] | None = None,
     technologies: list[dict] | None = None,
     error_message: str | None = None,
+    total_targets: int | None = None,
+    completed_targets: int | None = None,
+    failed_targets: int | None = None,
 ) -> None:
     url = build_api_url(f"/internal/scans/{scan_id}/sources/{source_name}")
 
-    payload = {
+    payload: dict[str, object] = {
         "status": status,
         "raw_result": raw_result,
         "assets": assets or [],
@@ -73,6 +76,15 @@ def send_source_callback(
         "findings": findings or [],
         "error_message": error_message,
     }
+
+    if total_targets is not None:
+        payload["total_targets"] = total_targets
+
+    if completed_targets is not None:
+        payload["completed_targets"] = completed_targets
+
+    if failed_targets is not None:
+        payload["failed_targets"] = failed_targets
 
     try:
         with httpx.Client(timeout=30) as client:

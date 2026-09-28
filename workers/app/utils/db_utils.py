@@ -26,15 +26,24 @@ def _get_db_url() -> str:
     return f"postgresql://{quote_plus(db_user)}:{quote_plus(db_pass)}@{db_host}:{db_port}/{db_name}"
 
 
-def get_ports_from_db(scan_id: str) -> list[dict[str, Any]]:
+def get_ports_from_db(
+        scan_id: str,
+        host: str | None = None,
+) -> list[dict[str, Any]]:
     try:
         with closing(psycopg2.connect(_get_db_url())) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-                cursor.execute(
+                query =(
                     "SELECT port, protocol, service_name as service, product, version, state "
-                    "FROM services WHERE scan_id = %s",
-                    (scan_id,),
+                    "FROM services WHERE scan_id = %s"
                 )
+                params: tuple[str, ...] = (scan_id,)
+
+                if host is not None:
+                    query += " AND host = %s"
+                    params = (scan_id, host)
+
+                cursor.execute(query, params)
                 return [dict(row) for row in cursor.fetchall()]
     except Exception as e:
         logger.error(f"Failed to fetch ports from DB for scan {scan_id}: {e}")
@@ -48,10 +57,14 @@ def get_technologies_from_db(scan_id: str) -> list[dict[str, Any]]:
                 cursor.execute(
                     """
                     SELECT t.technology_type as category, t.product, t.version, 
-                           t.confidence as evidence_score, s.host, s.port, s.protocol, 
+                           t.confidence as evidence_score,
+                           COALESCE(s.host, a.identifier) as host,
+                           s.port,
+                           s.protocol,
                            t.evidence->>'cpe' as cpe 
                     FROM detected_technologies t 
                     LEFT JOIN services s ON t.service_id = s.id 
+                    LEFT JOIN assets a ON t.asset_id = a.id
                     WHERE t.scan_id = %s
                     """,
                     (scan_id,),
