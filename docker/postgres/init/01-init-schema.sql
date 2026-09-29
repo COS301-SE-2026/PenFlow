@@ -278,6 +278,9 @@ CREATE TABLE scan_sources (
     status scan_source_status NOT NULL DEFAULT 'pending',
     raw_result JSONB,
     error_message TEXT,
+    total_targets INTEGER NOT NULL DEFAULT 0 CHECK (total_targets >= 0),
+    completed_targets INTEGER NOT NULL DEFAULT 0 CHECK (completed_targets >= 0),
+    failed_targets INTEGER NOT NULL DEFAULT 0 CHECK (failed_targets >= 0),
     started_at TIMESTAMPTZ,
     completed_at TIMESTAMPTZ,
 

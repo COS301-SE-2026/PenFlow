@@ -331,6 +331,7 @@ resource "aws_ecs_task_definition" "worker" {
       environment = [
         { name = "AWS_REGION", value = var.aws_region },
         { name = "ENVIRONMENT", value = var.environment },
+        { name = "PHASE2_SCAN_CONCURRENCY", value = "3" },
         { name = "REPORT_OUTPUT_DIR", value = "/tmp/generated_reports" },
         { name = "REPORT_STORAGE", value = "s3" },
         { name = "REPORT_S3_BUCKET", value = aws_s3_bucket.reports.bucket },

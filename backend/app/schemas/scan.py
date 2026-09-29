@@ -57,6 +57,9 @@ class ScanSourceCallbackRequest(BaseModel):
     services: list[dict[str, Any]] = []
     technologies: list[dict[str, Any]] = []
     findings: list[dict[str, Any]] = []
+    total_targets: int | None = Field(default=None, ge=0)
+    completed_targets: int | None = Field(default=None, ge=0)
+    failed_targets: int | None = Field(default=None, ge=0)
     error_message: str | None = None
 
 

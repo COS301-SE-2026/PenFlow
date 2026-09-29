@@ -299,6 +299,9 @@ export interface ScanSourceStatus {
   source_name: string;
   status: string;
   error_message: string | null;
+  total_targets: number;
+  completed_targets: number;
+  failed_targets: number;
 }
 
 export interface RealTimeScanStatus {
@@ -358,7 +361,7 @@ export async function fetchScanMetrics(scanId: string): Promise<ScanMetrics> {
 }
 
 export type GraphNodeType = "domain" | "asset" | "service" | "technology" | "finding";
-export type GraphEdgeType = "RESOLVES_TO" | "EXPOSES" | "RUNS" | "AFFECTED_BY";
+export type GraphEdgeType = "DISCOVERED" | "RESOLVES_TO" | "EXPOSES" | "RUNS" | "AFFECTED_BY";
 
 export interface GraphRisk {
   severity: string | null;

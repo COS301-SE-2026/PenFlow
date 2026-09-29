@@ -170,15 +170,34 @@
 
 .processLabel {
   color: rgba(122, 170, 200, 0.4);
-  transition: color 300ms ease;
+  transition: 
+    color 300ms ease,
+    border-color 300ms ease,
+    background 300ms ease,
+    box-shadow 300ms ease;
 }
 
-.processLabel[data-done="true"] {
+.processLabel[data-status="running"] {
+  color: var(--col-orange);
+  border-color: rgba(240, 128, 48, 0.65);
+  background: rgba(240, 128, 48, 0.1);
+  box-shadow: 0 0 12px rgba(240, 128, 48, 0.2);
+  animation: processRunningPulse 1.5s ease-in-out infinite;
+}
+
+.processLabel[data-status="done"] {
   color: var(--col-success);
 }
 
-.normalisingLabel[data-done="true"] {
-  color: #e6a820;
+@keyframes processRunningPulse {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 .viewReportButton {

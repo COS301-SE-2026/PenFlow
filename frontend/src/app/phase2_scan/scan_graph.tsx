@@ -186,7 +186,7 @@ function nodeDescription(node: GraphNode): string {
             return "A technology fingerprinted from the service or asset it runs on.";
         case "asset": {
             const assetType = typeof node.metadata.asset_type === "string" ? node.metadata.asset_type : "";
-            if (assetType === "ipv4" || assetType === "ipv6") return "An IP address the domain resolves to.";
+            if (assetType === "ipv4" || assetType === "ipv6") return "An IP address a scanned hostname resolves to.";
             if (assetType === "subdomain") return "A subdomain discovered during reconnaissance.";
             if (assetType === "email") return "An email address associated with this domain.";
             return "An asset discovered during the scan.";

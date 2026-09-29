@@ -14,12 +14,17 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def safe_failure_callback(scan_id: str, source_name: str, error: Exception) -> None:
+def safe_failure_callback(
+        scan_id: str, 
+        source_name: str, 
+        error: Exception,
+        defer_source_completion: bool = False,
+) -> None:
     try:
         send_source_callback(
             scan_id=scan_id,
             source_name=source_name,
-            status="failed",
+            status="running" if defer_source_completion else "failed",
             raw_result={"error": str(error)},
             error_message=str(error),
         )
@@ -29,6 +34,9 @@ def safe_failure_callback(scan_id: str, source_name: str, error: Exception) -> N
 
 def handle_nmap(payload: dict[str, Any]) -> None:
     scan_id = payload["scan_id"]
+    defer_source_completion = bool(
+        payload.get("defer_source_completion", False)
+    )
     try:
         send_source_callback(scan_id=scan_id, source_name="nmap", status="running")
         scan_data = run_live_nmap_scan(
@@ -52,19 +60,22 @@ def handle_nmap(payload: dict[str, Any]) -> None:
         send_source_callback(
             scan_id=scan_id,
             source_name="nmap",
-            status="completed",
+            status="running" if defer_source_completion else "completed",
             raw_result=scan_data,
             services=services,
         )
 
     except Exception as error:
         logger.exception(f"NMAP failed: {error}")
-        safe_failure_callback(scan_id, "nmap", error)
+        safe_failure_callback(scan_id, "nmap", error, defer_source_completion)
         raise
 
 
 def handle_tls(payload: dict[str, Any]) -> None:
     scan_id = payload["scan_id"]
+    defer_source_completion = bool(
+        payload.get("defer_source_completion", False)
+    )
     ip_address = payload["ip_address"]
     try:
         send_source_callback(scan_id=scan_id, source_name="tls", status="running")
@@ -123,24 +134,28 @@ def handle_tls(payload: dict[str, Any]) -> None:
         send_source_callback(
             scan_id=scan_id,
             source_name="tls",
-            status="completed",
+            status="running" if defer_source_completion else "completed",
             raw_result=tls_data,
             findings=findings,
         )
 
     except Exception as error:
         logger.exception(f"TLS failed: {error}")
-        safe_failure_callback(scan_id, "tls", error)
+        safe_failure_callback(scan_id, "tls", error, defer_source_completion)
         raise
 
 
 def handle_http_security(payload: dict[str, Any]) -> None:
     scan_id = payload["scan_id"]
+    defer_source_completion = bool(
+        payload.get("defer_source_completion", False)
+    )
     ip_address = payload["ip_address"]
+    hostname = payload["hostname"]
     try:
         send_source_callback(scan_id=scan_id, source_name="http_security", status="running")
         scan_data = run_http_security_scan(
-            hostname=payload.get("hostname"), ip_address=ip_address, ports=payload["ports"]
+            hostname=hostname, ip_address=ip_address, ports=payload["ports"]
         )
 
         findings = []
@@ -156,7 +171,7 @@ def handle_http_security(payload: dict[str, Any]) -> None:
                         "title": "Missing Content-Security-Policy",
                         "description": "No CSP present.",
                         "recommendation": "Create a CSP header.",
-                        "host": ip_address,
+                        "host": hostname,
                         "port": target["port"],
                         "protocol": "tcp",
                         "evidence": {"url": target["url"], "header": "Content-Security-Policy"},
@@ -181,7 +196,7 @@ def handle_http_security(payload: dict[str, Any]) -> None:
                             "title": f"Missing {h_name}",
                             "description": f"{h_name} missing.",
                             "recommendation": f"Configure {h_name}.",
-                            "host": ip_address,
+                            "host": hostname,
                             "port": target["port"],
                             "protocol": "tcp",
                             "evidence": {"url": target["url"], "header": h_name},
@@ -191,19 +206,22 @@ def handle_http_security(payload: dict[str, Any]) -> None:
         send_source_callback(
             scan_id=scan_id,
             source_name="http_security",
-            status="completed",
+            status="running" if defer_source_completion else "completed",
             raw_result=scan_data,
             findings=findings,
         )
 
     except Exception as error:
         logger.exception(f"HTTP Security failed: {error}")
-        safe_failure_callback(scan_id, "http_security", error)
+        safe_failure_callback(scan_id, "http_security", error, defer_source_completion)
         raise
 
 
 def handle_fingerprint(payload: dict[str, Any]) -> None:
     scan_id = payload["scan_id"]
+    defer_source_completion = bool(
+        payload.get("defer_source_completion", False)
+    )
     target_url = payload["target_url"]
     try:
         send_source_callback(scan_id=scan_id, source_name="fingerprint", status="running")
@@ -228,6 +246,7 @@ def handle_fingerprint(payload: dict[str, Any]) -> None:
                     "version": sw.get("version"),
                     "confidence": confidence_map.get(conf_label, 0.40),
                     "detection_source": "fingerprint",
+                    "host": payload.get("hostname") or payload.get("ip_address"),
                     "evidence": {
                         "vendor": sw.get("vendor"),
                         "evidence_source": sw.get("evidence_score", 0),
@@ -241,14 +260,14 @@ def handle_fingerprint(payload: dict[str, Any]) -> None:
         send_source_callback(
             scan_id=scan_id,
             source_name="fingerprint",
-            status="completed",
+            status="running" if defer_source_completion else "completed",
             raw_result=fingerprint_results,
             technologies=technologies,
         )
 
     except Exception as error:
         logger.exception(f"Fingerprinting failed: {error}")
-        safe_failure_callback(scan_id, "fingerprint", error)
+        safe_failure_callback(scan_id, "fingerprint", error, defer_source_completion)
         raise
 
 
@@ -280,7 +299,12 @@ if __name__ == "__main__":
             payload = json.loads(args.payload)
             scan_id = payload.get("scan_id")
             if scan_id:
-                safe_failure_callback(scan_id, args.tool, e)
+                safe_failure_callback(
+                    scan_id, 
+                    args.tool, 
+                    e, 
+                    bool(payload.get("defer_source_completion", False)),
+                )
         except Exception:
             pass
         sys.exit(1)

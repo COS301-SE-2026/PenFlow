@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -146,13 +147,85 @@ class GraphService:
         data.findings_by_node[domain_id] = domain_findings
         data.logical_key[domain_id] = f"domain:{normalize_text(scan.domain)}"
         #Build asset nodes and their domain edges
-        asset_identifier_by_id: dict[UUID, str] = {a.id: a.identifier for a in assets}
+        asset_identifier_by_id: dict[UUID, str] = {
+            a.id: a.identifier
+            for a in assets
+        }
 
-        asset_node_id: dict[UUID, str] ={}
+        asset_node_id: dict[UUID, str] = {}
+        subdomain_asset_by_hostname: dict[str, Asset] = {}
+        ip_asset_hostnames: dict[UUID, list[str]] = {}
+        visible_assets: list[Asset] = []
+        apex_hostname = normalize_text(scan.domain)
+
         for a in assets:
+            asset_type = str(a.asset_type).lower()
+            identifier = normalize_text(a.identifier)
+
+            if asset_type == "subdomain" and identifier == apex_hostname:
+                asset_node_id[a.id] = domain_id
+                continue
+
+            visible_assets.append(a)
+
+            if asset_type == "subdomain":
+                subdomain_asset_by_hostname[identifier] = a
+
+            if asset_type in {"ip", "ipv4", "ipv6"}:
+                metadata: dict[str, Any] = dict(
+                    a.asset_metadata or {}
+                )
+
+                raw_hostnames = metadata.get("hostnames", [])
+
+                if isinstance(raw_hostnames, list):
+                    ip_asset_hostnames[a.id] = sorted(
+                        {
+                            normalize_text(hostname)
+                            for hostname in raw_hostnames
+                            if isinstance(hostname, str)
+                            and normalize_text(hostname)
+                        }
+                    )
+                else:
+                    ip_asset_hostnames[a.id] = []
+
+        descendant_findings_by_subdomain: dict[UUID, list[Finding]] = {}
+
+        for a in visible_assets:
+            if a.id not in ip_asset_hostnames:
+                continue
+
+            ip_findings = findings_by_asset.get(a.id, [])
+
+            for hostname in ip_asset_hostnames[a.id]:
+                subdomain_asset = subdomain_asset_by_hostname.get(
+                    hostname
+                )
+                if subdomain_asset is None:
+                    continue
+
+                descendant_findings_by_subdomain.setdefault(
+                    subdomain_asset.id,
+                    [],
+                ).extend(ip_findings)
+
+        for a in visible_assets:
             node_id = f"asset:{a.id}"
             asset_node_id[a.id] = node_id
-            asset_findings = findings_by_asset.get(a.id,[])
+
+            asset_findings = [
+                *findings_by_asset.get(a.id, []),
+                *descendant_findings_by_subdomain.get(a.id, []),
+            ]
+
+            asset_findings = list(
+                {
+                    finding.id: finding
+                    for finding in asset_findings
+                }.values()
+            )
+
             data.nodes.append(
                 GraphNode(
                     id=node_id,
@@ -160,21 +233,94 @@ class GraphService:
                     type="asset",
                     label=a.identifier,
                     risk=_risk_from_findings(asset_findings),
-                    metadata={"asset_type": a.asset_type, **(a.asset_metadata or {})},
+                    metadata={
+                        "asset_type": a.asset_type,
+                        **(a.asset_metadata or {}),
+                    },
                 )
             )
+
             data.findings_by_node[node_id] = asset_findings
             data.logical_key[node_id] = (
-                f"asset:{normalize_text(a.identifier)}|{normalize_text(a.asset_type)}"
+                f"asset:{normalize_text(a.identifier)}|"
+                f"{normalize_text(a.asset_type)}"
             )
+
+        for a in visible_assets:
+            node_id = asset_node_id[a.id]
+            asset_type = str(a.asset_type).lower()
+            edge_metadata: dict[str, Any] = dict(
+                a.asset_metadata or {}
+            )
+
+            if asset_type == "subdomain":
+                data.edges.append(
+                    GraphEdge(
+                        id=f"discovered:{scan.domain}:{a.id}",
+                        source=domain_id,
+                        target=node_id,
+                        type="DISCOVERED",
+                        provenance=GraphEdgeProvenance(
+                            source=str(
+                                edge_metadata.get("source") or "crt.sh"
+                            ),
+                            observed_at=a.created_at,
+                            confidence=1.0,
+                        ),
+                    )
+                )
+                continue
+
+            if asset_type in {"ip", "ipv4", "ipv6"}:
+                parent_node_ids: set[str] = set()
+
+                for hostname in ip_asset_hostnames.get(a.id, []):
+                    if hostname == apex_hostname:
+                        parent_node_ids.add(domain_id)
+                        continue
+
+                    subdomain_asset = subdomain_asset_by_hostname.get(
+                        hostname
+                    )
+                    if subdomain_asset is not None:
+                        parent_node_ids.add(
+                            asset_node_id[subdomain_asset.id]
+                        )
+
+                if not parent_node_ids:
+                    parent_node_ids.add(domain_id)
+
+                for parent_node_id in sorted(parent_node_ids):
+                    data.edges.append(
+                        GraphEdge(
+                            id=f"resolves-to:{parent_node_id}:{a.id}",
+                            source=parent_node_id,
+                            target=node_id,
+                            type="RESOLVES_TO",
+                            provenance=GraphEdgeProvenance(
+                                source=str(
+                                    edge_metadata.get(
+                                        "resolution_source",
+                                        "dns",
+                                    )
+                                ),
+                                observed_at=a.created_at,
+                                confidence=1.0,
+                            ),
+                        )
+                    )
+                continue
+
             data.edges.append(
                 GraphEdge(
-                    id=f"resolves-to:{scan.domain}:{a.id}",
+                    id=f"discovered:{scan.domain}:{a.id}",
                     source=domain_id,
                     target=node_id,
-                    type="RESOLVES_TO",
+                    type="DISCOVERED",
                     provenance=GraphEdgeProvenance(
-                        source="scan",
+                        source=str(
+                            edge_metadata.get("source") or "scan"
+                        ),
                         observed_at=a.created_at,
                         confidence=1.0,
                     ),
@@ -182,7 +328,7 @@ class GraphService:
             )
 
         #build service node
-            service_node_id: dict[UUID, str] = {}
+        service_node_id: dict[UUID, str] = {}
         for s in services:
             node_id = f"service:{s.id}"
             service_node_id[s.id] = node_id
@@ -443,7 +589,20 @@ class GraphService:
         #1 edge pointing up to each container
         #graph is a set of trees with no loop mean
         #tracking a domainn is a simple walk upwards
-        predecessor: dict[str, GraphEdge] = {e.target: e for e in data.edges}
+        predecessor: dict[str, GraphEdge] = {}
+
+        ordered_edges = sorted(
+            data.edges,
+            key=lambda edge: (
+                edge.target,
+                0 if edge.source.startswith("asset:") else 1,
+                edge.source,
+                edge.id,
+            ),
+        )
+
+        for edge in ordered_edges:
+            predecessor.setdefault(edge.target, edge)
 
         finding_nodes = [n for n in data.nodes if n.type == "finding"]
 

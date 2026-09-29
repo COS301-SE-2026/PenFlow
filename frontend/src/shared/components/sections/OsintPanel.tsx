@@ -9,7 +9,7 @@ const OSINT_SOURCES = [
   { name: "WHOIS", desc: "Retrieves domain registration records including ownership, registrar and expiry details." },
   { name: "URLSCAN.IO", desc: "Analyses URLs and web pages for suspicious content, scripts and external requests." },
   { name: "DNS", desc: "Queries DNS records to map subdomains, mail servers and name server configurations." },
-  { name: "HUNTER.IO", desc: "Discovers publicly available email addresses associated with a domain." },
+  { name: "WAPPALYZER", desc: "Identifies publicly visible web technologies, frameworks, CMS platforms, and server software." },
 ];
 
 export default function OsintPanel() {

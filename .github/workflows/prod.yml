@@ -33,6 +33,15 @@ env:
   INDEXING_WORKER_SERVICE: penflow-production-indexing-worker-service
   INDEXING_WORKER_CONTAINER: penflow-indexing-worker
 
+  EMAIL_WORKER_SERVICE: penflow-production-email-worker-service
+  EMAIL_WORKER_CONTAINER: penflow-email-worker
+
+  SCHEDULE_WORKER_SERVICE: penflow-production-schedule-worker-service
+  SCHEDULE_WORKER_CONTAINER: penflow-schedule-worker
+
+  CELERY_BEAT_SERVICE: penflow-production-celery-beat-service
+  CELERY_BEAT_CONTAINER: penflow-celery-beat
+
   FRONTEND_SERVICE: penflow-production-frontend-service
   FRONTEND_CONTAINER: penflow-frontend
   FRONTEND_ECR_REPOSITORY: penflow-production-frontend
@@ -41,11 +50,14 @@ env:
   WORKER_CONTAINER: penflow-worker
   WORKER_ECR_REPOSITORY: penflow-production-worker
 
+  EPHEMERAL_WORKER_TASK_DEFINITION: penflow-production-ephemeral-worker
+  EPHEMERAL_WORKER_CONTAINER: penflow-worker
+
 jobs:
   deploy:
     name: Deploy Production
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     if: >
       github.event_name == 'workflow_dispatch' ||
@@ -114,6 +126,43 @@ jobs:
             "$INDEXING_WORKER_SERVICE" \
             "$INDEXING_WORKER_CONTAINER" \
             "$IMAGE"
+
+      - name: Deploy backend workers
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.deploy.outputs.tag }}
+        run: |
+          IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$BACKEND_ECR_REPOSITORY:$IMAGE_TAG"
+
+          ./scripts/deploy-ecs-service.sh \
+            "$ECS_CLUSTER" \
+            "$EMAIL_WORKER_SERVICE" \
+            "$EMAIL_WORKER_CONTAINER" \
+            "$IMAGE"
+
+          ./scripts/deploy-ecs-service.sh \
+            "$ECS_CLUSTER" \
+            "$SCHEDULE_WORKER_SERVICE" \
+            "$SCHEDULE_WORKER_CONTAINER" \
+            "$IMAGE"
+
+          ./scripts/deploy-ecs-service.sh \
+            "$ECS_CLUSTER" \
+            "$CELERY_BEAT_SERVICE" \
+            "$CELERY_BEAT_CONTAINER" \
+            "$IMAGE"
+
+      - name: Deploy ephemeral worker task definition
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.deploy.outputs.tag }}
+        run: |
+          IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$WORKER_ECR_REPOSITORY:$IMAGE_TAG"
+
+          ./scripts/deploy-ecs-task-definition.sh \
+            "$EPHEMERAL_WORKER_TASK_DEFINITION" \
+            "$EPHEMERAL_WORKER_CONTAINER" \
+            "$IMAGE" 
 
       - name: Deploy worker
         shell: bash        
