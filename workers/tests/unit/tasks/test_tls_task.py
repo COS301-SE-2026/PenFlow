@@ -24,7 +24,6 @@ def test_successful_tls_scan\
         scan_id="scan123",
         ip_address="1.1.1.1",
         domain="hackerone.com",
-        ports=[]
     )
 
     assert result["status"] == "completed"
@@ -40,7 +39,6 @@ def test_skipped_tls_scan(mock_get_ports, mock_callback):
         scan_id="scan123", 
         ip_address="1.1.1.1",
         domain="hackerone.com",
-        ports=[]
     )
 
     assert result["status"] == "skipped"
@@ -57,5 +55,4 @@ def test_failed_tls_scan(mock_get_ports, mock_dispatch):
             scan_id="scan123",
             ip_address="1.1.1.1",
             domain="hackerone.com",
-            ports=[]
         )
