@@ -1,12 +1,13 @@
-import uuid 
-import enum 
-from datetime import datetime, timezone 
+import enum
+import uuid
+from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Enum, ForeignKey, String, Integer, JSON, UniqueConstraint, Boolean
-from sqlalchemy.dialects.postgresql import UUID, JSONB 
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base 
+from app.models.base import Base
+
 
 class BrandRiskLevel(str, enum.Enum):
     LOW = "low"
@@ -103,7 +104,7 @@ class BrandCandidate(Base):
         index=True,
     )
 
-    evidence: Mapped[dict] = mapped_column(
+    evidence: Mapped[dict[str, object]] = mapped_column(
         JSONB,
         nullable=False,
         default=dict,

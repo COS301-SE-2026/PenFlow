@@ -1,11 +1,13 @@
-import uuid 
-from sqlalchemy.ext.asyncio import AsyncSession 
+import uuid
 
-from app.models.verified_domain import VerifiedDomain 
-from app.models.brand_intelligence import BrandMonitoring, BrandCandidate, BrandCandidateStatus 
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.brand_intelligence import BrandCandidate, BrandCandidateStatus, BrandMonitoring
+from app.models.verified_domain import VerifiedDomain
+from app.queue.celery_app import celery_app
 from app.repositories.brand_intelligence_repository import BrandIntelligenceRepository
-from app.schemas.brand_intelligence import BrandIngestionPayload 
-from app.queue.celery_app import celery_app 
+from app.schemas.brand_intelligence import BrandIngestionPayload
+
 
 class BrandIntelligenceService:
     def __init__(self, db: AsyncSession):
@@ -50,14 +52,20 @@ class BrandIntelligenceService:
         if not candidate:
             raise ValueError("Candidate not found")
 
-        monitor = await self .db.get(BrandMonitoring, candidate.brand_monitoring_id)
+        monitor = await self.db.get(BrandMonitoring, candidate.brand_monitoring_id)
+        if not monitor:
+            raise ValueError("Monitoring record not found")
         domain_record = await self.db.get(VerifiedDomain, monitor.verified_domain_id)
+        if not domain_record:
+            raise ValueError("Verified domain not found")
 
         if str(domain_record.user_id) != user_id:
             raise PermissionError("You do not have permission to update this candidate")
 
         updated_candidate = await self.repo.update_candidate_status(candidate_id, status)
-        return candidate 
+        if not updated_candidate:
+            raise ValueError("Candidate not found")
+        return candidate
 
     async def get_monitoring_overview(self, verified_domain_id: uuid.UUID, user_id: str) -> BrandMonitoring | None:
         domain_record = await self.db.get(VerifiedDomain, verified_domain_id)

@@ -1,9 +1,11 @@
-import uuid 
-from datetime import datetime 
+import uuid
+from datetime import datetime
 from typing import Any
-from pydantic import BaseModel, Field 
 
-from app.models.brand_intelligence import BrandRiskLevel, BrandCandidateStatus 
+from pydantic import BaseModel, Field
+
+from app.models.brand_intelligence import BrandCandidateStatus, BrandRiskLevel
+
 
 class BrandCandidateBase(BaseModel):
     candidate_domain: str 
