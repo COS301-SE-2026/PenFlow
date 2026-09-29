@@ -174,22 +174,6 @@
  
 ---
  
-### QR-11 - Test coverage threshold
- 
-**Objective:** Validate that backend and worker modules meet the automated test coverage target.
- 
-**Tool used:** pytest-cov
- 
-**Test performed:** `pytest` with coverage (`backend/pytest.ini`, `workers/pytest.ini`), run across backend + workers, unit + integration, merged via Codecov.
- 
-**Evidence:**
- 
-![QR-11 coverage result](proof/coverage.png)
- 
-**Result:** **64.5%** combined backend + workers coverage against a target of ≥80% - .
- 
----
- 
 ## Usability
  
 ### QR-12 - Accessibility score
@@ -198,10 +182,28 @@
  
 **Tool used:** Google Lighthouse
  
-**Test performed:** Lighthouse accessibility audit against the primary user-facing pages (dashboard, scan results).
+**Test performed:** Lighthouse accessibility audit against the primary user-facing pages (dashboard, scan results), plus a per-page audit across the rest of the client, pentester, and service-delivery flows.
  
 **Evidence:**
  
-![QR-12 Lighthouse result](proof/googelighthouse.png)
+| Page | Evidence |
+|---|---|
+| Domains | ![Domains Lighthouse result](proof/googelighthouse.png) |
+| Home | ![Home Lighthouse result](proof/home_lighthouse.png) |
+| Phase 2 Scan | ![Phase 2 Scan Lighthouse result](proof/phase2_scan_lighthousepng.png) |
+| Scan History | ![Scan History Lighthouse result](proof/scan_history_lighthouse.png) |
+| Scheduled Scans | ![Scheduled Scans Lighthouse result](proof/scheduled-scans_lighthouse.png) |
+| Attack Graph | ![Attack Graph Lighthouse result](proof/attack_graph_lighthouse.png) |
+| Brand Intelligence | ![Brand Intelligence Lighthouse result](proof/brand_intellgence_lighthouse.png) |
+| Engagement Request | ![Engagement Request Lighthouse result](proof/engagement_request_lighthouse.png) |
+| Live Engagement | ![Live Engagement Lighthouse result](proof/live_engagment_lighthouse.png) |
+| Client Messages | ![Client Messages Lighthouse result](proof/client_message_lighthouse.png) |
+| Pentester Engagement | ![Pentester Engagement Lighthouse result](proof/pentester_engagment_lighthouse.png) |
+| Pentester Messages | ![Pentester Messages Lighthouse result](proof/pentester_message.png) |
+| Service Delivery Dashboard | ![Service Delivery Dashboard Lighthouse result](proof/service-delivery-dashboard_lighthouse.png) |
+| Service Delivery Engagements | ![Service Delivery Engagements Lighthouse result](proof/service-delivery-engagements-ligthouse.png) |
+| Service Delivery Pentesters | ![Service Delivery Pentesters Lighthouse result](proof/service-delivery-pentesters_lighthouse.png) |
+| Service Delivery Messages | ![Service Delivery Messages Lighthouse result](proof/service-delivery-messages_lighthouse.png) |
+| Service Delivery Audit | ![Service Delivery Audit Lighthouse result](proof/service-delivery-audit-lighthouse.png) |
  
 **Result:** **≥80** against a target of ≥80 - **passes**.

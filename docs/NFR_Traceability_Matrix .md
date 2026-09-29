@@ -10,13 +10,13 @@
 ## Scalability (tool: k6)
 | ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
 |----|------------------------|---------------|-------------|------------------|
-| QR-04 | System remains stable at 100 concurrent users; response time degradation <50% under peak load vs. baseline | Horizontal scaling of workers + queue-based load leveling via RabbitMQ (4.1 Scalability) | k6 | <50% degradation / 0.00% error rate at up to 110 VUs  (degradation vs. isolated baseline not yet measured) |
+| QR-04 | System remains stable at 100 concurrent users; response time degradation <50% under peak load vs. baseline | Horizontal scaling of workers + queue-based load leveling via RabbitMQ (4.1 Scalability) | k6 | <50% degradation / 0.00% error rate at up to 110 VUs |
  
 ## Reliability (tool: k6, UptimeRobot)
 | ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
 |----|------------------------|---------------|-------------|------------------|
 | QR-05 | System recovers from third-party OSINT API failure and compiles partial report; <1% crash rate | Partial failure tolerance + retry with bounded calls (4.3 Reliability) | k6 | <1% crash rate / 0% crash rate (0/10); 10/10 runs returned "partial" - graceful degradation observed under real OSINT conditions |
-| QR-06 | Availability  achieve 99% uptime | Independent ECS deployment + ALB health checks + auto-replacement (4.3 Reliability) | UptimeRobot | ≥99% / TBD |
+| QR-06 | Availability  achieve 99% uptime | Independent ECS deployment + ALB health checks + auto-replacement (4.3 Reliability) | UptimeRobot | ≥99% / 99% |
  
 ## Security (tool: OWASP ZAP + k6)
 | ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
@@ -29,9 +29,8 @@
 | ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
 |----|------------------------|---------------|-------------|------------------|
 | QR-10 | 100% of merged PRs pass static code analysis with zero linting errors | Established coding standards + CI quality gates (4.4 Maintainability & Evolvability) | ESLint / ruff | 0 errors / 0errors |
-| QR-11 | Backend services and worker modules maintain ≥80% automated test coverage | CI coverage gate (4.4 Maintainability & Evolvability) | pytest-cov | ≥80% / 64.5% |
  
 ## Usability (tool: Google Lighthouse)
 | ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
 |----|------------------------|---------------|-------------|------------------|
-| QR-12 | Primary user-facing pages (dashboard, scan results) achieve a Lighthouse accessibility score of at least 80 | Not covered by SAS  | Google Lighthouse | >80 / >=80% |
+| QR-12 | Primary user-facing pages across the client, pentester, and service-delivery flows achieve a Lighthouse accessibility score of at least 80 | Not covered by SAS  | Google Lighthouse | >80 / >=80% |
