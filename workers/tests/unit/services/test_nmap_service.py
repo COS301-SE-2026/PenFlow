@@ -78,13 +78,16 @@ def test_host_down(mock_scanner):
     scanner = MagicMock()
     mock_scanner.return_value = scanner
     scanner.all_hosts.return_value = []
-    result = run_live_nmap_scan(
-        "1.1.1.1",
-        "standard",
-    )
+    with pytest.raises(
+        RuntimeError,
+        match="Nmap received no usable response",
+    ):
+        run_live_nmap_scan(
+            "1.1.1.1",
+            "standard",
+        )
 
-    assert result["status"] == "down"
-    assert result["ports"] == []
+    assert scanner.scan.call_count == 2
 
 
 # Happy Path 2
@@ -95,7 +98,14 @@ def test_ipv6_adds_dash6(mock_scanner):
     scanner = MagicMock()
     mock_scanner.return_value = scanner
 
-    scanner.all_hosts.return_value = []
+    scanner.all_hosts.return_value = [
+        "2001:0df8:00f2::06ee:0000:0f11",
+    ]
+
+    host = MagicMock()
+    host.state.return_value = "up"
+    host.__contains__.return_value = False
+    scanner.__getitem__.return_value = host
 
     run_live_nmap_scan(
         "2001:0df8:00f2::06ee:0000:0f11",

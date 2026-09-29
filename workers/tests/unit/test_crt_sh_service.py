@@ -57,8 +57,12 @@ def test_crt_sh_sad_path_502_loop(mock_get, mock_sleep, mock_send_callback):
     assert result["raw_result"]["subdomains"]["discovered_names"] == []
 
     # Prove our "Fail Fast" retry loops fired exactly 6 times
-    assert mock_get.call_count == 3
-    assert mock_sleep.call_count == 2
+    assert mock_get.call_count == 4
+    assert mock_sleep.call_count == 3
+    assert [
+        sleep_call.args[0]
+        for sleep_call in mock_sleep.call_args_list
+    ] == [0.5, 1.0, 2.0]
     assert mock_send_callback.call_count == 2
 
 

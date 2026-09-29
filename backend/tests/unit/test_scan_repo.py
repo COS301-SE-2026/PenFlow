@@ -90,9 +90,12 @@ async def test_save_source_result_creates_new_source_with_assets_and_findings(mo
     asset_result = MagicMock()
     asset_result.scalar_one_or_none.return_value = SimpleNamespace(id=uuid4())
 
+    finding_result = MagicMock()
+    finding_result.scalar_one_or_none.return_value = None
+
     status_result = MagicMock()
     status_result.all.return_value = [
-        ("dns", ScanSourceStatus.COMPLETED),
+        ("dns", ScanSourceStatus.COMPLETED, 0, 0, 0),
     ]
 
     db.execute = AsyncMock(
@@ -100,6 +103,7 @@ async def test_save_source_result_creates_new_source_with_assets_and_findings(mo
             source_result,
             asset_insert_result,
             asset_result,
+            finding_result,
             status_result,
         ]
     )
@@ -139,7 +143,7 @@ async def test_save_source_result_updates_existing_source(mock_get_scan):
     source_result = MagicMock()
     status_result = MagicMock()
     status_result.all.return_value = [
-        ("shodan", ScanSourceStatus.FAILED),
+        ("shodan", ScanSourceStatus.FAILED, 0, 0, 0),
     ]
 
     db.execute= AsyncMock(side_effect = [source_result,status_result])
@@ -246,12 +250,12 @@ async def test_save_source_result_marks_scan_completed_when_all_sources_succeed(
     count_result = MagicMock()
     #passive osint scan workers
     count_result.all.return_value = [
-        ("dns",ScanSourceStatus.COMPLETED),
-        ("urlscan",ScanSourceStatus.COMPLETED),
-        ("wappalyzer",ScanSourceStatus.COMPLETED),
-        ("crt.sh",ScanSourceStatus.COMPLETED),
-        ("shodan",ScanSourceStatus.COMPLETED),
-        ("hibp",ScanSourceStatus.COMPLETED),
+        ("dns",ScanSourceStatus.COMPLETED, 0, 0, 0),
+        ("urlscan",ScanSourceStatus.COMPLETED, 0, 0, 0),
+        ("wappalyzer",ScanSourceStatus.COMPLETED, 0, 0, 0),
+        ("crt.sh",ScanSourceStatus.COMPLETED, 0, 0, 0),
+        ("shodan",ScanSourceStatus.COMPLETED, 0, 0, 0),
+        ("hibp",ScanSourceStatus.COMPLETED, 0, 0, 0),
 
     ]
     db.execute = AsyncMock(side_effect = [ source_result, count_result])
