@@ -29,7 +29,8 @@ import {
     returnEngagementFromReview,
     scheduleEngagement,
     updateEngagementScoping,
-    getEngagementReport, 
+    getEngagementReport,
+    downloadReport,
 } from "@/lib/serviceDeliveryService";
 import type {
     Activity,
@@ -39,6 +40,7 @@ import type {
     FindingDetail,
     FindingListItem,
     PentesterListItem,
+    ReportResponse,
     Retest,
 } from "@/lib/serviceDeliveryTypes";
 import {
@@ -66,6 +68,7 @@ const STATE_DESCRIPTIONS: Record<EngagementStatus, string> = {
     in_progress: "Testing has started. Scope, quote, pentester, and schedule are locked; Service Delivery coordinates and monitors only.",
     review: "Pentester has submitted the engagement. Delivery configuration is locked while Service Delivery performs final quality review.",
     completed:"Engagment is complete and read-only. ",
+    retesting: "Client has requested a retest on one or more findings. Read-only until all open retests resolve.",
     cancelled: "Engagement was cancelled and is read-only",
 };
 
@@ -91,7 +94,9 @@ export default function EngagementDetailPage() {
     const [findingsPreview, setFindingsPreview] = useState<FindingListItem[]>([]);
     const [retests, setRetests] = useState<Retest[]>([]);
     const [activity, setActivity] = useState<Activity[]>([]);
+    const [report, setReport] = useState<ReportResponse | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+     const [isDownloadingReport, setIsDownloadingReport] = useState(false);
     const [activeAction, setActiveAction] =useState<ActionKind>(null);
     const [inspectFinding,setInspectFinding] = useState < FindingDetail | null> (null);
     
@@ -112,7 +117,7 @@ export default function EngagementDetailPage() {
                 setEngagement(detail);
                 const showFindings = ["in_progress", "review", "completed"].includes(detail.status);
                 const showReport = ["review", "completed"].includes(detail.status);
-                const [findings, retestList , activityRes] = await Promise.all([
+                const [findings, retestList , activityRes, reportRes] = await Promise.all([
                     showFindings? listEngagementFindings(params.id, { limit: 100 }) : Promise.resolve({ items: [] ,pagination: { total:0 , limit:0 , offset: 0, has_more: false}}),
                     detail.status === "completed" ? listEngagementRetests(params.id) :  Promise.resolve({ items: [] }),
                     listAuditActivity({ limit:200}),
@@ -121,6 +126,7 @@ export default function EngagementDetailPage() {
                 setFindingsPreview(findings.items);
                 setRetests(retestList.items);
                 setActivity(activityRes.items.filter((a) => a.entity_id === params.id));
+                setReport(reportRes);
             })
             .catch(console.error)
             .finally(()=> setIsLoading(false));
@@ -186,6 +192,7 @@ const overview: [string, string][] = [
 
     const showFindings = ["in_progress","review","completed"].includes(engagement.status);
     const showRetests = engagement.status === "completed";
+    const showReport = ["review", "completed"].includes(engagement.status);
     
     const previewFindings = [...findingsPreview]
     .sort((a, b) => SERVERITY_ORDER[a.severity] - SERVERITY_ORDER[b.severity])
@@ -196,6 +203,21 @@ const overview: [string, string][] = [
         const detail = await getEngagementFinding(params.id , findingId);
         setInspectFinding(detail);
     }
+
+    async function handleDownloadReport() {
+        if (!report) return;
+        setIsDownloadingReport(true);
+        try {
+            const blob = await downloadReport(report.report_id ?? report.id);
+            downloadBlob(`engagement-report-v${report.version}.pdf`, blob);
+        } catch {
+            // button stays enabled so the user can retry
+        } finally {
+            setIsDownloadingReport(false);
+        }
+    }
+
+    
 
     async function downloadFindingEvidence(f: FindingListItem) {
         const detail = await getEngagementFinding(params.id, f.id);
@@ -413,7 +435,7 @@ const overview: [string, string][] = [
                 </Card>
             )}
 
-            {showRetests  && (
+            {(showRetests || showReport) && (
                 <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
                     {showRetests && (
                         <Card className="border-brand-panel-border bg-brand-panel">
@@ -440,7 +462,32 @@ const overview: [string, string][] = [
                         </Card>
                     )}
 
-                    
+                          {showReport && (
+                        <Card className="border-brand-panel-border bg-brand-panel">
+                            <CardContent>
+                                <h2 className="mb-3 text-sm font-semibold text-brand-text">Final Report</h2>
+                                {!report ? (
+                                    <p className="text-sm text-brand-text/70">No report generated yet.</p>
+                                ) : report.status === "completed" ? (
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <div className="text-sm font-semibold text-brand-text">Version {report.version}</div>
+                                            <div className="text-[11px] text-brand-text/70">
+                                                {report.generated_at ? `Generated ${formatDateTime(report.generated_at)}` : "Ready to download"}
+                                            </div>
+                                        </div>
+                                        <Button size="sm" onClick={handleDownloadReport} disabled={isDownloadingReport}>
+                                            {isDownloadingReport ? "Downloading..." : "Download"}
+                                        </Button>
+                                    </div>
+                                ) : report.status === "failed" ? (
+                                    <p className="text-sm text-brand-alert">Report generation failed{report.error_message ? `: ${report.error_message}` : "."}</p>
+                                ) : (
+                                    <p className="text-sm text-brand-text/70">Report is {formatLabel(report.status)}...</p>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
             )}
 

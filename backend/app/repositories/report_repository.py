@@ -172,3 +172,33 @@ async def get_latest_for_engagement(
 
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
+
+
+async def list_completed_scan_reports_for_user(
+        db: AsyncSession,
+        user_id: UUID,
+        limit: int = 5,
+) -> list[tuple[Report, str]]:
+    stmt = (
+        select(Report, Scan.domain).join(
+            Scan,
+            Scan.id == Report.scan_id,
+        ).where(
+            Scan.user_id == user_id,
+            Report.status == ReportStatus.COMPLETED,
+            Report.pdf_path.is_not(None),
+        ).order_by(
+            Report.generated_at.desc().nullslast(),
+            Report.created_at.desc(),
+        ).limit(limit)
+    )
+
+    rows = (await db.execute(stmt)).all()
+
+    return [
+        (
+            row[0],
+            str(row[1]),
+        )
+        for row in rows
+    ]

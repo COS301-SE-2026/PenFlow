@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.models.base import ScanStatus
+from app.models.base import RAGIndexStatus, ScanStatus
 from app.models.scan_source import ScanSourceStatus
 from app.repositories.scan_repo import ScanRepository
 
@@ -90,9 +90,12 @@ async def test_save_source_result_creates_new_source_with_assets_and_findings(mo
     asset_result = MagicMock()
     asset_result.scalar_one_or_none.return_value = SimpleNamespace(id=uuid4())
 
+    finding_result = MagicMock()
+    finding_result.scalar_one_or_none.return_value = None
+
     status_result = MagicMock()
     status_result.all.return_value = [
-        ("dns", ScanSourceStatus.COMPLETED),
+        ("dns", ScanSourceStatus.COMPLETED, 0, 0, 0),
     ]
 
     db.execute = AsyncMock(
@@ -100,6 +103,7 @@ async def test_save_source_result_creates_new_source_with_assets_and_findings(mo
             source_result,
             asset_insert_result,
             asset_result,
+            finding_result,
             status_result,
         ]
     )
@@ -139,7 +143,7 @@ async def test_save_source_result_updates_existing_source(mock_get_scan):
     source_result = MagicMock()
     status_result = MagicMock()
     status_result.all.return_value = [
-        ("shodan", ScanSourceStatus.FAILED),
+        ("shodan", ScanSourceStatus.FAILED, 0, 0, 0),
     ]
 
     db.execute= AsyncMock(side_effect = [source_result,status_result])
@@ -246,12 +250,12 @@ async def test_save_source_result_marks_scan_completed_when_all_sources_succeed(
     count_result = MagicMock()
     #passive osint scan workers
     count_result.all.return_value = [
-        ("dns",ScanSourceStatus.COMPLETED),
-        ("urlscan",ScanSourceStatus.COMPLETED),
-        ("wappalyzer",ScanSourceStatus.COMPLETED),
-        ("crt.sh",ScanSourceStatus.COMPLETED),
-        ("shodan",ScanSourceStatus.COMPLETED),
-        ("hibp",ScanSourceStatus.COMPLETED),
+        ("dns",ScanSourceStatus.COMPLETED, 0, 0, 0),
+        ("urlscan",ScanSourceStatus.COMPLETED, 0, 0, 0),
+        ("wappalyzer",ScanSourceStatus.COMPLETED, 0, 0, 0),
+        ("crt.sh",ScanSourceStatus.COMPLETED, 0, 0, 0),
+        ("shodan",ScanSourceStatus.COMPLETED, 0, 0, 0),
+        ("hibp",ScanSourceStatus.COMPLETED, 0, 0, 0),
 
     ]
     db.execute = AsyncMock(side_effect = [ source_result, count_result])
@@ -291,5 +295,52 @@ async def test_list_scans_filter_by_status():
     assert scans == []
     #
     db.execute.assert_awaited_once()
-    
-       
+
+
+@pytest.mark.asyncio
+@patch("app.repositories.scan_repo.ScanRepository.get_scan_by_id",new_callable =AsyncMock)
+async def test_get_scan_status_includes_rag_index_state(
+    mock_get_scan,
+) -> None:
+    scan_id = uuid4()
+    user_id = uuid4()
+    db = _make_db()
+
+    fake_scan = SimpleNamespace(
+        id=scan_id,
+        user_id=user_id,
+        domain="example.com",
+        created_at="2026-01-01",
+        scan_type=SimpleNamespace(value="passive_ctem"),
+        status=ScanStatus.COMPLETED,
+        progress=100,
+        rag_index_status=RAGIndexStatus.READY,
+        rag_document_schema_version="finding-v1",
+        rag_embedding_model="test-model",
+        rag_last_indexed_at="2026-01-01T12:00:00Z",
+        rag_index_failure_reason=None,
+    )
+
+    mock_get_scan.return_value = fake_scan
+
+    source_result = MagicMock()
+    source_result.scalars.return_value.all.return_value = []
+
+    report_result = MagicMock()
+    report_result.scalar.one_or_none.return_value = None
+
+    db.execute = AsyncMock(
+        side_effect=[source_result, report_result],
+    )
+
+    result = await ScanRepository.get_scan_status(
+        db,
+        scan_id,
+        user_id,
+    )
+
+    assert result is not None
+    assert result["rag_index_status"] == "ready"
+    assert result["rag_document_schema_version"] == "finding-v1"
+    assert result["rag_embedding_model"] == "test-model"
+    assert result["rag_index_failure_reason"] is None

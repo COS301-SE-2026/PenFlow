@@ -45,8 +45,7 @@ class CVEService:
 
         # only need one cve if multiple come through
         for vulnerability in self.vulnerabilities:
-            identifier = \
-            (
+            identifier = (
                 vulnerability.get("cve_id"),
                 vulnerability.get("host"),
                 vulnerability.get("port"),
@@ -76,37 +75,31 @@ class CVEService:
         # query the official nvd api using the cpe's provided by the previous worker
         url = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
-    #nvd api doc alignment
-        params = \
-        {
+        # nvd api doc alignment
+        params = {
             "cpeName": cpe,
-            "resultsPerPage":50,
+            "resultsPerPage": 50,
         }
 
         try:
             logger.warning(f"[CVE_Service] Querying NVD for: {cpe}")
 
-            response = requests.get\
-            (
+            response = requests.get(
                 url,
                 params=params,
                 timeout=15,
             )
 
             if response.status_code != 200:
-                logger.warning\
-                (
-                    f"[CVE_Service] NVD returned HTTP {response.status_code} for {cpe}"
-                )
+                logger.warning(f"[CVE_Service] NVD returned HTTP {response.status_code} for {cpe}")
                 return []
 
             data = response.json()
             vulnerability_list = data.get("vulnerabilities", [])
 
-            #temporarily we allow 1 wildcard through to get some cve info
-            #force newest first
-            vulnerability_list.sort\
-            (
+            # temporarily we allow 1 wildcard through to get some cve info
+            # force newest first
+            vulnerability_list.sort(
                 key=lambda item: item["cve"].get("published", ""),
                 reverse=True,
             )
@@ -115,9 +108,8 @@ class CVEService:
             else:
                 vulnerability_list = vulnerability_list[:20]
 
-            #best method to ignore plugins and additions and so on
-            ignored_terms = \
-            [
+            # best method to ignore plugins and additions and so on
+            ignored_terms = [
                 "mod_",
                 "apache::",
                 "apache2::",
@@ -138,26 +130,24 @@ class CVEService:
                         description = desc.get("value", "")
                         break
 
-                desc_lower =description.lower()
+                desc_lower = description.lower()
                 # Ignore module-specific CVEs
                 if any(term in desc_lower for term in ignored_terms):
                     continue
 
                 # If our product isn't even mentioned, skip it.
                 if product:
-                    if \
-                    (
-                            product.replace("_", " ") not in desc_lower
-                            and product.replace("-", " ") not in desc_lower
+                    if (
+                        product.replace("_", " ") not in desc_lower
+                        and product.replace("-", " ") not in desc_lower
                     ):
                         continue
 
-                metrics = \
-                (
-                        cve.get("metrics", {}).get("cvssMetricV31")
-                        or cve.get("metrics", {}).get("cvssMetricV30")
-                        or cve.get("metrics", {}).get("cvssMetricV2")
-                        or []
+                metrics = (
+                    cve.get("metrics", {}).get("cvssMetricV31")
+                    or cve.get("metrics", {}).get("cvssMetricV30")
+                    or cve.get("metrics", {}).get("cvssMetricV2")
+                    or []
                 )
 
                 severity = "UNKNOWN"
@@ -167,14 +157,12 @@ class CVEService:
                     metric = metrics[0]
 
                     if "cvssData" in metric:
-                        severity = metric["cvssData"].get\
-                        (
+                        severity = metric["cvssData"].get(
                             "baseSeverity",
                             metric.get("baseSeverity", "UNKNOWN"),
                         )
 
-                        score = metric["cvssData"].get\
-                        (
+                        score = metric["cvssData"].get(
                             "baseScore",
                             metric.get("baseScore", 0),
                         )
@@ -200,7 +188,6 @@ class CVEService:
                         "remediation": "Check NVD reference links for patches.",
                     }
                 )
-
 
         except Exception as error:
             logger.error(f"[CVE_Service] NVD API error for {cpe}: {error}")

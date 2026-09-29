@@ -44,11 +44,7 @@ SERVER_SIGNATURES = {
         "product": "granian",
         "headers": [("server", "granian", 90)],
         "version_extractors": [
-            {
-                "type": "header",
-                "target": "server",
-                "regex": r"granian/?([\d\.]+)?"
-            }
+            {"type": "header", "target": "server", "regex": r"granian/?([\d\.]+)?"}
         ],
     },
     "GitHub Pages": {

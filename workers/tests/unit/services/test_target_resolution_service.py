@@ -21,7 +21,8 @@ def create_mock_dns_answer(ip_records: list[str]) -> MagicMock:
     return answer
 
 
-#Happy path
+# Happy path
+
 
 # Happy Path [IPv4 and IPv6 found]
 @patch("app.services.target_resolution_service.dns.resolver.Resolver.resolve")
@@ -31,18 +32,22 @@ def test_resolve_target_ips_success(mock_resolve):
     """
 
     def side_effect(domain, record_type):
-        #ipv 4
+        # ipv 4
         if record_type == "A":
-            return create_mock_dns_answer([
-                "192.168.1.1",
-                "192.168.1.2",
-            ])
+            return create_mock_dns_answer(
+                [
+                    "192.168.1.1",
+                    "192.168.1.2",
+                ]
+            )
 
-        #ipv6
+        # ipv6
         if record_type == "AAAA":
-            return create_mock_dns_answer([
-                "2001:0df8:00f2::06ee:0000:0f11",
-            ])
+            return create_mock_dns_answer(
+                [
+                    "2001:0df8:00f2::06ee:0000:0f11",
+                ]
+            )
 
     mock_resolve.side_effect = side_effect
 
@@ -70,9 +75,11 @@ def test_resolve_target_ips_ipv4_only(mock_resolve):
 
     def side_effect(domain, record_type):
         if record_type == "A":
-            return create_mock_dns_answer([
-                "192.168.1.1",
-            ])
+            return create_mock_dns_answer(
+                [
+                    "192.168.1.1",
+                ]
+            )
 
         raise dns.resolver.NoAnswer
 
@@ -88,7 +95,8 @@ def test_resolve_target_ips_ipv4_only(mock_resolve):
     }
 
 
-#Sad paths
+# Sad paths
+
 
 # Sad Path [NXDOMAIN]
 @patch("app.services.target_resolution_service.dns.resolver.Resolver.resolve")
@@ -109,6 +117,7 @@ def test_resolve_target_ips_domain_not_found(mock_resolve):
 
 
 # Sad Path 2 [Timeout]
+
 
 @patch("app.services.target_resolution_service.dns.resolver.Resolver.resolve")
 def test_resolve_target_ips_timeout(mock_resolve):

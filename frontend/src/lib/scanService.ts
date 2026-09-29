@@ -215,6 +215,12 @@ export interface FetchScanServicesParams {
   offset?: number;
 }
 
+export type RAGIndexStatus =
+  | "pending"
+  | "indexing"
+  | "ready"
+  | "failed";
+
 export async function fetchScanServices(
   scanId: string,
   params: FetchScanServicesParams = {}
@@ -293,6 +299,9 @@ export interface ScanSourceStatus {
   source_name: string;
   status: string;
   error_message: string | null;
+  total_targets: number;
+  completed_targets: number;
+  failed_targets: number;
 }
 
 export interface RealTimeScanStatus {
@@ -304,6 +313,11 @@ export interface RealTimeScanStatus {
   progress: number;
   sources: ScanSourceStatus[];
   report_status: ReportStatus | null;
+  rag_index_status: RAGIndexStatus;
+  rag_document_schema_version: string | null;
+  rag_embedding_model: string | null;
+  rag_last_indexed_at: string | null;
+  rag_index_failure_reason: string | null;
 }
 
 export async function fetchScanStatus(scanId: string): Promise<RealTimeScanStatus> {
@@ -342,6 +356,168 @@ export async function fetchScanMetrics(scanId: string): Promise<ScanMetrics> {
   if (!response.ok) {
     const err = await response.json().catch(() => ({detail: "Failed to load scan metrics"}));
     throw new Error(err.detail ?? "Failed to load scan metrics");
+  }
+  return response.json();
+}
+
+export type GraphNodeType = "domain" | "asset" | "service" | "technology" | "finding";
+export type GraphEdgeType = "DISCOVERED" | "RESOLVES_TO" | "EXPOSES" | "RUNS" | "AFFECTED_BY";
+
+export interface GraphRisk {
+  severity: string | null;
+  max_cvss: number | null;
+  finding_count: number;
+}
+
+export interface GraphNode {
+  id: string;
+  entity_id: string | null;
+  type: GraphNodeType;
+  label: string;
+  risk: GraphRisk;
+  metadata: Record<string, unknown>;
+}
+
+export interface GraphEdgeProvenance {
+  source: string;
+  observed_at: string | null;
+  confidence: number | null;
+}
+
+export interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  type: GraphEdgeType;
+  provenance: GraphEdgeProvenance;
+}
+
+export interface ScanGraphResponse {
+  scan_id: string;
+  domain: string;
+  generated_at: string;
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+export async function fetchScanGraph(scanId: string): Promise<ScanGraphResponse> {
+  const response = await authenticatedFetch(`/api/scans/${scanId}/graph`);
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: "Failed to load scan graph" }));
+    throw new Error(err.detail ?? "Failed to load scan graph");
+  }
+  return response.json();
+}
+
+export interface GraphSummaryCounts {
+  domains: number;
+  assets: number;
+  services: number;
+  technologies: number;
+  findings: number;
+  edges: number;
+}
+
+export interface GraphSummaryRisk {
+  critical_findings: number;
+  high_findings: number;
+  medium_findings: number;
+  low_findings: number;
+  affected_assets: number;
+  highest_risk_node_id: string | null;
+}
+
+export interface GraphConcentration {
+  node_id: string;
+  label: string;
+  finding_count: number;
+  critical_count: number;
+  high_count: number;
+  max_cvss: number | null;
+}
+
+export interface GraphSummaryResponse {
+  scan_id: string;
+  counts: GraphSummaryCounts;
+  risk: GraphSummaryRisk;
+  concentrations: GraphConcentration[];
+}
+
+export async function fetchScanGraphSummary(scanId: string): Promise<GraphSummaryResponse> {
+  const response = await authenticatedFetch(`/api/scans/${scanId}/graph/summary`);
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: "Failed to load scan graph summary" }));
+    throw new Error(err.detail ?? "Failed to load scan graph summary");
+  }
+  return response.json();
+}
+
+export interface GraphPath {
+  id: string;
+  risk: GraphRisk;
+  nodes: string[];
+  edges: string[];
+}
+
+export interface GraphPathsResponse {
+  paths: GraphPath[];
+}
+
+export interface FetchScanGraphPathsParams {
+  severity?: "high" | "critical";
+  finding_id?: string;
+  asset_id?: string;
+  limit?: number;
+}
+
+export async function fetchScanGraphPaths(
+  scanId: string,
+  params: FetchScanGraphPathsParams = {}
+): Promise<GraphPathsResponse> {
+  const query = new URLSearchParams();
+  if (params.severity) query.set("severity", params.severity);
+  if (params.finding_id) query.set("finding_id", params.finding_id);
+  if (params.asset_id) query.set("asset_id", params.asset_id);
+  if (params.limit !== undefined) query.set("limit", String(params.limit));
+
+  const qs = query.toString();
+  const response = await authenticatedFetch(`/api/scans/${scanId}/graph/paths${qs ? `?${qs}` : ""}`);
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: "Failed to load risk paths" }));
+    throw new Error(err.detail ?? "Failed to load risk paths");
+  }
+  return response.json();
+}
+
+export interface GraphChangedValue {
+  previous: unknown;
+  current: unknown;
+}
+
+export interface GraphNodeChange {
+  node_id: string;
+  changes: Record<string, GraphChangedValue>;
+}
+
+export interface GraphCompareResponse {
+  current_scan_id: string;
+  previous_scan_id: string;
+  added_nodes: string[];
+  removed_nodes: string[];
+  changed_nodes: GraphNodeChange[];
+  added_edges: string[];
+  removed_edges: string[];
+  risk_change: Record<string, GraphChangedValue>;
+}
+
+export async function fetchScanGraphCompare(
+  scanId: string,
+  previousScanId: string
+): Promise<GraphCompareResponse> {
+  const response = await authenticatedFetch(`/api/scans/${scanId}/graph/compare/${previousScanId}`);
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ detail: "Failed to compare scans" }));
+    throw new Error(err.detail ?? "Failed to compare scans");
   }
   return response.json();
 }

@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+TASK_DEFINITION="$1"
+CONTAINER="$2"
+IMAGE="$3"
+
+CURRENT_TASK_DEFINITION="$(
+    aws ecs describe-task-definition \
+        --task-definition "$TASK_DEFINITION" \
+        --query 'taskDefinition.taskDefinitionArn' \
+        --output text
+)"
+
+if (
+    [ -z "$CURRENT_TASK_DEFINITION" ] ||
+    [ "$CURRENT_TASK_DEFINITION" = "None" ]
+); then
+    echo "Unable to find task definition $TASK_DEFINITION"
+    exit 1
+fi
+
+echo "Current task definition: $CURRENT_TASK_DEFINITION"
+
+aws ecs describe-task-definition \
+    --task-definition "$CURRENT_TASK_DEFINITION" \
+    --query 'taskDefinition' \
+    > current-task-definition.json
+
+if ! jq -e \
+    --arg container "$CONTAINER" \
+    '.containerDefinitions | any(.name == $container)' \
+    current-task-definition.json >/dev/null; then
+
+    echo "Container '$CONTAINER' does not exist in task definition:"
+    echo "$CURRENT_TASK_DEFINITION"
+    exit 1
+fi
+
+jq \
+    --arg container "$CONTAINER" \
+    --arg image "$IMAGE" \
+    '
+        del(
+            .taskDefinitionArn,
+            .revision,
+            .status,
+            .requiresAttributes,
+            .compatibilities,
+            .registeredAt,
+            .registeredBy,
+            .deregisteredAt,
+            .deleteRequestedAt
+        )
+        |
+        .containerDefinitions |= map(
+            if .name == $container
+            then .image = $image
+            else .
+            end
+        )
+    ' \
+    current-task-definition.json \
+    > new-task-definition.json
+
+NEW_TASK_DEFINITION="$(
+    aws ecs register-task-definition \
+        --cli-input-json file://new-task-definition.json \
+        --query 'taskDefinition.taskDefinitionArn' \
+        --output text
+)"
+
+if [ -z "$NEW_TASK_DEFINITION" ]; then
+    echo "Failed to register the new task definition"
+    exit 1
+fi
+
+echo "Registered task definition:"
+echo "$NEW_TASK_DEFINITION"

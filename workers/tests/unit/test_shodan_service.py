@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 from app.tasks.shodan_tasks import run_shodan
 
 
-#live happy path
+# live happy path
 @patch("app.tasks.shodan_tasks.send_source_callback")
 @patch("app.services.shodan_service.socket.gethostbyname")
 @patch("app.services.shodan_service.httpx.Client.get")
@@ -11,15 +11,14 @@ from app.tasks.shodan_tasks import run_shodan
 @patch("app.services.shodan_service.SCAN_MODE", "LIVE")
 def test_shodan_live_happy_path(mock_get, mock_socket, mock_send_callback):
     """Test that a real key triggers IP resolution and a live Shodan API request."""
-    
-    #fake the ip resolution
 
+    # fake the ip resolution
 
     TEST_IP = "151.101.130.49"
 
-    mock_socket.return_value = TEST_IP #NOSONAR
+    mock_socket.return_value = TEST_IP  # NOSONAR
 
-    #fake the live api response
+    # fake the live api response
     mock_response = MagicMock()
     mock_response.status_code = 200
     mock_response.json.return_value = {
@@ -29,21 +28,21 @@ def test_shodan_live_happy_path(mock_get, mock_socket, mock_send_callback):
     }
     mock_get.return_value = mock_response
 
-    #execution
+    # execution
     result = run_shodan("scan-123", "acorns.com")
 
-    #assertions
+    # assertions
     assert result["status"] == "completed"
     assert result["scan_id"] == "scan-123"
     assert result["source_name"] == "shodan"
-    assert mock_get.called #proves it hit the internet
-    assert mock_socket.called #proves it resolved the IP
+    assert mock_get.called  # proves it hit the internet
+    assert mock_socket.called  # proves it resolved the IP
     assert result["raw_result"]["infrastructure"]["hosting_provider"] == "Fastly, Inc."
     assert len(result["raw_result"]["infrastructure"]["open_ports"]) == 2
     assert mock_send_callback.call_count == 2
 
 
-#sad path for api outage
+# sad path for api outage
 @patch("app.tasks.shodan_tasks.send_source_callback")
 @patch("app.services.shodan_service.socket.gethostbyname")
 @patch("app.services.shodan_service.httpx.Client.get")
@@ -51,24 +50,25 @@ def test_shodan_live_happy_path(mock_get, mock_socket, mock_send_callback):
 @patch("app.services.shodan_service.SCAN_MODE", "LIVE")
 def test_shodan_live_api_failure(mock_get, mock_socket, mock_send_callback):
     """Test that a network crash gracefully degrades to a failed status."""
-    
+
     import httpx
-    mock_socket.return_value = "151.101.130.49" #NOSONAR
-    
-    #force a network crash
+
+    mock_socket.return_value = "151.101.130.49"  # NOSONAR
+
+    # force a network crash
     mock_get.side_effect = httpx.HTTPError("Shodan API Down")
-    
-    #execution
+
+    # execution
     result = run_shodan("scan-123", "acorns.com")
-    
-    #expect clean failure dict
+
+    # expect clean failure dict
     assert result["status"] == "failed"
     assert result["scan_id"] == "scan-123"
     assert "error" in result["raw_result"]["infrastructure"]
     assert mock_send_callback.call_count == 2
 
 
-#mock fallback path
+# mock fallback path
 @patch("app.tasks.shodan_tasks.send_source_callback")
 @patch("app.services.shodan_service.socket.gethostbyname")
 @patch("app.services.shodan_service.httpx.Client.get")
@@ -76,17 +76,17 @@ def test_shodan_live_api_failure(mock_get, mock_socket, mock_send_callback):
 @patch("app.services.shodan_service.SCAN_MODE", "LIVE")
 def test_shodan_fallback_to_mock(mock_get, mock_socket, mock_send_callback):
     """Test that a fake key safely bypasses the internet and loads local mock data."""
-    
-    #execution
+
+    # execution
     result = run_shodan("scan-123", "acorns.com")
 
-    #key is fake so it should never attempt a network request or DNS resolution
-    assert not mock_get.called 
+    # key is fake so it should never attempt a network request or DNS resolution
+    assert not mock_get.called
     assert not mock_socket.called
     assert result["status"] == "completed"
     assert result["scan_id"] == "scan-123"
-    
-    #mock data should load safely
+
+    # mock data should load safely
     assert "hosting_provider" in result["raw_result"]["infrastructure"]
     assert mock_send_callback.call_count == 2
 
@@ -112,13 +112,13 @@ def test_hibp_exception(mock_raw_data, mock_send_callback):
 
     assert mock_send_callback.call_count == 2
     mock_send_callback.assert_any_call(
-        scan_id = "scan-1234",
-        source_name = "shodan",
-        status = "failed",
-        raw_result = {"error": "Some shodan exception"},
-        findings = [],
-        assets = [],
-        services = [],
-        technologies = [],
-        error_message = "Some shodan exception",
+        scan_id="scan-1234",
+        source_name="shodan",
+        status="failed",
+        raw_result={"error": "Some shodan exception"},
+        findings=[],
+        assets=[],
+        services=[],
+        technologies=[],
+        error_message="Some shodan exception",
     )

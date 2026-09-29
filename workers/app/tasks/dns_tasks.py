@@ -13,13 +13,14 @@ from app.utils.callback import send_source_callback
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
+
 @celery_app.task(name="scan.dns")
 def run_dns_scan(scan_id: str, domain: str) -> JSONDict:
 
     try:
         send_source_callback(scan_id=scan_id, source_name="dns", status="running")
     except Exception:
-        logger.warning("[DNS_Task] Failed to send `running` callback for %s",domain)
+        logger.warning("[DNS_Task] Failed to send `running` callback for %s", domain)
 
     try:
         raw_dns = collect_dns_raw_data(domain)

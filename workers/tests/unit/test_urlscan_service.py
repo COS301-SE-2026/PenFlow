@@ -5,7 +5,7 @@ import httpx
 from app.tasks.urlscan_tasks import run_urlscan
 
 
-#Test happy path for our url loop
+# Test happy path for our url loop
 @patch("app.tasks.urlscan_tasks.send_source_callback")
 @patch("app.services.urlscan_service._download_screenshot")
 @patch("app.services.urlscan_service.httpx.Client.get")
@@ -14,11 +14,11 @@ from app.tasks.urlscan_tasks import run_urlscan
 @patch("app.services.urlscan_service.SCAN_MODE", "LIVE")
 def test_urlscan_live_happy_path(mock_post, mock_get, mock_download, mock_send_callback):
     """Test the two-step POST/GET polling loop works correctly without file I/O."""
-    #scan queued
+    # scan queued
     mock_post_res = MagicMock()
     mock_post_res.json.return_value = {"uuid": "test-uuid-1234"}
     mock_post.return_value = mock_post_res
-    #data recieved
+    # data recieved
     mock_get_res = MagicMock()
     mock_get_res.status_code = 200
     mock_get_res.json.return_value = {
@@ -26,11 +26,11 @@ def test_urlscan_live_happy_path(mock_post, mock_get, mock_download, mock_send_c
         "task": {"uuid": "test-uuid-1234"},
     }
     mock_get.return_value = mock_get_res
-    #mock the screenshot download
+    # mock the screenshot download
     mock_download.return_value = "/app/generated_reports/screenshots/test_screenshot.png"
-    #Execute
+    # Execute
     result = run_urlscan("scan-123", "acorns.com")
-    #testing the response is exactly how we want it
+    # testing the response is exactly how we want it
     assert result["scan_id"] == "scan-123"
     assert result["status"] == "completed"
     assert result["source_name"] == "urlscan"
@@ -39,24 +39,24 @@ def test_urlscan_live_happy_path(mock_post, mock_get, mock_download, mock_send_c
     assert mock_send_callback.call_count == 2
 
 
-#Test sad path now connection
+# Test sad path now connection
 @patch("app.tasks.urlscan_tasks.send_source_callback")
 @patch("app.services.urlscan_service.httpx.Client.post")
 @patch("app.services.urlscan_service.URLSCAN_API_KEY", "live_key_999")
 @patch("app.services.urlscan_service.SCAN_MODE", "LIVE")
 def test_urlscan_live_api_failure(mock_post, mock_send_callback):
-    #force an erro
+    # force an erro
     mock_post.side_effect = httpx.HTTPError("API Down")
 
     result = run_urlscan("scan-123", "acorns.com")
-    #expected output to protect db and pdf builder
+    # expected output to protect db and pdf builder
     assert result["scan_id"] == "scan-123"
     assert result["status"] == "failed"
     assert "error" in result["raw_result"]["reputation"]
     assert mock_send_callback.call_count == 2
 
 
-#Test mock mode to see if it loads
+# Test mock mode to see if it loads
 @patch("app.tasks.urlscan_tasks.send_source_callback")
 @patch("app.services.urlscan_service.httpx.Client.post")
 @patch("app.services.urlscan_service.httpx.Client.get")
@@ -97,13 +97,13 @@ def test_hibp_exception(mock_raw_data, mock_send_callback):
 
     assert mock_send_callback.call_count == 2
     mock_send_callback.assert_any_call(
-        scan_id = "scan-1234",
-        source_name = "urlscan",
-        status = "failed",
-        raw_result = {"error": "Some urlscan exception"},
-        findings = [],
-        assets = [],
-        services = [],
-        technologies = [],
-        error_message = "Some urlscan exception",
+        scan_id="scan-1234",
+        source_name="urlscan",
+        status="failed",
+        raw_result={"error": "Some urlscan exception"},
+        findings=[],
+        assets=[],
+        services=[],
+        technologies=[],
+        error_message="Some urlscan exception",
     )

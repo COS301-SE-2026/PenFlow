@@ -168,3 +168,15 @@ output "email_worker_task_role_arn" {
 output "email_worker_service_name" {
   value = aws_ecs_service.email_worker.name
 }
+
+output "indexing_worker_security_group_id" {
+  value = aws_security_group.indexing_worker.id
+}
+
+output "indexing_worker_service_name" {
+  value = aws_ecs_service.indexing_worker.name
+}
+
+output "indexing_worker_task_definition_arn" {
+  value = aws_ecs_task_definition.indexing_worker.arn
+}

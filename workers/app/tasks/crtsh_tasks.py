@@ -3,6 +3,7 @@ from typing import Any
 
 from app.queue.celery_app import celery_app
 from app.services.crt_sh_service import (
+    build_active_scan_scope,
     collect_raw_data,
     generate_findings_and_assets,
     normalize_data,
@@ -12,8 +13,13 @@ from app.utils.callback import send_source_callback
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
+
 @celery_app.task(name="scan.crt_sh")
-def run_crt_sh(scan_id: str, domain: str) -> JSONDict:
+def run_crt_sh(
+    scan_id: str,
+    domain: str, 
+    continue_phase2: bool = False,
+) -> JSONDict:
 
     try:
         send_source_callback(scan_id=scan_id, source_name="crt.sh", status="running")
@@ -62,5 +68,18 @@ def run_crt_sh(scan_id: str, domain: str) -> JSONDict:
         findings=result["findings"],
         error_message=result.get("error_message"),
     )
+
+    if continue_phase2:
+        discovered_names = (
+            result["raw_result"].get("subdomains", {}).get(
+                "discovered_names", []
+            )
+        )
+        active_scope = build_active_scan_scope(domain, discovered_names)
+
+        celery_app.send_task(
+            "scan.phase2_target_resolution",
+            args=[scan_id, domain, active_scope],
+        )
 
     return result

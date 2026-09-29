@@ -15,7 +15,7 @@ import { listEngagements } from "@/lib/serviceDeliveryService";
 import type { AssessmentType, EngagementListItem, EngagementStatus } from "@/lib/serviceDeliveryTypes";
 import { assessmentTypeLabels, controlFieldClass, displayName, formatDateRange, statusLabels, statusPillClass, whiteOutlineButtonClass } from "@/lib/serviceDeliveryUi";
 
-const STATUS_OPTIONS:EngagementStatus[]= ["requested", "scoping", "scheduled", "in_progress", "review", "completed", "cancelled"];
+const STATUS_OPTIONS:EngagementStatus[]= ["requested", "scoping", "scheduled", "in_progress", "review", "completed", "retesting", "cancelled"];
 const ASSESSMENT_OPTIONS:AssessmentType[]= ["web_application", "mobile_application", "api", "network", "cloud", "other"];
 
 type AssignmentFilter = "all" | "assigned" | "unassigned";

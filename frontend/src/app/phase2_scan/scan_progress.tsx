@@ -17,6 +17,10 @@ import { Progress } from "@/shared/components/ui/progress";
 
 type SourceStatus = "pending" | "running" | "completed" | "failed" | "partial"| "skipped";
 type SourcePhase = "idle" | "line" | "done";
+type SourceWithPhase = RealTimeScanStatus["sources"][number] & {
+    status: SourceStatus;
+    phase: SourcePhase;
+};
 
 const POLL_INTERVAL_MS = 4000;
 const TERMINAL_SCAN_STATUSES = new Set(["completed", "failed", "partial"]);
@@ -61,6 +65,25 @@ const sourceStatusConfig: Record<SourceStatus, {label: string; className: string
     partial: {label: "Partial", className: "border-brand-yellow text-brand-yellow bg-brand-yellow/10"},
     skipped: {label: "Skipped", className: "border-muted-foreground/30 text-muted-foreground bg-muted/40"},
 };
+
+const ragIndexStatusConfig = {
+    pending: {
+        label: "Pending",
+        className: "border-muted-foreground/30 bg-muted/40 text-muted-foreground",
+    },
+    indexing: {
+        label: "Preparing",
+        className: "border-brand-cyan bg-brand-cyan/10 text-brand-cyan",
+    },
+    ready: {
+        label: "Ready",
+        className: "border-brand-success bg-brand-success/10 text-brand-success",
+    },
+    failed: {
+        label: "Needs retry",
+        className: "border-brand-alert bg-brand-alert/10 text-brand-alert",
+    },
+} as const;
 
 const dotToneClassName: Record<SourceStatus, string> ={
     pending: "bg-muted-foreground/40",
@@ -121,6 +144,7 @@ function ScanRadar({isComplete}:{isComplete:boolean}) {
 
 function ScanDetailsBar({scan}: {scan:RealTimeScanStatus}) {
     const completedCount = scan.sources.filter((s)=> TERMINAL_SOURCE_STATUSES.has(s.status as SourceStatus)).length;
+    const ragIndexState = ragIndexStatusConfig[scan.rag_index_status];
     const items: {label:string; value:ReactNode}[] = [
         {label: "Domain", value: scan.domain},
         {label: "Scan Type", value: scanTypeLabel[scan.scan_type] ?? scan.scan_type},
@@ -129,6 +153,14 @@ function ScanDetailsBar({scan}: {scan:RealTimeScanStatus}) {
                 <span className = "size-1.5 rounded-full bg-brand-cyan"/>
                 {scan.status}
             </span>),
+        },
+        {
+            label: "AI Evidence",
+            value: (
+                <Badge variant="outline" className={ragIndexState.className}>
+                    {ragIndexState.label}
+                </Badge>
+            ),
         },
         {
             label: "Elapsed Time", value: formatElapsed(scan.created_at)},
@@ -159,10 +191,16 @@ function SourceCard({
     sourceName,
     status,
     phase,
+    totalTargets,
+    completedTargets,
+    failedTargets,
 }: {
     sourceName: string;
     status: SourceStatus;
     phase: SourcePhase;
+    totalTargets: number;
+    completedTargets: number;
+    failedTargets: number;
 }) {
     const [flipped, setFlipped] = useState(false);
     const meta = SOURCE_META[sourceName] ?? {...DEFAULT_SOURCE_META, label: sourceName};
@@ -172,7 +210,8 @@ function SourceCard({
     const isRunning = status === "running";
     const toneClassName = isFailed ? "text-brand-alert" : isRunning ? "text-brand-yellow": "text-brand-success";
     const borderClassName = isDone ? (isFailed ? "border-brand-alert": "border-brand-success") : isRunning ? "border-brand-yellow animate-pulse" : "border-[#2a3f66]"
-
+    const processedTargets = Math.min(completedTargets + failedTargets, totalTargets);
+    const targetPercentage = totalTargets > 0 ? Math.round((processedTargets / totalTargets) * 100) : 0;
     const SourceGlyph = meta.icon;
 
     return (
@@ -193,7 +232,7 @@ function SourceCard({
             >
                 <div className = {cn(
                     "absolute inset-0 flex items-center justify-center gap-2.5 rounded-md border bg-[#102448]/85 px-4 py-3.5 backdrop-blur-sm transition-[box-shadow,border-color] duration-500 [backface-visibility:hidden]",
-                    borderClassName,
+                    borderClassName, totalTargets > 0 && "pb-7",
                     isDone && (isFailed ? "shadow-[0_0_10px_1px_rgba(255,95,78,0.2)]": "shadow-[0_0_10px_rgba(74, 222, 128, 0.15)]"),
                     isRunning && "shadow-[0_0_10px_1px_rgba(255,200,66,0.3)]"
                 )}
@@ -206,9 +245,21 @@ function SourceCard({
                             (isDone || isRunning) ? toneClassName : "text-muted-foreground/50"
                         )
                         }
-                        >
+                    >
                             {meta.label}
-                        </span>
+                    </span>
+
+                    {totalTargets > 0 && (
+                        <div className="absolute inset-x-3 bottom-2 grid gap-1">
+                            <span className="text-center text-sm font-semibold text-muted-foreground">
+                                {processedTargets} / {totalTargets} targets
+                                {failedTargets > 0 ? ` · ${failedTargets} failed` : ""}
+                            </span>
+                            <span className="h-1 overflow-hidden rounded-full bg-white/10">
+                                <span className="block h-full rounded-full bg-current transition-[width] duration-500" style={{width: `${targetPercentage}%`}}/>
+                            </span>
+                        </div>
+                    )}
                 </div>
                 <div className={cn("absolute inset-0 flex items-center justify-center rounded-md border bg-[#102448]/95 px-4 py-3 text-center backdrop-blur-sm [backface-visibility:hidden] [transform:rotateY(180deg)]",
                     borderClassName
@@ -242,7 +293,7 @@ function FanColumn({
     sources,
     side,
 }: {
-    sources: {source_name: string; status: SourceStatus; phase: SourcePhase }[];
+    sources: SourceWithPhase[];
     side: "left" | "right";
 }) {
     const ys = distributeY(sources.length);
@@ -299,7 +350,7 @@ function FanColumn({
                         ...(side === "left" ? {right: `${100 - nearXs[i]}%`} : {left: `${nearXs[i]}%`}),
                     }}
                 >
-                <SourceCard sourceName={source.source_name} status={source.status} phase={source.phase} />
+                <SourceCard sourceName={source.source_name} status={source.status} phase={source.phase} totalTargets={source.total_targets} completedTargets={source.completed_targets} failedTargets={source.failed_targets}/>
             </div>
             ))}
         </div>
@@ -313,8 +364,8 @@ function sourcePhase(status: SourceStatus): SourcePhase {
 }
 
 function ScanNetworkDiagram({sources, progress, isComplete}: {sources: RealTimeScanStatus["sources"]; progress: number; isComplete: boolean}) {
-    const withPhase = sources.map((s)=> ({
-        source_name: s.source_name,
+    const withPhase: SourceWithPhase[] = sources.map((s)=> ({
+        ...s,
         status: s.status as SourceStatus,
         phase: sourcePhase(s.status as SourceStatus),
     }));
@@ -355,12 +406,18 @@ function ScanSourceList({sources}: {sources: RealTimeScanStatus["sources"]}) {
             {sources.map((source) => {
                 const status = source.status as SourceStatus;
                 const meta = SOURCE_META[source.source_name] ?? {...DEFAULT_SOURCE_META, label: source.source_name};
+                const processedTargets = Math.min(source.completed_targets + source.failed_targets, source.total_targets)
                 return (
                     <div key = {source.source_name} className="flex flex-wrap items-center gap-4 py-3">
                         <span className="flex size-5 items-center justify-center rounded-full">
                             <span className={cn("size-2.5 rounded-full", dotToneClassName[status])}/>
                         </span>
                         <span className="min-w-0 flex-1 truncate text-base text-foreground">{meta.label}</span>
+                        {source.total_targets > 0 && (
+                            <span className="text-sm font-semibold text-muted-foreground">
+                                {processedTargets}/{source.total_targets}
+                            </span>
+                        )}
                         <SourceStatusBadge status = {status} />
                         <ChevronRight className="size-4 shrink-0 text-muted-foreground"/>
                     </div>
@@ -381,7 +438,15 @@ export default function ScanProgress() {
             const result = await fetchScanStatus(id);
             setScan(result);
             setError(null);
-            if(TERMINAL_SCAN_STATUSES.has(result.status) && pollRef.current) {
+            const indexFinished =
+                result.status === "failed" ||
+                result.rag_index_status === "ready" ||
+                result.rag_index_status === "failed";
+            
+            if (
+                TERMINAL_SCAN_STATUSES.has(result.status) &&
+                indexFinished && pollRef.current
+            ) {
                 clearInterval(pollRef.current);
                 pollRef.current = null;
             }
@@ -451,6 +516,11 @@ export default function ScanProgress() {
                     </p>
                 </div>
                 <div className="flex gap-2">
+                    <Link href={`/phase2_scan/graph?scan_id=${scan.scan_id}`}>
+                        <Button variant="outline" className="gap-2 border-brand-panel-border text-foreground hover:border-brand-cyan hover:text-brand-cyan">
+                            View Scan Graph
+                        </Button>
+                    </Link>
                     {TERMINAL_SCAN_STATUSES.has(scan.status) ? (
                         <Link href = {`/phase2_scan/results/${scan.scan_id}`}>
                             <Button className="gap-2 bg-brand-cyan text-black hover:bg-brand-cyan/85">

@@ -38,6 +38,7 @@ services:
       RABBITMQ_USERNAME: guest
       RABBITMQ_PASSWORD: guest
       RABBITMQ_PROTOCOL: amqp
+      INTERNAL_WEBHOOK_SECRET: ${INTERNAL_WEBHOOK_SECRET:?Set INTERNAL_WEBHOOK_SECRET in .env}
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
       REPORT_STORAGE: local
       REPORT_OUTPUT_DIR: /app/generated_reports
@@ -79,7 +80,22 @@ services:
       REPORT_STORAGE: ${REPORT_STORAGE:-local}
       REPORT_OUTPUT_DIR: ${REPORT_OUTPUT_DIR:-/app/generated_reports}
       REPORT_S3_BUCKET: ${REPORT_S3_BUCKET:-}
+      INTERNAL_WEBHOOK_SECRET: ${INTERNAL_WEBHOOK_SECRET:?INTERNAL_WEBHOOK_SECRET must be set in your .env file}
       AWS_REGION: ${AWS_REGION:-af-south-1}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai_compatible}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_EMBEDDING_MODEL: ${OPENAI_EMBEDDING_MODEL:-text-embedding-3-small}
+      OPENAI_TIMEOUT_SECONDS: ${OPENAI_TIMEOUT_SECONDS:-30}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      BEDROCK_REGION: ${BEDROCK_REGION:-}
+      BEDROCK_EMBEDDING_MODEL_ID: ${BEDROCK_EMBEDDING_MODEL_ID:-amazon.titan-embed-text-v2:0}
+      BEDROCK_EMBEDDING_DIMENSIONS: ${BEDROCK_EMBEDDING_DIMENSIONS:-1024}
+      GENERATION_PROVIDER: ${GENERATION_PROVIDER:-bedrock}
+      BEDROCK_GENERATION_REGION: ${BEDROCK_GENERATION_REGION:-}
+      BEDROCK_GENERATION_MODEL_ID: ${BEDROCK_GENERATION_MODEL_ID:-}
+      BEDROCK_GENERATION_MAX_TOKENS: ${BEDROCK_GENERATION_MAX_TOKENS:-800}
+      BEDROCK_GENERATION_TEMPERATURE: ${BEDROCK_GENERATION_TEMPERATURE:-0.1}
+
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -107,6 +123,7 @@ services:
       RABBITMQ_PASSWORD: guest
       RABBITMQ_PROTOCOL: amqp
       DATABASE_URL: postgresql://${POSTGRES_TEST_USER}:${POSTGRES_TEST_PASSWORD}@postgres-test:5432/${POSTGRES_TEST_DB}
+      INTERNAL_WEBHOOK_SECRET: ${INTERNAL_WEBHOOK_SECRET:?Set INTERNAL_WEBHOOK_SECRET in .env}
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
       SCAN_MODE: MOCK
       REPORT_STORAGE: local
@@ -128,9 +145,14 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.workers
+    user: root
     environment:
+      ENVIRONMENT: local 
+      DOCKER_NETWORK: penflow-network
+      WORKER_IMAGE: ${WORKER_IMAGE:-penflow-worker:local}
+      PHASE2_SCAN_CONCURRENCY: ${PHASE2_SCAN_CONCURRENCY:-3}
       BACKEND_API_URL: http://backend:3001/api/v1
-      #Remember
+      INTERNAL_WEBHOOK_SECRET: ${INTERNAL_WEBHOOK_SECRET:?INTERNAL_WEBHOOK_SECRET must be set in your .env file}
       BACKEND_URL: http://backend:3001
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672//
       RABBITMQ_HOST: rabbitmq
@@ -154,6 +176,7 @@ services:
         condition: service_healthy
     volumes:
       - report-files:/app/generated_reports
+      - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
     networks:
       - penflow-network
@@ -278,7 +301,7 @@ services:
 
   postgres:
     container_name: penflow-postgres
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     ports:
       - "5432:5432"
     environment:
@@ -301,7 +324,7 @@ services:
   postgres-test:
     profiles: ["test"]
     container_name: penflow-postgres-test
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_TEST_USER} -d ${POSTGRES_TEST_DB}"]
       interval: 5s
@@ -370,6 +393,7 @@ services:
 networks:
   penflow-network:
     driver: bridge
+    name: penflow-network
 
 volumes:
   penflow-postgres-data:

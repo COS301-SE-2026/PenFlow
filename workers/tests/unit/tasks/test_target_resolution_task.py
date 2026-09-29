@@ -1,26 +1,46 @@
 from unittest.mock import patch
 
+import pytest
+
 from app.tasks.target_resolution_task import run_target_resolution
 
-#happy paths
 
-# Happy Path 1 [IPv4 and IPv6]
+@pytest.mark.parametrize(
+    ("ipv4", "ipv6"),
+    [
+        (["104.26.12.5"], ["2606:4700::1"]),
+        (["104.26.12.5"], []),
+        ([], ["2606:4700::1"]),
+    ],
+)
 @patch("app.tasks.target_resolution_task.celery_app.send_task")
 @patch("app.tasks.target_resolution_task.send_source_callback")
-@patch("app.tasks.target_resolution_task.resolve_target_ips")
+@patch("app.tasks.target_resolution_task.resolve_target_scope")
 def test_run_target_resolution_success(
     mock_resolve,
     mock_callback,
     mock_send_task,
+    ipv4,
+    ipv6,
 ):
-    """
-    Returns a completed result when we have a domain that can be
-    reached and both ipv4 and 6 address exist at the domain we are targeting.
-    """
-    mock_resolve.return_value = {
-        "ipv4": ["104.26.12.5"],
-        "ipv6": ["2606:4700::1"],
+
+    addresses = [*ipv4, *ipv6]
+
+    resolved_scope = {
+        "targets": [
+            {
+                "hostname": "hackerone.com",
+                "ipv4": ipv4,
+                "ipv6": ipv6,
+            }
+        ],
+        "ip_to_hostnames": {
+            address: ["hackerone.com"]
+            for address in addresses
+        },
     }
+
+    mock_resolve.return_value = resolved_scope
 
     result = run_target_resolution(
         "scan-123",
@@ -29,236 +49,115 @@ def test_run_target_resolution_success(
 
     expected_assets = [
         {
-            "identifier": "104.26.12.5",
-            "asset_type": "ipv4",
+            "identifier": address,
+            "asset_type": (
+                "ipv4"
+                if address in ipv4
+                else "ipv6"
+            ),
             "asset_metadata": {
-                "source_domain": "hackerone.com"
-            }
-        },
-        {
-            "identifier": "2606:4700::1",
-            "asset_type": "ipv6",
-            "asset_metadata": {
-                "source_domain": "hackerone.com"
-            }
-        },
+                "source_domain": "hackerone.com",
+                "hostnames": ["hackerone.com"],
+                "ip_version": (
+                    4
+                    if address in ipv4
+                    else 6
+                ),
+                "resolution_source": "dns",
+            },
+        }
+        for address in addresses
     ]
 
     assert result == {
         "scan_id": "scan-123",
         "source_name": "target_resolution",
         "status": "completed",
-        "raw_result": {
-            "ipv4": ["104.26.12.5"],
-            "ipv6": ["2606:4700::1"],
-        },
-        "findings": [],
+        "raw_result": resolved_scope,
+        "assets": expected_assets,
         "services": [],
         "technologies": [],
-        "assets": expected_assets,
+        "findings": [],
     }
 
-    mock_resolve.assert_called_once_with("hackerone.com")
+    mock_resolve.assert_called_once_with(
+        ["hackerone.com"],
+    )
 
-    assert mock_callback.call_count == 2
     mock_callback.assert_any_call(
         scan_id="scan-123",
         source_name="target_resolution",
         status="completed",
-        raw_result={
-            "ipv4": ["104.26.12.5"],
-            "ipv6": ["2606:4700::1"],
-        },
-        findings=[],
+        raw_result=resolved_scope,
+        assets=expected_assets,
         services=[],
         technologies=[],
-        assets=expected_assets,
+        findings=[],
         error_message=None,
     )
 
     mock_send_task.assert_called_once_with(
         "scan.phase2_nmap",
-        args=["scan-123", "104.26.12.5", "hackerone.com"]
+        args=[
+            "scan-123",
+            resolved_scope["targets"],
+        ],
     )
 
-
-# Happy Path 2 [IPv4 only]
-@patch("app.tasks.target_resolution_task.celery_app.send_task")
-@patch("app.tasks.target_resolution_task.send_source_callback")
-@patch("app.tasks.target_resolution_task.resolve_target_ips")
-def test_run_target_resolution_ipv4_only(
-    mock_resolve,
-    mock_callback,
-    mock_send_task,
-):
-    """
-    Returning only the ipv4 results cause either ipv6 doesnt exist or fails
-    """
-    mock_resolve.return_value = {
-        "ipv4": ["104.26.12.5"],
-        "ipv6": [],
-    }
-
-    result = run_target_resolution(
-        "scan-123",
-        "hackerone.com",
-    )
-
-    expected_assets = [
-        {
-            "identifier": "104.26.12.5",
-            "asset_type": "ipv4",
-            "asset_metadata": {
-                "source_domain": "hackerone.com"
-            }
-        }
-    ]
-
-    assert result == {
-        "scan_id": "scan-123",
-        "source_name": "target_resolution",
-        "status": "completed",
-        "raw_result": {
-            "ipv4": ["104.26.12.5"],
-            "ipv6": [],
-        },
-        "findings": [],
-        "services": [],
-        "technologies": [],
-        "assets": expected_assets,
-    }
-
-    assert mock_callback.call_count == 2
-
-    mock_send_task.assert_called_once_with(
-        "scan.phase2_nmap",
-        args=["scan-123", "104.26.12.5", "hackerone.com"]
-    )
-
-
-# Happy Path 3 [IPv6 only]
 
 @patch("app.tasks.target_resolution_task.celery_app.send_task")
 @patch("app.tasks.target_resolution_task.send_source_callback")
-@patch("app.tasks.target_resolution_task.resolve_target_ips")
-def test_run_target_resolution_ipv6_only(
-    mock_resolve,
-    mock_callback,
-    mock_send_task,
-):
-    """
-    Returning only the ipv6 results cause either ipv4 doesnt exist or fails
-    """
-    mock_resolve.return_value = {
-        "ipv4": [],
-        "ipv6": ["2606:4700::1"],
-    }
-
-    result = run_target_resolution(
-        "scan-123",
-        "hackerone.com",
-    )
-
-    expected_assets = [
-        {
-            "identifier": "2606:4700::1",
-            "asset_type": "ipv6",
-            "asset_metadata": {
-                "source_domain": "hackerone.com"
-            }
-        }
-    ]
-
-    assert result == {
-        "scan_id": "scan-123",
-        "source_name": "target_resolution",
-        "status": "completed",
-        "raw_result": {
-            "ipv4": [],
-            "ipv6": ["2606:4700::1"],
-        },
-        "findings": [],
-        "services": [],
-        "technologies": [],
-        "assets": expected_assets,
-    }
-
-    assert mock_callback.call_count == 2
-
-    mock_send_task.assert_not_called()
-
-
-#Sad paths
-
-# Sad Path 1 [No IP addresses]
-@patch("app.tasks.target_resolution_task.celery_app.send_task")
-@patch("app.tasks.target_resolution_task.send_source_callback")
-@patch("app.tasks.target_resolution_task.resolve_target_ips")
+@patch("app.tasks.target_resolution_task.resolve_target_scope")
 def test_run_target_resolution_no_ips(
     mock_resolve,
     mock_callback,
     mock_send_task,
 ):
-    """
-    Returning empty results because no ipv4 or 6 address's can bve found at the target domain
-    """
 
-    mock_resolve.return_value = {
-        "ipv4": [],
-        "ipv6": [],
+    resolved_scope = {
+        "targets": [
+            {
+                "hostname": "hackerone.com",
+                "ipv4": [],
+                "ipv6": [],
+            }
+        ],
+        "ip_to_hostnames": {},
     }
+
+    mock_resolve.return_value = resolved_scope
 
     result = run_target_resolution(
         "scan-123",
         "hackerone.com",
     )
 
-    assert result == {
-        "scan_id": "scan-123",
-        "source_name": "target_resolution",
-        "status": "failed",
-        "raw_result": {
-            "ipv4": [],
-            "ipv6": [],
-        },
-        "findings": [],
-        "assets": [],
-        "technologies": [],
-        "services": [],
-        "error_message": "No IPv4 or IPv6 addresses were resolved.",
-    }
-
-    assert mock_callback.call_count == 2
-    mock_callback.assert_any_call(
-        scan_id="scan-123",
-        source_name="target_resolution",
-        status="failed",
-        raw_result={
-            "ipv4": [],
-            "ipv6": [],
-        },
-        findings=[],
-        assets=[],
-        services=[],
-        technologies=[],
-        error_message="No IPv4 or IPv6 addresses were resolved.",
+    assert result["status"] == "failed"
+    assert result["raw_result"] == resolved_scope
+    assert result["error_message"] == (
+        "No public IPv4 or IPv6 addresses were resolved."
     )
 
     mock_send_task.assert_not_called()
 
+    mock_callback.assert_any_call(
+        scan_id="scan-123",
+        source_name="nmap",
+        status="skipped",
+        raw_result={
+            "reason": "No public scan targets were resolved.",
+        },
+    )
 
-# Sad Path 2 [Service Exception]
+
 @patch("app.tasks.target_resolution_task.celery_app.send_task")
 @patch("app.tasks.target_resolution_task.send_source_callback")
-@patch("app.tasks.target_resolution_task.resolve_target_ips")
+@patch("app.tasks.target_resolution_task.resolve_target_scope")
 def test_run_target_resolution_exception(
     mock_resolve,
     mock_callback,
     mock_send_task,
 ):
-    """
-    Returns this when an unexpected from the norm exception arrises
-    """
 
     mock_resolve.side_effect = Exception("DNS exploded")
 
@@ -274,14 +173,15 @@ def test_run_target_resolution_exception(
         "raw_result": {
             "error": "DNS exploded",
         },
-        "findings": [],
         "assets": [],
         "services": [],
         "technologies": [],
+        "findings": [],
         "error_message": "DNS exploded",
     }
 
-    assert mock_callback.call_count == 2
+    mock_send_task.assert_not_called()
+
     mock_callback.assert_any_call(
         scan_id="scan-123",
         source_name="target_resolution",
@@ -289,10 +189,9 @@ def test_run_target_resolution_exception(
         raw_result={
             "error": "DNS exploded",
         },
-        findings=[],
         assets=[],
         services=[],
         technologies=[],
+        findings=[],
         error_message="DNS exploded",
     )
-    mock_send_task.assert_not_called()

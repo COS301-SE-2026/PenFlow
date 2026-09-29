@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Text, UniqueConstraint
+from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
@@ -30,6 +30,9 @@ class ScanSource(Base):
     )
     raw_result = Column(JSONB)
     error_message = Column(Text)
+    total_targets = Column(Integer, nullable=False, default=0)
+    completed_targets = Column(Integer, nullable=False, default=0)
+    failed_targets = Column(Integer, nullable=False, default=0)
     started_at = Column(DateTime(timezone=True))
     completed_at = Column(DateTime(timezone=True))
 

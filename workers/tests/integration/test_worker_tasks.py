@@ -17,6 +17,7 @@ def test_wappalyzer_task_mock_mode(mock_callback):
     assert "findings" in result
     assert mock_callback.call_count == 2
 
+
 def test_worker_health_check():
     result = health_check.delay().get()
 

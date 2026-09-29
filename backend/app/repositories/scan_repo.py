@@ -164,24 +164,40 @@ class ScanRepository:
         try:
             source_status = payload["status"]
 
-            query = (
-                psg_insert(ScanSource).values(
-                    scan_id=scan.id,
-                    source_name=source_name,
-                    status=ScanSourceStatus(source_status),
-                    raw_result=payload.get("raw_result"),
-                    error_message=payload.get("error_message"),
-                ).on_conflict_do_update(
-                    index_elements = [
-                        "scan_id",
-                        "source_name",
-                    ],
-                    set_ = {
-                        "status": ScanSourceStatus(source_status),
-                        "raw_result": payload.get("raw_result"),
-                        "error_message": payload.get("error_message"),
-                    },
-                )
+            counter_values: dict[str, int] = {}
+
+            for field_name in (
+                "total_targets",
+                "completed_targets",
+                "failed_targets",
+            ):
+                field_value = payload.get(field_name)
+
+                if field_value is not None:
+                    counter_values[field_name] = int(field_value)
+
+            insert_stmt = psg_insert(ScanSource).values(
+                scan_id=scan.id,
+                source_name=source_name,
+                status=ScanSourceStatus(source_status),
+                raw_result=payload.get("raw_result"),
+                error_message=payload.get("error_message"),
+                **counter_values,
+            )
+
+            update_values: dict[str, Any] = {
+                "status": ScanSourceStatus(source_status),
+                "raw_result": payload.get("raw_result"),
+                "error_message": payload.get("error_message"),
+                **counter_values,
+            }
+
+            query = insert_stmt.on_conflict_do_update(
+                index_elements=[
+                    "scan_id",
+                    "source_name",
+                ],
+                set_=update_values,
             )
 
             await db.execute(query)
@@ -220,6 +236,40 @@ class ScanRepository:
                     )
                 )
                 asset = asset_result.scalar_one_or_none()
+
+                incoming_metadata: dict[str, Any] = dict(
+                    asset_data.get("asset_metadata") or {}
+                )
+                if asset is not None and incoming_metadata:
+
+                    current_metadata: dict[str, Any] = dict(
+                        asset.asset_metadata or {}
+                    )
+
+                    merged_metadata: dict[str, Any] = {
+                        **current_metadata,
+                        **incoming_metadata,
+                    }
+
+                    existing_hostnames = current_metadata.get(
+                        "hostnames",
+                        [],
+                    )
+
+                    incoming_hostnames = incoming_metadata.get(
+                        "hostnames",
+                        [],
+                    )
+
+                    if existing_hostnames or incoming_hostnames:
+                        merged_metadata["hostnames"] = sorted(
+                            {
+                                *existing_hostnames,
+                                *incoming_hostnames,
+                            }
+                        )
+
+                    asset.asset_metadata = merged_metadata
 
                 asset_cache[identifier] = asset
 
@@ -434,11 +484,48 @@ class ScanRepository:
 
                         service = service_result.scalar_one_or_none()
 
+                asset_id = (
+                    asset.id
+                    if asset
+                    else service.asset_id
+                    if service
+                    else None
+                )
+
+                service_id = service.id if service else None
+                finding_source = finding_data.get(
+                    "source",
+                    source_name,
+                )
+                finding_title = finding_data.get(
+                    "title",
+                    "Untitled finding",
+                )
+                finding_evidence = finding_data.get(
+                    "evidence",
+                    {},
+                )
+
+                existing_finding_result = await db.execute(
+                    select(Finding).where(
+                        Finding.scan_id == scan.id,
+                        Finding.asset_id == asset_id,
+                        Finding.service_id == service_id,
+                        Finding.source == finding_source,
+                        Finding.cve_id == finding_data.get("cve_id"),
+                        Finding.title == finding_title,
+                        Finding.evidence == finding_evidence,
+                    )
+                )
+
+                if existing_finding_result.scalar_one_or_none() is not None:
+                    continue
+
                 finding = Finding(
                     scan_id = scan.id,
-                    asset_id = asset.id if asset else service.asset_id if service else None,
-                    service_id = service.id if service else None,
-                    source = finding_data.get("source", source_name),
+                    asset_id = asset_id,
+                    service_id = service_id,
+                    source = finding_source,
                     status = FindingStatus(
                         finding_data.get("status", "open")
                     ),
@@ -447,10 +534,10 @@ class ScanRepository:
                     severity = Severity(
                         finding_data.get("severity", "info").lower()
                     ),
-                    title = finding_data.get("title", "Untitled finding"),
+                    title = finding_title,
                     description = finding_data.get("description"),
                     recommendation = finding_data.get("recommendation"),
-                    evidence = finding_data.get("evidence", {}),
+                    evidence = finding_evidence,
                 )
 
                 db.add(finding)
@@ -460,8 +547,15 @@ class ScanRepository:
             expected_sources = SCAN_SOURCES_BY_TYPE[scan.scan_type.value]
 
             source_status_results = await db.execute(
-                select(ScanSource.source_name, ScanSource.status).where(
-                    ScanSource.scan_id == scan.id, ScanSource.source_name.in_(expected_sources)
+                select(
+                    ScanSource.source_name,
+                    ScanSource.status,
+                    ScanSource.total_targets,
+                    ScanSource.completed_targets,
+                    ScanSource.failed_targets,
+                ).where(
+                    ScanSource.scan_id == scan.id,
+                    ScanSource.source_name.in_(expected_sources),
                 )
             )
 
@@ -475,15 +569,46 @@ class ScanRepository:
                 ScanSourceStatus.PARTIAL,
             ]
 
-            finished_count = sum(1 for _, status in source_statuses if status in finished_statuses)
+            finished_count = sum(
+                1
+                for _, source_status, _, _, _ in source_statuses
+                if source_status in finished_statuses
+            )
 
-            progress = int((finished_count / total_sources) * 100)
+            completed_source_units = 0.0
+
+            for (
+                _,
+                source_status,
+                total_targets,
+                completed_targets,
+                failed_targets,
+            ) in source_statuses:
+                if source_status in finished_statuses:
+                    completed_source_units += 1.0
+                    continue
+
+                if (
+                    source_status == ScanSourceStatus.RUNNING
+                    and total_targets > 0
+                ):
+                    processed_targets = min(
+                        completed_targets + failed_targets,
+                        total_targets,
+                    )
+                    completed_source_units += (
+                        processed_targets / total_targets
+                    )
+
+            progress = int(
+                (completed_source_units / total_sources) * 100
+            )
             setattr(scan, "progress", min(progress, 100))
 
             if finished_count == total_sources:
                 failed_sources = [
                     source_name
-                    for source_name, status in source_statuses
+                    for source_name, status, _, _, _ in source_statuses
                     if status != ScanSourceStatus.COMPLETED
                 ]
 
@@ -550,6 +675,11 @@ class ScanRepository:
             "scan_type": scan_type,
             "status": scan.status.value,
             "progress": scan.progress,
+            "rag_index_status": scan.rag_index_status.value,
+            "rag_document_schema_version": scan.rag_document_schema_version,
+            "rag_embedding_model": scan.rag_embedding_model,
+            "rag_last_indexed_at": scan.rag_last_indexed_at,
+            "rag_index_failure_reason": scan.rag_index_failure_reason,
             "sources": [
                 {
                     "source_name": source,
@@ -560,6 +690,21 @@ class ScanRepository:
                     ),
                     "error_message": (
                         source_names[source].error_message if source in source_names else None
+                    ),
+                    "total_targets": (
+                        source_names[source].total_targets
+                        if source in source_names
+                        else 0
+                    ),
+                    "completed_targets": (
+                        source_names[source].completed_targets
+                        if source in source_names
+                        else 0
+                    ),
+                    "failed_targets": (
+                        source_names[source].failed_targets
+                        if source in source_names
+                        else 0
                     ),
                 }
                 for source in expected_sources
@@ -936,6 +1081,7 @@ class ScanRepository:
             )
 
         return items, counts
+    
 
     @staticmethod
     async def get_assets_page(
@@ -1039,3 +1185,67 @@ class ScanRepository:
         paginated_items = items[offset : offset + limit]
 
         return paginated_items, counts
+
+
+    @staticmethod
+    async def get_owned_scan(
+        db: AsyncSession,
+        scan_id: UUID,
+        user_id: UUID,
+    ) -> Scan | None:
+        query = select(Scan).where(
+            Scan.id == scan_id,
+            Scan.user_id == user_id,
+        )
+
+        result = await db.execute(query)
+        return result.scalar_one_or_none()
+
+
+    @staticmethod
+    async def find_previous_comparable_scan(
+        db: AsyncSession,
+        current_scan: Scan,
+        user_id: UUID,
+    ) -> Scan | None:
+        stmt = (
+            select(Scan).where(
+                Scan.user_id == user_id,
+                Scan.id != current_scan.id,
+                func.lower(Scan.domain)
+                == current_scan.domain.casefold(),
+                Scan.scan_type == current_scan.scan_type,
+                Scan.status == ScanStatus.COMPLETED,
+                Scan.created_at < current_scan.created_at,
+            ).order_by(
+                Scan.completed_at.desc().nullslast(),
+                Scan.created_at.desc(),
+                Scan.id.asc(),
+            ).limit(1)
+        )
+
+        result = await db.execute(stmt)
+
+        return result.scalar_one_or_none()
+
+
+    @staticmethod
+    async def list_completed_for_portfolio(
+        db: AsyncSession,
+        user_id: UUID,
+    ) -> list[Scan]:
+        stmt = (
+            select(Scan).where(
+                Scan.user_id == user_id,
+                Scan.status == ScanStatus.COMPLETED,
+            ).order_by(
+                Scan.completed_at.desc().nulls_last(),
+                Scan.created_at.desc(),
+                Scan.id.asc(),
+            )
+        )
+
+        result = await db.execute(stmt)
+
+        return list(result.scalars()
+                    .all())

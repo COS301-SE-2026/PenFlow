@@ -1,9 +1,11 @@
 import logging
 from typing import Any
+from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.scan import Scan
 from app.queue.celery_app import celery_app
 from app.repositories.domain_repository import DomainRepository
 from app.repositories.scan_repo import ScanRepository
@@ -123,3 +125,24 @@ class ScanService:
         )
 
         return str(task.id)
+
+
+    @staticmethod
+    async def require_scan_access(
+        db: AsyncSession,
+        scan_id: UUID,
+        user_id: UUID,
+    ) -> Scan:
+        scan = await ScanRepository.get_owned_scan(
+            db,
+            scan_id=scan_id,
+            user_id=user_id,
+        )
+
+        if scan is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Scan not found.",
+            )
+
+        return scan

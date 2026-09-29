@@ -21,6 +21,8 @@ const SOURCE_MAPPINGS: Record<string, string> = {
   Normalising: "normalising",
 };
 
+type DisplaySourceStatus = "pending" | "running" | "done";
+
 export default function ScanConsoleSection() {
   const [domain, setDomain] = useState("");
   const [status, setStatus] = useState("Ready to scan");
@@ -28,7 +30,9 @@ export default function ScanConsoleSection() {
   const [scanId, setScanId] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [sweeping, setSweeping] = useState(false);
-  const [stepsDone, setStepsDone] = useState<boolean[]>(Array(SOURCES.length).fill(false));
+  const [sourceStatuses, setSourceStatuses] = useState<DisplaySourceStatus[]>(
+    Array(SOURCES.length).fill("pending")
+  );
   const router = useRouter();
 
   const canScan = domain.trim().length > 2;
@@ -49,7 +53,7 @@ export default function ScanConsoleSection() {
     try {
       const { scan_id } = await postScanRequest({ domain: result.domain });
       setScanId(scan_id);
-      setStepsDone(Array(SOURCES.length).fill(false));
+      setSourceStatuses(Array(SOURCES.length).fill("pending"));
       setReportReady(false);
       setScanning(true);
       setSweeping(true);
@@ -92,16 +96,34 @@ export default function ScanConsoleSection() {
       try {
         const liveScanStatus = await fetchScanStatus(scanId);
 
-        setStepsDone(SOURCES.map((source) => {
-            if (source === "Normalising") {
-              return liveScanStatus.status === "completed" || liveScanStatus.progress === 100;
+        setSourceStatuses(
+          SOURCES.map((source): DisplaySourceStatus => {
+            if(source === "Normalising") {
+              if(liveScanStatus.report_status?.status === "completed") {
+                return "done";
+              }
+
+              if(liveScanStatus.status === "completed" || liveScanStatus.progress === 100) {
+                return "running";
+              }
+
+              return "pending";
             }
 
             const sourceName = SOURCE_MAPPINGS[source];
-            return liveScanStatus.sources.some((item) =>
-                item.source_name === sourceName &&
-                ["completed", "failed", "partial"].includes(item.status)
-            );
+            const sourceStatus = liveScanStatus.sources.find(
+              (item) => item.source_name === sourceName
+            )?.status;
+
+            if(["completed", "failed", "partial", "skipped"].includes(sourceStatus ?? "")) {
+              return "done";
+            }
+
+            if(sourceStatus === "running") {
+              return "running";
+            }
+
+            return "pending";
           })
         );
 
@@ -155,14 +177,14 @@ export default function ScanConsoleSection() {
           <div className={styles.processCols}>
               <div className={styles.processCol}>
                 {LEFT_SOURCES.map((source, i) => (
-                  <span key={source} className={styles.processLabel} data-done={stepsDone[i]}>
+                  <span key={source} className={styles.processLabel} data-status={sourceStatuses[i]}>
                     {source}
                   </span>
                 ))}
               </div>
               <div className={styles.processCol}>
                 {RIGHT_SOURCES.map((source, i) => (
-                  <span key={source} className={styles.processLabel} data-done={stepsDone[LEFT_SOURCES.length + i]}>
+                  <span key={source} className={styles.processLabel} data-status={sourceStatuses[LEFT_SOURCES.length + i]}>
                     {source}
                   </span>
                 ))}

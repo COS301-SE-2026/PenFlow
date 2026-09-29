@@ -76,6 +76,7 @@ export default function WorkerStatusGrid({ sources }: { sources: ScanSourceStatu
                 const Icon = meta.icon;
                 const statusClassName = WORKER_STATUS_CLASS_NAME[source.status] ?? WORKER_STATUS_CLASS_NAME.pending;
                 const statusLabel = WORKER_STATUS_LABEL[source.status] ?? capitalize(source.status);
+                const processedTargets = Math.min(source.completed_targets + source.failed_targets, source.total_targets);
 
                 return (
                     <div
@@ -91,6 +92,19 @@ export default function WorkerStatusGrid({ sources }: { sources: ScanSourceStatu
                             <span className={cn("size-1.5 rounded-full", WORKER_DOT_CLASS_NAME[source.status] ?? WORKER_DOT_CLASS_NAME.pending)} />
                             {statusLabel}
                         </div>
+                        
+                        {source.total_targets > 0 && (
+                            <div className="grid gap-1">
+                                <span className="text-sm font-semibold text-muted-foreground">
+                                    {processedTargets} / {source.total_targets} targets
+                                    {source.failed_targets > 0 ? ` · ${source.failed_targets} failed` : ""}
+                                </span>
+                                <span className="h-1 overflow-hidden rounded-full bg-white/10">
+                                    <span className="block h-full rounded-full bg-current transition-[width] duration-500" 
+                                     style={{width: `${Math.round((processedTargets/source.total_targets) * 100)}%`}} />
+                                </span>
+                            </div>
+                        )}
 
                         {source.error_message && (
                             <p className="line-clamp-2 text-xs text-muted-foreground">{source.error_message}</p>
