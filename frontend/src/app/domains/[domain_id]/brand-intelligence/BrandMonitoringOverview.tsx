@@ -422,6 +422,17 @@ export default function BrandMonitoringOverview
                             </span>
 
                             <span className="text-sm text-muted-foreground">
+                                {
+                                    state.monitoring.candidates.filter
+                                    (
+                                        (candidate) =>
+                                            candidate.risk_level === "high" ||
+                                            candidate.risk_level === "critical"
+                                    ).length
+                                } high-risk candidates
+                            </span>
+
+                            <span className="text-sm text-muted-foreground">
                                 {state.monitoring.candidates.length} candidates recorded
                             </span>
                         </div>
