@@ -17,6 +17,8 @@ import type
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/components/ui/button";
 import BrandCandidateInvestigation from "./BrandCandidateInvestigation";
+import { update_brand_candidate_status } from "@/lib/brandIntelligenceService";
+
 
 interface BrandCandidateListProps
 {
@@ -117,14 +119,22 @@ export default function BrandCandidateList
 {
     const [selected_candidate_id, set_selected_candidate_id] =
         useState<string | null>(null);
-
+    const [local_candidates, set_local_candidates] =
+        useState<brand_candidate[]>(candidates);
     const [search_query, set_search_query] = useState("");
     const [selected_risk, set_selected_risk] = useState<risk_filter>("all");
     const [selected_status, set_selected_status] = useState<status_filter>("all");
     const [selected_sort, set_selected_sort] = useState<candidate_sort>("risk_high");
 
+    //sync candidates after a new monitoring run updates the parent
+    useEffect(() =>
+    {
+        set_local_candidates(candidates);
+
+    }, [candidates]);
+
     const selected_candidate =
-        candidates.find
+        local_candidates.find
         (
             (candidate) => candidate.id === selected_candidate_id
         ) ?? null;
@@ -154,7 +164,7 @@ export default function BrandCandidateList
     const visible_candidates = useMemo(() =>
     {
         const query = search_query.trim().toLowerCase();
-        const filtered = candidates.filter((candidate) =>
+        const filtered = local_candidates.filter((candidate) =>
         {
             const matches_search =
                 !query ||
@@ -209,7 +219,7 @@ export default function BrandCandidateList
         });
 
     }, [
-        candidates,
+        local_candidates,
         search_query,
         selected_risk,
         selected_sort,
@@ -225,19 +235,44 @@ export default function BrandCandidateList
         set_selected_sort("risk_high");
     }
 
+    //save the new review status and replace the updated candidate
+    async function handle_status_change
+    (
+        candidate_id: string,
+        status: brand_candidate_status,
+    ): Promise<brand_candidate>
+    {
+        const updated_candidate =
+            await update_brand_candidate_status
+            (
+                candidate_id,
+                status,
+            );
+
+        set_local_candidates((current_candidates) =>
+            current_candidates.map((candidate) =>
+                candidate.id === updated_candidate.id
+                    ? updated_candidate
+                    : candidate
+            )
+        );
+
+        return updated_candidate;
+    }
+
     //summary numbers for the monitoring overview
-    const high_risk = candidates.filter
+    const high_risk = local_candidates.filter
     (
         (candidate) => candidate.risk_level === "high" ||
             candidate.risk_level === "critical"
     ).length;
 
-    const new_candidates = candidates.filter
+    const new_candidates = local_candidates.filter
     (
         (candidate) => candidate.status === "new"
     ).length;
 
-    const under_review = candidates.filter
+    const under_review = local_candidates.filter
     (
         (candidate) => candidate.status === "under_review"
     ).length;
@@ -260,7 +295,7 @@ export default function BrandCandidateList
 
                 <SummaryCard
                     label="Detected"
-                    value={candidates.length}
+                    value={local_candidates.length}
                 />
 
                 <SummaryCard
@@ -389,13 +424,13 @@ export default function BrandCandidateList
 
 
                 <p className="mt-3 text-xs text-muted-foreground">
-                    Showing {visible_candidates.length} of {candidates.length} candidates
+                    Showing {visible_candidates.length} of {local_candidates.length} candidates
                 </p>
 
             </div>
 
             <div className="overflow-hidden rounded-lg border border-brand-panel-border bg-brand-panel">
-                {candidates.length === 0 ? (
+                {local_candidates.length === 0 ? (
                     <div className="p-8 text-center">
                         <p className="font-medium text-foreground">
                             No candidates match the filters in place
@@ -582,6 +617,7 @@ export default function BrandCandidateList
 
                         <BrandCandidateInvestigation
                             candidate={selected_candidate}
+                            onStatusChange={handle_status_change}
                             onClose={() => set_selected_candidate_id(null)}
                         />
 

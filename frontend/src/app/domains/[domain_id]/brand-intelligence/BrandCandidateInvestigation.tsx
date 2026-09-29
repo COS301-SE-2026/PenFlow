@@ -1,3 +1,6 @@
+"use client";
+
+import {useState} from "react";
 import type { ReactNode } from "react";
 import
 {
@@ -11,6 +14,7 @@ import
 import type
 {
     brand_candidate,
+    brand_candidate_status,
     brand_risk_level,
 } from "@/lib/brandIntelligenceTypes";
 import { cn } from "@/lib/utils";
@@ -20,6 +24,11 @@ import { Button } from "@/shared/components/ui/button";
 interface BrandCandidateInvestigationProps
 {
     candidate: brand_candidate;
+    onStatusChange:
+    (
+        candidate_id: string,
+        status: brand_candidate_status,
+    ) => Promise<brand_candidate>;
     onClose: () => void;
 }
 
@@ -85,6 +94,7 @@ function yes_no(value?: boolean): string
 export default function BrandCandidateInvestigation
 ({
     candidate,
+    onStatusChange,
     onClose,
 }: BrandCandidateInvestigationProps)
 {
@@ -92,6 +102,45 @@ export default function BrandCandidateInvestigation
     const signals = candidate.evidence.signals;
     const reasons = candidate.evidence.reasons ?? [];
 
+    const [status_saving, set_status_saving] = useState(false);
+    const [status_error, set_status_error] =
+        useState<string | null>(null);
+
+
+    //save a new review status for this candidate
+    async function handle_status_update
+    (
+        status: brand_candidate_status,
+    )
+    {
+        if (status_saving || status === candidate.status)
+            return;
+
+        set_status_saving(true);
+        set_status_error(null);
+
+        try
+        {
+            await onStatusChange
+            (
+                candidate.id,
+                status,
+            );
+        }
+        catch (error)
+        {
+            set_status_error
+            (
+                error instanceof Error
+                    ? error.message
+                    : "Failed to update candidate status"
+            );
+        }
+        finally
+        {
+            set_status_saving(false);
+        }
+    }
 
     return (
         <section
@@ -155,6 +204,85 @@ export default function BrandCandidateInvestigation
 
             </div>
 
+            <div className="border-b border-brand-panel-border p-5">
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+
+                    <div>
+
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                            Review status
+                        </p>
+
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Record the analyst decision for this candidate.
+                        </p>
+
+                    </div>
+
+
+                    <div className="min-w-56">
+
+                        <select
+                            value={candidate.status}
+                            disabled={status_saving}
+                            onChange={(event) =>
+                                void handle_status_update
+                                (
+                                    event.target.value as brand_candidate_status
+                                )
+                            }
+                            className={
+                                "h-10 w-full rounded-md border " +
+                                "border-brand-panel-border bg-brand-panel-deep " +
+                                "px-3 text-sm text-foreground outline-none " +
+                                "focus:border-brand-cyan " +
+                                "disabled:cursor-not-allowed disabled:opacity-60"
+                            }
+                        >
+                            <option value="new">
+                                New
+                            </option>
+
+                            <option value="under_review">
+                                Under review
+                            </option>
+
+                            <option value="confirmed_impersonation">
+                                Confirmed impersonation
+                            </option>
+
+                            <option value="false_positive">
+                                False positive
+                            </option>
+
+                            <option value="resolved">
+                                Resolved
+                            </option>
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                {status_saving && (
+                    <p className="mt-3 text-sm text-brand-cyan">
+                        Saving review status...
+                    </p>
+                )}
+
+
+                {status_error && (
+                    <p
+                        role="alert"
+                        className="mt-3 text-sm text-brand-alert"
+                    >
+                        {status_error}
+                    </p>
+                )}
+
+            </div>
 
             <div className="grid gap-5 p-5 xl:grid-cols-2">
 
