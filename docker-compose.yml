@@ -150,6 +150,7 @@ services:
       ENVIRONMENT: local 
       DOCKER_NETWORK: penflow-network
       WORKER_IMAGE: ${WORKER_IMAGE:-penflow-worker:local}
+      PHASE2_SCAN_CONCURRENCY: ${PHASE2_SCAN_CONCURRENCY:-3}
       BACKEND_API_URL: http://backend:3001/api/v1
       INTERNAL_WEBHOOK_SECRET: ${INTERNAL_WEBHOOK_SECRET:?INTERNAL_WEBHOOK_SECRET must be set in your .env file}
       BACKEND_URL: http://backend:3001
