@@ -41,8 +41,8 @@ def fetch_live_data(domain: str) -> dict:
     # Live Mode
     logger.info(f"[CRT.sh] Running in FULL LIVE mode for {domain}")
     url = f"https://crt.sh/?q=%.{domain}&output=json&exclude=expired"
-    #crt.sh is very bad with reliable requests, 
-    #we have to do a lot of retry logic to try get a good response.
+    # crt.sh is very bad with reliable requests,
+    # we have to do a lot of retry logic to try get a good response.
     max_attempts = 3
     timeout_seconds = 8.0
     retry_delay_seconds = 3
@@ -60,7 +60,7 @@ def fetch_live_data(domain: str) -> dict:
                 # Catch 502 Bad Gateway / 503 Service Unavailable natively
                 if res.status_code in [502, 503, 504]:
                     logger.warning(f"[CRT.sh] Server returned {res.status_code}. Retrying...")
-                    
+
                 else:
                     res.raise_for_status()
                     # crt.sh sometimes returns a completely blank page when it struggles
@@ -68,16 +68,14 @@ def fetch_live_data(domain: str) -> dict:
                         logger.warning("[CRT.sh] Returned a blank response. Retrying...")
                     else:
                         try:
-                            return {
-                                "certificates": res.json()
-                            }
+                            return {"certificates": res.json()}
                         # Try to parse the JSON. If it's half-broken, catch it and retry.
                         except json.JSONDecodeError:
                             logger.warning(
                                 "[CRT.sh] Request timed out after %.1fs.",
                                 timeout_seconds,
                             )
-                
+
             except httpx.TimeoutException:
                 logger.warning(f"[CRT.sh] Timeout reached ({timeout_seconds}s). Retrying...")
 
@@ -86,7 +84,7 @@ def fetch_live_data(domain: str) -> dict:
 
             if attempt < max_attempts:
                 time.sleep(retry_delay_seconds)
-            
+
         # If we exhaust all 5 attempts, fail gracefully
         logger.error(f"[CRT.sh] X Completely failed after {max_attempts} attempts.")
         return {"error": "API Request Failed / Timed Out"}
@@ -152,19 +150,21 @@ def normalize_data(raw_data: dict) -> dict:
 def generate_findings_and_assets(normalized_data: dict) -> tuple:
     findings = []
     assets = []
-    
+
     subdomains = normalized_data.get("subdomains", {})
 
     if "error" in subdomains:
         return findings, assets
-    
+
     for subdomain in subdomains.get("discovered_names", []):
-        assets.append({
-            "asset_type": "subdomain",
-            "identifier": subdomain,
-            "asset_metadata": {
-                "source": CRT_SH_PROVIDER,
-            },
-        })
-            
+        assets.append(
+            {
+                "asset_type": "subdomain",
+                "identifier": subdomain,
+                "asset_metadata": {
+                    "source": CRT_SH_PROVIDER,
+                },
+            }
+        )
+
     return findings, assets

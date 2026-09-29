@@ -32,7 +32,7 @@ def run_cve_scan_task(
     try:
         send_source_callback(scan_id=scan_id, source_name="cve", status="running")
     except Exception:
-        logger.warning("[CVE_Task] Failed to send `running` callback for %s",scan_id)
+        logger.warning("[CVE_Task] Failed to send `running` callback for %s", scan_id)
 
     try:
         vulnerabilities = run_cve_scan(resolved_inventory)
@@ -44,24 +44,18 @@ def run_cve_scan_task(
                 "unknown software",
             )
 
-            findings.append\
-            (
+            findings.append(
                 {
                     "source": "cve",
                     "severity": str(vulnerability.get("severity", "medium")).lower(),
-                    "title":
-                    (
-                        f"{vulnerability.get('cve_id')} detected in "
-                        f"{affected_software}"
-                    ),
+                    "title": (f"{vulnerability.get('cve_id')} detected in {affected_software}"),
                     "description": (
                         vulnerability.get(
                             "description",
                             "No description provided.",
                         )
                     ),
-                    "recommendation":
-                    (
+                    "recommendation": (
                         vulnerability.get(
                             "remediation",
                             "Update to the latest patched version.",

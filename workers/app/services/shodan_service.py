@@ -112,13 +112,14 @@ def generate_findings_and_assets(normalized_data: dict) -> tuple:
         ip_str = ip_obj["ip_str"]
         ip_version = ipaddress.ip_address(ip_str).version
         assets.append(
-        {
-            "asset_type": "ipv4" if ip_version == 4 else "ipv6",
-            "identifier": ip_str,
-            "asset_metadata": {
-                "source": "shodan",
-            },
-        })
+            {
+                "asset_type": "ipv4" if ip_version == 4 else "ipv6",
+                "identifier": ip_str,
+                "asset_metadata": {
+                    "source": "shodan",
+                },
+            }
+        )
 
     # Risky port definitions
     RISKY_PORTS = {

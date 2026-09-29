@@ -8,12 +8,13 @@ from app.utils.job_runner import dispatch_scan_job
 
 logger = logging.getLogger(__name__)
 
+
 @celery_app.task(
     name="scan.phase2_http_security",
     bind=True,
     max_retries=2,
     autoretry_for=(Exception,),
-    retry_backoff=True
+    retry_backoff=True,
 )
 def run_http_security_scan_task(
     self: Any,

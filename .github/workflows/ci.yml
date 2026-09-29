@@ -7,6 +7,8 @@ on:
     branches: ["dev", "main"]
 
 env:
+  INTERNAL_WEBHOOK_SECRET: "ci-dummy-secret-do-not-use"
+
   NODE_VERSION: "20.x"
   PNPM_VERSION: "10.33.2"
   PYTHON_VERSION: "3.12"

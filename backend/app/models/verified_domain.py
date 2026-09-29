@@ -7,6 +7,7 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, DomainVerificationCode, DomainVerificationStatus
+from app.models.brand_intelligence import BrandMonitoring  # noqa: F401
 
 if TYPE_CHECKING:
     from app.models.brand_intelligence import BrandMonitoring

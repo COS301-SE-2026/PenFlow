@@ -5,8 +5,7 @@ import requests
 from app.services.http_security_service import run_http_security_scan
 
 
-def create_mock_response\
-(
+def create_mock_response(
     status_code: int = 200,
     headers: dict | None = None,
 ):
@@ -19,6 +18,7 @@ def create_mock_response\
     response.headers = headers or {}
     return response
 
+
 ##Happy Paths [HTTP]
 @patch("app.services.http_security_service.requests.get")
 def test_http_endpoint(mock_get):
@@ -28,8 +28,7 @@ def test_http_endpoint(mock_get):
 
     mock_get.return_value = create_mock_response()
 
-    result = run_http_security_scan\
-    (
+    result = run_http_security_scan(
         hostname="hackerone.com",
         ip_address="1.1.1.1",
         ports=[
@@ -40,8 +39,7 @@ def test_http_endpoint(mock_get):
         ],
     )
 
-    mock_get.assert_called_once_with\
-    (
+    mock_get.assert_called_once_with(
         "http://hackerone.com",
         timeout=5,
         verify=False,
@@ -50,17 +48,16 @@ def test_http_endpoint(mock_get):
 
     assert len(result["targets"]) == 1
 
-#[HTTPS]
+
+# [HTTPS]
 @patch("app.services.http_security_service.requests.get")
 def test_https_endpoint(mock_get):
     """
     Successfully scan for http and extracts headers.
     """
 
-    mock_get.return_value = create_mock_response\
-    (
-        headers=\
-        {
+    mock_get.return_value = create_mock_response(
+        headers={
             "Strict-Transport-Security": "max-age=31536000",
             "Content-Security-Policy": "default-src 'self'",
             "Server": "nginx",
@@ -68,8 +65,7 @@ def test_https_endpoint(mock_get):
         }
     )
 
-    result = run_http_security_scan\
-    (
+    result = run_http_security_scan(
         hostname="hackerone.com",
         ip_address="1.1.1.1",
         ports=[
@@ -80,8 +76,7 @@ def test_https_endpoint(mock_get):
         ],
     )
 
-    mock_get.assert_called_once_with\
-    (
+    mock_get.assert_called_once_with(
         "https://hackerone.com",
         timeout=5,
         verify=False,
@@ -92,18 +87,11 @@ def test_https_endpoint(mock_get):
 
     assert target["server"] == "nginx"
     assert target["powered_by"] == "PHP"
-    assert \
-    (
-        target["security_headers"]["strict_transport_security"]
-        == "max-age=31536000"
-    )
-    assert \
-    (
-        target["security_headers"]["content_security_policy"]
-        == "default-src 'self'"
-    )
+    assert target["security_headers"]["strict_transport_security"] == "max-age=31536000"
+    assert target["security_headers"]["content_security_policy"] == "default-src 'self'"
 
-#[Multiple HTTP Endpoints]
+
+# [Multiple HTTP Endpoints]
 @patch("app.services.http_security_service.requests.get")
 def test_multiple_http_endpoints(mock_get):
     """
@@ -112,8 +100,7 @@ def test_multiple_http_endpoints(mock_get):
 
     mock_get.return_value = create_mock_response()
 
-    result = run_http_security_scan\
-    (
+    result = run_http_security_scan(
         hostname="hackerone.com",
         ip_address="1.1.1.1",
         ports=[
@@ -132,7 +119,6 @@ def test_multiple_http_endpoints(mock_get):
     assert mock_get.call_count == 2
 
 
-
 ##Sad Paths [Ignore Non-HTTP]
 @patch("app.services.http_security_service.requests.get")
 def test_non_http_ports_are_ignored(mock_get):
@@ -140,8 +126,7 @@ def test_non_http_ports_are_ignored(mock_get):
     Ignores services unrelated to HTTP.
     """
 
-    result = run_http_security_scan\
-    (
+    result = run_http_security_scan(
         hostname="hackerone.com",
         ip_address="1.1.1.1",
         ports=[
@@ -159,20 +144,17 @@ def test_non_http_ports_are_ignored(mock_get):
     assert result["targets"] == []
     mock_get.assert_not_called()
 
-#[Connection Failure]
+
+# [Connection Failure]
 @patch("app.services.http_security_service.requests.get")
 def test_connection_failure(mock_get):
     """
     Returns no targets when the HTTP request fails.
     """
 
-    mock_get.side_effect = requests.RequestException\
-    (
-        "Connection failed"
-    )
+    mock_get.side_effect = requests.RequestException("Connection failed")
 
-    result = run_http_security_scan\
-    (
+    result = run_http_security_scan(
         hostname="hackerone.com",
         ip_address="1.1.1.1",
         ports=[

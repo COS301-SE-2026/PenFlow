@@ -6,12 +6,13 @@ from app.utils.job_runner import dispatch_scan_job
 
 logger = logging.getLogger(__name__)
 
+
 @celery_app.task(
     name="scan.phase2_nmap",
     bind=True,
     max_retries=2,
     autoretry_for=(Exception,),
-    retry_backoff=True
+    retry_backoff=True,
 )
 def run_nmap_scan(
     self: Any,
@@ -38,4 +39,4 @@ def run_nmap_scan(
     celery_app.send_task("scan.phase2_http_security", args=[scan_id, domain, ip_address])
     celery_app.send_task("scan.phase2_fingerprint", args=[scan_id, f"https://{domain}", {}, None])
 
-    return{"status": "completed", "scan_id": scan_id, "source_name": "nmap"}
+    return {"status": "completed", "scan_id": scan_id, "source_name": "nmap"}

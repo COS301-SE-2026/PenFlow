@@ -42,7 +42,7 @@ SECURITY_KEYWORDS: list[str] = [
     "account",
     "sso",
     "mfa",
-    "2fa", 
+    "2fa",
     "okta",
     "reset",
     "password",
@@ -75,17 +75,52 @@ SECURITY_KEYWORDS: list[str] = [
     "checkout",
     "alert",
     "notice",
-    "docs"
+    "docs",
 ]
 
 SUSPICIOUS_TLDS: list[str] = [
-    "co", "net", "io", "xyz",
-    "online", "ai", "shop", "tech", "info",
-    "net", "org", "app", "dev", "cloud", "network",
-    "space", "online", "biz", "name", "pro", "cc",
-    "tv", "ws", "me", "pw", "top", "club", "site",
-    "vip", "win", "bid", "review", "download", "zip",
-    "click", "link", "website", "store", "cam", "icu"]
+    "co",
+    "net",
+    "io",
+    "xyz",
+    "online",
+    "ai",
+    "shop",
+    "tech",
+    "info",
+    "net",
+    "org",
+    "app",
+    "dev",
+    "cloud",
+    "network",
+    "space",
+    "online",
+    "biz",
+    "name",
+    "pro",
+    "cc",
+    "tv",
+    "ws",
+    "me",
+    "pw",
+    "top",
+    "club",
+    "site",
+    "vip",
+    "win",
+    "bid",
+    "review",
+    "download",
+    "zip",
+    "click",
+    "link",
+    "website",
+    "store",
+    "cam",
+    "icu",
+]
+
 
 class TyposquatService:
     @staticmethod
@@ -96,7 +131,7 @@ class TyposquatService:
         extracted = tldextract.extract(domain)
         return extracted.domain, extracted.suffix
 
-    @classmethod 
+    @classmethod
     def generate_candidates(cls, domain: str) -> list[dict[str, Any]]:
         name, suffix = cls.extract_domain_parts(domain)
         candidates: dict[str, dict[str, Any]] = {}
@@ -125,8 +160,11 @@ class TyposquatService:
         for i in range(len(name_chars) - 1):
             swapped = name_chars.copy()
             swapped[i], swapped[i + 1] = swapped[i + 1], swapped[i]
-            _add(f"{''.join(swapped)}.{suffix}", "transposition",
-                 f"Swapped '{swapped[i+1]}' and '{swapped[i]}'")
+            _add(
+                f"{''.join(swapped)}.{suffix}",
+                "transposition",
+                f"Swapped '{swapped[i + 1]}' and '{swapped[i]}'",
+            )
 
         for kw in SECURITY_KEYWORDS:
             _add(f"{name}-{kw}.{suffix}", "keyword_suffix", f"Appended keyword '-{kw}'")

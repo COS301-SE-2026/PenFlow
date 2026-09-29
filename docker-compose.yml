@@ -38,7 +38,7 @@ services:
       RABBITMQ_USERNAME: guest
       RABBITMQ_PASSWORD: guest
       RABBITMQ_PROTOCOL: amqp
-      INTERNAL_WEBHOOK_SECRET: ${INTERNAL_WEBHOOK_SECRET:-test-internal-webhook-secret}
+      INTERNAL_WEBHOOK_SECRET: ${INTERNAL_WEBHOOK_SECRET:?Set INTERNAL_WEBHOOK_SECRET in .env}
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
       REPORT_STORAGE: local
       REPORT_OUTPUT_DIR: /app/generated_reports
@@ -123,6 +123,7 @@ services:
       RABBITMQ_PASSWORD: guest
       RABBITMQ_PROTOCOL: amqp
       DATABASE_URL: postgresql://${POSTGRES_TEST_USER}:${POSTGRES_TEST_PASSWORD}@postgres-test:5432/${POSTGRES_TEST_DB}
+      INTERNAL_WEBHOOK_SECRET: ${INTERNAL_WEBHOOK_SECRET:?Set INTERNAL_WEBHOOK_SECRET in .env}
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
       SCAN_MODE: MOCK
       REPORT_STORAGE: local

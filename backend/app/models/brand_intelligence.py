@@ -1,6 +1,7 @@
 import enum
 import uuid
 from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
@@ -62,8 +63,12 @@ class BrandMonitoring(Base):
 
 class BrandCandidate(Base):
     __tablename__ = "brand_candidates"
-    __table_args__ = (UniqueConstraint("brand_monitoring_id", "normalized_domain",
-                                       name="uq_monitor_normalized_domain"),)
+    __table_args__ = (UniqueConstraint(
+        "brand_monitoring_id",
+        "normalized_domain",
+        name="uq_monitor_normalized_domain",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -105,7 +110,7 @@ class BrandCandidate(Base):
         index=True,
     )
 
-    evidence: Mapped[dict[str, object]] = mapped_column(
+    evidence: Mapped[dict[str, Any]] = mapped_column(
         JSONB,
         nullable=False,
         default=dict,

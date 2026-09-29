@@ -17,11 +17,8 @@ def build_broker_url() -> str:
     if not host or not username or not password:
         raise RuntimeError("RabbitMQ environment variables are missing")
 
-    return (
-        f"{protocol}://{quote(username, safe='')}:"
-        f"{quote(password, safe='')}@"
-        f"{host}:{port}//"
-    )
+    return f"{protocol}://{quote(username, safe='')}:{quote(password, safe='')}@{host}:{port}//"
+
 
 SCAN_EXCHANGE = Exchange(
     "scans",
@@ -84,6 +81,7 @@ if os.getenv("RABBITMQ_PROTOCOL", "amqps") == "amqps":
     celery_app.conf.broker_use_ssl = {
         "cert_reqs": ssl.CERT_REQUIRED,
     }
+
 
 @celery_app.task(name="health_check")
 def health_check() -> str:

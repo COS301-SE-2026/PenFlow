@@ -2,7 +2,8 @@ from unittest.mock import patch
 
 from app.tasks.target_resolution_task import run_target_resolution
 
-#happy paths
+# happy paths
+
 
 # Happy Path 1 [IPv4 and IPv6]
 @patch("app.tasks.target_resolution_task.celery_app.send_task")
@@ -31,16 +32,12 @@ def test_run_target_resolution_success(
         {
             "identifier": "104.26.12.5",
             "asset_type": "ipv4",
-            "asset_metadata": {
-                "source_domain": "hackerone.com"
-            }
+            "asset_metadata": {"source_domain": "hackerone.com"},
         },
         {
             "identifier": "2606:4700::1",
             "asset_type": "ipv6",
-            "asset_metadata": {
-                "source_domain": "hackerone.com"
-            }
+            "asset_metadata": {"source_domain": "hackerone.com"},
         },
     ]
 
@@ -77,8 +74,7 @@ def test_run_target_resolution_success(
     )
 
     mock_send_task.assert_called_once_with(
-        "scan.phase2_nmap",
-        args=["scan-123", "104.26.12.5", "hackerone.com"]
+        "scan.phase2_nmap", args=["scan-123", "104.26.12.5", "hackerone.com"]
     )
 
 
@@ -108,9 +104,7 @@ def test_run_target_resolution_ipv4_only(
         {
             "identifier": "104.26.12.5",
             "asset_type": "ipv4",
-            "asset_metadata": {
-                "source_domain": "hackerone.com"
-            }
+            "asset_metadata": {"source_domain": "hackerone.com"},
         }
     ]
 
@@ -131,12 +125,12 @@ def test_run_target_resolution_ipv4_only(
     assert mock_callback.call_count == 2
 
     mock_send_task.assert_called_once_with(
-        "scan.phase2_nmap",
-        args=["scan-123", "104.26.12.5", "hackerone.com"]
+        "scan.phase2_nmap", args=["scan-123", "104.26.12.5", "hackerone.com"]
     )
 
 
 # Happy Path 3 [IPv6 only]
+
 
 @patch("app.tasks.target_resolution_task.celery_app.send_task")
 @patch("app.tasks.target_resolution_task.send_source_callback")
@@ -163,9 +157,7 @@ def test_run_target_resolution_ipv6_only(
         {
             "identifier": "2606:4700::1",
             "asset_type": "ipv6",
-            "asset_metadata": {
-                "source_domain": "hackerone.com"
-            }
+            "asset_metadata": {"source_domain": "hackerone.com"},
         }
     ]
 
@@ -188,7 +180,8 @@ def test_run_target_resolution_ipv6_only(
     mock_send_task.assert_not_called()
 
 
-#Sad paths
+# Sad paths
+
 
 # Sad Path 1 [No IP addresses]
 @patch("app.tasks.target_resolution_task.celery_app.send_task")
