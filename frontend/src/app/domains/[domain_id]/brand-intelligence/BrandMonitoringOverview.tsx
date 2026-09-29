@@ -370,6 +370,9 @@ export default function BrandMonitoringOverview
                         <p className="mt-2 text-sm text-muted-foreground">
                             No monitoring record exists for this domain yet.
                         </p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            Start monitoring to generate and investigate possible impersonation domains.
+                        </p>
 
                     </div>
                 )}
@@ -393,6 +396,9 @@ export default function BrandMonitoringOverview
 
                         <p className="mt-2 text-sm text-muted-foreground">
                             {state.message}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            Check the backend and/or try refreshing the monitoring state manually.
                         </p>
 
                         <Button
