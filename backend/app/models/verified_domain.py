@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
@@ -8,6 +9,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.models.base import Base, DomainVerificationCode, DomainVerificationStatus
 from app.models.brand_intelligence import BrandMonitoring  # noqa: F401
 
+if TYPE_CHECKING:
+    from app.models.brand_intelligence import BrandMonitoring
 
 class VerifiedDomain(Base):
     __tablename__ = "verified_domains"

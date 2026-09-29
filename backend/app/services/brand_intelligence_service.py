@@ -59,7 +59,7 @@ class BrandIntelligenceService:
         monitor = await self .db.get(BrandMonitoring, candidate.brand_monitoring_id)
         if not monitor:
             raise ValueError("Monitoring record not found")
-        
+
         domain_record = await self.db.get(VerifiedDomain, monitor.verified_domain_id)
         if not domain_record:
             raise ValueError("Verified domain not found")
@@ -68,6 +68,10 @@ class BrandIntelligenceService:
             raise PermissionError("You do not have permission to update this candidate")
 
         return await self.repo.update_candidate_status(candidate_id, status)
+        updated_candidate = await self.repo.update_candidate_status(candidate_id, status)
+        if not updated_candidate:
+            raise ValueError("Candidate not found")
+        return candidate
 
     async def get_monitoring_overview(
         self, verified_domain_id: uuid.UUID, user_id: str

@@ -39,12 +39,21 @@ class BrandIntelligenceRepository:
         if existing:
             existing.is_active = True 
             await self.db.commit()
-            return await self.get_monitoring_by_domain_id(verified_domain_id)
+            refreshed = await self.get_monitoring_by_domain_id(verified_domain_id)
+            if refreshed is None:
+                raise RuntimeError("Failed to reload brand monitoring record")
+
+            return refreshed
 
         new_monitor = BrandMonitoring(verified_domain_id=verified_domain_id, is_active=True)
         self.db.add(new_monitor)
-        await self.db.commit() 
-        return await self.get_monitoring_by_domain_id(verified_domain_id)
+        await self.db.commit()
+        created = await self.get_monitoring_by_domain_id(verified_domain_id)
+
+        if created is None:
+            raise RuntimeError("Failed to create brand monitoring record")
+
+        return created
 
     async def update_run_timestamp(self, monitoring_id: uuid.UUID) -> None:
         stmt = (
