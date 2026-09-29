@@ -144,7 +144,9 @@ def fetch_live_data(domain: str) -> dict:
                                     "certificates": certificates,
                                 }
 
-                            logger.warning("[CRT.sh] Returned an unexpected JSON payload. Retrying...")
+                            logger.warning(
+                                "[CRT.sh] Returned an unexpected JSON payload. Retrying..."
+                            )
             except httpx.TimeoutException:
                 logger.warning(f"[CRT.sh] Timeout reached ({timeout_seconds}s). Retrying...")
 
