@@ -38,6 +38,7 @@ services:
       RABBITMQ_USERNAME: guest
       RABBITMQ_PASSWORD: guest
       RABBITMQ_PROTOCOL: amqp
+      INTERNAL_WEBHOOK_SECRET: ${INTERNAL_WEBHOOK_SECRET:-test-internal-webhook-secret}
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
       REPORT_STORAGE: local
       REPORT_OUTPUT_DIR: /app/generated_reports
