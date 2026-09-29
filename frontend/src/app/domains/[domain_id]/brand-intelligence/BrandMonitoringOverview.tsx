@@ -5,6 +5,7 @@ import
 {
     AlertTriangle,
     ArrowLeft,
+    History,
     Play,
     RefreshCw,
     ShieldCheck,
@@ -448,10 +449,92 @@ export default function BrandMonitoringOverview
 
             {/*candidate list stays separate so we can idealy add filtering and investigation later on*/}
             {state.status === "ready" && (
-                <BrandCandidateList
-                    candidates={state.monitoring.candidates}
-                />
+                <>
+                    <MonitoringHistory
+                        monitoring={state.monitoring}
+                    />
+                    <BrandCandidateList
+                        candidates={state.monitoring.candidates}
+                    />
+                </>
             )}
+
+        </div>
+    );
+}
+
+
+//vague history of the domain for know
+function MonitoringHistory
+({
+    monitoring,
+}: {
+    monitoring: brand_monitoring;
+})
+{
+    return (
+        <section className="rounded-lg border border-brand-panel-border bg-brand-panel p-6">
+            <div className="flex items-center gap-2">
+                <History className="size-5 text-brand-cyan" />
+                <div>
+
+                    <h2 className="font-semibold text-foreground">
+                        Monitoring history
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                        Current timeline for this verified domain.
+                    </p>
+
+                </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 md:grid-cols-3">
+
+                <HistoryItem
+                    label="Monitoring created"
+                    value={format_timestamp(monitoring.created_at)}
+                />
+
+                <HistoryItem
+                    label="Last completed run"
+                    value={
+                        monitoring.last_run_at
+                            ? format_timestamp(monitoring.last_run_at)
+                            : "Not run yet"
+                    }
+                />
+
+                <HistoryItem
+                    label="Next scheduled run"
+                    value={format_timestamp(monitoring.next_run_at)}
+                />
+
+            </div>
+
+        </section>
+    );
+}
+
+
+function HistoryItem
+({
+    label,
+    value,
+}: {
+    label: string;
+    value: string;
+})
+{
+    return (
+        <div className="rounded-lg border border-brand-panel-border bg-brand-panel-deep p-4">
+
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                {label}
+            </p>
+
+            <p className="mt-2 text-sm font-medium text-foreground">
+                {value}
+            </p>
 
         </div>
     );
