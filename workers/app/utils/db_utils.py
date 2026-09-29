@@ -1,10 +1,11 @@
-import os 
-import psycopg2 
-from psycopg2.extras import RealDictCursor 
-import logging 
-from typing import Any 
-from contextlib import closing 
-from urllib.parse import quote_plus 
+import logging
+import os
+from contextlib import closing
+from typing import Any
+from urllib.parse import quote_plus
+
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 logger = logging.getLogger(__name__)
 

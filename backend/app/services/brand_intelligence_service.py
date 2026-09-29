@@ -14,7 +14,8 @@ class BrandIntelligenceService:
         self.repo = BrandIntelligenceRepository(db)
         self.db = db 
 
-    async def trigger_monitoring_run(self, verified_domain_id: uuid.UUID, user_id: str) -> BrandMonitoring:
+    async def trigger_monitoring_run(self, verified_domain_id: uuid.UUID, user_id: str) \
+            -> BrandMonitoring:
         domain_record = await self.db.get(VerifiedDomain, verified_domain_id)
         if not domain_record:
             raise ValueError("Verified domain not found")
@@ -67,7 +68,8 @@ class BrandIntelligenceService:
             raise ValueError("Candidate not found")
         return candidate
 
-    async def get_monitoring_overview(self, verified_domain_id: uuid.UUID, user_id: str) -> BrandMonitoring | None:
+    async def get_monitoring_overview(self, verified_domain_id: uuid.UUID, user_id: str) \
+            -> BrandMonitoring | None:
         domain_record = await self.db.get(VerifiedDomain, verified_domain_id)
 
         if domain_record and str(domain_record.user_id) != user_id:

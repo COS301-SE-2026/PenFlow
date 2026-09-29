@@ -1,5 +1,6 @@
+from typing import Any
+
 import tldextract
-from typing import Any 
 
 HOMOGLYPHS: dict[str, list[str]] = {
     "a": ["4", "@", "q", "c", "o"],
@@ -124,7 +125,8 @@ class TyposquatService:
         for i in range(len(name_chars) - 1):
             swapped = name_chars.copy()
             swapped[i], swapped[i + 1] = swapped[i + 1], swapped[i]
-            _add(f"{''.join(swapped)}.{suffix}", "transposition", f"Swapped '{swapped[i+1]}' and '{swapped[i]}'")
+            _add(f"{''.join(swapped)}.{suffix}", "transposition",
+                 f"Swapped '{swapped[i+1]}' and '{swapped[i]}'")
 
         for kw in SECURITY_KEYWORDS:
             _add(f"{name}-{kw}.{suffix}", "keyword_suffix", f"Appended keyword '-{kw}'")

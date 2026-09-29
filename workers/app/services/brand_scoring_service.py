@@ -1,4 +1,4 @@
-from typing import Any 
+from typing import Any
 
 WEIGHTS = {
     "is_resolvable": 25,
@@ -13,13 +13,15 @@ WEIGHTS = {
 
 class BrandScoringService:
     @staticmethod 
-    def evaluate(candidate: dict[str, Any], signals: dict[str, Any]) -> tuple[int, str, dict[str, Any]]:
+    def evaluate(candidate: dict[str, Any], signals: dict[str, Any]) \
+            -> tuple[int, str, dict[str, Any]]:
         score = 0
         reasons: list[str] = [] 
 
         if signals.get("is_resolvable"):
             score += WEIGHTS["is_resolvable"]
-            reasons.append(f"Domain resolves to active IP(s): {', '.join(signals['ip_addresses'][:2])}")
+            reasons.append(f"Domain resolves to active IP(s): "
+                           f"{', '.join(signals['ip_addresses'][:2])}")
 
         if signals.get("has_mx"):
             score += WEIGHTS["has_mx"]
@@ -31,7 +33,8 @@ class BrandScoringService:
 
         if signals.get("is_newly_registered"):
             score += WEIGHTS["newly_registered"]
-            reasons.append(f"Smoking Gun: Domain is newly registered ({signals.get('days_old')} days old)")
+            reasons.append(f"Smoking Gun: Domain is newly registered "
+                           f"({signals.get('days_old')} days old)")
 
         mutation_type = candidate.get("mutation_type", "")
         if mutation_type == "homoglyph":
@@ -39,7 +42,8 @@ class BrandScoringService:
             reasons.append(f"Visual deception: {candidate.get('mutation_detail')}")
         elif "keyword" in mutation_type:
             score += WEIGHTS["keyword"]
-            reasons.append(f"Contains sensitive phishing keyword: {candidate.get('mutation_detail')}")
+            reasons.append(f"Contains sensitive phishing keyword:"
+                           f" {candidate.get('mutation_detail')}")
         elif mutation_type == "tld_swap":
             score += WEIGHTS["tld_swap"]
             reasons.append(f"TLD Impersonation: {candidate.get('mutation_detail')}")

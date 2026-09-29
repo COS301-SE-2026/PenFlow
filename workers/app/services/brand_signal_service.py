@@ -1,10 +1,12 @@
-import socket 
-import ssl 
-import dns.resolver 
-import whois
-import requests 
+import socket
+import ssl
 from datetime import datetime
-from typing import Any 
+from typing import Any
+
+import dns.resolver
+import requests
+import whois
+
 
 class BrandSignalService:
     @staticmethod 
@@ -37,7 +39,8 @@ class BrandSignalService:
             primary_ip = signals["ip_addresses"][0]
             resp = requests.get(f"http://ip-api.com/json/{primary_ip}", timeout=2.0).json()
             if resp.get("status") == "success":
-                signals["geo_location"] = f"{resp.get('city', 'Unknown')}, {resp.get('countryCode', '')}"
+                signals["geo_location"] = (f"{resp.get('city', 'Unknown')}, "
+                                           f"{resp.get('countryCode', '')}")
                 signals["isp"] = resp.get("isp")
         except Exception:
             pass
@@ -55,8 +58,8 @@ class BrandSignalService:
             ctx.verify_mode = ssl.CERT_NONE 
             with socket.create_connection((domain, 443), timeout=2.0) as sock:
                 with ctx.wrap_socket(sock, server_hostname=domain) as ssock:
-                    cert = ssock.getpeercert()
-                    signals["has_tls"] = True 
+                    cert = ssock.getpeercert() or {}
+                    signals["has_tls"] = True
                     signals["tls_issuer"] = str(cert.get("issuer", ""))
         except Exception:
             pass
@@ -64,7 +67,8 @@ class BrandSignalService:
         try:
             w = whois.whois(domain)
             if w.creation_date:
-                creation = w.creation_date[0] if isinstance(w.creation_date, list) else w.creation_date
+                creation = w.creation_date[0] if isinstance(w.creation_date, list) \
+                    else w.creation_date
                 creation = creation.replace(tzinfo=None)
                 signals["creation_date"] = creation.isoformat()
                 signals["days_old"] = (datetime.now() - creation).days

@@ -2,7 +2,7 @@ import logging
 from typing import Any
 
 from app.queue.celery_app import celery_app
-from app.utils.job_runner import dispatch_scan_job 
+from app.utils.job_runner import dispatch_scan_job
 
 logger = logging.getLogger(__name__)
 

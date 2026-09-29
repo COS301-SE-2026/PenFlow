@@ -13,7 +13,8 @@ class BrandIntelligenceRepository:
     def __init__(self, db: AsyncSession):
         self.db = db 
 
-    async def get_monitoring_by_domain_id(self, verified_domain_id: uuid.UUID) -> BrandMonitoring | None:
+    async def get_monitoring_by_domain_id(self, verified_domain_id: uuid.UUID) -> (
+            BrandMonitoring | None):
         query = (
             select(BrandMonitoring)
             .where(BrandMonitoring.verified_domain_id == verified_domain_id)

@@ -2,9 +2,9 @@ import logging
 from typing import Any
 
 from app.queue.celery_app import celery_app
-from app.utils.job_runner import dispatch_scan_job 
-from app.utils.db_utils import get_ports_from_db 
 from app.utils.callback import send_source_callback
+from app.utils.db_utils import get_ports_from_db
+from app.utils.job_runner import dispatch_scan_job
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ def run_tls_scan_task(
     self: Any,
     scan_id: str,
     ip_address: str,
-    domain: str = None
+    domain: str | None = None
 ) -> dict[str, Any]:
     """
     Does tls inspection off of the valid ports provided by nmap

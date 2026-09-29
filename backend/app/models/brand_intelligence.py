@@ -62,7 +62,8 @@ class BrandMonitoring(Base):
 
 class BrandCandidate(Base):
     __tablename__ = "brand_candidates"
-    __table_args__ = (UniqueConstraint("brand_monitoring_id", "normalized_domain", name="uq_monitor_normalized_domain"),)
+    __table_args__ = (UniqueConstraint("brand_monitoring_id", "normalized_domain",
+                                       name="uq_monitor_normalized_domain"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),

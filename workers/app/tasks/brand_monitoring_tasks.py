@@ -1,12 +1,13 @@
-import os 
-import logging 
-import requests 
-from typing import Any 
+import logging
+import os
+from typing import Any
 
-from app.queue.celery_app import celery_app 
-from app.services.typosquat_service import TyposquatService 
-from app.services.brand_signal_service import BrandSignalService 
-from app.services.brand_scoring_service import BrandScoringService 
+import requests
+
+from app.queue.celery_app import celery_app
+from app.services.brand_scoring_service import BrandScoringService
+from app.services.brand_signal_service import BrandSignalService
+from app.services.typosquat_service import TyposquatService
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,8 @@ def run_brand_monitoring_task(self: Any, brand_monitoring_id: str, domain: str) 
             })
 
     logger.info(
-        f"[BrandMonitor] Found {len(discovered_candidates)} active/resolving candidates for {domain}"
+        f"[BrandMonitor] Found {len(discovered_candidates)} "
+        f"active/resolving candidates for {domain}"
     )
 
     payload = {

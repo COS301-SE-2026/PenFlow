@@ -2,8 +2,8 @@ import logging
 from typing import Any, Optional
 
 from app.queue.celery_app import celery_app
-from app.utils.job_runner import dispatch_scan_job 
-from app.utils.db_utils import get_ports_from_db, get_technologies_from_db 
+from app.utils.db_utils import get_ports_from_db, get_technologies_from_db
+from app.utils.job_runner import dispatch_scan_job
 
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
@@ -26,7 +26,8 @@ def run_fingerprinting_scan_task(
     db_ports = get_ports_from_db(scan_id)
     hydrated_nmap_data = {"ports": db_ports} if db_ports else {}
 
-    payload = {"scan_id": scan_id, "target_url": target_url, "nmap_data": hydrated_nmap_data, "tls_data": tls_data or {}}
+    payload = {"scan_id": scan_id, "target_url": target_url, "nmap_data": hydrated_nmap_data,
+               "tls_data": tls_data or {}}
     success = dispatch_scan_job("fingerprint", payload)
 
     if not success:
