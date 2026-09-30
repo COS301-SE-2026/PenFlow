@@ -30,7 +30,10 @@ def run_cpe_resolver_task(
         technologies = []
 
         for software in resolved_data:
-            evidence_score = software.get("evidence_score", 0)
+            evidence_score = float(
+                software.get("evidence_score") or 0
+            )
+            software["evidence_score"] = evidence_score
 
             technologies.append(
                 {
@@ -43,7 +46,7 @@ def run_cpe_resolver_task(
                         "unknown",
                     ),
                     "version": software.get("version"),
-                    "confidence": evidence_score / 100,
+                    "confidence": evidence_score,
                     "detection_source": "cpe_resolver",
                     "host": software.get("host"),
                     "port": software.get("port"),
