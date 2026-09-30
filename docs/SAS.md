@@ -2520,8 +2520,6 @@ Returns audit activity associated with the authenticated Service Delivery user.
 
 ---
 
-
-
 # PenFlow - NFR Testing
  
 ---
@@ -2731,7 +2729,6 @@ Returns audit activity associated with the authenticated Service Delivery user.
 **Result:** **≥80** against a target of ≥80 - **passes**.
 
 
-
 # PenFlow - NFR Traceability Matrix
  
 ## Performance (tool: k6)
@@ -2769,3 +2766,4 @@ Returns audit activity associated with the authenticated Service Delivery user.
 | ID | Quantified Requirement | Tactic in SAS | Test / Tool | Target / Actual |
 |----|------------------------|---------------|-------------|------------------|
 | QR-12 | Primary user-facing pages (dashboard, scan results) achieve a Lighthouse accessibility score of at least 80 | Not covered by SAS  | Google Lighthouse | >80 / >=80% |
+
