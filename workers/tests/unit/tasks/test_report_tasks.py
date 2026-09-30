@@ -1,5 +1,6 @@
 from app.tasks.report_tasks import render_report_pdf_task
 
+
 #success version
 def test_report(monkeypatch):
     (monkeypatch.setattr

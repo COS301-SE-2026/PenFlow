@@ -1,7 +1,9 @@
 from datetime import datetime, time, timezone
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
+
 import pytest
+
 from app.models.base import (
     ScanScheduleFrequency,
     ScanType,

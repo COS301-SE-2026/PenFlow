@@ -1,5 +1,6 @@
 import os
 from unittest.mock import MagicMock
+
 os.environ["INTERNAL_WEBHOOK_SECRET"] = "test-secret"
 from app.tasks.brand_monitoring_tasks import run_brand_monitoring_task
 

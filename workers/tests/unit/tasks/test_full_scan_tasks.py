@@ -1,5 +1,6 @@
 from app.tasks.full_scan_tasks import run_full_scan, run_phase2_full_scan
 
+
 #can we initiate a scan
 def test_full_scan(monkeypatch):
     tasks = []

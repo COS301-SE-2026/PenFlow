@@ -1,8 +1,10 @@
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from uuid import uuid4
+
 import pytest
 from fastapi import HTTPException
+
 from app.models.base import (
     DomainVerificationStatus,
     ScanType,

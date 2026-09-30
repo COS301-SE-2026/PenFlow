@@ -1,7 +1,9 @@
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
+
 import pytest
+
 from app.models.brand_intelligence import BrandCandidateStatus
 from app.repositories.brand_intelligence_repository import BrandIntelligenceRepository
 

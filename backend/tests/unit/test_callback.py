@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock
+
 from app.utils.callback import (
     send_engagement_report_callback,
     send_report_callback,

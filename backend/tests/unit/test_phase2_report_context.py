@@ -1,5 +1,6 @@
 from decimal import Decimal
 from types import SimpleNamespace
+
 from app.utils.phase2_report_context import (
     build_phase2_report_context,
     calc_avg_cvss,

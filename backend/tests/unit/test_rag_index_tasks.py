@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock
+
 from app.tasks.rag_index_tasks import index_scan_task
 
 

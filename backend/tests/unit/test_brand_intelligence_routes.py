@@ -1,8 +1,10 @@
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
+
 import pytest
 from fastapi import HTTPException
+
 from app.api.routes.brand_intelligence import (
     get_brand_candidates,
     trigger_brand_scan,

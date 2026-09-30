@@ -1,5 +1,6 @@
 import os
 from unittest.mock import MagicMock
+
 os.environ["BACKEND_URL"] = "http://localhost:3001"
 from app.utils.callback import (
     build_api_url,
@@ -7,7 +8,6 @@ from app.utils.callback import (
     send_scan_callback,
     send_source_callback,
 )
-
 
 
 #using our default api path

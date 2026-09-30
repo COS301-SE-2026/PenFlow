@@ -1,4 +1,5 @@
 from unittest.mock import MagicMock
+
 from app.tasks.schedule_tasks import dispatch_due_schedules_task
 
 

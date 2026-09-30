@@ -1,5 +1,6 @@
 from app.services.brand_scoring_service import BrandScoringService
 
+
 #testing low rated scoring
 def test_low_risk_lexical_var():
     candidate = {
