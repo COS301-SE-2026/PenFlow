@@ -226,6 +226,18 @@ export default function EngagementHome() {
             }
             setEstimatedQuote(body.estimated_quote);
             setSubmitted(true);
+            //clear content after success creation
+            setEngagementType(null);
+            setAssessmentType(undefined);
+            setObjective("");
+            setStartDate("");
+            setEndDate("");
+            setConstraints("");
+            setPrimaryContact("");
+            setAssetType("domain");
+            setAssetValue("");
+            setAssetError(null);
+            setAssets([]);
         } catch {
             setSubmitError("Failed to submit engagement request.");
         } finally {
