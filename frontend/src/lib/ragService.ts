@@ -1,3 +1,7 @@
+import type {
+  AssistantQueryResponse,
+} from "@/lib/assistantService";
+
 export interface RAGIndexResponse {
   total_findings: number;
   indexed: number;
@@ -91,18 +95,37 @@ export async function askSecurityAnalyst(
   request: RAGQuestionRequest,
 ): Promise<RAGAskResponse> {
   const response = await fetch(
-    `/api/rag/scans/${encodeURIComponent(scanId)}/ask`,
+    "/api/assistant/query",
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify({
+        question: request.question,
+        context: {
+          page: "scan",
+          scan_id: scanId,
+        },
+        audience: "security",
+      }),
     },
   );
 
-  return parseResponse<RAGAskResponse>(
+  const result = await parseResponse<AssistantQueryResponse>(
     response,
     "The Security Analyst is temporarily unavailable.",
   );
+
+  return {
+    question: result.question,
+    answer: result.answer,
+    sources: result.sources.filter(
+      (source) => source.source_type === "finding",
+    ).map((source) => ({
+      finding_id: source.source_id,
+      title: source.title,
+      severity: source.severity ?? "info",
+    })),
+  };
 }

@@ -21,7 +21,7 @@
 
 ### NFR-4: Security
 *Tool: OWASP ZAP + k6*
-- No medium-or-above risk vulnerabilities (e.g. missing security headers, insecure cookie configuration, common injection vectors) as verified by automated scanning against staging; sensitive data (passwords, scan data) encrypted at rest (QR-07)
+- No high-or-above risk vulnerabilities (e.g. missing security headers, insecure cookie configuration, common injection vectors) as verified by automated scanning against staging; sensitive data (passwords, scan data) encrypted at rest (QR-07)
 - Access is restricted by JWT-based auth (Keycloak) + RBAC: unauthenticated requests return 401; cross-user requests return 404 (ownership is enforced via a user_id-scoped lookup, not an explicit 403 check) (QR-08)
 - No sensitive data (API keys, credentials) is exposed in API responses or logs; repeated scan submissions from the same IP are rate-limited - 429 on the 4th submission within 10 minutes (QR-09)
 

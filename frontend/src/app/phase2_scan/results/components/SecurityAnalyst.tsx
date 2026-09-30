@@ -256,12 +256,12 @@ export default function SecurityAnalyst({
 
             <span>
               <strong>{indexResult.indexed}</strong>{" "}
-              indexed
+              newly indexed
             </span>
 
             <span>
               <strong>{indexResult.unchanged}</strong>{" "}
-              unchanged
+              already indexed
             </span>
           </div>
         )}

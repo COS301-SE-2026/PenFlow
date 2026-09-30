@@ -163,7 +163,7 @@ Detailed project documentation is available below.
 | [Coding Standards](docs/coding_standards.md)| Instructions for using the PenFlow platform. |
 | [User Manual](docs/User%20Manual.pdf) | Team development conventions and coding standards. |
 | [Testing Policy](docs/Testingpolicy.md) | Testing strategy and team testing requirements. |
-| [NFR Traceability Matrix](docs/NFR_Traceability_Matrix.md)| Mapping between non-functional requirements and their implementation/testing. |
+| [NFR Traceability Matrix](docs/NFR_Traceability_Matrix%20.md)| Mapping between non-functional requirements and their implementation/testing. |
 | [NFR Testing](docs/NFRtesting.md)| Evidence and results for non-functional requirement testing. |
 
 ---

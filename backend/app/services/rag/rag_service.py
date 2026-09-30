@@ -447,9 +447,10 @@ class RAGService:
             return RAGAskResponse(
                 question=question,
                 answer=(
-                    "No indexed PenFlow evidence was available "
-                    "for this scan, so the question cannot be "
-                    "answered from scan evidence."
+                    "No sufficiently relevant PenFlow evidence "
+                    "was found for this question. Try asking about "
+                    "a specific risk, technology, vulnerability, "
+                    "asset, or remediation priority."
                 ),
                 sources=[],
             )

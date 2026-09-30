@@ -10,6 +10,7 @@ import httpx
 # Logger to track this specific worker
 logger = logging.getLogger(__name__)
 CRT_SH_PROVIDER = "crt.sh"
+CERTSPOTTER_PROVIDER = "certspotter"
 SCAN_MODE = os.getenv("SCAN_MODE", "MOCK").upper()
 WORKERS_ROOT = Path(__file__).resolve().parent.parent.parent
 _HOSTNAME_LABEL_PATTERN = re.compile(
@@ -99,9 +100,9 @@ def fetch_live_data(domain: str) -> dict:
     url = f"https://crt.sh/?q=%.{domain}&output=json&exclude=expired"
     # crt.sh is very bad with reliable requests,
     # we have to do a lot of retry logic to try get a good response.
-    max_attempts = 4
+    max_attempts = 2
     timeout_seconds = 6.0
-    retry_delays = (0.5, 1.0, 2.0)
+    retry_delays = (0.5,)
     retryable_status_codes = {429, 502, 503, 504}
 
     with httpx.Client(
@@ -142,6 +143,7 @@ def fetch_live_data(domain: str) -> dict:
                             if isinstance(certificates, list):
                                 return {
                                     "certificates": certificates,
+                                    "provider": CRT_SH_PROVIDER,
                                 }
 
                             logger.warning(
@@ -161,12 +163,123 @@ def fetch_live_data(domain: str) -> dict:
         return {"error": "API Request Failed / Timed Out"}
 
 
+def fetch_certspotter_live_data(
+        domain: str,
+) -> dict:
+    logger.info(
+        "[Cert Spotter] Querying certificate "
+        "transparency data for %s",
+        domain,
+    )
+
+    headers = {
+        "Accept": "application/json",
+        "User-Agent": "PenFlow/1.0",
+    }
+
+    api_key = os.getenv("CERTSPOTTER_API_KEY")
+    if api_key:
+        headers["Authorization"] = (
+            f"Bearer {api_key}"
+        )
+
+    try:
+        with httpx.Client(
+            follow_redirects=True,
+            headers=headers,
+        ) as client:
+            response = client.get(
+                "https://api.certspotter.com/v1/issuances",
+                params={
+                    "domain": domain,
+                    "include_subdomains": "true",
+                    "expand": "dns_names",
+                },
+                timeout=6.0,
+            )
+
+            response.raise_for_status()
+            issuances = response.json()
+
+    except (
+        httpx.HTTPError,
+        json.JSONDecodeError,
+    ) as error:
+        logger.warning(
+            "[Cert Spotter] Request failed: %s",
+            error,
+        )
+        return {
+            "provider": CERTSPOTTER_PROVIDER,
+            "error": "API Request Failed / Timed Out",
+        }
+
+    if not isinstance(issuances, list):
+        logger.warning(
+            "[Cert Spotter] Returned an unexpected payload."
+        )
+        return {
+            "provider": CERTSPOTTER_PROVIDER,
+            "error": "Unexpected API response.",
+        }
+
+    certificates = []
+
+    for issuance in issuances:
+        if not isinstance(issuance, dict):
+            continue
+
+        dns_names = issuance.get("dns_names", [])
+        if not isinstance(dns_names, list):
+            continue
+
+        valid_names = [
+            name
+            for name in dns_names
+            if isinstance(name, str)
+        ]
+
+        if valid_names:
+            certificates.append(
+                {
+                    "name_value": "\n".join(
+                        valid_names
+                    ),
+                }
+            )
+    return {
+        "certificates": certificates,
+        "provider": CERTSPOTTER_PROVIDER,
+    }
+
+
 def collect_raw_data(domain: str) -> dict:
     """Collects subdomain and certificate data from crt.sh (Mock or Live)."""
     if SCAN_MODE == "MOCK":
         return fetch_mock_data(domain)
 
-    return fetch_live_data(domain)
+    crt_sh_data = fetch_live_data(domain)
+
+    if "error" not in crt_sh_data:
+        return crt_sh_data
+
+    logger.warning(
+        "[CRT.sh] Falling back to Cert Spotter for %s",
+        domain,
+    )
+
+    certspotter_data = fetch_certspotter_live_data(domain)
+
+    if "error" not in certspotter_data:
+        return certspotter_data
+
+    return {
+        "provider": CERTSPOTTER_PROVIDER,
+        "error": (
+            "Certificate transparency providers "
+            "were unavailable."
+        ),
+    }
 
 
 def normalize_data(raw_data: dict) -> dict:
@@ -175,10 +288,12 @@ def normalize_data(raw_data: dict) -> dict:
     Removes all duplicates.
     """
 
+    provider = raw_data.get("provider", CRT_SH_PROVIDER)
+
     if "error" in raw_data:
         return {
             "subdomains": {
-                "provider": CRT_SH_PROVIDER,
+                "provider": provider,
                 "total_found": 0,
                 "discovered_names": [],
                 "error": raw_data.get("error"),
@@ -210,7 +325,7 @@ def normalize_data(raw_data: dict) -> dict:
 
     return {
         "subdomains": {
-            "provider": CRT_SH_PROVIDER,
+            "provider": provider,
             "total_found": len(discovered_names),
             "discovered_names": discovered_names,
         }
@@ -224,6 +339,8 @@ def generate_findings_and_assets(normalized_data: dict) -> tuple:
 
     subdomains = normalized_data.get("subdomains", {})
 
+    provider = subdomains.get("provider", CRT_SH_PROVIDER)
+
     if "error" in subdomains:
         return findings, assets
 
@@ -233,7 +350,7 @@ def generate_findings_and_assets(normalized_data: dict) -> tuple:
                 "asset_type": "subdomain",
                 "identifier": subdomain,
                 "asset_metadata": {
-                    "source": CRT_SH_PROVIDER,
+                    "source": provider,
                 },
             }
         )

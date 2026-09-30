@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.base import RAGIndexStatus
 from app.models.scan import Scan
 from app.models.user import User
+from app.repositories import summary_repo
 from app.schemas.assistant import (
     AssistantAnswerState,
     AssistantCapability,
@@ -166,6 +167,117 @@ class AssistantService:
             capability=AssistantCapability.SECURITY_ANALYSIS,
             sources=sources,
             security_intent=SecurityQueryIntent.RISK_PRIORITIZATION,
+        )
+
+
+    @staticmethod
+    async def answer_scan_summary_question(
+        db: AsyncSession,
+        scan_id: UUID,
+        request: AssistantQueryRequest,
+    ) -> AssistantQueryResponse:
+        snapshot = await summary_repo.get_risk_snapshot(
+            db,
+            scan_id,
+        )
+
+        findings = await (
+            SecurityIntelligenceService.prioritize_scan_findings(
+                db,
+                scan_id=scan_id,
+                limit=5,
+            )
+        )
+
+        total_findings = int(snapshot["total_findings"])
+
+        if total_findings == 0:
+            return AssistantQueryResponse(
+                question=request.question,
+                answer=("PenFlow recorded no findings for this scan."),
+                capability=AssistantCapability.SECURITY_ANALYSIS,
+                security_intent=SecurityQueryIntent.SCAN_SUMMARY,
+            )
+
+        severity_values = (
+            ("critical", snapshot["critical_count"]),
+            ("high", snapshot["high_count"]),
+            ("medium", snapshot["medium_count"]),
+            ("low", snapshot["low_count"]),
+            ("informational", snapshot["info_count"]),
+        )
+
+        severity_summary = ", ".join(
+            f"{count} {severity}"
+            for severity, count in severity_values
+            if count
+        )
+
+        finding_label = (
+            "finding"
+            if total_findings == 1
+            else "findings"
+        )
+
+        answer = (
+            f"PenFlow recorded {total_findings} "
+            f"{finding_label} for this scan"
+        )
+
+        if severity_summary:
+            answer = f"{answer}: {severity_summary}."
+        else:
+            answer = f"{answer}."
+
+        if findings:
+            finding_lines = "\n".join(
+                (
+                    f"- {finding.title} "
+                    f"({finding.severity}) "
+                    f"[Finding ID: {finding.finding_id}]"
+                )
+                for finding in findings
+            )
+
+            answer = (
+                f"{answer}\n\n"
+                "Highest-priority open findings:\n"
+                f"{finding_lines}"
+            )
+
+        else:
+            answer = (
+                f"{answer}\n\n"
+                "No findings remain open or in progress."
+            )
+
+        sources = [
+            AssistantSource(
+                source_type=AssistantSourceType.FINDING,
+                source_id=str(finding.finding_id),
+                title=finding.title,
+                severity=finding.severity,
+                href=(
+                    f"/phase2_scan/results/{scan_id}/findings"
+                    f"?finding={finding.finding_id}"
+                ),
+                metadata=AssistantSourceMetadata(
+                    cve_id=finding.cve_id,
+                    cvss_score=finding.cvss_score,
+                    status=finding.status,
+                    is_verified=finding.is_verified,
+                    selection_reasons=finding.priority_reasons,
+                ),
+            )
+            for finding in findings
+        ]
+
+        return AssistantQueryResponse(
+            question=request.question,
+            answer=answer,
+            capability=AssistantCapability.SECURITY_ANALYSIS,
+            sources=sources,
+            security_intent=SecurityQueryIntent.SCAN_SUMMARY,
         )
 
 
@@ -645,6 +757,15 @@ class AssistantService:
             )
 
         if (
+            security_intent == SecurityQueryIntent.SCAN_SUMMARY
+        ):
+            return await AssistantService.answer_scan_summary_question(
+                db,
+                scan_id=scan_id,
+                request=request,
+            )
+
+        if (
             security_intent == SecurityQueryIntent.SCAN_COMPARISON
         ):
             return await AssistantService.answer_scan_comparison_question(
@@ -852,6 +973,31 @@ class AssistantService:
             )
 
         if capability == AssistantCapability.FINDING_EXPLANATION:
+            if request.context.finding_id is None:
+                links: list[AssistantLink] = []
+
+                if request.context.scan_id is not None:
+                    links.append(
+                        AssistantLink(
+                            label="View scan findings",
+                            href=(
+                                "/phase2_scan/results/"
+                                f"{request.context.scan_id}/findings"
+                            ),
+                        )
+                    )
+
+                return AssistantQueryResponse(
+                    question=request.question,
+                    answer=(
+                        "Select a finding before asking PenFlow "
+                        "to explain to remediate it."
+                    ),
+                    answer_state=AssistantAnswerState.INSUFFICIENT_EVIDENCE,
+                    capability=AssistantCapability.FINDING_EXPLANATION,
+                    links=links,
+                )
+            
             return await AssistantService.answer_finding_question(
                 db,
                 user=user,
