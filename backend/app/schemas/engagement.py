@@ -227,6 +227,9 @@ class EngagementDetailResponse(BaseModel):
     status: EngagementStatus
     scope: str
     estimated_quote: Decimal
+    objective: str | None = None
+    constraints: str | None = None
+    primary_contact: str | None = None
     final_quote: Decimal | None = None
     estimated_duration_days: int | None = None
     requested_start_date: date | None = None

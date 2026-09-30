@@ -89,6 +89,30 @@ export function contextualAssistantSuggestions(
     ];
   }
 
+  if(context.page === "engagement") {
+    if(role === "service_delivery") {
+      return [
+        "Which engagements require attention?",
+        "Which engagements need scheduling?",
+        "Which engagements are awaiting review?",
+      ];  
+    }
+
+    if(role === "pentester") {
+      return [
+        "Which engagements are assigned to me?",
+        "What should I work on next?",
+        "Which engagements are in progress?",
+      ];  
+    }
+
+    return [
+      "Summarize my engagements.",
+      "Which of my engagements are in progress?",
+      "Which of my engagements require attention?",
+    ];
+  }
+
   if(role === "service_delivery") {
     return [
       "Which engagements require attention?",
