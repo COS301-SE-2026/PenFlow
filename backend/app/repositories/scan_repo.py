@@ -615,14 +615,17 @@ class ScanRepository:
                 if len(failed_sources) == 0:
                     scan.status = ScanStatus.COMPLETED
                     scan.error_message = None
+                    scan.completed_at = func.now()
 
                 elif len(failed_sources) == total_sources:
                     scan.status = ScanStatus.FAILED
                     scan.error_message = "All Scan Sources Failed"
+                    scan.completed_at = func.now()
 
                 else:
                     scan.status = ScanStatus.PARTIAL
                     scan.error_message = f"Some Scan Sources Failed: {', '.join(failed_sources)}"
+                    scan.completed_at = func.now()
             else:
                 scan.status = ScanStatus.RUNNING
 
@@ -672,6 +675,7 @@ class ScanRepository:
             "scan_id": str(scan.id),
             "domain": scan.domain,
             "created_at": scan.created_at,
+            "completed_at": scan.completed_at,
             "scan_type": scan_type,
             "status": scan.status.value,
             "progress": scan.progress,

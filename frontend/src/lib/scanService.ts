@@ -308,6 +308,7 @@ export interface RealTimeScanStatus {
   scan_id: string;
   domain: string;
   created_at:string;
+  completed_at: string | null;
   scan_type: string;
   status: string;
   progress: number;

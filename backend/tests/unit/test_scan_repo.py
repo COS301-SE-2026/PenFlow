@@ -311,6 +311,7 @@ async def test_get_scan_status_includes_rag_index_state(
         user_id=user_id,
         domain="example.com",
         created_at="2026-01-01",
+        completed_at="2026-01-01T00:05:00Z",
         scan_type=SimpleNamespace(value="passive_ctem"),
         status=ScanStatus.COMPLETED,
         progress=100,
