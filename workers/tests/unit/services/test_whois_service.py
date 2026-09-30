@@ -1,5 +1,7 @@
-import httpx
 from unittest.mock import MagicMock
+
+import httpx
+
 from app.services.whois_service import collect_whois_raw_data
 
 
