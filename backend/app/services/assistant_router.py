@@ -1,5 +1,6 @@
 from app.schemas.assistant import (
     AssistantCapability,
+    AssistantPage,
     AssistantQueryRequest,
 )
 
@@ -84,6 +85,13 @@ class AssistantRouter:
         "request a pentest",
         "penetration test",
         "rules of engagement",
+        "brand impersonation",
+        "brand monitoring",
+        "lookalike domain",
+        "typosquatting",
+        "typosquat",
+        "homoglyph",
+        "impersonation candidate",
     )
 
     SECURITY_TERMS = (
@@ -189,7 +197,10 @@ class AssistantRouter:
         if context.scan_id is not None:
             return AssistantCapability.SECURITY_ANALYSIS
 
-        if context.engagement_id is not None:
+        if (
+            context.page == AssistantPage.ENGAGEMENT
+            or context.engagement_id is not None
+        ):
             return AssistantCapability.USER_DATA
 
         if any(

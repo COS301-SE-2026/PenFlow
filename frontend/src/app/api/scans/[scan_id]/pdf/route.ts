@@ -25,10 +25,34 @@ export async function GET(_req:Request, {params} : {params: Promise<{scan_id: st
         );
     }
 
+    const headers = new Headers();
+
+    const contentType = response.headers.get(
+        "Content-Type"
+    );
+    const contentDisposition = response.headers.get(
+        "Content-Disposition"
+    );
+
+    if (contentType) {
+        headers.set(
+            "Content-Type",
+            contentType,
+        );
+    }
+
+    if (contentDisposition) {
+        headers.set(
+            "Content-Disposition",
+            contentDisposition,
+        );
+    }
+
     return new NextResponse(
         response.body,
         {
             status: response.status,
+            headers,
         },
     );
 }

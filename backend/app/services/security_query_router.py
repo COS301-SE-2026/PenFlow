@@ -33,6 +33,8 @@ class SecurityQueryRouter:
         "specific finding",
         "this cve",
         "that cve",
+        "this finding",
+        "that finding",
     )
 
     COMPARISON_PHRASES = (
@@ -101,6 +103,7 @@ class SecurityQueryRouter:
         "what was found",
         "how secure is",
         "summary of this scan",
+        "tell me about this scan",
     )
 
 

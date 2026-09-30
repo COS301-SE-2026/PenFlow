@@ -113,8 +113,8 @@ function riskLevelLabel(level: string): string {
 
 function riskLevelColorClass(level: string): string {
     const normalized = level.toUpperCase();
-    if (normalized === "HIGH") return "text-brand-alert";
-    if (normalized === "MEDIUM") return "text-brand-yellow";
+    if (normalized.startsWith("HIGH")) return "text-brand-alert";
+    if (normalized.startsWith("MEDIUM")) return "text-brand-yellow";
     return "text-brand-success";
 }
 
@@ -135,10 +135,10 @@ function RiskGauge({score}: {score: number}) {
             <div className="absolute inset-x-0 top-0 h-[180px]">
                 <Doughnut
                     data={{
-                        labels: ["Safe", "Risk"],
+                        labels: ["Risk", "Safe"],
                         datasets: [{
-                            data: [100 - clamped, clamped],
-                            backgroundColor: [RISK_GAUGE_COLORS.safe, RISK_GAUGE_COLORS.risk],
+                            data: [clamped, 100 - clamped],
+                            backgroundColor: [RISK_GAUGE_COLORS.risk, RISK_GAUGE_COLORS.safe],
                             borderWidth: 0,
                         }],
                     }}

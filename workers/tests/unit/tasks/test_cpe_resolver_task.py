@@ -1,4 +1,5 @@
-from unittest.mock import patch
+from decimal import Decimal
+from unittest.mock import call, patch
 
 from app.tasks.cpe_resolver_task import run_cpe_resolver_task
 
@@ -12,6 +13,7 @@ def test_run_cpe_resolver_task_success(mock_run, mock_callback, mock_send_task):
             "vendor": "apache",
             "product": "tomcat",
             "cpe": "cpe:2.3:a:apache:tomcat:10.1.0:*:*:*:*:*:*:*",
+            "evidence_score": Decimal("0.700"),
         }
     ]
 
@@ -30,8 +32,16 @@ def test_run_cpe_resolver_task_success(mock_run, mock_callback, mock_send_task):
 
     assert technologies["technology_type"] == "software"
     assert technologies["evidence"]["cpe"] == resolved_inventory[0]["cpe"]
+    assert technologies["confidence"] == 0.7
+    assert technologies["evidence"]["evidence_score"] == 0.7
+    assert result["raw_result"]["resolved_inventory"][0]["evidence_score"] == 0.7
 
-    mock_callback.assert_called_once()
+    assert mock_callback.call_count == 2
+    assert mock_callback.call_args_list[0] == call(
+        scan_id="scan-123",
+        source_name="cve",
+        status="running",
+    )
     mock_send_task.assert_called_once_with(
         "scan.phase2_cve",
         args=["scan-123", resolved_inventory],
@@ -52,7 +62,12 @@ def test_run_cpe_resolver_task_empty(mock_run, mock_callback, mock_send_task):
     assert result["status"] == "completed"
     assert result["assets"] == []
 
-    mock_callback.assert_called_once()
+    assert mock_callback.call_count == 2
+    assert mock_callback.call_args_list[0] == call(
+        scan_id="scan-123",
+        source_name="cve",
+        status="running",
+    )
     mock_send_task.assert_called_once_with(
         "scan.phase2_cve",
         args=["scan-123", []],
@@ -73,4 +88,4 @@ def test_run_cpe_resolver_task_failure(mock_run, mock_callback):
     assert result["assets"] == []
     assert result["error_message"] == "Resolver failed"
 
-    mock_callback.assert_called_once()
+    assert mock_callback.call_count == 3

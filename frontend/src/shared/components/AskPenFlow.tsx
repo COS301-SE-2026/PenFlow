@@ -180,8 +180,6 @@ function AskPenFlowInner() {
     }
 
     previousContextKeyRef.current = contextKey;
-    setTurns([]);
-    setQuestion("");
     setExpandedEvidence({});
     setCopyStatus(null);
     setHighlightedEvidenceKey(null);
