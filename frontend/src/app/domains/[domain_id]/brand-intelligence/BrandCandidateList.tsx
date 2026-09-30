@@ -465,25 +465,25 @@ export default function BrandCandidateList
                         <table className="w-full border-collapse text-left">
                             <thead>
                                 <tr className="border-b border-brand-panel-border text-xs uppercase tracking-wide text-muted-foreground">
-                                    <th className="px-4 py-3 font-medium">
+                                    <th className="px-4 py-3 font-medium text-center">
                                         Candidate
                                     </th>
-                                    <th className="px-4 py-3 font-medium">
+                                    <th className="px-4 py-3 font-medium text-center">
                                         Risk
                                     </th>
-                                    <th className="px-4 py-3 font-medium">
+                                    <th className="px-4 py-3 font-medium text-center">
                                         Score
                                     </th>
-                                    <th className="px-4 py-3 font-medium">
+                                    <th className="px-4 py-3 font-medium text-center">
                                         Status
                                     </th>
-                                    <th className="px-4 py-3 font-medium">
+                                    <th className="px-4 py-3 font-medium text-center">
                                         First seen
                                     </th>
-                                    <th className="px-4 py-3 font-medium">
+                                    <th className="px-4 py-3 font-medium text-center">
                                         Last seen
                                     </th>
-                                    <th className="px-4 py-3 font-medium">
+                                    <th className="px-4 py-3 font-medium text-center">
                                         Investigation
                                     </th>
                                 </tr>
@@ -521,7 +521,7 @@ export default function BrandCandidateList
                                             </td>
 
 
-                                            <td className="px-4 py-3">
+                                            <td className="px-4 py-3 text-center">
 
                                                 <span
                                                     className={cn(
@@ -535,27 +535,27 @@ export default function BrandCandidateList
                                             </td>
 
 
-                                            <td className="px-4 py-3 font-mono text-foreground">
+                                            <td className="px-4 py-3 font-mono text-foreground text-center">
                                                 {candidate.risk_score}/100
                                             </td>
 
 
-                                            <td className="px-4 py-3 text-muted-foreground">
+                                            <td className="px-4 py-3 text-muted-foreground text-center">
                                                 {status_label(candidate.status)}
                                             </td>
 
 
-                                            <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                                            <td className="px-4 py-3 whitespace-nowrap text-muted-foreground text-center">
                                                 {format_timestamp(candidate.first_seen)}
                                             </td>
 
 
-                                            <td className="px-4 py-3 whitespace-nowrap text-muted-foreground">
+                                            <td className="px-4 py-3 whitespace-nowrap text-muted-foreground text-center">
                                                 {format_timestamp(candidate.last_seen)}
                                             </td>
 
 
-                                            <td className="px-4 py-3">
+                                            <td className="px-4 py-3 text-center">
 
                                                 <Button
                                                     variant="outline"
