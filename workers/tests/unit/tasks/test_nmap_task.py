@@ -2,7 +2,6 @@ from unittest.mock import patch
 
 from app.tasks.nmap_task import run_nmap_scan
 
-
 TARGETS = [
     {
         "hostname": "test.com",
