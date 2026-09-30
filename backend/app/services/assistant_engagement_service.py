@@ -1,4 +1,5 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from decimal import Decimal
 from enum import Enum
 from uuid import UUID
 
@@ -26,6 +27,8 @@ class AssistantEngagementIntent(str, Enum):
     ASSIGNMENT = "engagement_assignment"
     REPORT = "engagement_report"
     RETESTS = "engagement_retests"
+    DETAILS = "engagement_details"
+    NEXT_STEP = "engagement_next_step"
 
 
 class AssistantEngagementFinding(BaseModel):
@@ -33,6 +36,28 @@ class AssistantEngagementFinding(BaseModel):
     title: str
     severity: str
     status: str
+    source: str
+    is_verified: bool
+    cvss_score: Decimal | None = None
+    cve_id: str | None = None
+    description: str | None = None
+    asset_identifier: str | None = None
+
+
+class AssistantEngagementRetest(BaseModel):
+    retest_id: UUID
+    finding_id: UUID
+    finding_title: str
+    finding_severity: str
+    status: str
+    notes: str | None = None
+    requested_at: datetime
+    completed_at: datetime | None = None
+
+
+class AssistantEngagementAsset(BaseModel):
+    identifier: str
+    asset_type: str
 
 
 class AssistantEngagementSummary(BaseModel):
@@ -43,6 +68,22 @@ class AssistantEngagementSummary(BaseModel):
     engagement_type: str
     assessment_type: str
     scope: str | None = None
+    objective: str | None = None
+    constraints: str | None = None
+    primary_contact: str | None = None
+    estimated_duration_days: int | None = None
+    estimated_quote: Decimal | None = None
+    final_quote: Decimal | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    reviewed_at: datetime | None = None
+    review_note: str | None = None
+    previous_scan_domain: str | None = None
+    previous_scan_relevant_findings: int | None = None
+    next_step: str | None = None
+    assets: list[
+        AssistantEngagementAsset
+    ] = Field(default_factory=list)
     asset_count: int = 0
     manual_finding_count: int | None = None
     automated_finding_count: int | None = None
@@ -56,7 +97,12 @@ class AssistantEngagementSummary(BaseModel):
     service_delivery_name: str | None = None
     report_status: str | None = None
     report_available: bool | None = None
+    report_version: int | None = None
+    report_generated_at: datetime | None = None
     open_retest_count: int | None = None
+    retests: list[
+        AssistantEngagementRetest
+    ] = Field(default_factory=list)
     recent_findings: list[
         AssistantEngagementFinding
     ] = Field(default_factory=list)
@@ -96,10 +142,111 @@ def engagement_href(
 
 class AssistantEngagementService:
     @staticmethod
+    def get_next_step(
+        status: str,
+        role: str,
+    ) -> str:
+        if status == EngagementStatus.REQUESTED.value:
+            if role == "service_delivery":
+                return (
+                    "Claim the request and begin scoping."
+                )
+
+            return (
+                "Wait for service delivery to accept the "
+                "request and begin scoping."
+            )
+
+        if status == EngagementStatus.SCOPING.value:
+            if role == "service_delivery":
+                return (
+                    "Finalize the scope, quote, assigned "
+                    "pentester, and schedule."
+                )
+
+            if role == "pentester":
+                return (
+                    "Review the scope and prepare for the "
+                    "engagement schedule."
+                )
+
+            return (
+                "Review the proposed scope, quote, and "
+                "scheduled dates."
+            )
+
+        if status == EngagementStatus.SCHEDULED.value:
+            if role == "pentester":
+                return (
+                    "Prepare for testing on the scheduled "
+                    "start date."
+                )
+
+            return (
+                "Wait for testing to begin on the scheduled "
+                "start date."
+            )
+
+        if status == EngagementStatus.IN_PROGRESS.value:
+            if role == "pentester":
+                return (
+                    "Continue testing and submit supported "
+                    "findings."
+                )
+
+            if role == "service_delivery":
+                return (
+                    "Monitor testing progress and prepare "
+                    "for review."
+                )
+
+            return (
+                "Testing is underway; monitor findings and "
+                "engagement updates."
+            )
+
+        if status == EngagementStatus.REVIEW.value:
+            if role == "service_delivery":
+                return (
+                    "Review the submitted findings and "
+                    "evidence."
+                )
+
+            if role == "pentester":
+                return (
+                    "Wait for review and address any returned "
+                    "changes."
+                )
+
+            return (
+                "Wait for the findings and report review to "
+                "complete."
+            )
+
+        if status == EngagementStatus.COMPLETED.value:
+            return (
+                "Review the final report and request eligible "
+                "retests where needed."
+            )
+
+        return "No further engagement work is scheduled."
+
+
+    @staticmethod
     def classify_intent(
         question: str,
     ) -> AssistantEngagementIntent:
         normalized = question.casefold()
+
+        if any(
+            phrase in normalized
+            for phrase in (
+                "next step",
+                "what happens next",
+                "what should happen now",
+            )
+        ):
+            return AssistantEngagementIntent.NEXT_STEP
 
         if any(
             phrase in normalized
@@ -185,6 +332,27 @@ class AssistantEngagementService:
         ):
             return AssistantEngagementIntent.STATUS
 
+        if any(
+            phrase in normalized
+            for phrase in (
+                "scope",
+                "in scope",
+                "asset",
+                "assets",
+                "objective",
+                "constraint",
+                "constraints",
+                "primary contact",
+                "duration",
+                "how long",
+                "quote",
+                "cost",
+                "previous scan",
+                "engagement details",
+            )
+        ):
+            return AssistantEngagementIntent.DETAILS
+
         return AssistantEngagementIntent.OVERVIEW
 
 
@@ -255,6 +423,16 @@ class AssistantEngagementService:
             target_date=item.target_date,
             client_name=item.client_name,
             assigned_pentester_name=item.assigned_pentester_name,
+            estimated_duration_days=(
+                item.estimated_duration_days
+            ),
+            estimated_quote=item.estimated_quote,
+            next_step=(
+                AssistantEngagementService.get_next_step(
+                    enum_value(item.status),
+                    role,
+                )
+            ),
             href=engagement_href(role, item.id),
         )
 
@@ -313,6 +491,11 @@ class AssistantEngagementService:
             )
         )
 
+        retests = await RetestRepository.list_by_engagement(
+            db,
+            engagement_id,
+        )
+
         return AssistantEngagementSummary(
             engagement_id=detail.id,
             title=detail.title,
@@ -320,6 +503,39 @@ class AssistantEngagementService:
             priority=detail.priority,
             engagement_type=enum_value(detail.engagement_type),
             assessment_type=enum_value(detail.assessment_type),
+            objective=detail.objective,
+            constraints=detail.constraints,
+            primary_contact=detail.primary_contact,
+            estimated_duration_days=detail.estimated_duration_days,
+            estimated_quote=detail.estimated_quote,
+            final_quote=detail.final_quote,
+            started_at=detail.started_at,
+            completed_at=detail.completed_at,
+            reviewed_at=detail.reviewed_at,
+            review_note=detail.review_note,
+            next_step=(
+                AssistantEngagementService.get_next_step(
+                    enum_value(detail.status),
+                    user.role,
+                )
+            ),
+            assets=[
+                AssistantEngagementAsset(
+                    identifier=asset.identifier,
+                    asset_type=asset.asset_type,
+                )
+                for asset in detail.assets[:20]
+            ],
+            previous_scan_domain=(
+                detail.previous_scan.domain
+                if detail.previous_scan
+                else None
+            ),
+            previous_scan_relevant_findings=(
+                detail.previous_scan.relevant_findings
+                if detail.previous_scan
+                else None
+            ),
             scope=detail.scope,
             asset_count=detail.counts.assets,
             manual_finding_count=detail.counts.manual_findings,
@@ -350,6 +566,16 @@ class AssistantEngagementService:
                 and report.status
                 == ReportStatus.COMPLETED
             ),
+            report_version=(
+                report.version
+                if report
+                else None
+            ),
+            report_generated_at=(
+                report.generated_at
+                if report
+                else None
+            ),
             open_retest_count=open_retest_count,
             recent_findings=[
                 AssistantEngagementFinding(
@@ -357,8 +583,29 @@ class AssistantEngagementService:
                     title=finding.title,
                     severity=enum_value(finding.severity),
                     status=enum_value(finding.status),
+                    source=finding.source,
+                    is_verified=finding.is_verified,
+                    cvss_score=finding.cvss_score,
+                    cve_id=finding.cve_id,
+                    description=finding.description,
+                    asset_identifier=(
+                        finding.asset_identifier
+                    ),
                 )
                 for finding in detail.recent_findings
+            ],
+            retests=[
+                AssistantEngagementRetest(
+                    retest_id=retest.id,
+                    finding_id=retest.finding.id,
+                    finding_title=retest.finding.title,
+                    finding_severity=enum_value(retest.finding.severity),
+                    status=enum_value(retest.status),
+                    notes=retest.notes,
+                    requested_at=retest.requested_at,
+                    completed_at=retest.completed_at,
+                )
+                for retest in retests[:10]
             ],
             href=engagement_href(
                 user.role,
@@ -520,6 +767,85 @@ class AssistantEngagementService:
                     f"  Scope: {summary.scope}"
                 )
 
+            if summary.objective is not None:
+                lines.append(
+                    f"  Objective: {summary.objective}"
+                )
+
+            if summary.constraints is not None:
+                lines.append(
+                    f"  Constraints: {summary.constraints}"
+                )
+
+            if summary.primary_contact is not None:
+                lines.append(
+                    "  Primary contact: "
+                    f"{summary.primary_contact}"
+                )
+
+            if summary.estimated_duration_days is not None:
+                lines.append(
+                    "  Estimated duration: "
+                    f"{summary.estimated_duration_days} days"
+                )
+
+            if summary.estimated_quote is not None:
+                lines.append(
+                    "  Estimated quote: "
+                    f"{summary.estimated_quote}"
+                )
+
+            if summary.final_quote is not None:
+                lines.append(
+                    f"  Final quote: {summary.final_quote}"
+                )
+
+            if summary.started_at is not None:
+                lines.append(
+                    f"  Started at: {summary.started_at}"
+                )
+
+            if summary.completed_at is not None:
+                lines.append(
+                    f"  Completed at: {summary.completed_at}"
+                )
+
+            if summary.reviewed_at is not None:
+                lines.append(
+                    f"  Reviewed at: {summary.reviewed_at}"
+                )
+
+            if summary.review_note is not None:
+                lines.append(
+                    f"  Review note: {summary.review_note}"
+                )
+
+            if summary.next_step is not None:
+                lines.append(
+                    f"  Next step: {summary.next_step}"
+                )
+
+            if summary.assets:
+                lines.append("  Assets in scope:")
+                lines.extend(
+                    (
+                        "    - "
+                        f"{asset.asset_type}: "
+                        f"{asset.identifier}"
+                    )
+                    for asset in summary.assets
+                )
+
+            if summary.previous_scan_domain is not None:
+                lines.append(
+                    "  Previous scan domain: "
+                    f"{summary.previous_scan_domain}"
+                )
+                lines.append(
+                    "  Previous scan relevant findings: "
+                    f"{summary.previous_scan_relevant_findings}"
+                )
+
             if summary.manual_finding_count is not None:
                 lines.append(
                     "  Manual findings: "
@@ -542,6 +868,18 @@ class AssistantEngagementService:
                     f"{summary.report_status}"
                 )
 
+                if summary.report_version is not None:
+                    lines.append(
+                        "  Report version: "
+                        f"{summary.report_version}"
+                    )
+
+                if summary.report_generated_at is not None:
+                    lines.append(
+                        "  Report generated at: "
+                        f"{summary.report_generated_at}"
+                    )
+
             if summary.open_retest_count is not None:
                 lines.append(
                     "  Open retests: "
@@ -557,15 +895,84 @@ class AssistantEngagementService:
             if summary.recent_findings:
                 lines.append("  Recent findings:")
 
-                lines.extend(
-                    (
-                        "    - "
-                        f"{finding.title}; "
-                        f"severity={finding.severity}; "
-                        f"status={finding.status}; "
-                        f"finding_id={finding.finding_id}"
+                for finding in summary.recent_findings:
+                    finding_parts = [
+                        finding.title,
+                        f"severity={finding.severity}",
+                        f"status={finding.status}",
+                        f"source={finding.source}",
+                        (
+                            "verified="
+                            f"{finding.is_verified}"
+                        ),
+                        (
+                            "finding_id="
+                            f"{finding.finding_id}"
+                        ),
+                    ]
+
+                    if finding.cve_id is not None:
+                        finding_parts.append(
+                            f"cve={finding.cve_id}"
+                        )
+
+                    if finding.cvss_score is not None:
+                        finding_parts.append(
+                            f"cvss={finding.cvss_score}"
+                        )
+
+                    if finding.asset_identifier is not None:
+                        finding_parts.append(
+                            "asset="
+                            f"{finding.asset_identifier}"
+                        )
+
+                    if finding.description is not None:
+                        finding_parts.append(
+                            "description="
+                            f"{finding.description}"
+                        )
+
+                    lines.append(
+                        "    - " + "; ".join(finding_parts)
                     )
-                    for finding in summary.recent_findings
-                )
+
+            if summary.retests:
+                lines.append("  Retests:")
+
+                for retest in summary.retests:
+                    retest_parts = [
+                        retest.finding_title,
+                        (
+                            "severity="
+                            f"{retest.finding_severity}"
+                        ),
+                        f"status={retest.status}",
+                        (
+                            "finding_id="
+                            f"{retest.finding_id}"
+                        ),
+                        (
+                            "retest_id="
+                            f"{retest.retest_id}"
+                        ),
+                        (
+                            "requested_at="
+                            f"{retest.requested_at}"
+                        ),
+                    ]
+
+                    if retest.completed_at is not None:
+                        retest_parts.append(
+                            "completed_at="
+                            f"{retest.completed_at}"
+                        )
+
+                    if retest.notes is not None:
+                        retest_parts.append(
+                            f"notes={retest.notes}"
+                        )
+
+                    lines.append("    - " + "; ".join(retest_parts))
 
         return "\n".join(lines)

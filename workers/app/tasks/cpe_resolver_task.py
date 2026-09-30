@@ -22,6 +22,18 @@ def run_cpe_resolver_task(
 
     logger.info(f"[CPE_Task] Starting CPE resolution for: {len(software_inventory)} objects.")
 
+    try:
+        send_source_callback(
+            scan_id=scan_id,
+            source_name="cve",
+            status="running",
+        )
+    except Exception:
+        logger.warning(
+            "[CPE Task] Failed to send `running` CVE callback for %s",
+            scan_id,
+        )
+
     resolved_data: list[JSONDict] = []
 
     try:
@@ -105,5 +117,25 @@ def run_cpe_resolver_task(
             "scan.phase2_cve",
             args=[scan_id, resolved_data],
         )
+
+    else:
+        error_message = str(
+            result.get("error_message")
+            or "CPE resolution failed."
+        )
+
+        try:
+            send_source_callback(
+                scan_id=scan_id,
+                source_name="cve",
+                status="failed",
+                raw_result={"error": error_message},
+                error_message=error_message,
+            )
+        except Exception:
+            logger.warning(
+                "[CPE_TASK] Failed to send failed CVE callback for %s",
+                scan_id,
+            )
 
     return result

@@ -13,6 +13,7 @@ from app.repositories.report_repository import (
 from app.repositories.scan_repo import ScanRepository
 from app.schemas.assistant import (
     AssistantLink,
+    AssistantPage,
     AssistantQueryRequest,
     AssistantSource,
     AssistantSourceType,
@@ -517,6 +518,8 @@ class AssistantDataService:
             AssistantEngagementIntent.FINDINGS,
             AssistantEngagementIntent.REPORT,
             AssistantEngagementIntent.RETESTS,
+            AssistantEngagementIntent.DETAILS,
+            AssistantEngagementIntent.NEXT_STEP,
         }
 
         if selected:
@@ -544,7 +547,8 @@ class AssistantDataService:
                 evidence=(
                     "No engagement was selected. Open an "
                     "authorized engagement before asking about "
-                    "its findings, report, or retests."
+                    "its details, findings, report, or retests, "
+                    "or next step."
                 ),
                 sources=[],
                 links=[
@@ -623,7 +627,8 @@ class AssistantDataService:
         )
 
         if (
-            request.context.engagement_id is not None
+            request.context.page == AssistantPage.ENGAGEMENT
+            or request.context.engagement_id is not None
             or intent == AssistantDataIntent.ENGAGEMENTS
         ):
             return await cls.collect_engagement_question(

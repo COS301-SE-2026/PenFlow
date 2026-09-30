@@ -76,7 +76,14 @@ export function deriveAssistantContext(
     }
   }
 
-  if(pathname.startsWith("/domains")) {
+  if(
+    pathname === "/engagement_request" ||
+    pathname === "/pentesting/engagement" ||
+    pathname === "/pentesting/console/my-engagements" ||
+    pathname === "/service-delivery/engagements"
+  ) {
+    page = "engagement";
+  } else if(pathname.startsWith("/domains")) {
     page = "domains";
   } else if(pathname.startsWith("/scheduled-scans")) {
     page = "scheduled_scans";
