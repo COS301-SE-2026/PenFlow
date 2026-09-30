@@ -6,6 +6,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from app.schemas.assistant import (
+    AssistantCapability,
     AssistantQueryRequest,
     AssistantRouteDecision,
     AssistantRoutingSource,
@@ -173,6 +174,27 @@ class AssistantModelRouter:
             duration_ms = (
                 perf_counter() - started_at
             ) * 1000
+
+            if (
+                decision.capability == AssistantCapability.FINDING_EXPLANATION
+                and request.context.finding_id is None
+            ):
+                fallback_capability = (
+                    AssistantRouter.classify(request)
+                )
+
+                logger.warning(
+                    "assistant_model_router outcome=fallback "
+                    "reason=incompatible_finding_context "
+                    "fallback_capability=%s duration_ms=%.1f",
+                    fallback_capability.value,
+                    duration_ms,
+                )
+
+                return AssistantRouteDecision(
+                    capability=fallback_capability,
+                    source=(AssistantRoutingSource.DETERMINISTIC_FALLBACK),
+                )
 
             logger.info(
                 "assistant_model_router outcome=model "

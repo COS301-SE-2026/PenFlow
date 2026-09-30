@@ -186,4 +186,45 @@ PRODUCT_GUIDE: tuple[GuideArticle, ...] = (
             ),
         ),
     ),
+    GuideArticle(
+        slug="brand-impersonation-monitoring",
+        title="Brand impersonation monitoring",
+        content=(
+            "PenFlow's brand impersonation engine monitors a verified "
+            "domain for potentially deceptive lookalike domains. It "
+            "generates bounded spelling, omission, transposition, "
+            "homoglyph, keyword, and top-level-domain variations. "
+            "Resolvable candidates are evaluated using recorded signals "
+            "such as DNS resolution, MX records, TLS availability, and "
+            "domain registration age. PenFlow assigns each candidate a "
+            "risk score from 0 to 100 and a low, medium, high, or critical "
+            "risk level. Candidate workflow states are new, under review, "
+            "confirmed impersonation, false positive, and resolved. A "
+            "candidate is a risk signal and does not by itself prove "
+            "malicious ownership or activity. Monitoring can only be "
+            "started for a verified domain owned by the signed-in user. "
+            "Ask PenFlow can describe how this feature works but remains "
+            "read-only and cannot start monitoring or change candidate "
+            "statuses."
+        ),
+        keywords=(
+            "brand impersonation",
+            "brand monitoring",
+            "lookalike domains",
+            "lookalike domain",
+            "typosquatting",
+            "typosquat",
+            "homoglyph",
+            "impersonation candidate",
+            "impersonation risk",
+            "fake domain",
+            "deceptive domain",
+        ),
+        links=(
+            GuideLink(
+                label="View verified domains",
+                href="/domains",
+            ),
+        ),
+    ),
 )

@@ -164,8 +164,7 @@ export default function HistoryPage() {
                       </Link>
                           <a
                           href={getReportPdfUrl(scan.id)}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          download
                           onClick={e => e.stopPropagation()}
                           aria-label="Download report"
                           className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -221,8 +220,7 @@ export default function HistoryPage() {
 
           <a
             href={getReportPdfUrl(modal.id)}
-            target="_blank"
-            rel="noopener noreferrer"
+            download
             className={`${styles.modalBtn} ${styles.modalBtnDownload}`}
             onClick={closeModal}
           >

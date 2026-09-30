@@ -3,7 +3,7 @@ import type {ReactNode} from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Ban, Bug, ChevronRight, Crosshair, FileSearch, Fingerprint, Globe, Info, Lock, Network, ShieldAlert,
+import { Bug, ChevronRight, Crosshair, FileSearch, Fingerprint, Globe, Info, Lock, Network, ShieldAlert,
          ShieldCheck, type LucideIcon,} from "lucide-react";
 
 import { Card, CardContent} from "@/components/ui/card";
@@ -528,17 +528,7 @@ export default function ScanProgress() {
                                 <ChevronRight className="size-4" />
                             </Button>
                         </Link>
-                    ): (
-                        <Button
-                            variant= "outline"
-                            disabled
-                            title="Cancelling a running scan is not available"
-                            className = "gap-2 border-brand-alert text-brand-alert hover:bg-brand-alert/10"
-                        >
-                            <Ban className="size-4"/>
-                            Cancel Scan
-                        </Button>
-                    )}
+                    ): null}
                 </div>
             </div>
 

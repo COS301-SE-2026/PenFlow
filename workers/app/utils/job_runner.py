@@ -8,7 +8,12 @@ import docker
 
 logger = logging.getLogger(__name__)
 
-FARGATE_ENV_VARS = {"BACKEND_URL", "BACKEND_API_URL", "SCAN_MODE"}
+FARGATE_ENV_VARS = {
+    "BACKEND_URL",
+    "BACKEND_API_URL",
+    "SCAN_MODE",
+    "PHASE2_SCAN_CONCURRENCY",
+}
 
 LOCAL_ENV_VARS = FARGATE_ENV_VARS.union(
     {
@@ -87,7 +92,7 @@ def _run_fargate_task(command: list[str]) -> bool:
 
         task_arn = response["tasks"][0]["taskArn"]
         waiter = client.get_waiter("tasks_stopped")
-        waiter.wait(cluster=cluster, task=[task_arn])
+        waiter.wait(cluster=cluster, tasks=[task_arn])
 
         task_info = client.describe_tasks(cluster=cluster, tasks=[task_arn])
         exit_code = task_info["tasks"][0]["containers"][0].get("exitCode")

@@ -1,6 +1,7 @@
 import os
 import smtplib
 from email.message import EmailMessage
+from email.utils import formataddr
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
@@ -104,6 +105,15 @@ def get_sender() -> str:
     return sender
 
 
+def get_sender_header(display_name: str) -> str:
+    return formataddr(
+        (
+            display_name,
+            get_sender(),
+        )
+    )
+
+
 def send_email(
         *,
         to_email: str,
@@ -112,7 +122,9 @@ def send_email(
 ) -> None:
     message = EmailMessage()
     message["Subject"] = subject
-    message["From"] = get_sender()
+    message["From"] = get_sender_header(
+        "PenFlow Notifications"
+    )
     message["To"] = to_email
     message.set_content(text_body)
 
@@ -137,7 +149,9 @@ def send_report_email(
 
     message = EmailMessage()
     message["Subject"] = f"Your PenFlow CTEM Report for {domain}"
-    message["From"] = get_sender()
+    message["From"] = get_sender_header(
+        "PenFlow Reports"
+    )
     message["To"] = to_email
 
     message.set_content(
@@ -170,7 +184,9 @@ def send_engagement_report_email(
 
     message = EmailMessage()
     message["Subject"] = f"Your PenFlow Penetration Test Report - {engagement_title}"
-    message["From"] = get_sender()
+    message["From"] = get_sender_header(
+        "PenFlow Reports"
+    )
     message["To"] = to_email
 
     message.set_content(
