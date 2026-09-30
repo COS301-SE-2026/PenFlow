@@ -10,8 +10,9 @@ const scanTypeLabel: Record<string, string> = {
     passive_ctem: "Passive Reconnaissance",
 };
 
-function formatElapsed(startIso: string): string {
-    const ms = Date.now() - new Date(startIso).getTime();
+function formatElapsed(startIso: string, endIso: string | null): string {
+    const end = endIso ? new Date(endIso).getTime() : Date.now();
+    const ms = end - new Date(startIso).getTime();
     const totalSeconds = Math.max(0, Math.floor(ms / 1000));
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
@@ -56,7 +57,7 @@ export default function ActivityView({ scanId }: { scanId: string }) {
         { label: "Domain", value: scan.domain },
         { label: "Scan Type", value: scanTypeLabel[scan.scan_type] ?? scan.scan_type },
         { label: "Status", value: scan.status },
-        { label: "Elapsed Time", value: formatElapsed(scan.created_at) },
+        { label: "Elapsed Time", value: formatElapsed(scan.created_at, scan.completed_at) },
         { label: "Sources Completed", value: `${completedCount} / ${visibleSources.length}`},
     ];
 
