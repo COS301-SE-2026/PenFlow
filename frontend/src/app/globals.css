@@ -113,24 +113,22 @@ h1, h2, h3 {
 
 .logoPanel {
   width: 100%;
-  background: #fff;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  padding: 14px;
-  border-radius: 0 0 14px 0;
-  box-shadow: var(--sh-sm);
+  padding: 16px 12px;
+  background: transparent;
+  border-bottom: 1px solid rgba(0, 183, 239, 0.12);
   flex-shrink: 0;
   overflow: hidden;
 }
 
-.logoDivider {
-  width: 60%;
-  height: 1px;
-  background: #d0d8e4;
-  flex-shrink: 0;
+.penflowLogo {
+  display: block;
+  width: 100%;
+  max-width: 180px;
+  height: auto;
+  object-fit: contain;
 }
 
 .topnav {
@@ -367,11 +365,17 @@ h1, h2, h3 {
   }
 
   .logoPanel {
-    height: 100%;
-    width: auto;
-    padding: 0 12px;
+    width: 100px;
+    height: 60px;
+    padding: 2px 8px;
+    border-bottom: none;
     border-radius: 0;
     flex-shrink: 0;
+  }
+
+  .penflowLogo {
+    width: 84px;
+    height: 56px;
   }
 
   .topnav, .topnav-list {

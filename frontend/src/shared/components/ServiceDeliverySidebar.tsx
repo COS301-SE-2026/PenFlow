@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import brocodeLogo from "@/app/images/images/BroCode logo.png";
-import bluevisionLogo from "@/app/images/images/Bluevision logo.png";
+import penflowLogo from "@/app/images/images/PenFlow Logo.png";
 import {listConversations } from "@/lib/serviceDeliveryService";
 import NotificationMenu from "./NotificationMenu";
 
@@ -37,25 +36,14 @@ export default function ServiceDeliverySidebar() {
     }, []);
      return (
         <nav className="topbar">
-            <div className="logoPanel">
-                <Image
-                    src={bluevisionLogo}
-                    alt="Bluevision"
-                    width={80}
-                    height={48}
-                    style={{ width: "auto", height: 48 }}
-                />
-                <div className="logoDivider" />
-                <Image
-                    src={brocodeLogo}
-                    alt="BroCode"
-                    width={80}
-                    height={48}
-                    style={{ width: "auto", height: 48 }}
-                />
-            </div>
-
-            
+          <div className="logoPanel">
+            <Image
+              src={penflowLogo}
+              alt="PenFlow"
+              className="penflowLogo"
+              sizes="(max-width: 900px) 84px, 220px"
+            />
+          </div>            
 
             <ul className="topnav-list">
                 <li>

@@ -347,11 +347,11 @@ resource "aws_ecs_task_definition" "worker" {
         { name = "RABBITMQ_USERNAME", value = var.rabbitmq_username },
         { name = "DATABASE_HOST", value = aws_db_instance.main.address },
         { name = "DATABASE_PORT", value = tostring(aws_db_instance.main.port) },
-        { name = "DATABASE_NAME", value = var.db_name }, 
-        { name = "DATABASE_USER", value = var.db_username }, 
-        { name = "ECS_CLUSTER_NAME", value = aws_ecs_cluster.main.name }, 
-        { name = "ECS_TASK_DEFINITION", value = "${local.name_prefix}-ephemeral-worker" }, 
-        { name = "ECS_SUBNETS", value = join(",", aws_subnet.public[*].id) }, 
+        { name = "DATABASE_NAME", value = var.db_name },
+        { name = "DATABASE_USER", value = var.db_username },
+        { name = "ECS_CLUSTER_NAME", value = aws_ecs_cluster.main.name },
+        { name = "ECS_TASK_DEFINITION", value = "${local.name_prefix}-ephemeral-worker" },
+        { name = "ECS_SUBNETS", value = join(",", aws_subnet.public[*].id) },
         { name = "ECS_SECURITY_GROUPS", value = aws_security_group.worker.id },
         { name = "ECS_ASSIGN_PUBLIC_IP", value = "ENABLED" }
       ]
@@ -360,9 +360,9 @@ resource "aws_ecs_task_definition" "worker" {
         { name = "RABBITMQ_PASSWORD", valueFrom = aws_secretsmanager_secret.rabbitmq_password.arn },
         { name = "HIBP_API_KEY", valueFrom = aws_secretsmanager_secret.hibp_api_key.arn },
         { name = "SHODAN_API_KEY", valueFrom = aws_secretsmanager_secret.shodan_api_key.arn },
-        { name = "URLSCAN_API_KEY", valueFrom = aws_secretsmanager_secret.urlscan_api_key.arn }, 
-        { name = "DATABASE_PASSWORD", valueFrom = aws_secretsmanager_secret.db_password.arn }, 
-        { name = "INTERNAL_WEBHOOK_SECRET", valueFrom =aws_secretsmanager_secret.internal_webhook_secret.arn }
+        { name = "URLSCAN_API_KEY", valueFrom = aws_secretsmanager_secret.urlscan_api_key.arn },
+        { name = "DATABASE_PASSWORD", valueFrom = aws_secretsmanager_secret.db_password.arn },
+        { name = "INTERNAL_WEBHOOK_SECRET", valueFrom = aws_secretsmanager_secret.internal_webhook_secret.arn }
       ]
 
       logConfiguration = {
@@ -379,30 +379,30 @@ resource "aws_ecs_task_definition" "worker" {
 }
 
 resource "aws_ecs_task_definition" "ephemeral_worker" {
-  family                   = "${local.name_prefix}-ephemeral-worker" 
-  requires_compatibilities = ["FARGATE"] 
-  network_mode             = "awsvpc" 
+  family                   = "${local.name_prefix}-ephemeral-worker"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
 
-  cpu    = 512 
-  memory = 1024 
+  cpu    = 512
+  memory = 1024
 
-  execution_role_arn = aws_iam_role.ecs_execution.arn 
-  task_role_arn      = aws_iam_role.ephemeral_worker_task.arn 
+  execution_role_arn = aws_iam_role.ecs_execution.arn
+  task_role_arn      = aws_iam_role.ephemeral_worker_task.arn
 
   runtime_platform {
-    cpu_architecture        = "X86_64" 
+    cpu_architecture        = "X86_64"
     operating_system_family = "LINUX"
   }
 
   container_definitions = jsonencode([
     {
-      name      = "penflow-worker" 
+      name      = "penflow-worker"
       image     = "${aws_ecr_repository.worker.repository_url}:${var.worker_image_tag}"
-      essential = true 
+      essential = true
 
       environment = [
-        { name = "AWS_REGION", value = var.aws_region }, 
-        { name = "SCAN_MODE", value = "LIVE" }, 
+        { name = "AWS_REGION", value = var.aws_region },
+        { name = "SCAN_MODE", value = "LIVE" },
         { name = "BACKEND_URL", value = "http://penflow-backend.${var.project_name}.local:3001" },
         { name = "BACKEND_API_URL", value = "http://penflow-backend.${var.project_name}.local:3001/api/v1" }
       ]
@@ -415,10 +415,10 @@ resource "aws_ecs_task_definition" "ephemeral_worker" {
       ]
 
       logConfiguration = {
-        logDriver = "awslogs" 
+        logDriver = "awslogs"
         options = {
-          awslogs-group         = aws_cloudwatch_log_group.worker.name 
-          awslogs-region        = var.aws_region 
+          awslogs-group         = aws_cloudwatch_log_group.worker.name
+          awslogs-region        = var.aws_region
           awslogs-stream-prefix = "ecs-ephemeral"
         }
       }

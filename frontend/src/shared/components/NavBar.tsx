@@ -4,8 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 import { usePathname} from "next/navigation";
-import brocodeLogo from "@/app/images/images/BroCode logo.png";
-import bluevisionLogo from "@/app/images/images/Bluevision logo.png";
+import penflowLogo from "@/app/images/images/PenFlow Logo.png";
 import { useEffect, useState } from "react";
 import { getHelpTopics } from "../helpContext";
 import type { HelpTopic } from "../helpContext";
@@ -85,23 +84,14 @@ const navItems = pathName.startsWith("/pentesting") || pathName.startsWith("/eng
     <nav className = "topbar">
       <div className={`navFlip${helpOpen? " navFlipped": ""}`}>
         <div className="navFace navFaceFront">
-        <div className = "logoPanel">
-        <Image
-          src = {bluevisionLogo}
-          alt = "Bluevision"
-          width = {80}
-          height = {48}
-          style = {{width: "auto", height: 48}}
-          />
-          <div className="logoDivider" />
-          <Image
-            src = {brocodeLogo}
-            alt = "BroCode"
-            width = {80}
-            height = {48}
-            style = {{ width: "auto", height: 48}}
+          <div className="logoPanel">
+            <Image
+              src={penflowLogo}
+              alt="PenFlow"
+              className="penflowLogo"
+              sizes="(max-width: 900px) 84px, 220px"
             />
-      </div>
+          </div>
 
       {loggedIn ? (
         <ul className = "topnav-list">
@@ -175,23 +165,15 @@ const navItems = pathName.startsWith("/pentesting") || pathName.startsWith("/eng
     
 
     <div className="navFace navFaceBack">
-      <div className = "logoPanel">
-        <Image
-          src = {bluevisionLogo}
-          alt = "Bluevision"
-          width = {80}
-          height = {48}
-          style = {{width: "auto", height: 48}}
-          />
-          <div className="logoDivider" />
-          <Image
-            src = {brocodeLogo}
-            alt = "BroCode"
-            width = {80}
-            height = {48}
-            style = {{ width: "auto", height: 48}}
+          <div className="logoPanel">
+            <Image
+              src={penflowLogo}
+              alt="PenFlow"
+              className="penflowLogo"
+              sizes="(max-width: 900px) 84px, 220px"
             />
-      </div>
+          </div>
+
       <div className="helpBackHeader">
         <button
           type = "button"
