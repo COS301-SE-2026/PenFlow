@@ -1,9 +1,10 @@
 <p align="center">
   <img 
-    src="docs/images/logo-animated.gif" 
+    src="docs/images/penflow_logo.jpeg" 
     width="360" 
-    alt="PenFlow animated logo"
+    alt="PenFlow logo"
   />
+</p>
 
 <h1 align="center">PenFlow</h1>
 
@@ -57,7 +58,7 @@
   <a href="https://github.com/COS301-SE-2026/PenFlow/issues">
     <img alt="Issues" src="https://img.shields.io/github/issues/COS301-SE-2026/PenFlow?style=for-the-badge&logo=github&logoColor=white" />
   </a>
-  <img alt="Demo 1" src="https://img.shields.io/badge/Demo%203-In%20Progress-2980B9?style=for-the-badge" />
+  <img alt="Demo 4" src="https://img.shields.io/badge/Demo%204-Complete-2980B9?style=for-the-badge" />
 </p>
 
 <p align="center">
@@ -156,9 +157,8 @@ Detailed project documentation is available below.
 | --- | --- |
 | [Software Requirements Specification](docs/SRS.md)| Functional and non-functional requirements for PenFlow. |
 | [Software Architecture Specification](docs/SAS.md) | Architecture, components, deployment, service contracts and design decisions. |
-| [Design Specification](docs/DESIGN.md) | Detailed system and interface design documentation. |
-| [Coding Standards](docs/coding_standards.md)| Instructions for using the PenFlow platform. |
-| [User Manual](docs/User%20Manual.pdf) | Team development conventions and coding standards. |
+| [Coding Standards](docs/coding_standards.md)| Team development conventions and coding standards. |
+| [User Manual](docs/User_Manual.pdf) | Instructions for using the PenFlow platform. |
 | [Testing Policy](docs/Testingpolicy.md) | Testing strategy and team testing requirements. |
 | [NFR Traceability Matrix](docs/NFR_Traceability_Matrix%20.md)| Mapping between non-functional requirements and their implementation/testing. |
 | [NFR Testing](docs/NFRtesting.md)| Evidence and results for non-functional requirement testing. |
