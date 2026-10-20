@@ -11,6 +11,8 @@ services:
       NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
       API_URL: http://backend:3001
       APP_URL: http://localhost:3000
+      CLIENT_IP_SOURCE: local
+      RATE_LIMIT_PROXY_SECRET: ${RATE_LIMIT_PROXY_SECRET:-local-only-rate-limit-proxy-secret-change-for-production}
       KEYCLOAK_PUBLIC_URL: http://localhost:8080
       KEYCLOAK_INTERNAL_URL: http://keycloak:8080
       KEYCLOAK_REALM: penflow
@@ -38,14 +40,22 @@ services:
       RABBITMQ_USERNAME: guest
       RABBITMQ_PASSWORD: guest
       RABBITMQ_PROTOCOL: amqp
+      APP_ENV: test
+      DATABASE_SSL_MODE: disable
+      RATE_LIMIT_STORAGE_URI: redis://redis:6379/1
       INTERNAL_WEBHOOK_SECRET: ${INTERNAL_WEBHOOK_SECRET:?Set INTERNAL_WEBHOOK_SECRET in .env}
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
+      EVIDENCE_STORAGE: local
+      EVIDENCE_STORAGE_DIR: /tmp/penflow-evidence-test
       REPORT_STORAGE: local
       REPORT_OUTPUT_DIR: /app/generated_reports
+      GUEST_SCAN_TOKEN_SECRET: ${GUEST_SCAN_TOKEN_SECRET:?Set GUEST_SCAN_TOKEN_SECRET}
     depends_on:
       postgres-test:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     volumes:
       - report-files-test:/app/generated_reports
@@ -67,11 +77,24 @@ services:
       RABBITMQ_USERNAME: guest
       RABBITMQ_PASSWORD: guest
       RABBITMQ_PROTOCOL: amqp
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      APP_ENV: development
+      DATABASE_SSL_MODE: disable
+      RATE_LIMIT_STORAGE_URI: redis://redis:6379/0
+      RATE_LIMIT_PROXY_SECRET: ${RATE_LIMIT_PROXY_SECRET:-local-only-rate-limit-proxy-secret-change-for-production}
+      DATABASE_URL: postgresql://penflow_runtime:${APP_DATABASE_PASSWORD:?Set APP_DATABASE_PASSWORD}@postgres:5432/${POSTGRES_DB}
       KEYCLOAK_ISSUER: http://localhost:8080/realms/penflow
       KEYCLOAK_JWKS_URL: http://keycloak:8080/realms/penflow/protocol/openid-connect/certs
       KEYCLOAK_AUDIENCE: penflow-api
+      KEYCLOAK_ADMIN_URL: http://keycloak:8080
+      KEYCLOAK_ADMIN_REALM: penflow
+      KEYCLOAK_PROVISIONER_CLIENT_ID: penflow-user-provisioner
+      KEYCLOAK_PROVISIONER_CLIENT_SECRET: ${KEYCLOAK_PROVISIONER_CLIENT_SECRET}
+      KEYCLOAK_INVITE_CLIENT_ID: penflow-web
+      KEYCLOAK_INVITE_REDIRECT_URI: http://localhost:3000/login
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
+      CORS_ORIGINS: http://localhost:3000
+      EVIDENCE_STORAGE: local
+      EVIDENCE_STORAGE_DIR: /tmp/penflow-evidence
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
       SMTP_USER: ${SMTP_USER}
@@ -95,9 +118,12 @@ services:
       BEDROCK_GENERATION_MODEL_ID: ${BEDROCK_GENERATION_MODEL_ID:-}
       BEDROCK_GENERATION_MAX_TOKENS: ${BEDROCK_GENERATION_MAX_TOKENS:-800}
       BEDROCK_GENERATION_TEMPERATURE: ${BEDROCK_GENERATION_TEMPERATURE:-0.1}
+      GUEST_SCAN_TOKEN_SECRET: ${GUEST_SCAN_TOKEN_SECRET:?Set GUEST_SCAN_TOKEN_SECRET}
 
     depends_on:
       rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       postgres:
         condition: service_healthy
@@ -105,6 +131,7 @@ services:
         condition: service_healthy
     volumes:
       - report-files:/app/generated_reports
+      - evidence-files:/tmp/penflow-evidence
     restart: unless-stopped
     networks:
       - penflow-network
@@ -122,6 +149,7 @@ services:
       RABBITMQ_USERNAME: guest
       RABBITMQ_PASSWORD: guest
       RABBITMQ_PROTOCOL: amqp
+      DATABASE_SSL_MODE: disable
       DATABASE_URL: postgresql://${POSTGRES_TEST_USER}:${POSTGRES_TEST_PASSWORD}@postgres-test:5432/${POSTGRES_TEST_DB}
       INTERNAL_WEBHOOK_SECRET: ${INTERNAL_WEBHOOK_SECRET:?Set INTERNAL_WEBHOOK_SECRET in .env}
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
@@ -160,7 +188,8 @@ services:
       RABBITMQ_USERNAME: guest
       RABBITMQ_PASSWORD: guest
       RABBITMQ_PROTOCOL: amqp
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_SSL_MODE: disable
+      DATABASE_URL: postgresql://penflow_runtime:${APP_DATABASE_PASSWORD:?Set APP_DATABASE_PASSWORD}@postgres:5432/${POSTGRES_DB}
       URLSCAN_API_KEY: ${URLSCAN_API_KEY}
       SHODAN_API_KEY: ${SHODAN_API_KEY}
       SCREENSHOT_OUTPUT_DIR: /app/generated_reports/screenshots
@@ -241,12 +270,13 @@ services:
         "--concurrency=1"
       ]
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://penflow_runtime:${APP_DATABASE_PASSWORD:?Set APP_DATABASE_PASSWORD}@postgres:5432/${POSTGRES_DB}
       RABBITMQ_HOST: rabbitmq
       RABBITMQ_PORT: 5672
       RABBITMQ_USERNAME: guest
       RABBITMQ_PASSWORD: guest
       RABBITMQ_PROTOCOL: amqp
+      DATABASE_SSL_MODE: disable
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -299,6 +329,27 @@ services:
     networks:
       - penflow-network
 
+  redis:
+    image: redis:7.4-alpine
+    command:
+      - redis-server
+      - --save
+      - ""
+      - --appendonly
+      - "no"
+      - --maxmemory
+      - 64mb
+      - --maxmemory-policy
+      - noeviction
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - penflow-network
+
   postgres:
     container_name: penflow-postgres
     image: pgvector/pgvector:pg16
@@ -308,6 +359,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      APP_DATABASE_PASSWORD: ${APP_DATABASE_PASSWORD:?Set APP_DATABASE_PASSWORD}
     volumes:
       - penflow-postgres-data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d
@@ -334,6 +386,7 @@ services:
       POSTGRES_USER: ${POSTGRES_TEST_USER}
       POSTGRES_PASSWORD: ${POSTGRES_TEST_PASSWORD}
       POSTGRES_DB: ${POSTGRES_TEST_DB}
+      APP_DATABASE_PASSWORD: ${APP_DATABASE_PASSWORD:?Set APP_DATABASE_PASSWORD}
     volumes:
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
     restart: "no"
@@ -367,6 +420,7 @@ services:
       KC_DB_PASSWORD: keycloak_password
       KEYCLOAK_BOOTSTRAP_ADMIN_USERNAME: admin
       KEYCLOAK_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_PROVISIONER_CLIENT_SECRET: ${KEYCLOAK_PROVISIONER_CLIENT_SECRET}
       KC_HTTP_ENABLED: "true"
       KC_HOSTNAME: http://localhost:8080
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
@@ -390,6 +444,73 @@ services:
     networks:
       - penflow-network
 
+  clamav:
+    image: clamav/clamav:1.4
+    environment:
+      TZ: Etc/UTC
+      FRESHCLAM_CHECKS: "12"
+      CLAMD_CONF_StreamMaxLength: "11M"
+      CLAMD_CONF_MaxFileSize: "20M"
+      CLAMD_CONF_MaxScanSize: "50M"
+      CLAMD_CONF_MaxScanTime: "30000"
+      CLAMD_CONF_MaxThreads: "2"
+      CLAMD_CONF_MaxQueue: "4"
+      CLAMD_CONF_AlertExceedsMax: "yes"
+      CLAMD_CONF_AlertEncrypted: "yes"
+    volumes:
+      - clamav-data:/var/lib/clamav
+    mem_limit: 4g
+    healthcheck:
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
+    restart: unless-stopped
+    networks:
+      - penflow-network
+
+  evidence-worker:
+    image: ${BACKEND_IMAGE:-penflow-backend:local}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    command:
+      [
+        "celery",
+        "-A",
+        "app.queue.celery_app:celery_app",
+        "worker",
+        "--loglevel=info",
+        "--queues=evidence",
+        "--concurrency=1",
+        "--prefetch-multiplier=1"
+      ]
+    environment:
+      DATABASE_URL: postgresql://penflow_runtime:${APP_DATABASE_PASSWORD:?Set APP_DATABASE_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: guest
+      RABBITMQ_PASSWORD: guest
+      RABBITMQ_PROTOCOL: amqp
+      DATABASE_SSL_MODE: disable
+      EVIDENCE_STORAGE: local
+      EVIDENCE_STORAGE_DIR: /tmp/penflow-evidence
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: "3310"
+    volumes:
+      - evidence-files:/tmp/penflow-evidence
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      clamav:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - penflow-network
+
 networks:
   penflow-network:
     driver: bridge
@@ -400,3 +521,5 @@ volumes:
   keycloak-postgres-data:
   report-files:
   report-files-test:
+  evidence-files:
+  clamav-data:

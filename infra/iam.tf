@@ -39,6 +39,11 @@ data "aws_iam_policy_document" "ecs_execution_secrets" {
       aws_secretsmanager_secret.keycloak_db_password.arn,
       aws_secretsmanager_secret.keycloak_admin_password.arn,
       aws_secretsmanager_secret.rabbitmq_password.arn,
+      aws_secretsmanager_secret.guest_scan_token_secret.arn,
+      aws_secretsmanager_secret.app_database_password.arn,
+      aws_secretsmanager_secret.rate_limit_storage_uri.arn,
+      aws_secretsmanager_secret.rate_limit_proxy_secret.arn,
+      aws_secretsmanager_secret.backend_tls.arn,
 
       aws_secretsmanager_secret.hibp_api_key.arn,
       aws_secretsmanager_secret.shodan_api_key.arn,
@@ -408,4 +413,37 @@ resource "aws_iam_role_policy" "github_deploy" {
   name   = "${local.name_prefix}-github-deploy"
   role   = aws_iam_role.github_deploy.id
   policy = data.aws_iam_policy_document.github_deploy.json
+}
+
+data "aws_iam_policy_document" "evidence_s3" {
+  statement {
+    sid     = "ListEvidenceBucket"
+    effect  = "Allow"
+    actions = ["s3:ListBucket"]
+
+    resources = [
+      aws_s3_bucket.evidence.arn
+    ]
+  }
+
+  statement {
+    sid    = "ReadWriteEvidence"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject",
+      "s3:PutObject",
+      "s3:DeleteObject"
+    ]
+
+    resources = [
+      "${aws_s3_bucket.evidence.arn}/engagements/*"
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "backend_evidence_s3" {
+  name   = "${local.name_prefix}-backend-evidence-s3"
+  role   = aws_iam_role.backend_task.id
+  policy = data.aws_iam_policy_document.evidence_s3.json
 }

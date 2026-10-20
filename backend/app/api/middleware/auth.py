@@ -153,7 +153,10 @@ async def get_current_user(
         )
 
     try:
-        return await decode_token(token)
+        claims = await decode_token(token)
+        request.state.audit_subject = claims["sub"]
+        request.state.rate_limit_subject = claims["sub"]
+        return claims
 
     except HTTPException:
         raise

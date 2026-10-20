@@ -157,7 +157,7 @@ CREATE TABLE users (
 
     UNIQUE (auth_provider, auth_provider_id),
 
-    CHECK(role IN ('client', 'pentester', 'service_delivery', 'admin'))
+    CHECK(role IN ('client', 'pentester', 'service_delivery'))
 );
 
 CREATE TABLE pentester_profiles (
@@ -201,6 +201,7 @@ CREATE TABLE scan_schedules (
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     scan_type scan_type NOT NULL DEFAULT 'active_vulnerability',
     verified_domain_id UUID NOT NULL REFERENCES verified_domains(id) ON DELETE CASCADE,
+    authorisation JSONB,
     frequency scan_schedule_frequency NOT NULL,
     run_time TIME NOT NULL,
     day_of_week SMALLINT,
@@ -239,6 +240,7 @@ CREATE TABLE scans (
     task_id VARCHAR(255),
     domain VARCHAR(255) NOT NULL,
     verified_domain_id UUID REFERENCES verified_domains(id) ON DELETE SET NULL,
+    authorisation JSONB,
     schedule_id UUID REFERENCES scan_schedules(id) ON DELETE SET NULL DEFAULT NULL,
     scheduled_for TIMESTAMPTZ DEFAULT NULL,
     scan_type scan_type NOT NULL DEFAULT 'passive_ctem', 
@@ -499,7 +501,16 @@ CREATE TABLE evidence_files (
     uploaded_by UUID REFERENCES users(id),
     file_name VARCHAR(255) NOT NULL,
     file_path TEXT NOT NULL,
+    storage_backend VARCHAR(10) NOT NULL DEFAULT 'local',
+    sha256 VARCHAR(64),
+    size_bytes BIGINT,
     mime_type VARCHAR(100),
+    quarantine_status VARCHAR(16) NOT NULL DEFAULT 'pending',
+    scan_attempts INTEGER NOT NULL DEFAULT 0,
+    next_scan_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    scanned_at TIMESTAMPTZ,
+    scan_message VARCHAR(255),
+    scanner_version VARCHAR(255),
     uploaded_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -614,3 +625,5 @@ CREATE INDEX idx_brand_candidates_risk ON brand_candidates(risk_level);
 
 CREATE INDEX idx_rag_chunks_scan_id ON rag_chunks(scan_id);
 CREATE INDEX idx_rag_chunks_embedding_model ON rag_chunks(embedding_model);
+
+CREATE INDEX IF NOT EXISTS ix_evidence_quarantine_due ON evidence_files (next_scan_at, id) WHERE quarantine_status = 'pending';

@@ -362,3 +362,25 @@ variable "rag_retrieval_mode" {
     error_message = "rag_retrieval_mode must be vector or hybrid."
   }
 }
+
+variable "guest_scan_token_secret" {
+  description = "Signing secret for anonymous scan capabilities."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = length(var.guest_scan_token_secret) >= 32
+    error_message = "Provide a random secret of at least 32 characters."
+  }
+}
+
+variable "app_database_password" {
+  description = "Password for the restricted PenFlow runtime database role."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = length(var.app_database_password) >= 32
+    error_message = "Use at least 32 characters for the runtime database password."
+  }
+}

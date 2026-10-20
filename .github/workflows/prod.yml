@@ -144,7 +144,8 @@ jobs:
             "$ECS_CLUSTER" \
             "$SCHEDULE_WORKER_SERVICE" \
             "$SCHEDULE_WORKER_CONTAINER" \
-            "$IMAGE"
+            "$IMAGE" \
+            "penflow-evidence-worker"
 
           ./scripts/deploy-ecs-service.sh \
             "$ECS_CLUSTER" \
