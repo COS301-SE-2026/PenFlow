@@ -2,18 +2,18 @@ import logging
 import os
 from typing import Any
 
-import requests
+import httpx
 
 from app.queue.celery_app import celery_app
 from app.services.brand_scoring_service import BrandScoringService
 from app.services.brand_signal_service import BrandSignalService
 from app.services.typosquat_service import TyposquatService
+from app.utils.internal_auth import internal_headers
+from app.utils.internal_http import internal_http_options
 
 logger = logging.getLogger(__name__)
 
 BACKEND_API_URL = os.getenv("BACKEND_API_URL", "http://penflow-backend.penflow.local:3001/api/v1")
-
-INTERNAL_SECRET = os.environ["INTERNAL_WEBHOOK_SECRET"]
 
 
 @celery_app.task(
@@ -57,19 +57,29 @@ def run_brand_monitoring_task(self: Any, brand_monitoring_id: str, domain: str) 
         "candidates": discovered_candidates,
     }
 
-    headers = {"X-Internal-Token": INTERNAL_SECRET, "Content-Type": "application/json"}
+    headers = internal_headers()
+
+    url = (
+        f"{BACKEND_API_URL}"
+        "/brand-intelligence/internal/ingest"
+    )
 
     try:
-        response = requests.post(
-            f"{BACKEND_API_URL}/brand-intelligence/internal/ingest",
+        response = httpx.post(
+            url,
             json=payload,
             headers=headers,
             timeout=30,
+            **internal_http_options(url),
         )
         response.raise_for_status()
+
     except Exception as exc:
-        logger.error(f"[BrandMonitor] Failed to ingest results into backend: {exc}")
-        raise exc
+        logger.error(
+            "[BrandMonitor] Failed to ingest results into backend: %s",
+            exc,
+        )
+        raise
 
     return {
         "status": "completed",

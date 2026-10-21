@@ -4,6 +4,7 @@ WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV TEST_RDS_CA_FILE=/app/certs/rds-global-bundle.pem
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpango-1.0-0 \
@@ -32,11 +33,22 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY workers/app ./app
 COPY workers/tests ./tests
 COPY workers/pytest.ini ./pytest.ini
+COPY workers/docs ./docs
+COPY backend/app/templates ./report-fixtures/templates
+COPY backend/app/utils/report_context.py \
+     backend/app/utils/phase2_report_context.py \
+     ./report-fixtures/utils/
+
+ENV REPORT_TEST_FIXTURES=/app/report-fixtures
 
 RUN adduser --disabled-password --gecos "" appuser && \
     mkdir -p /app/generated_reports && \
     chown -R appuser:appuser /app
 
+COPY docker/certs/rds-global-bundle.pem /app/certs/rds-global-bundle.pem
+COPY --chmod=0644 docker/certs/penflow-internal-ca.pem \
+    /app/certs/penflow-internal-ca.pem
+    
 USER appuser
 
 CMD ["pytest", "tests/integration"]

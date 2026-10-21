@@ -34,8 +34,12 @@ RUN adduser --disabled-password --gecos "" appuser && \
     mkdir -p /app/generated_reports && \
     chown -R appuser:appuser /app
 
+COPY docker/certs/rds-global-bundle.pem /app/certs/rds-global-bundle.pem
+COPY --chmod=0644 docker/certs/penflow-internal-ca.pem \
+    /app/certs/penflow-internal-ca.pem
+
 USER appuser
 
 EXPOSE 3001
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "3001"]
+CMD ["python", "-m", "app.run_backend"]

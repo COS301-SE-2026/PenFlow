@@ -21,7 +21,7 @@ def run_urlscan(scan_id: str, domain: str) -> JSONDict:
         logger.warning("[URLScan_Task] Failed to send `running` callback for %s", scan_id)
 
     try:
-        raw_data = collect_raw_data(domain)
+        raw_data = collect_raw_data(domain, scan_id)
         normalized = normalize_data(raw_data)
         findings = generate_findings(normalized)
         reputation = normalized.get("reputation", {})

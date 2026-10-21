@@ -4,6 +4,9 @@ import time
 
 import httpx
 
+from app.utils.internal_auth import internal_headers
+from app.utils.internal_http import internal_http_options
+
 logger = logging.getLogger(__name__)
 temp_backend_url = os.getenv("BACKEND_URL")
 
@@ -25,8 +28,15 @@ def send_scan_callback(scan_id: str, status: str, error_message: str | None = No
     }
 
     try:
-        with httpx.Client(timeout=30) as client:
-            response = client.patch(url, json=payload)
+        with httpx.Client(
+            timeout=30,
+            **internal_http_options(url),
+        ) as client:
+            response = client.patch(
+                url, 
+                json=payload,
+                headers=internal_headers(),
+            )
             response.raise_for_status()
     except Exception:
         logger.exception("Failed to send scan callback for %s", scan_id)
@@ -44,8 +54,15 @@ def send_report_callback(
     }
 
     try:
-        with httpx.Client(timeout=30) as client:
-            response = client.patch(url, json=payload)
+        with httpx.Client(
+            timeout=30,
+            **internal_http_options(url),
+        ) as client:
+            response = client.patch(
+                url, 
+                json=payload,
+                headers=internal_headers(),
+            )
             response.raise_for_status()
     except Exception:
         logger.exception("Failed to send report callback for %s", scan_id)
@@ -87,8 +104,15 @@ def send_source_callback(
         payload["failed_targets"] = failed_targets
 
     try:
-        with httpx.Client(timeout=30) as client:
-            response = client.patch(url, json=payload)
+        with httpx.Client(
+            timeout=30,
+            **internal_http_options(url),
+        ) as client:
+            response = client.patch(
+                url, 
+                json=payload,
+                headers=internal_headers(),
+            )
             response.raise_for_status()
 
     except Exception:
@@ -123,8 +147,15 @@ def send_engagement_report_callback(
 
     for attempt in range(1, max_retries + 1):
         try:
-            with httpx.Client(timeout=30) as client:
-                response = client.put(url, json=payload)
+            with httpx.Client(
+                timeout=30,
+                **internal_http_options(url),
+            ) as client:
+                response = client.put(
+                    url, 
+                    json=payload,
+                    headers=internal_headers(),
+                )
                 response.raise_for_status()
                 return
         except Exception:

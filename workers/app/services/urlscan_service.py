@@ -3,8 +3,17 @@ import logging
 import os
 import time
 from pathlib import Path
+from uuid import UUID
 
 import httpx
+
+from app.services.pdf_assets import save_screenshot
+from app.utils.safe_outbound import (
+    UnsafeDestination,
+    normalise_host,
+    resolve_public_host,
+    safe_get,
+)
 
 # Logger to track this specific worker
 logger = logging.getLogger(__name__)
@@ -22,33 +31,25 @@ SCREENSHOT_OUTPUT_DIR = Path(
 
 
 # so we can display screen shot
-def _download_screenshot(image_url: str, target_filename: str) -> str:
-    """Downloads an image from the web and saves it to the shared templates folder."""
+def _download_screenshot(image_url: str, scan_id: str) -> str:
     try:
-        logger.info(f"Downloading live screenshot from: {image_url}")
-
-        SCREENSHOT_OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-        save_path = SCREENSHOT_OUTPUT_DIR / target_filename
-
-        response = httpx.get(image_url, timeout=15.0)
+        response = safe_get(
+            image_url,
+            timeout=15.0,
+            max_bytes=8 * 1024 * 1024,
+        )
         response.raise_for_status()
 
-        # Save it directly where the PDF engine expects to find it
-        with open(save_path, "wb") as f:
-            f.write(response.content)
+        return save_screenshot(scan_id, response.content)
 
-        logger.info(f"Screenshot saved successfully as: {save_path}")
-        return str(save_path)
-    except Exception as e:
-        logger.exception(f"X Failed to download screenshot: {e}")
-
-        # default for failure for now
+    except Exception:
+        logger.exception("Screenshot download or storage failed")
         return "brocode_logo.png"
 
 
-def collect_raw_data(domain: str) -> dict:
+def collect_raw_data(domain: str, scan_id: str) -> dict:
     """Collects data either from local static files or the live internet."""
-
+    scan_id = str(UUID(scan_id))
     # mock mode
     if SCAN_MODE == "MOCK":
         logger.info(f"[URLScan] Running in MOCK mode for {domain}")
@@ -68,8 +69,25 @@ def collect_raw_data(domain: str) -> dict:
         logger.error("X LIVE mode requires valid URLSCAN_API_KEY in the .env file.")
         return {"error": "Missing URLScan API Key"}
 
+    try:
+        domain = normalise_host(domain)
+        resolve_public_host(domain, timeout=5.0)
+
+    except UnsafeDestination:
+        logger.warning(
+            "[URLScan] Rejected unsafe target"
+        )
+        return {
+            "error": "Target is not a permitted public destination"
+        }
+
     headers = {"API-Key": URLSCAN_API_KEY, "Content-Type": "application/json"}
-    payload = {"url": f"https://{domain}", "visibility": "public"}
+    authority = f"[{domain}]" if ":" in domain else domain
+
+    payload = {
+        "url": f"https://{authority}",
+        "visibility": "public",
+    }
 
     with httpx.Client() as client:
         # Submit the Scan
@@ -85,10 +103,15 @@ def collect_raw_data(domain: str) -> dict:
             logger.exception(f"URLScan API Error: {e}")  # catch timeouts
             return {"error": "API Request Failed"}
         try:
-            uuid = submit_res.json().get("uuid")
-        except ValueError as e:
-            logger.exception(f"URLScan API Error: {e}")
-            return {"error": "Invalid API Response"}
+            uuid = str(UUID(submit_res.json()["uuid"]))
+
+        except (KeyError, ValueError, TypeError, AttributeError):
+            logger.error(
+                "[URLScan] Invalid submission identifier"
+            )
+            return {
+                "error": "Invalid API Response"
+            }
         logger.info(f"[URLScan] Scan queued. UUID: {uuid}. Entering polling loop...")
 
         # poll for results every 10 seconds, up to 6 attempts. 1 min total
@@ -120,8 +143,7 @@ def collect_raw_data(domain: str) -> dict:
         # download screen shot to our local templates folder
         # for PDF report generation (and potential future DB storage)
         screenshot_url = f"https://urlscan.io/screenshots/{uuid}.png"
-        filename = f"{domain.replace('.', '_')}_{uuid}.png"
-        saved_filename = _download_screenshot(screenshot_url, filename)
+        saved_filename = _download_screenshot(screenshot_url, scan_id)
 
         # Inject our local filename into their massive JSON payload
         raw_result["_local_screenshot_path"] = saved_filename

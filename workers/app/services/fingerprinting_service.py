@@ -3,7 +3,6 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
-import requests
 import urllib3
 from bs4 import BeautifulSoup
 
@@ -14,6 +13,7 @@ from app.services.signatures.frameworks import FRAMEWORK_SIGNATURES
 from app.services.signatures.languages import LANGUAGE_SIGNATURES
 from app.services.signatures.load_balancers import LOAD_BALANCER_SIGNATURES
 from app.services.signatures.servers import SERVER_SIGNATURES
+from app.utils.safe_outbound import UnsafeDestination, safe_get
 
 # best way to silence the warnings for unsafe connections
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -28,10 +28,12 @@ class FingerprintingService:
         target_url: str,
         nmap_data: Optional[dict[str, Any]] = None,
         tls_data: Optional[dict[str, Any]] = None,
+        scope_domain: str | None = None,
     ):
         self.target_url = target_url
         self.nmap_data = nmap_data or {}
         self.tls_data = tls_data or {}
+        self.scope_domain = scope_domain
 
         self.cache = {
             "status_code": 0,
@@ -98,10 +100,15 @@ class FingerprintingService:
         Retrieves HTTP information from the target and builds the cache.
         """
         try:
-            response = requests.get(
+            response = safe_get(
                 self.target_url,
                 timeout=10,
                 verify=False,
+                **(
+                    {"allowed_domain": self.scope_domain}
+                    if self.scope_domain is not None
+                    else {}
+                ),
             )
 
             self.cache["status_code"] = response.status_code
@@ -148,6 +155,9 @@ class FingerprintingService:
                 if href:
                     links.append(str(href).lower())
             self.cache["links"] = links
+
+        except UnsafeDestination:
+            raise
 
         except Exception as error:
             logger.warning(f"[Fingerprint] Failed collecting HTTP data: {error}")

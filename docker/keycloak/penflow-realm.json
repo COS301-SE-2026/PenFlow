@@ -11,7 +11,33 @@
   "verifyEmail": false,
   "resetPasswordAllowed": true,
   "loginTheme": "penflow",
-  
+
+  "clientScopeMappings": {
+    "realm-management": [
+      {
+        "client": "penflow-user-provisioner",
+        "roles": [
+          "manage-users",
+          "view-users",
+          "query-users",
+          "view-realm"
+        ]
+      }
+    ]
+  },
+
+  "requiredActions": [
+    {
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "providerId": "CONFIGURE_TOTP",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 30,
+      "config": {}
+    }
+  ],
+
   "roles": {
     "realm": [
       {
@@ -21,10 +47,6 @@
       {
         "name": "pentester",
         "description": "PenFlow penetration tester"
-      },
-      {
-        "name": "admin",
-        "description": "PenFlow administrator"
       },
       {
         "name": "service_delivery",
@@ -96,6 +118,38 @@
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": false
+    },
+    {
+    "clientId": "penflow-user-provisioner",
+    "name": "PenFlow User Provisioner",
+    "enabled": true,
+
+    "protocol": "openid-connect",
+    "publicClient": false,
+    "clientAuthenticatorType": "client-secret",
+    "secret": "${KEYCLOAK_PROVISIONER_CLIENT_SECRET}",
+
+    "standardFlowEnabled": false,
+    "implicitFlowEnabled": false,
+    "directAccessGrantsEnabled": false,
+    "serviceAccountsEnabled": true,
+    "fullScopeAllowed": false
+  }
+  ],
+
+  "users": [
+    {
+      "username": "service-account-penflow-user-provisioner",
+      "enabled": true,
+      "serviceAccountClientId": "penflow-user-provisioner",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users",
+          "view-realm"
+        ]
+      }
     }
   ]
 }

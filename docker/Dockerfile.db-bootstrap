@@ -2,6 +2,9 @@ FROM postgres:16-alpine
 
 COPY docker/postgres/init/01-init-schema.sql /bootstrap/schema.sql
 COPY docker/postgres/bootstrap.sh /bootstrap/bootstrap.sh
+COPY docker/postgres/init/02-runtime-permissions.sql /bootstrap/runtime-permissions.sql
+COPY docker/certs/rds-global-bundle.pem \
+    /bootstrap/rds-global-bundle.pem
 
 RUN chmod +x /bootstrap/bootstrap.sh
 

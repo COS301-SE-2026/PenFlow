@@ -60,6 +60,10 @@ RUN adduser --disabled-password --gecos "" appuser && \
     mkdir -p /app/generated_reports && \
     chown -R appuser:appuser /app
 
+COPY docker/certs/rds-global-bundle.pem /app/certs/rds-global-bundle.pem
+COPY --chmod=0644 docker/certs/penflow-internal-ca.pem \
+    /app/certs/penflow-internal-ca.pem
+    
 USER appuser
 
 CMD ["celery", "-A", "app.queue.celery_app:celery_app", "worker", "--loglevel=info", "--concurrency=2"]
