@@ -16,7 +16,11 @@ export async function  GET() {
 
 // Keycloak Registration URL 
 const redirectUri = `${APP_URL}/api/auth/callback`;
-const registerUrl = new URL(AUTHORIZATION_URL.replace("/auth", "/registrations"));
+const registerUrl = new URL(AUTHORIZATION_URL);
+registerUrl.pathname = registerUrl.pathname.replace(
+  /\/auth$/,
+  "/registrations"
+);
 
 // OAuth Parameters 
 registerUrl.searchParams.set("client_id", CLIENT_ID);

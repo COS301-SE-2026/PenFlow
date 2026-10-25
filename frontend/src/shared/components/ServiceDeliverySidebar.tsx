@@ -53,6 +53,28 @@ export default function ServiceDeliverySidebar() {
                     const isActive = pathName === item.href || pathName.startsWith(`${item.href}/`);
                     const badge = badges[item.label];
 
+                    if (
+                        item.kind === "external"
+                        && item.href === "/api/auth/logout"
+                    ) {
+                        return (
+                            <li key={item.href}>
+                                <form
+                                    action="/api/auth/logout"
+                                    method="post"
+                                    className="m-0"
+                                >
+                                    <button
+                                        type="submit"
+                                        className="nav-link cursor-pointer border-0 bg-transparent"
+                                    >
+                                        {item.label}
+                                    </button>
+                                </form>
+                            </li>
+                        );
+                    }      
+
                     if(item.kind === "external") { 
                     return (
                         <li key={item.href}>

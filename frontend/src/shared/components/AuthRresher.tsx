@@ -8,7 +8,7 @@
 
 
 "use client";
-
+import { submitLogout } from "@/lib/logout";
 import { useEffect } from "react";
 
 
@@ -71,7 +71,7 @@ export default function AuthRefresher(){
                         const response = await fetch("/api/auth/refresh", {method: "POST"});
 
                         if(!response.ok) {
-                            window.location.href = "/api/auth/logout";
+                            submitLogout();
                             return;
                         }
 
@@ -79,7 +79,7 @@ export default function AuthRefresher(){
                     }                
                 );
             } catch {
-                window.location.href = "/api/auth/logout";
+                submitLogout();
             }
         };
 
