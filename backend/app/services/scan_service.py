@@ -10,6 +10,9 @@ from app.queue.celery_app import celery_app
 from app.repositories.domain_repository import DomainRepository
 from app.repositories.scan_repo import ScanRepository
 from app.schemas.scan import InitiateScanRequest, ScanTypeEnum
+from app.services.phase2_authorisation_service import (
+    Phase2AuthorisationService,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +27,8 @@ class ScanService:
         logger.info(
             "Initiating %s scan for domain: %s", scan_data.scan_type.value, scan_data.domain
         )
+
+        authorisation = None
 
         if scan_data.scan_type == ScanTypeEnum.ACTIVE_VULNERABILITY:
             if not scan_data.verified_domain_id:
@@ -52,7 +57,21 @@ class ScanService:
                     detail="Domain string does not match the verified domain records.",
                 )
 
+            authorisation = await Phase2AuthorisationService.issue(
+                db,
+                user_id=user_id,
+                verified_domain_id=scan_data.verified_domain_id,
+                domain=scan_data.domain,
+                source="manual_scan",
+            )
+
         # repo creates a new record in the db
+
+        create_options: dict[str, Any] = {}
+
+        if authorisation is not None:
+            create_options["authorisation"] = authorisation
+
         scan_record = await ScanRepository.create_scan(
             db=db,
             domain=scan_data.domain,
@@ -60,6 +79,7 @@ class ScanService:
             email=scan_data.email,
             user_id=user_id,
             verified_domain_id=scan_data.verified_domain_id,
+            **create_options,
         )
 
         # fire off Celery task to the RabbitMQ queue

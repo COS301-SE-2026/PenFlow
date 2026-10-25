@@ -33,7 +33,7 @@ def build_prompt_question(
             f"{message.role.title()}: "
             f"{message.content}"
         )
-        for message in request.history
+        for message in request.history[-6:]
     )
 
     return (

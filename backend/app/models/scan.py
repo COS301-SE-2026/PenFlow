@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
 from app.models.base import Base, RAGIndexStatus, ScanStatus, ScanType
@@ -115,6 +115,8 @@ class Scan(Base):
     created_at = Column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
     )
+
+    authorisation = Column(JSONB, nullable=True)
 
     started_at = Column(DateTime(timezone=True))
 

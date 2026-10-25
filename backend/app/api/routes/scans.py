@@ -6,6 +6,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies.scan_access import (
+    GUEST_TOKEN_TTL,
+    issue_guest_token,
+    require_scan_email,
+    require_scan_read,
+)
 from app.api.middleware.auth import get_current_user, get_current_user_optional
 from app.api.middleware.rate_limiter import limiter
 from app.models.base import ScanStatus
@@ -80,12 +86,34 @@ async def initiate_ctem_scan(
 ) -> InitiateScanResponse:
     try:
         user_id = None
+
         if current_user is not None:
-            user_id = await get_user_id_by_provider_id(db, current_user["sub"])
+            user_id = await get_user_id_by_provider_id(
+                db,
+                current_user["sub"],
+            )
+
+            if user_id is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="User not found",
+                )
 
         new_scan = await ScanService.start_scan(db, payload, user_id=user_id)
 
-        return InitiateScanResponse(scan_id=new_scan.id, status=new_scan.status)
+        guest_token = None
+        guest_token_expires_in = None
+
+        if user_id is None:
+            guest_token = issue_guest_token(new_scan.id)
+            guest_token_expires_in = GUEST_TOKEN_TTL
+
+        return InitiateScanResponse(
+            scan_id=new_scan.id,
+            status=new_scan.status,
+            guest_token=guest_token,
+            guest_token_expires_in=guest_token_expires_in,
+        )
 
     except HTTPException:
         raise
@@ -99,7 +127,10 @@ async def initiate_ctem_scan(
         ) from exc
 
 
-@router.get("/{scan_id}/status")
+@router.get(
+        "/{scan_id}/status", 
+        dependencies=[Depends(require_scan_read)],
+)
 async def get_scan_status(
     scan_id: UUID,
     current_user: CurrentUserOptional,
@@ -134,6 +165,7 @@ async def get_scan_status(
     "/{scan_id}/pdf",
     response_class=Response,
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_scan_read)],
 )
 async def download_scan_pdf(
     scan_id: UUID,
@@ -200,6 +232,7 @@ async def download_scan_pdf(
         400: {"description": "Report is not ready yet"},
         404: {"description": "Scan not found"},
     },
+    dependencies=[Depends(require_scan_email)],
 )
 @limiter.limit("2/minute")
 async def email_scan_report(
@@ -231,6 +264,7 @@ async def email_scan_report(
     "/{scan_id}/metrics",
     response_model=MetricsResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_scan_read)],
 )
 async def get_scan_metrics(
     scan_id: UUID,
@@ -250,6 +284,7 @@ async def get_scan_metrics(
     "/{scan_id}/findings",
     response_model=list[DashboardFindingItem],
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_scan_read)],
 )
 async def get_scan_findings(
     scan_id: UUID,
@@ -270,6 +305,7 @@ async def get_scan_findings(
     "/{scan_id}/assets",
     response_model=list[DashboardAssetItem],
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_scan_read)],
 )
 async def get_scan_assets(
     scan_id: UUID,
@@ -289,6 +325,7 @@ async def get_scan_assets(
     "/{scan_id}/risk-history",
     response_model=list[RiskHistoryItem],
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_scan_read)],
 )
 async def get_scan_risk_history(
     scan_id: UUID,
@@ -304,6 +341,7 @@ async def get_scan_risk_history(
     "/{scan_id}/findings-page",
     response_model=FindingListResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_scan_read)],
 )
 async def get_scan_findings_page(
     scan_id: UUID,
@@ -338,6 +376,7 @@ async def get_scan_findings_page(
     "/{scan_id}/services-page",
     response_model=ServiceListResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_scan_read)],
 )
 async def get_scan_services_page(
     scan_id: UUID,
@@ -371,6 +410,7 @@ async def get_scan_services_page(
     "/{scan_id}/assets-page",
     response_model=AssetListResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_scan_read)],
 )
 async def get_scan_assets_page(
     scan_id: UUID,

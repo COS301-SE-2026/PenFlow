@@ -3,6 +3,7 @@ import os
 from app.services.rag.bedrock_generation_provider import (
     BedrockGenerationProvider,
 )
+from app.services.rag.gemini_provider import GeminiGenerationProvider
 from app.services.rag.generation_provider import (
     GenerationProvider,
     GenerationProviderError,
@@ -17,6 +18,9 @@ def create_generation_provider() -> GenerationProvider:
 
     if provider_name == "bedrock":
         return BedrockGenerationProvider()
+
+    if provider_name == "gemini":
+        return GeminiGenerationProvider()
 
     raise GenerationProviderError(
         f"Unsupported generation provider: {provider_name}"

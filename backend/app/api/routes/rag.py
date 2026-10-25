@@ -87,7 +87,7 @@ async def index_scan(
         return RAGIndexResponse(**result)
 
     except EmbeddingProviderError as exc:
-        logger.exception(
+        logger.error(
             "Embedding failed while indexing scan %s",
             scan_id,
         )
@@ -130,7 +130,7 @@ async def search_scan(
         )
 
     except EmbeddingProviderError as exc:
-        logger.exception(
+        logger.error(
             "Embedding failed while searching scan %s",
             scan_id,
         )
@@ -177,7 +177,7 @@ async def ask_scan(
         EmbeddingProviderError,
         GenerationProviderError,
     ) as exc:
-        logger.exception(
+        logger.error(
             "Security analysis failed for scan %s",
             scan_id,
         )

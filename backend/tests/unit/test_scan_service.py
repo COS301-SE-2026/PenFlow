@@ -143,8 +143,9 @@ async def  test_start_scan_active_domain_mismatch_raises_400(mock_get_by_id):
 @patch("app.services.scan_service.ScanRepository.create_scan",new_callable=AsyncMock)
 @patch("app.services.scan_service.DomainRepository.get_by_id",new_callable=AsyncMock)
 async def test_start_scan_active_happy_path_queues_phase2_task(
-  mock_get_by_id, mock_create_scan ,mock_send_task     
+  mock_get_by_id, mock_create_scan ,mock_send_task, phase2_authorisation     
 ):
+    authorisation, mock_issue = phase2_authorisation
     db = AsyncMock()
     user_id = uuid4()
     verified_domain_id = uuid4()
@@ -176,8 +177,32 @@ async def test_start_scan_active_happy_path_queues_phase2_task(
            email = None,
            user_id = user_id,
            verified_domain_id = verified_domain_id,
+           authorisation=authorisation,
+    )
+    mock_issue.assert_awaited_once_with(
+        db,
+        user_id=user_id,
+        verified_domain_id=verified_domain_id,
+        domain="example.com",
+        source="manual_scan",
     )
     mock_send_task.assert_called_once_with(
            db, scan_record,
     )
-  
+
+
+@pytest.fixture
+def phase2_authorisation(monkeypatch):
+    record = {
+        "id": str(uuid4()),
+        "version": 1,
+    }
+
+    mock_issue = AsyncMock(return_value=record)
+
+    monkeypatch.setattr(
+        "app.services.scan_service.Phase2AuthorisationService.issue",
+        mock_issue,
+    )
+
+    return record, mock_issue

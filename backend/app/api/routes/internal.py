@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies.internal_auth import require_internal_worker
 from app.models.asset import Asset
 from app.models.base import ReportStatus, ScanSourceStatus, ScanStatus, Severity
 from app.models.finding import Finding
@@ -14,18 +15,28 @@ from app.queue.celery_app import celery_app
 from app.repositories.report_repository import (
     get_by_engagement_and_version,
     get_report_by_scan_id,
-    mark_report_completed,
-    mark_report_failed,
 )
-from app.repositories.scan_repo import ScanRepository
+from app.repositories.scan_repo import (
+    SCAN_SOURCES_BY_TYPE,
+    ScanRepository,
+)
 from app.schemas.report import ReportCallbackRequest
 from app.schemas.scan import ScanCallbackRequest, ScanSourceCallbackRequest
+from app.services.callback_validation import apply_report_callback
+from app.services.phase2_execution_service import (
+    ExecutionRequest,
+    Phase2ExecutionService,
+)
 from app.services.report_service import queue_report_generation
 from app.utils.db import get_db
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/internal", tags=["Internal Webhooks"])
+router = APIRouter(
+    prefix="/internal",
+    tags=["Internal Webhooks"],
+    dependencies=[Depends(require_internal_worker)],
+)
 
 
 async def save_scan_callback_results(
@@ -127,53 +138,39 @@ async def update_scan_status_callback(
         ) from None
 
 
-@router.patch("/reports/{scan_id}/status", status_code=status.HTTP_200_OK)
+@router.patch(
+    "/reports/{scan_id}/status",
+    status_code=status.HTTP_200_OK,
+)
 async def update_report_status_callback(
     scan_id: UUID,
     payload: ReportCallbackRequest,
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
-    try:
-        if payload.status == "completed":
-            if not payload.pdf_path:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="pdf_path is required for completed reports",
-                )
+    report = await get_report_by_scan_id(
+        db,
+        str(scan_id),
+    )
 
-            report = await mark_report_completed(
-                db=db,
-                scan_id=str(scan_id),
-                pdf_path=payload.pdf_path,
-            )
-
-        elif payload.status == "failed":
-            report = await mark_report_failed(
-                db=db,
-                scan_id=str(scan_id),
-                error_message=payload.error_message or "Report generation failed",
-            )
-
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid report status",
-            )
-
-        return {
-            "scan_id": str(scan_id),
-            "report_status": report.status.value,
-        }
-
-    except HTTPException:
-        raise
-    except Exception:
-        await db.rollback()
-        logger.exception("Failed to process report callback for %s", scan_id)
+    if report is None:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to process report callback",
+            status_code=404,
+            detail="Report not found",
         )
+
+    changed = apply_report_callback(report, payload)
+
+    if changed:
+        try:
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            raise
+
+    return {
+        "scan_id": str(scan_id),
+        "report_status": report.status.value,
+    }
 
 
 @router.patch("/scans/{scan_id}/sources/{source_name}", status_code=status.HTTP_200_OK)
@@ -183,6 +180,30 @@ async def update_scan_source_callback(
     payload: ScanSourceCallbackRequest,
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
+    scan = await ScanRepository.get_scan_by_id(db, scan_id)
+
+    if scan is None:
+        raise HTTPException(404, "Scan not found")
+
+    expected_sources = SCAN_SOURCES_BY_TYPE.get(
+        scan.scan_type.value,
+        (),
+    )
+
+    if source_name not in expected_sources:
+        raise HTTPException(
+            status_code=422,
+            detail="Source is not permitted for this scan type",
+        )
+
+    if payload.status not in {
+        item.value for item in ScanSourceStatus
+    }:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid source status",
+        )
+    
     try:
         scan = await ScanRepository.save_source_result(
             db=db,
@@ -232,48 +253,49 @@ async def update_scan_source_callback(
             detail="Failed to process source callback",
         )
 
+
 @router.put(
-        "/reports/engagement/{engagement_id}/version/{version}/callback",
-        status_code=status.HTTP_200_OK)
+    "/reports/engagement/{engagement_id}/version/{version}/callback",
+    status_code=status.HTTP_200_OK,
+)
 async def update_engagement_report_status_callback(
     engagement_id: UUID,
     version: int,
     payload: ReportCallbackRequest,
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
-    try:
-        report = await get_by_engagement_and_version(db, engagement_id, version)
-        if not report:
-            raise HTTPException(status_code=404, detail="Engagement report not found")
+    report = await get_by_engagement_and_version(db, engagement_id, version)
 
-        if payload.status == "completed":
-            if not payload.pdf_path:
-                raise HTTPException(status_code=400, detail="pdf_path is required")
-            report.status = ReportStatus.COMPLETED
-            report.pdf_path = payload.pdf_path
-        elif payload.status == "failed":
-            report.status = ReportStatus.FAILED
-            report.error_message = payload.error_message or "Report generation failed"
-        else:
-            raise HTTPException(status_code=400, detail="Invalid report status")
+    if report is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Engagement report not found",
+        )
 
-        await db.commit()
-        await db.refresh(report)
+    changed = apply_report_callback(report, payload)
 
-        status_val = report.status.value if hasattr(report.status, "value") else report.status
+    if changed:
+        try:
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            raise
 
-        return {
-            "engagement_id": str(engagement_id),
-            "version": version,
-            "report_status": status_val,
-        }
+    return {
+        "engagement_id": str(engagement_id),
+        "version": version,
+        "report_status": report.status.value,
+    }
 
-    except HTTPException:
-        raise
-    except Exception:
-        await db.rollback()
-        logger.exception(
-            "Failed to process engagement report callback for %s (v%s)",
-            engagement_id,
-            version)
-        raise HTTPException(status_code=500, detail="Failed to process callback")
+
+@router.post("/scans/{scan_id}/authorise-execution")
+async def authorise_phase2_execution(
+    scan_id: UUID,
+    payload: ExecutionRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    return await Phase2ExecutionService.authorise(
+        db,
+        scan_id,
+        payload,
+    )

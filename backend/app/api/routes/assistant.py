@@ -86,7 +86,7 @@ async def query_assistant(
             perf_counter() - started_at
         ) * 1000
 
-        logger.exception(
+        logger.error(
             "ask_penflow outcome=provider_failure "
             "user_id=%s page=%s duration_ms=%.1f",
             user.id,

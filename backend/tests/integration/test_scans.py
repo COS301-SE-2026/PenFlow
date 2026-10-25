@@ -9,9 +9,11 @@ from fastapi import status
 
 from app.api.middleware.auth import get_current_user_optional
 from app.main import app
+from app.models.base import ScanType
 from app.models.user import User
 from app.models.verified_domain import DomainVerificationStatus, VerifiedDomain
 from app.repositories.scan_repo import ScanRepository
+from app.utils.internal_auth import internal_headers
 
 
 #phase2
@@ -55,7 +57,7 @@ async def test_initiate_scan_invalid_domain(test_client):
 
 @pytest.mark.asyncio
 @patch("app.api.routes.scans.get_report_by_scan_id")
-async def test_download_scan_pdf(mock_get_report, test_client, tmp_path):
+async def test_download_scan_pdf(mock_get_report, test_client, tmp_path, guest_scan_headers):
     """Test that the pdf endpoint returns a file with correct headers"""
     test_pdf = tmp_path / "test.pdf"
     test_pdf.write_bytes(b"%PDF-1.4\n%test pdf\n")
@@ -64,9 +66,11 @@ async def test_download_scan_pdf(mock_get_report, test_client, tmp_path):
     mock_report.pdf_path = str(test_pdf)
 
     mock_get_report.return_value = mock_report
+    scan_id = UUID("550e8400-e29b-41d4-a716-446655440000")
 
     response = await test_client.get(
-        "/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/pdf"
+        f"/api/v1/scans/{scan_id}/pdf",
+        headers=await guest_scan_headers(scan_id)
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -89,6 +93,7 @@ async def test_worker_failure_callback(mock_get_scan_by_id, test_client):
     response = await test_client.patch(
         f"/api/v1/internal/scans/{mock_scan_id}/status",
         json=payload,
+        headers=internal_headers(),
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -99,7 +104,7 @@ async def test_worker_failure_callback(mock_get_scan_by_id, test_client):
 
 @pytest.mark.asyncio
 @patch("app.api.routes.scans.ScanRepository.get_scan_status", new_callable=AsyncMock)
-async def test_get_scan_status_success(mock_get_status, test_client):
+async def test_get_scan_status_success(mock_get_status, test_client, guest_scan_headers):
     mock_get_status.return_value = {
         "scan_id": "550e8400-e29b-41d4-a716-446655440000",
         "status": "running",
@@ -108,17 +113,26 @@ async def test_get_scan_status_success(mock_get_status, test_client):
         "report_status": None
     }
 
-    response = await test_client.get("/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/status")
+    scan_id = UUID("550e8400-e29b-41d4-a716-446655440000")
+
+    response = await test_client.get(
+        f"/api/v1/scans/{scan_id}/status", 
+        headers=await guest_scan_headers(scan_id),
+    )
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["progress"] == 60
 
 @pytest.mark.asyncio
 @patch("app.api.routes.scans.ScanRepository.get_scan_status", new_callable=AsyncMock)
-async def test_get_scan_status_not_found(mock_get_status, test_client):
+async def test_get_scan_status_not_found(mock_get_status, test_client, guest_scan_headers):
     mock_get_status.return_value = None
 
-    response = await test_client.get("/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/status")
+    scan_id = UUID("550e8400-e29b-41d4-a716-446655440000")
+    response = await test_client.get(
+        f"/api/v1/scans/{scan_id}/status", 
+        headers=await guest_scan_headers(scan_id),
+    )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -130,7 +144,8 @@ async def test_email_scan_report_success(
     mock_get_scan, 
     mock_get_report, 
     mock_delay, 
-    test_client
+    test_client,
+    guest_scan_headers,
     ):
     # mocking the scan
     mock_scan =  MagicMock()
@@ -145,9 +160,19 @@ async def test_email_scan_report_success(
 
     payload = {"email": "client@example.co"}
 
+    scan_id = UUID("550e8400-e29b-41d4-a716-446655440000")
+
+    mock_scan.id = scan_id
+    mock_scan.user_id = None
+    mock_scan.scan_type = ScanType.PASSIVE_CTEM
+
     response = await test_client.post(
-        "/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/email-report",
-        json=payload
+        f"/api/v1/scans/{scan_id}/email-report",
+        json=payload,
+        headers=await guest_scan_headers(
+            scan_id,
+            domain="jeandre.co",
+        ),
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -160,23 +185,28 @@ async def test_email_scan_report_success(
 
 @pytest.mark.asyncio
 @patch("app.api.routes.scans.get_report_by_scan_id")
-async def test_download_scan_pdf_report_missing(mock_get_report, test_client):
+async def test_download_scan_pdf_report_missing(mock_get_report, test_client, guest_scan_headers):
     mock_get_report.return_value = None
 
+    scan_id = UUID("550e8400-e29b-41d4-a716-446655440000")
     response = await test_client.get(
-        "/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/pdf",
+        f"/api/v1/scans/{scan_id}/pdf",
+        headers=await guest_scan_headers(scan_id)
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 @pytest.mark.asyncio
 @patch("app.api.routes.scans.get_report_by_scan_id")
-async def test_download_scan_pdf_uncompleted(mock_get_report, test_client):
+async def test_download_scan_pdf_uncompleted(mock_get_report, test_client, guest_scan_headers):
     mock_report = MagicMock()
     mock_report.status.value = "generating"
     mock_get_report.return_value = mock_report
+
+    scan_id = UUID("550e8400-e29b-41d4-a716-446655440000")
     response = await test_client.get(
-        "/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/pdf"
+        f"/api/v1/scans/{scan_id}/pdf",
+        headers=await guest_scan_headers(scan_id)
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -264,7 +294,7 @@ async def test_initiate_scan_authenticated_user_attaches_user_id(
 #test: scan status not found 200 
 @pytest.mark.asyncio 
 @patch("app.api.routes.scans.ScanRepository.get_scan_status",new_callable =AsyncMock)
-async def test_get_scan_status_found(mock_get_status,test_client):
+async def test_get_scan_status_found(mock_get_status,test_client, guest_scan_headers):
     mock_get_status.return_value = {
         "scan_id": "550e8400-e29b-41d4-a716-446655440000",
         "status": "running",
@@ -273,8 +303,11 @@ async def test_get_scan_status_found(mock_get_status,test_client):
         "report_status" : None, 
     }
 
+    scan_id = UUID("550e8400-e29b-41d4-a716-446655440000")
+
     response = await test_client.get(
-        "/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/status"
+        f"/api/v1/scans/{scan_id}/status",
+        headers=await guest_scan_headers(scan_id)
     )
 
     assert response.status_code == status.HTTP_200_OK

@@ -1,13 +1,19 @@
 # type: ignore
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import _rate_limit_exceeded_handler
+from limits.errors import StorageError
 from slowapi.errors import RateLimitExceeded
 
 import app.models  # noqa: F401 — registers all SQLAlchemy mappers before any query runs
-from app.api.middleware.rate_limiter import limiter
+from app.api.middleware.audit import audit_sensitive_requests
+from app.api.middleware.browser_security import browser_security
+from app.api.middleware.rate_limiter import (
+    limiter,
+    rate_limit_exceeded,
+    rate_limit_unavailable,
+)
 from app.api.routes import (
     assistant,
     domains,
@@ -34,8 +40,36 @@ app = FastAPI(
     title="PenFlow API", description="Core backend API for the PenFlow platform.", version="1.0.0"
 )
 
+@app.middleware("http")
+async def disable_scan_response_caching(
+    request: Request,
+    call_next,
+):
+    response = await call_next(request)
+
+    if request.url.path.startswith(
+        (
+            "/api/v1/scans/",
+            "/api/v1/reports/",
+            "/api/v1/engagements/",
+            "/api/v1/service-delivery/",
+        )
+    ):
+        response.headers["Cache-Control"] = "no-store"
+
+    return response
+
+app.middleware("http")(audit_sensitive_requests)
+app.middleware("http")(browser_security)
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(
+    RateLimitExceeded,
+    rate_limit_exceeded,
+)
+app.add_exception_handler(
+    StorageError,
+    rate_limit_unavailable,
+)
 cors_origins = [
     origin.strip() for origin in os.getenv(
         "CORS_ORIGINS", "http://localhost:3000"
