@@ -1,43 +1,63 @@
-FROM python:3.12-slim AS runner
+FROM python:3.12-alpine3.24 AS deps
 
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends \
-    libmagic1 \
-    libpango-1.0-0 \
-    libpangoft2-1.0-0 \
-    libharfbuzz0b \
-    libharfbuzz-subset0 \
-    libffi-dev \
-    libjpeg62-turbo \
-    libopenjp2-7 \
-    libglib2.0-0 \
-    fonts-dejavu-core \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk upgrade --no-cache && \
+    apk add --no-cache \
+        build-base \
+        postgresql-dev \
+        libffi-dev \
+        jpeg-dev \
+        zlib-dev \
+        openjpeg-dev \
+        libxml2-dev \
+        libxslt-dev
+
+RUN pip install --no-cache-dir uv
 
 COPY backend/requirements.txt ./requirements.txt
 
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --upgrade pip uv
+RUN uv venv /opt/venv && \
+    uv pip install --python /opt/venv/bin/python -r requirements.txt
 
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system \
-    -r requirements.txt
 
-RUN python -m pip uninstall -y uv pip
+FROM python:3.12-alpine3.24 AS runner
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+RUN apk upgrade --no-cache && \
+    apk add --no-cache \
+        ca-certificates \
+        pango \
+        harfbuzz-subset \
+        font-dejavu \
+        libffi \
+        libjpeg-turbo \
+        openjpeg \
+        libpq \
+        libmagic \
+        libxml2 \
+        libxslt && \
+    python -m pip uninstall -y pip
+
+COPY --from=deps /opt/venv /opt/venv
 
 COPY backend/app ./app
 
-RUN adduser --disabled-password --gecos "" appuser && \
+RUN addgroup -g 1000 -S appuser && \
+    adduser -u 1000 -S -G appuser appuser && \
     mkdir -p /app/generated_reports && \
     chown -R appuser:appuser /app
 
 COPY docker/certs/rds-global-bundle.pem /app/certs/rds-global-bundle.pem
+
 COPY --chmod=0644 docker/certs/penflow-internal-ca.pem \
     /app/certs/penflow-internal-ca.pem
 
