@@ -2,14 +2,54 @@ from datetime import datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+import pytest
+
+from app.services import brand_signal_service as brand_signals
 from app.services.brand_signal_service import BrandSignalService
+
+
+@pytest.fixture(autouse=True)
+def isolate_external_services(monkeypatch):
+    monkeypatch.setattr(
+        brand_signals,
+        "resolve_public_host",
+        lambda *args, **kwargs: ["1.2.3.4"],
+    )
+    monkeypatch.setattr(
+        brand_signals,
+        "safe_get",
+        lambda *args, **kwargs: MagicMock(
+            json=lambda: {"status": "fail"},
+        ),
+    )
+    monkeypatch.setattr(
+        brand_signals.dns.resolver,
+        "resolve",
+        lambda *args, **kwargs: [],
+    )
+
+    def unavailable_tls(*args, **kwargs):
+        raise OSError("TLS unavailable in this fixture")
+
+    monkeypatch.setattr(
+        brand_signals,
+        "public_connection",
+        unavailable_tls,
+    )
+    monkeypatch.setattr(
+        brand_signals.whois,
+        "whois",
+        lambda *args, **kwargs: SimpleNamespace(
+            creation_date=None,
+        ),
+    )
 
 
 def test_unresolvable_domain(monkeypatch):
     def fail_dns(*args, **kwargs):
         raise Exception("dns failed")
 
-    monkeypatch.setattr("dns.resolver.resolve", fail_dns)
+    monkeypatch.setattr(brand_signals, "resolve_public_host", fail_dns)
 
     result = BrandSignalService.gather_signals("missing.example")
 
@@ -35,7 +75,7 @@ def test_resolvable_domain(monkeypatch):
         "isp": "Test ISP",
     }
 
-    monkeypatch.setattr("requests.get", lambda *args, **kwargs: response)
+    monkeypatch.setattr(brand_signals, "safe_get", lambda *args, **kwargs:response)
 
     result = BrandSignalService.gather_signals("example.com")
 

@@ -1,7 +1,5 @@
-import os
 from unittest.mock import MagicMock
 
-os.environ["INTERNAL_WEBHOOK_SECRET"] = "test-secret"
 from app.tasks.brand_monitoring_tasks import run_brand_monitoring_task
 
 
@@ -40,7 +38,7 @@ def test_brand_monitoring(monkeypatch):
     response.raise_for_status.return_value = None
 
     monkeypatch.setattr(
-        "app.tasks.brand_monitoring_tasks.requests.post",
+        "app.tasks.brand_monitoring_tasks.httpx.post",
         lambda *args, **kwargs: response,
     )
 
@@ -64,7 +62,7 @@ def test_no_candidates(monkeypatch):
     response.raise_for_status.return_value = None
 
     monkeypatch.setattr(
-        "app.tasks.brand_monitoring_tasks.requests.post",
+        "app.tasks.brand_monitoring_tasks.httpx.post",
         lambda *args, **kwargs: response,
     )
 

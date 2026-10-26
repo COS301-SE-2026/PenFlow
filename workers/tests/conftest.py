@@ -14,6 +14,11 @@ os.environ["RABBITMQ_USERNAME"] = "guest"
 os.environ["RABBITMQ_PASSWORD"] = "guest"
 os.environ["BACKEND_URL"] = "http://localhost:3001"
 
+os.environ.setdefault(
+    "INTERNAL_WEBHOOK_SECRET",
+    "test-only-internal-webhook-secret-never-use-in-production",
+)
+
 from app.queue.celery_app import celery_app  # noqa: E402
 
 celery_app.conf.task_always_eager = True
