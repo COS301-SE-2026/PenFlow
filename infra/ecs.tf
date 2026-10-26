@@ -42,7 +42,8 @@ resource "aws_ecs_task_definition" "backend" {
         }
       ]
 
-      environment = [
+      environment = concat(
+      [
         { name = "APP_ENV", value = var.app_env },
         { name = "AUTH_PROVIDER", value = "keycloak" },
         { name = "LOG_LEVEL", value = var.log_level },
@@ -107,9 +108,12 @@ resource "aws_ecs_task_definition" "backend" {
           name  = "RAG_RETRIEVAL_MODE"
           value = var.rag_retrieval_mode
         },
-      ]
+      ],
+      local.gemini_environment
+      )
 
-      secrets = [
+      secrets = concat(
+      [
         { name = "DATABASE_PASSWORD", valueFrom = aws_secretsmanager_secret.app_database_password.arn },
         { name = "RABBITMQ_PASSWORD", valueFrom = aws_secretsmanager_secret.rabbitmq_password.arn },
         {
@@ -138,7 +142,9 @@ resource "aws_ecs_task_definition" "backend" {
           name      = "GUEST_SCAN_TOKEN_SECRET"
           valueFrom = aws_secretsmanager_secret.guest_scan_token_secret.arn
         }
-      ]
+      ],
+      local.gemini_secrets
+      )
 
       logConfiguration = {
         logDriver = "awslogs"
@@ -175,7 +181,7 @@ resource "aws_ecs_task_definition" "indexing_worker" {
       image     = "${aws_ecr_repository.backend.repository_url}:${var.backend_image_tag}"
       essential = true
 
-      cpu               = 512
+      cpu               = 256
       memory            = 1024
       memoryReservation = 768
 
@@ -189,7 +195,8 @@ resource "aws_ecs_task_definition" "indexing_worker" {
         "--concurrency=1"
       ]
 
-      environment = [
+      environment = concat(
+      [
         {
           name  = "APP_ENV"
           value = var.app_env
@@ -266,9 +273,12 @@ resource "aws_ecs_task_definition" "indexing_worker" {
           name  = "BEDROCK_EMBEDDING_DIMENSIONS"
           value = tostring(var.bedrock_embedding_dimensions)
         }
-      ]
+      ],
+      local.gemini_environment
+      )
 
-      secrets = [
+      secrets = concat( 
+      [        
         {
           name      = "DATABASE_PASSWORD"
           valueFrom = aws_secretsmanager_secret.app_database_password.arn
@@ -277,7 +287,9 @@ resource "aws_ecs_task_definition" "indexing_worker" {
           name      = "RABBITMQ_PASSWORD"
           valueFrom = aws_secretsmanager_secret.rabbitmq_password.arn
         }
-      ]
+      ],
+      local.gemini_secrets
+      )
 
       logConfiguration = {
         logDriver = "awslogs"

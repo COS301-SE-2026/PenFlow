@@ -62,6 +62,12 @@ class Phase2AuthorisationService:
                 "Domain does not match the verified domain record",
             )
 
+        if verified.last_checked_at is None:
+            raise HTTPException(
+                403,
+                "Ownership verification timestamp is missing",
+            )
+
         now = datetime.now(timezone.utc)
 
         return {

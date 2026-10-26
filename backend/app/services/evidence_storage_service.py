@@ -4,6 +4,7 @@ import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import boto3
@@ -36,7 +37,7 @@ class StoredEvidence:
 
 
 class EvidenceStorageService:
-    def __init__(self):
+    def __init__(self) -> None:
         self.mode = os.getenv("EVIDENCE_STORAGE", "local")
         self.bucket = os.getenv("EVIDENCE_S3_BUCKET", "")
         self.root = Path(
@@ -49,7 +50,7 @@ class EvidenceStorageService:
         if self.mode == "s3" and not self.bucket:
             raise RuntimeError("EVIDENCE_S3_BUCKET is required")
 
-    def _client(self):
+    def _client(self) -> Any:
         return boto3.client(
             "s3",
             region_name=os.getenv("AWS_REGION", "af-south-1"),
@@ -166,7 +167,10 @@ class EvidenceStorageService:
             body = result["Body"]
 
             try:
-                contents = body.read(MAX_EVIDENCE_BYTES + 1)
+                contents = cast(
+                    bytes,
+                    body.read(MAX_EVIDENCE_BYTES + 1),
+                )
             finally:
                 body.close()
 

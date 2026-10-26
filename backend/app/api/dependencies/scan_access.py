@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, cast
 from uuid import UUID, uuid4
 
 from fastapi import Depends, HTTPException, Request
@@ -37,7 +37,7 @@ OptionalUser = Annotated[
 def issue_guest_token(scan_id: UUID) -> str:
     now = datetime.now(timezone.utc)
 
-    return jwt.encode(
+    token = jwt.encode(
         {
             "iss": _ISSUER,
             "aud": _AUDIENCE,
@@ -54,6 +54,13 @@ def issue_guest_token(scan_id: UUID) -> str:
         _SECRET,
         algorithm="HS256",
     )
+
+    if not isinstance(token, str):
+        raise RuntimeError(
+            "Guest token signing returned an invalid value"
+        )
+
+    return token
 
 
 def valid_guest_token(
@@ -113,7 +120,11 @@ async def require_scan_permission(
         elif scan.scan_type == ScanType.PASSIVE_CTEM:
             token = request.headers.get("X-Scan-Token")
 
-            if valid_guest_token(token, scan.id, permission):
+            if valid_guest_token(
+                token,
+                cast(UUID, scan.id), 
+                permission,
+            ):
                 return scan
 
     raise HTTPException(

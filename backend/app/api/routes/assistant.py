@@ -20,6 +20,7 @@ from app.schemas.assistant import (
     AssistantQueryRequest,
     AssistantQueryResponse,
 )
+from app.services.ai_request_guard import ai_request_slot
 from app.services.assistant_service import AssistantService
 from app.services.rag.embedding_provider import EmbeddingProviderError
 from app.services.rag.generation_provider import GenerationProviderError
@@ -37,8 +38,9 @@ router = APIRouter(
     "/query",
     response_model=AssistantQueryResponse,
 )
-@limiter.limit(
-    "10/minute",
+@limiter.shared_limit(
+    "5/minute",
+    scope="ai-generation",
     key_func=get_authenticated_request_key,
 )
 async def query_assistant(
@@ -50,11 +52,12 @@ async def query_assistant(
     started_at = perf_counter()
 
     try:
-        response = await AssistantService.answer(
-            db,
-            user=user,
-            request=payload,
-        )
+        async with ai_request_slot(user.id):
+            response = await AssistantService.answer(
+                db,
+                user=user,
+                request=payload,
+            )
 
         duration_ms = (
             perf_counter() - started_at

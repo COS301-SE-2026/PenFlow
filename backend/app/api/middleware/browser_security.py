@@ -3,6 +3,8 @@ from urllib.parse import urlsplit
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import RequestResponseEndpoint
+from starlette.responses import Response
 
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
@@ -10,7 +12,7 @@ SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 def origin_tuple(
         value: str,
         origin_only: bool = False,
-):
+) -> tuple[str, str, int] | None:
     if value != value.strip():
         return None
 
@@ -89,7 +91,12 @@ def cookie_mutation_allowed(request: Request) -> bool:
     )
 
 
-async def browser_security(request: Request, call_next):
+async def browser_security(
+        request: Request, 
+        call_next: RequestResponseEndpoint,
+) -> Response:
+    
+    response: Response
     if not cookie_mutation_allowed(request):
         response = JSONResponse(
             status_code=403,

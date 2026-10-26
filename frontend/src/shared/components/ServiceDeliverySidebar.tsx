@@ -66,7 +66,7 @@ export default function ServiceDeliverySidebar() {
                                 >
                                     <button
                                         type="submit"
-                                        className="nav-link cursor-pointer border-0 bg-transparent"
+                                        className="nav-link w-full cursor-pointer bg-transparent" text-left
                                     >
                                         {item.label}
                                     </button>

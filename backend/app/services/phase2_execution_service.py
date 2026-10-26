@@ -52,7 +52,7 @@ class ExecutionRequest(BaseModel):
 def checked_targets(
     request: ExecutionRequest,
     domain: str,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     result = []
 
     for target in request.targets:
@@ -112,7 +112,7 @@ class Phase2ExecutionService:
         db: AsyncSession,
         scan_id: UUID,
         request: ExecutionRequest,
-    ) -> dict:
+    ) -> dict[str, Any]:
         scan = await db.scalar(
             select(Scan).where(Scan.id == scan_id)
         )

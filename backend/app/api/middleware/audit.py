@@ -5,6 +5,8 @@ from uuid import UUID
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
+from starlette.middleware.base import RequestResponseEndpoint
+from starlette.responses import Response
 
 from app.config.database import SessionLocal
 from app.models.evidence_file import EvidenceFile
@@ -120,7 +122,10 @@ async def record_event(
         )
 
 
-async def audit_sensitive_requests(request: Request, call_next):
+async def audit_sensitive_requests(
+        request: Request,
+        call_next: RequestResponseEndpoint,
+) -> Response:
     response = await call_next(request)
     action = event_for(request, response.status_code)
 

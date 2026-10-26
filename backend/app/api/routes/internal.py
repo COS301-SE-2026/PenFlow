@@ -293,7 +293,7 @@ async def authorise_phase2_execution(
     scan_id: UUID,
     payload: ExecutionRequest,
     db: AsyncSession = Depends(get_db),
-) -> dict:
+) -> dict[str, Any]:
     return await Phase2ExecutionService.authorise(
         db,
         scan_id,

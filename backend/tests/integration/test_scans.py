@@ -8,13 +8,19 @@ import pytest
 from fastapi import status
 
 from app.api.middleware.auth import get_current_user_optional
+from app.api.middleware.rate_limiter import limiter
 from app.main import app
-from app.models.base import ScanType
+from app.models.base import DomainVerificationCode, ScanType
 from app.models.user import User
 from app.models.verified_domain import DomainVerificationStatus, VerifiedDomain
 from app.repositories.scan_repo import ScanRepository
 from app.utils.internal_auth import internal_headers
 
+
+@pytest.fixture(autouse=True)
+def disable_scan_rate_limits(monkeypatch):
+    # These tests verify scan workflows, not rate-limit behaviour.
+    monkeypatch.setattr(limiter, "enabled", False)
 
 #phase2
 #test initate scan success 
@@ -319,10 +325,17 @@ async def test_get_scan_status_found(mock_get_status,test_client, guest_scan_hea
 # celery_app.send_task is mocked 
 # else hits the real test db via db_session/test_client
 @pytest.mark.asyncio
+@patch("app.services.domain_service.VerificationService.verify_dns_txt", new_callable=AsyncMock)
 @patch("app.services.scan_service.celery_app.send_task")
-async def test_initiate_active_scan_success(mock_send_task, test_client, db_session):  
+async def test_initiate_active_scan_success(
+    mock_send_task, 
+    mock_verify_dns,
+    test_client,
+    db_session,
+):  
     
     mock_send_task.return_value = MagicMock(id="mock-task-id")
+    mock_verify_dns.return_value = DomainVerificationCode.VERIFIED
 
     user = User(
         auth_provider="keycloak",
@@ -358,6 +371,10 @@ async def test_initiate_active_scan_success(mock_send_task, test_client, db_sess
         }
         response =await test_client.post("/api/v1/scans/", json=payload)
         assert response.status_code == status.HTTP_202_ACCEPTED
+        mock_verify_dns.assert_awaited_once_with(
+            "verified-active.com",
+            "penflow-verification=abc123",
+        )
         data = response.json()
         assert data["status"] == "queued"
         mock_send_task.assert_called_once()

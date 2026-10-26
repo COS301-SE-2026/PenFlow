@@ -34,7 +34,8 @@ data "aws_iam_policy_document" "ecs_execution_secrets" {
       "secretsmanager:GetSecretValue"
     ]
 
-    resources = [
+    resources = concat(
+    [
       aws_secretsmanager_secret.db_password.arn,
       aws_secretsmanager_secret.keycloak_db_password.arn,
       aws_secretsmanager_secret.keycloak_admin_password.arn,
@@ -51,7 +52,9 @@ data "aws_iam_policy_document" "ecs_execution_secrets" {
       aws_secretsmanager_secret.smtp_password.arn,
       aws_secretsmanager_secret.keycloak_provisioner_client_secret.arn,
       aws_secretsmanager_secret.internal_webhook_secret.arn
-    ]
+    ],
+    aws_secretsmanager_secret.gemini_api_key[*].arn
+    )
   }
 }
 
@@ -371,13 +374,16 @@ data "aws_iam_policy_document" "github_deploy" {
     ]
 
     resources = [
-      aws_ecs_service.backend.id,
-      aws_ecs_service.indexing_worker.id,
-      aws_ecs_service.frontend.id,
-      aws_ecs_service.worker.id,
-      aws_ecs_service.email_worker.id,
-      aws_ecs_service.schedule_worker.id,
-      aws_ecs_service.celery_beat.id
+      for service in [
+        "backend",
+        "indexing-worker",
+        "frontend",
+        "worker",
+        "email-worker",
+        "schedule-worker",
+        "celery-beat"
+      ] :
+      "arn:aws:ecs:${var.aws_region}:491449495014:service/${local.name_prefix}-cluster/${local.name_prefix}-${service}-service"
     ]
   }
 
@@ -446,4 +452,22 @@ resource "aws_iam_role_policy" "backend_evidence_s3" {
   name   = "${local.name_prefix}-backend-evidence-s3"
   role   = aws_iam_role.backend_task.id
   policy = data.aws_iam_policy_document.evidence_s3.json
+}
+
+resource "aws_iam_user" "github_ci" {
+  name = "${local.name_prefix}-github-ci"
+
+  tags = {
+    Name = "${local.name_prefix}-github-ci"
+  }
+}
+
+resource "aws_iam_policy" "github_ci" {
+  name   = "${local.name_prefix}-github-ci"
+  policy = data.aws_iam_policy_document.github_deploy.json
+}
+
+resource "aws_iam_user_policy_attachment" "github_ci" {
+  user       = aws_iam_user.github_ci.name
+  policy_arn = aws_iam_policy.github_ci.arn
 }

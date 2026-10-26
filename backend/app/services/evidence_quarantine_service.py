@@ -127,7 +127,10 @@ class EvidenceQuarantineService:
                     + timedelta(minutes=5)
                 )
 
-            if evidence.quarantine_status != "pending":
+            if (
+                finding is not None
+                and evidence.quarantine_status != "pending"
+            ):
                 await AuditRepository.create_log(
                     db,
                     user_id=None,

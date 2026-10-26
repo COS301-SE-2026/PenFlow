@@ -251,10 +251,10 @@ variable "embedding_provider" {
 
   validation {
     condition = contains(
-      ["bedrock", "openai_compatible"],
+      ["bedrock", "openai_compatible", "gemini"],
       var.embedding_provider
     )
-    error_message = "embedding_provider must be bedrock or openai_compatible."
+    error_message = "embedding_provider must be bedrock, openai_compatible or gemini."
   }
 }
 
@@ -293,6 +293,11 @@ variable "generation_provider" {
   description = "Generation provider used by the RAG analyst."
   type        = string
   default     = "bedrock"
+
+  validation {
+    condition     = contains(["bedrock", "gemini"], var.generation_provider)
+    error_message = "generation_provider must be bedrock or gemini."
+  }
 }
 
 variable "bedrock_generation_region" {
