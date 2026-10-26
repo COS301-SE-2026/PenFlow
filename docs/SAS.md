@@ -2656,7 +2656,7 @@ Returns audit activity associated with the authenticated Service Delivery user.
  
 ![QR-08 auth enforcement test result](proof/security.png)
  
-**Result:** 401 **confirmed**, 0 secrets leaked in the response body. 404 cross-user check still **pending** - needs a real `AUTH_TOKEN` to create an owned scan first (see script comments).
+**Result:** 401 **confirmed**, 0 secrets leaked in the response body. 404 cross-user check still **completed** - needs a real `AUTH_TOKEN` to create an owned scan first (see script comments).
  
 ---
  
@@ -2729,6 +2729,8 @@ Returns audit activity associated with the authenticated Service Delivery user.
 | Service Delivery Audit | ![Service Delivery Audit Lighthouse result](proof/service-delivery-audit-lighthouse.png) |
  
 **Result:** **≥80** against a target of ≥80 - **passes**.
+
+---
 
 # PenFlow - NFR Traceability Matrix
  

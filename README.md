@@ -1,9 +1,10 @@
 <p align="center">
   <img 
-    src="docs/images/logo-animated.gif" 
+    src="docs/images/penflow_logo.jpeg" 
     width="360" 
-    alt="PenFlow animated logo"
+    alt="PenFlow logo"
   />
+</p>
 
 <h1 align="center">PenFlow</h1>
 
@@ -60,7 +61,7 @@
   <a href="https://github.com/COS301-SE-2026/PenFlow/issues">
     <img alt="Issues" src="https://img.shields.io/github/issues/COS301-SE-2026/PenFlow?style=for-the-badge&logo=github&logoColor=white" />
   </a>
-  <img alt="Demo 1" src="https://img.shields.io/badge/Demo%203-In%20Progress-2980B9?style=for-the-badge" />
+  <img alt="Demo 4" src="https://img.shields.io/badge/Demo%204-Complete-2980B9?style=for-the-badge" />
 </p>
 
 <p align="center">
@@ -75,6 +76,8 @@
 ---
 
 ## Overview
+
+PenFlow is a COS 301 capstone project built for **BlueVision**. It models a freemium funnel: a free, no-account passive scan introduces a client to their external attack surface, an automated vulnerability scan deepens that picture, and a managed manual penetration test completes the engagement.
 
 Traditional penetration testing workflows are fragmented across scanning tools, email threads, spreadsheets and static reports.
 
@@ -98,10 +101,13 @@ PenFlow makes security posture **continuous** and **trackable** by structuring a
 Passive reconnaissance and exposure discovery using external data sources
 without directly touching or communicating with the target IPs.
 
-- Passive OSINT aggregation
+- No account required: enter a domain, scan and receive the report by email
+- Passive OSINT aggregation (DNS, crt.sh, Shodan, HaveIBeenPwned, Hunter.io and Wappalyzer)
 - Multiple sources queried asynchronously
+- Live scan progress shown without a page reload
 - Normalized assets and findings
 - Partial failure tolerant
+- IP-based rate limiting to prevent abuse
 - Risk scoring and reporting
 
 ### Phase 2 — Automated External Vulnerability Scan
@@ -121,14 +127,24 @@ client.
 A workflow connecting clients, Service Delivery staff and
 penetration testers.
 
-- engagement requests and scoping
+- role-based access for Clients, Service Delivery and Pentesters
+- engagement requests and scoping, including quote generation
 - pentester assignment and scheduling
-- manual findings and evidence
-- engagement messaging and notifications
+- manual findings and evidence upload
+- client comments on findings
+- engagement messaging and in-app and email notifications
 - Service Delivery review
 - re-tests and remediation tracking
 - final report generation
 - audit logging
+
+### Phase 4 — Intelligence Add-ons
+
+Three additional capabilities that build on the data collected in the earlier phases.
+
+- **Attack Graph:** visualises how discovered assets, services and findings connect into possible attack paths
+- **Brand Impersonation Engine:** monitors for spoofed, look-alike and phishing domains that imitate a client's brand
+- **RAG Assistant:** an AI assistant that answers questions using retrieval-augmented generation over the platform's own data and product guide
 
 ---
 
@@ -142,7 +158,7 @@ PenFlow is a **layered modular monolith** with an **event-driven orchestration l
 - **State/Updates:** Redis + WebSockets
 - **Database:** PostgreSQL
 - **Storage:** AWS S3
-- **Auth:** Auth0 (JWT + RBAC)
+- **Auth:** Keycloak (JWT + RBAC)
 
 ### High-Level System Architecture
 
@@ -159,9 +175,9 @@ Detailed project documentation is available below.
 | --- | --- |
 | [Software Requirements Specification](docs/SRS.md)| Functional and non-functional requirements for PenFlow. |
 | [Software Architecture Specification](docs/SAS.md) | Architecture, components, deployment, service contracts and design decisions. |
-| [Design Specification](docs/DESIGN.md) | Detailed system and interface design documentation. |
-| [Coding Standards](docs/coding_standards.md)| Instructions for using the PenFlow platform. |
-| [User Manual](docs/User%20Manual.pdf) | Team development conventions and coding standards. |
+| [Design Specification](docs/Design_Spec_Doc.pdf) | Detailed system and interface design documentation. |
+| [Coding Standards](docs/coding_standards.md)| Team development conventions and coding standards. |
+| [User Manual](docs/User_Manual.pdf) | Instructions for using the PenFlow platform. |
 | [Testing Policy](docs/Testingpolicy.md) | Testing strategy and team testing requirements. |
 | [NFR Traceability Matrix](docs/NFR_Traceability_Matrix%20.md)| Mapping between non-functional requirements and their implementation/testing. |
 | [NFR Testing](docs/NFRtesting.md)| Evidence and results for non-functional requirement testing. |
@@ -174,11 +190,12 @@ Detailed project documentation is available below.
 |----------------|----------------------------------|
 | Frontend       | Next.js, React, TypeScript, Tailwind CSS |
 | BAckend API    | FastAPI, Pydantic, SQLAlchemy, Alembic |
-| Authentication | Keycloak, JWT, RBAC              |
+| Authentication | Keycloak, Keycloak Admin API, JWT, RBAC |
 | Workers        | Celery, httpx, Tenacity          |
-| Broker / State | RabbitMQ                         |
+| Broker / State | RabbitMQ, Redis                  |
 | Database       | PostgreSQL 16                    |
 | Storage        | AWS S3                           |
+| Containers     | Docker, Docker Compose           |
 | CI/CD          | GitHub Actions                   |
 | Testing        | PyTest, Jest, Cypress            |
 
