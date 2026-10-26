@@ -180,3 +180,7 @@ output "indexing_worker_service_name" {
 output "indexing_worker_task_definition_arn" {
   value = aws_ecs_task_definition.indexing_worker.arn
 }
+
+output "github_deploy_role_arn" {
+  value = aws_iam_role.github_deploy.arn
+}

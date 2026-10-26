@@ -20,7 +20,8 @@ async def test_get_scan_summary_success(
     mock_get_asset_impact,
     mock_get_source_coverage,
     mock_get_report,
-    test_client
+    test_client,
+    guest_scan_headers,
 ):
     scan_id = UUID("550e8400-e29b-41d4-a716-446655440000")
     now = datetime.now(timezone.utc)
@@ -108,7 +109,10 @@ async def test_get_scan_summary_success(
     mock_get_report.return_value = mock_report_obj
 
     #executing the request
-    response = await test_client.get(f"/api/v1/scans/{scan_id}/summary")
+    response = await test_client.get(
+        f"/api/v1/scans/{scan_id}/summary",
+        headers=await guest_scan_headers(scan_id),
+    )
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -120,9 +124,15 @@ async def test_get_scan_summary_success(
 
 @pytest.mark.asyncio
 @patch("app.api.routes.summary.summary_repo.get_scan_summary", new_callable=AsyncMock)
-async def test_get_scan_summary_not_found(mock_get_scan, test_client):
+async def test_get_scan_summary_not_found(mock_get_scan, test_client, guest_scan_headers):
     mock_get_scan.return_value = None
 
-    response = await test_client.get("/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/summary")
+    scan_id = UUID("550e8400-e29b-41d4-a716-446655440000")
+
+    response = await test_client.get(
+        f"/api/v1/scans/{scan_id}/summary",
+        headers=await guest_scan_headers(scan_id),
+    )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
+    mock_get_scan.assert_awaited_once()

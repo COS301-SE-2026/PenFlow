@@ -6,8 +6,17 @@ on:
   pull_request:
     branches: ["dev", "main"]
 
+permissions:
+  contents: read
+
 env:
-  INTERNAL_WEBHOOK_SECRET: "ci-dummy-secret-do-not-use"
+  GITLEAKS_IMAGE: zricethezav/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+  SEMGREP_IMAGE: semgrep/semgrep:1.181.0@sha256:81474464c1f07483ba0682a44787fd93c91397419762a04abe2bafaae396304b
+  TRIVY_IMAGE: aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
+
+  APP_DATABASE_PASSWORD: "ci-only-runtime-password-never-use-in-production"
+  GUEST_SCAN_TOKEN_SECRET: "ci-only-guest-token-secret-never-use-in-production"
+  INTERNAL_WEBHOOK_SECRET: "ci-only-internal-webhook-secret-never-use-in-production"
 
   NODE_VERSION: "20.x"
   PNPM_VERSION: "10.33.2"
@@ -31,8 +40,8 @@ env:
 
   KEYCLOAK_CLIENT_SECRET: ${{ secrets.CI_KEYCLOAK_CLIENT_SECRET}}
 
-  AWS_REGION: af-south-1
-  AWS_ACCOUNT_ID: "576394965728"
+  AWS_REGION: eu-north-1
+  AWS_ACCOUNT_ID: "491449495014"
 
   BACKEND_ECR_REPOSITORY: penflow-production-backend
   FRONTEND_ECR_REPOSITORY: penflow-production-frontend
@@ -64,6 +73,26 @@ jobs:
         run: pnpm install --frozen-lockfile
 
 
+      - name: Audit frontend dependencies
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/security-frontend"
+
+          pnpm audit \
+            --audit-level high \
+            --json \
+            > "$RUNNER_TEMP/security-frontend/pnpm-audit.json"
+
+      - name: Upload frontend dependency report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: security-frontend-dependencies
+          path: ${{ runner.temp }}/security-frontend/pnpm-audit.json
+          if-no-files-found: warn
+          retention-days: 7
+
+
       - name: Lint Frontend
         run: pnpm --filter penflow-frontend lint
 
@@ -82,7 +111,19 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+
+    services:
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    timeout-minutes: 15
 
     defaults:
       run:
@@ -108,6 +149,20 @@ jobs:
           uv pip install --system -r requirements.txt
           uv pip install --system -r requirements-dev.txt
 
+      - name: Audit installed Python dependencies
+        shell: bash
+        run: bash "$GITHUB_WORKSPACE/scripts/audit-python.sh"
+
+
+      - name: Upload Python dependency report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: security-${{ github.job }}-dependencies
+          path: ${{ runner.temp }}/security-${{ github.job }}/pip-audit.json
+          if-no-files-found: warn
+          retention-days: 7
+
 
       - name: Compile Backend
         run: python -m compileall app
@@ -129,6 +184,9 @@ jobs:
           RABBITMQ_PORT: "5672"
           RABBITMQ_USERNAME: guest
           RABBITMQ_PASSWORD: guest
+          APP_ENV: test
+          RATE_LIMIT_STORAGE_URI: memory://
+          RATE_LIMIT_TEST_REDIS_URL: redis://localhost:6379/15
         run: |
           PYTHONPATH=. pytest tests/unit --cov=app --cov-report=xml
 
@@ -143,7 +201,7 @@ jobs:
   workers:
     name: Workers
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     defaults:
       run:
@@ -168,6 +226,21 @@ jobs:
         run: |
           uv pip install --system -r requirements.txt
           uv pip install --system -r requirements-dev.txt
+          python "$GITHUB_WORKSPACE/scripts/patch-wappalyzer.py"
+
+      - name: Audit installed Python dependencies
+        shell: bash
+        run: bash "$GITHUB_WORKSPACE/scripts/audit-python.sh"
+
+
+      - name: Upload Python dependency report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: security-${{ github.job }}-dependencies
+          path: ${{ runner.temp }}/security-${{ github.job }}/pip-audit.json
+          if-no-files-found: warn
+          retention-days: 7
 
 
       - name: Compile Workers
@@ -202,15 +275,120 @@ jobs:
           flags: workers
           fail_ci_if_error: true
 
+  security:
+    name: Security (${{ matrix.check }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [secrets, sast]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Prepare report directory
+        run: mkdir -p "$RUNNER_TEMP/security-${{ matrix.check }}"
+
+      - name: Scan Git history for secrets
+        if: matrix.check == 'secrets'
+        shell: bash
+        run: |
+          status=0
+
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$GITHUB_WORKSPACE:/repo:ro" \
+            -v "$RUNNER_TEMP/security-secrets:/reports" \
+            -w /repo \
+            "$GITLEAKS_IMAGE" git \
+            --log-opts="--all" \
+            --redact=100 \
+            --ignore-gitleaks-allow \
+            --exit-code 10 \
+            --report-format json \
+            --report-path /reports/gitleaks.json \
+            /repo || status=$?
+
+          case "$status" in
+            0)
+              echo "No secrets detected"
+              ;;
+            10)
+              echo "::error::Gitleaks detected secrets; review the redacted report"
+              ;;
+            *)
+              echo "::error::Gitleaks could not complete the scan"
+              ;;
+          esac
+
+          exit "$status"
+
+      - name: Static security analysis
+        if: matrix.check == 'sast'
+        shell: bash
+        run: |
+          status=0
+
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/src:ro" \
+            -v "$RUNNER_TEMP/security-sast:/reports" \
+            -w /src \
+            "$SEMGREP_IMAGE" \
+            semgrep scan \
+            --config p/ci \
+            --metrics off \
+            --strict \
+            --exclude backend/app/templates/passive_report_template.html \
+            --exclude backend/app/templates/phase2_report_template.html \
+            --exclude backend/app/templates/phase3_report_template.html \
+            --error \
+            --json \
+            --output /reports/semgrep.json \
+            backend/app \
+            workers/app \
+            frontend/src || status=$?
+
+          case "$status" in
+            0)
+              echo "No blocking static-analysis findings"
+              ;;
+            1)
+              echo "::error::Semgrep found security issues"
+              ;;
+            *)
+              echo "::error::Semgrep could not complete the analysis"
+              ;;
+          esac
+
+          exit "$status"
+
+      - name: Upload security report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: security-${{ matrix.check }}
+          path: ${{ runner.temp }}/security-${{ matrix.check }}/*.json
+          if-no-files-found: warn
+          retention-days: 7
+
+
   docker-verify:
     name: Docker Verification
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
-    needs: [frontend, backend, workers]
+    needs: [frontend, backend, workers, security]
     permissions: 
       contents: read
-      id-token: write
 
     steps:
       - name: Checkout repository
@@ -250,6 +428,22 @@ jobs:
           echo ""
           echo "Production images built:"
           docker image ls | grep penflow
+
+
+      - name: Scan production images
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ steps.image.outputs.tag }}
+        run: bash scripts/scan-production-images.sh
+
+      - name: Upload production image security reports
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: security-production-images
+          path: ${{ runner.temp }}/security-images/*.json
+          if-no-files-found: warn
+          retention-days: 7
 
 
       - name: Build Test Images
@@ -414,8 +608,10 @@ jobs:
           github.ref == 'refs/heads/main'
         uses: aws-actions/configure-aws-credentials@d979d5b3a71173a29b74b5b88418bfda9437d885
         with:
-          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+          allowed-account-ids: "491449495014"
 
 
       - name: Verify AWS Identity

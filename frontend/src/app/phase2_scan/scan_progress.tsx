@@ -492,7 +492,7 @@ export default function ScanProgress() {
         );
     }
 
-    const visibleSources = scan.sources.filter((s)=> s.source_name !== "hunter.io");
+    const visibleSources = scan.sources.filter((s)=> s.source_name !== "hunter.io" && s.source_name !== "cpe_resolver");
     return (
         <div className="mx-auto flex w-full max-w-[1700px] flex-col gap-6">
             <nav aria-label = "Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground">

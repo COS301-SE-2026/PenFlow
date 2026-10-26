@@ -6,6 +6,7 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from app.models.audit_log import AuditLog
 from app.models.engagement import Engagement
+from app.utils.audit_transaction import commit_or_flush
 
 
 class AuditRepository:
@@ -45,6 +46,7 @@ class AuditRepository:
         entity_type: str,
         entity_id: UUID | None,
         metadata: dict[str, object] | None = None,
+        commit: bool = True,
     ) -> AuditLog:
         rec = AuditLog(
             user_id=user_id,
@@ -55,9 +57,12 @@ class AuditRepository:
         )
 
         db.add(rec)
-        await db.commit()
-        await db.refresh(rec)
+        if commit:
+            await commit_or_flush(db)
+        else:
+            await db.flush()
 
+        await db.refresh(rec)
         return rec
 
 
@@ -68,10 +73,7 @@ class AuditRepository:
         limit: int = 100,
         offset: int = 0,
     ) -> list[AuditLog]:
-        engagement_ids = (
-            select(Engagement.id)
-            .where(Engagement.service_delivery_id == service_delivery_id)
-        )
+        engagement_ids = select(Engagement.id)
 
         query = (
             select(AuditLog)
@@ -82,7 +84,6 @@ class AuditRepository:
                 
                 AuditLog.metadata_["engagement_id"].astext.in_(
                     select(Engagement.id.cast(String))
-                    .where(Engagement.service_delivery_id == service_delivery_id)
                 ),
                 )
             )

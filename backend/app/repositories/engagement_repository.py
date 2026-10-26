@@ -29,6 +29,7 @@ from app.schemas.engagement import (
     EngagementSortField,
     SortOrder,
 )
+from app.utils.audit_transaction import commit_or_flush
 
 #Fixed base cost by engagement tier, charged once per engagement
 BASE_COST: dict[EngagementType, Decimal] = {
@@ -99,7 +100,7 @@ class EngagementRepository:
         ]
 
         db.add(engagement)
-        await db.commit()
+        await commit_or_flush(db)
         await db.refresh(engagement)
 
         return engagement
@@ -196,7 +197,7 @@ class EngagementRepository:
             .join(client, client.id == Engagement.requested_by)
         )
 
-        if user_role in {"pentester", "admin"}:
+        if user_role == "pentester":
             query = query.where(Engagement.assigned_to == user_id)
             count_query = count_query.where(Engagement.assigned_to == user_id)
 
@@ -260,7 +261,7 @@ class EngagementRepository:
         ) -> dict[EngagementStatus, int]:
         query = select(Engagement.status, func.count(Engagement.id))
 
-        if user_role in {"pentester", "admin"}:
+        if user_role == "pentester":
             query = query.where(Engagement.assigned_to == user_id)
 
         elif user_role != "service_delivery":
@@ -569,7 +570,7 @@ class EngagementRepository:
         )
 
         result = cast(CursorResult[Any], await db.execute(stmt))
-        await db.commit()
+        await commit_or_flush(db)
 
         return max(result.rowcount, 0)
 
@@ -582,7 +583,7 @@ class EngagementRepository:
     ) -> Engagement:
         engagement.status = new_status
 
-        await db.commit()
+        await commit_or_flush(db)
         await db.refresh(engagement)
 
         return engagement
@@ -785,6 +786,7 @@ class EngagementRepository:
         db: AsyncSession,
         engagement_id: UUID,
         service_delivery_id: UUID,
+        commit: bool = True,
     ) -> Engagement | None:
         stmt = (
             update(Engagement).where(
@@ -801,10 +803,14 @@ class EngagementRepository:
         claimed_id = result.scalar_one_or_none()
 
         if claimed_id is None:
-            await db.rollback()
+            if commit:
+                await db.rollback()
             return None
 
-        await db.commit()
+        if commit: 
+            await commit_or_flush(db)
+        else:
+            await db.flush()
 
         return await EngagementRepository.get_by_id(
             db,
@@ -842,7 +848,7 @@ class EngagementRepository:
         if estimated_duration_days is not None:
             engagement.estimated_duration_days = estimated_duration_days
 
-        await db.commit()
+        await commit_or_flush(db)
         await db.refresh(engagement)
 
         return engagement
@@ -858,7 +864,7 @@ class EngagementRepository:
         for field, value in changes.items():
             setattr(engagement, field, value)
 
-        await db.commit()
+        await commit_or_flush(db)
         await db.refresh(engagement)
 
         return engagement

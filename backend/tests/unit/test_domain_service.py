@@ -1,3 +1,4 @@
+from datetime import timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
@@ -327,6 +328,8 @@ async def test_verify_domain_already_verified(mock_get_domain, mock_verify_dns, 
     )
 
     mock_get_domain.return_value = domain
+    mock_verify_dns.return_value = DomainVerificationCode.VERIFIED
+    mock_save_domain.return_value = domain
 
     result = await DomainService.verify_domain(
         db,
@@ -334,8 +337,17 @@ async def test_verify_domain_already_verified(mock_get_domain, mock_verify_dns, 
         user_id = user_id,
     )
 
-    mock_verify_dns.assert_not_awaited()
-    mock_save_domain.assert_not_awaited()
+    mock_verify_dns.assert_awaited_once_with(
+        "test.com",
+        "penflow-verification=test-token",
+    )
+    mock_save_domain.assert_awaited_once_with(
+        db,
+        domain,
+        commit=True,
+    )
+
+    assert domain.expires_at - domain.verified_at == timedelta(days=30)
 
     assert result == domain
 
@@ -380,6 +392,7 @@ async def test_verify_domain_success(mock_get_domain, mock_verify_dns, mock_save
     mock_save_domain.assert_awaited_once_with(
         db,
         domain,
+        commit=True,
     )
 
     assert result == domain
@@ -387,7 +400,7 @@ async def test_verify_domain_success(mock_get_domain, mock_verify_dns, mock_save
     assert domain.last_checked_at is not None
     assert domain.last_verification_code == DomainVerificationCode.VERIFIED
     assert domain.verified_at is not None
-    assert domain.expires_at is None
+    assert domain.expires_at - domain.verified_at == timedelta(days=30)
 
 
 @pytest.mark.asyncio
@@ -456,10 +469,12 @@ async def test_verify_domain_unsuccessful(
     assert domain.last_checked_at is not None
     assert domain.last_verification_code == code
     assert domain.verified_at is None
+    assert domain.expires_at == domain.last_checked_at
 
     mock_save_domain.assert_awaited_once_with(
         db,
         domain,
+        commit=True,
     )
 #phase 2 
 #DELETE /domains/{domain_id} delete domain happy path

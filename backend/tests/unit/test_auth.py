@@ -7,7 +7,7 @@ import httpx
 import pytest
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
-from jose import JWTError
+from jwt.exceptions import InvalidSignatureError
 
 from app.api.middleware import auth as auth_module
 
@@ -94,7 +94,8 @@ async def test_get_current_user_invalid_token_raises_401():
     fake_keys = [{"kty": "RSA", "kid": "k1", "use": "sig", "n": "n", "e": "e"}]
 
     with patch.object(auth_module, "_get_jwks", new=AsyncMock(return_value=fake_keys)), \
-            patch.object(auth_module.jwt, "decode", side_effect=JWTError("bad signature")):
+            patch.object(auth_module.jwt, "decode", 
+                         side_effect=InvalidSignatureError("bad signature")):
             #sonarqube add isolated build request/credential mock before
         request = _request()
         credentials = _credentials()
@@ -140,3 +141,50 @@ async def test_extract_token_falls_back_to_cookie():
         await auth_module.get_current_user(request=request, credentials =None)
 
     assert exc_info.value.status_code ==401
+
+
+@pytest.mark.asyncio
+async def test_decode_token_rejects_invalid_signature():
+    from datetime import datetime, timedelta, timezone
+
+    import jwt
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    trusted_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+    )
+    attacker_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+    )
+
+    jwk = jwt.algorithms.RSAAlgorithm.to_jwk(
+        trusted_key.public_key(),
+        as_dict=True,
+    )
+    jwk.update(kid="trusted", use="sig")
+
+    now = datetime.now(timezone.utc)
+    token = jwt.encode(
+        {
+            "sub": "user-1",
+            "iss": auth_module.ISSUER,
+            "aud": auth_module.AUDIENCE,
+            "iat": now,
+            "exp": now + timedelta(minutes=5),
+        },
+        attacker_key,
+        algorithm="RS256",
+        headers={"kid": "trusted"},
+    )
+
+    with patch.object(
+        auth_module,
+        "_get_jwks",
+        new=AsyncMock(return_value=[jwk]),
+    ):
+        with pytest.raises(HTTPException) as error:
+            await auth_module.decode_token(token)
+
+    assert error.value.status_code == 401

@@ -33,12 +33,17 @@
     "lint:fix": "pnpm --filter penflow-frontend lint --fix && pnpm lint:backend:fix && pnpm lint:workers:fix",
     "install:backend": "cd backend && python3 -m venv .venv && ./.venv/bin/pip install --upgrade pip && ./.venv/bin/pip install -r requirements-dev.txt",
     "install:workers": "cd workers && python3 -m venv .venv && ./.venv/bin/pip install --upgrade pip && ./.venv/bin/pip install -r requirements-dev.txt",
-    "install:all": "pnpm install && pnpm install:backend && pnpm install:workers"
+    "install:all": "pnpm install && pnpm install:backend && pnpm install:workers",
+    "eval:assistant:routing": "cd backend && PYTHONPATH=. ./.venv/bin/python scripts/evaluate_assistant_routing.py",
+    "eval:assistant:live": "cd backend && PYTHONPATH=. ./.venv/bin/python scripts/evaluate_assistant_live.py",
+    "eval:assistant:security-routing": "cd backend && PYTHONPATH=. ./.venv/bin/python scripts/evaluate_security_query_routing.py",
+    "eval:assistant:retrieval": "cd backend && PYTHONPATH=. ./.venv/bin/python scripts/evaluate_rag_retrieval.py",
+    "eval:assistant:model-routing": "cd backend && PYTHONPATH=. ./.venv/bin/python scripts/evaluate_assistant_routing.py --router model"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1",
-    "cypress": "^15.14.2",
-    "start-server-and-test": "^3.0.2"
+    "concurrently": "^9.2.5",
+    "cypress": "^15.21.1",
+    "start-server-and-test": "^3.0.13"
   },
   "dependencies": {
     "workers": "^0.0.1"

@@ -50,7 +50,7 @@ export default function ActivityView({ scanId }: { scanId: string }) {
         );
     }
 
-    const visibleSources = scan.sources.filter((s) => s.source_name !== "hunter.io");
+    const visibleSources = scan.sources.filter((s) => s.source_name !== "hunter.io" && s.source_name !== "cpe_resolver");
     const completedCount = visibleSources.filter((s) => TERMINAL_SOURCE_STATUSES.has(s.status)).length;
 
     const details: { label: string; value: string }[] = [

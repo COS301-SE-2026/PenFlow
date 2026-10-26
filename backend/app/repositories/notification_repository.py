@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.base import NotificationType
 from app.models.notification import Notification
+from app.utils.audit_transaction import commit_or_flush
 
 
 class NotificationRepository:
@@ -33,7 +34,7 @@ class NotificationRepository:
         )
 
         db.add(notification)
-        await db.commit()
+        await commit_or_flush(db)
         await db.refresh(notification)
 
         return notification
@@ -127,7 +128,7 @@ class NotificationRepository:
             notification.is_read = True
             notification.read_at = datetime.now(timezone.utc)
 
-            await db.commit()
+            await commit_or_flush(db)
             await db.refresh(notification)
 
         return notification
@@ -153,6 +154,6 @@ class NotificationRepository:
             await db.execute(stmt),
         )
 
-        await db.commit()
+        await commit_or_flush(db)
 
         return result.rowcount or 0

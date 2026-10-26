@@ -13,7 +13,7 @@ def base_service():
 
 
 # can we collect http data correctly, do we build the cache properly
-@patch("app.services.fingerprinting_service.requests.get")
+@patch("app.services.fingerprinting_service.safe_get")
 def test_collect_http_data_success(mock_get, base_service):
     mock_response = MagicMock()
     mock_response.status_code = 200
@@ -53,7 +53,7 @@ def test_collect_http_data_success(mock_get, base_service):
     assert base_service.cache["links"] == ["style.css"]
 
 
-@patch("app.services.fingerprinting_service.requests.get")
+@patch("app.services.fingerprinting_service.safe_get")
 def test_collect_http_data_exception(mock_get, base_service):
     mock_get.side_effect = Exception("Connection timed out")
 
@@ -300,3 +300,25 @@ def test_run_orchestration(
     mock_export.assert_called_once()
 
     assert result == {"status": "success"}
+
+
+@patch("app.services.fingerprinting_service.safe_get")
+def test_collect_http_data_preserves_authorised_scope(mock_get):
+    response = MagicMock()
+    response.text = ""
+    response.headers = {}
+    response.cookies.get_dict.return_value = {}
+    mock_get.return_value = response
+
+    service = FingerprintingService(
+        target_url="https://www.example.com",
+        scope_domain="example.com",
+    )
+    service.collect_http_data()
+
+    mock_get.assert_called_once_with(
+        "https://www.example.com",
+        timeout=10,
+        verify=False,
+        allowed_domain="example.com",
+    )

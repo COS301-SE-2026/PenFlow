@@ -3,6 +3,8 @@ from typing import Any
 
 import nmap
 
+from app.utils.safe_outbound import public_ip
+
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
@@ -30,6 +32,8 @@ def run_live_nmap_scan(
 
     Plan for future profiles like full and advanced if we have time
     """
+    
+    ip_address = public_ip(ip_address)
 
     (logger.info(f"[NMAP_Service] Starting '{profile}' scan for IP address: {ip_address}"))
 

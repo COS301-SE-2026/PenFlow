@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from app.config.database_tls import get_database_connect_args
+
 ROOT_DIR = Path(__file__).resolve().parents[3]
 load_dotenv(ROOT_DIR / ".env")
 
@@ -63,7 +65,12 @@ def get_database_url() -> str:
 
 DATABASE_URL = get_database_url()
 
-engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
+engine = create_async_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    hide_parameters=True,
+    connect_args=get_database_connect_args(DATABASE_URL),
+)
 
 SessionLocal = async_sessionmaker(
     autocommit=False,

@@ -20,7 +20,7 @@ def create_mock_response(
 
 
 ##Happy Paths [HTTP]
-@patch("app.services.http_security_service.requests.get")
+@patch("app.services.http_security_service.safe_get")
 def test_http_endpoint(mock_get):
     """
     Successfully scan for http.
@@ -43,14 +43,13 @@ def test_http_endpoint(mock_get):
         "http://hackerone.com",
         timeout=5,
         verify=False,
-        allow_redirects=True,
     )
 
     assert len(result["targets"]) == 1
 
 
 # [HTTPS]
-@patch("app.services.http_security_service.requests.get")
+@patch("app.services.http_security_service.safe_get")
 def test_https_endpoint(mock_get):
     """
     Successfully scan for http and extracts headers.
@@ -80,7 +79,6 @@ def test_https_endpoint(mock_get):
         "https://hackerone.com",
         timeout=5,
         verify=False,
-        allow_redirects=True,
     )
 
     target = result["targets"][0]
@@ -92,7 +90,7 @@ def test_https_endpoint(mock_get):
 
 
 # [Multiple HTTP Endpoints]
-@patch("app.services.http_security_service.requests.get")
+@patch("app.services.http_security_service.safe_get")
 def test_multiple_http_endpoints(mock_get):
     """
     Successfully scans multiple HTTP.
@@ -120,7 +118,7 @@ def test_multiple_http_endpoints(mock_get):
 
 
 ##Sad Paths [Ignore Non-HTTP]
-@patch("app.services.http_security_service.requests.get")
+@patch("app.services.http_security_service.safe_get")
 def test_non_http_ports_are_ignored(mock_get):
     """
     Ignores services unrelated to HTTP.
@@ -146,7 +144,7 @@ def test_non_http_ports_are_ignored(mock_get):
 
 
 # [Connection Failure]
-@patch("app.services.http_security_service.requests.get")
+@patch("app.services.http_security_service.safe_get")
 def test_connection_failure(mock_get):
     """
     Returns no targets when the HTTP request fails.

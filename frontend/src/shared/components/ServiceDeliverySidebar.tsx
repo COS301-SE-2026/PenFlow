@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import brocodeLogo from "@/app/images/images/BroCode logo.png";
-import bluevisionLogo from "@/app/images/images/Bluevision logo.png";
+import penflowLogo from "@/app/images/images/PenFlow Logo.png";
 import {listConversations } from "@/lib/serviceDeliveryService";
 import NotificationMenu from "./NotificationMenu";
 
@@ -37,25 +36,14 @@ export default function ServiceDeliverySidebar() {
     }, []);
      return (
         <nav className="topbar">
-            <div className="logoPanel">
-                <Image
-                    src={bluevisionLogo}
-                    alt="Bluevision"
-                    width={80}
-                    height={48}
-                    style={{ width: "auto", height: 48 }}
-                />
-                <div className="logoDivider" />
-                <Image
-                    src={brocodeLogo}
-                    alt="BroCode"
-                    width={80}
-                    height={48}
-                    style={{ width: "auto", height: 48 }}
-                />
-            </div>
-
-            
+          <div className="logoPanel">
+            <Image
+              src={penflowLogo}
+              alt="PenFlow"
+              className="penflowLogo"
+              sizes="(max-width: 900px) 84px, 220px"
+            />
+          </div>            
 
             <ul className="topnav-list">
                 <li>
@@ -64,6 +52,28 @@ export default function ServiceDeliverySidebar() {
                  {serviceDeliveryNavItems.map((item) => {
                     const isActive = pathName === item.href || pathName.startsWith(`${item.href}/`);
                     const badge = badges[item.label];
+
+                    if (
+                        item.kind === "external"
+                        && item.href === "/api/auth/logout"
+                    ) {
+                        return (
+                            <li key={item.href}>
+                                <form
+                                    action="/api/auth/logout"
+                                    method="post"
+                                    className="m-0"
+                                >
+                                    <button
+                                        type="submit"
+                                        className="nav-link w-full cursor-pointer bg-transparent" text-left
+                                    >
+                                        {item.label}
+                                    </button>
+                                </form>
+                            </li>
+                        );
+                    }      
 
                     if(item.kind === "external") { 
                     return (

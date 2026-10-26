@@ -11,7 +11,12 @@ from app.models.scan import Scan
 
 @pytest.mark.asyncio
 #phase2 download pdf happy path
-async def test_download_completed_report_pdf(test_client, db_session, tmp_path):
+async def test_download_completed_report_pdf(
+    test_client, 
+    db_session, 
+    tmp_path, 
+    guest_scan_headers,
+):
     scan_id = uuid4()
 
     scan = Scan(
@@ -34,7 +39,10 @@ async def test_download_completed_report_pdf(test_client, db_session, tmp_path):
 
     await db_session.commit()
 
-    response = await test_client.get(f"/api/v1/scans/{scan_id}/pdf")
+    response = await test_client.get(
+        f"/api/v1/scans/{scan_id}/pdf",
+        headers=await guest_scan_headers(scan_id),
+    )
 
     assert response.status_code == status.HTTP_200_OK
     assert response.headers["content-type"] == "application/pdf"
@@ -43,7 +51,7 @@ async def test_download_completed_report_pdf(test_client, db_session, tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_download_report_not_ready(test_client, db_session):
+async def test_download_report_not_ready(test_client, db_session, guest_scan_headers,):
     scan_id = uuid4()
 
     scan = Scan(
@@ -63,7 +71,10 @@ async def test_download_report_not_ready(test_client, db_session):
 
     await db_session.commit()
 
-    response = await test_client.get(f"/api/v1/scans/{scan_id}/pdf")
+    response = await test_client.get(
+        f"/api/v1/scans/{scan_id}/pdf",
+        headers=await guest_scan_headers(scan_id),
+    )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert response.json()["detail"] == "Report is not ready yet"

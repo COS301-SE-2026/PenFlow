@@ -62,6 +62,7 @@ from app.schemas.retest import (
 )
 from app.services.notification_service import NotificationService
 from app.services.report_service import queue_engagement_report_generation
+from app.utils.audit_transaction import after_commit, audited_operation
 
 
 class EngagementService:
@@ -117,7 +118,7 @@ class EngagementService:
             engagement.requested_by == user_id
             or engagement.assigned_to == user_id
             or engagement.service_delivery_id == user_id
-            or user.role in {"admin", "service_delivery"}
+            or user.role == "service_delivery"
         ):
             return engagement
 
@@ -490,6 +491,7 @@ class EngagementService:
         )
 
     @staticmethod
+    @audited_operation
     async def create_engagement \
     (
         db: AsyncSession,
@@ -541,6 +543,7 @@ class EngagementService:
         )
 
     @staticmethod
+    @audited_operation
     async def create_manual_finding(
         db: AsyncSession,
         engagement_id: UUID,
@@ -722,6 +725,7 @@ class EngagementService:
     #create retest, update status , write audit   ,send notification 
     #let owning client to request retest on completed engagement 
     @staticmethod
+    @audited_operation
     async def request_retest(
      db: AsyncSession,
         engagement_id: UUID,
@@ -922,6 +926,7 @@ class EngagementService:
 
 
     @staticmethod
+    @audited_operation
     async def create_message(
         db: AsyncSession,
         engagement_id: UUID,
@@ -1141,6 +1146,7 @@ class EngagementService:
 
 
     @staticmethod
+    @audited_operation
     async def submit_for_review(
         db: AsyncSession,
         engagement_id: UUID,
@@ -1190,7 +1196,17 @@ class EngagementService:
                 "new_status": "review",
             },
         )
-        await queue_engagement_report_generation(db, engagement_id=engagement.id, version=1)
+        
+        report_engagement_id = engagement.id
+
+        await after_commit(
+            db,
+            lambda: queue_engagement_report_generation(
+                db,
+                engagement_id=report_engagement_id,
+                version=1,
+            ),
+        )
 
         await NotificationService.notify(
             db,
@@ -1212,6 +1228,7 @@ class EngagementService:
         )
 
     @staticmethod
+    @audited_operation
     async def start_engagement(
         db: AsyncSession,
         engagement_id: UUID,

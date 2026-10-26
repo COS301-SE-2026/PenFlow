@@ -26,6 +26,7 @@ export async function GET(_req:Request, {params} : {params: Promise<{scan_id: st
     }
 
     const headers = new Headers();
+    headers.set("Cache-Control", "no-store");
 
     const contentType = response.headers.get(
         "Content-Type"

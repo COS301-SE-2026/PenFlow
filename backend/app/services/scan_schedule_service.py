@@ -11,6 +11,10 @@ from app.models.scan_schedule import ScanSchedule
 from app.repositories.domain_repository import DomainRepository
 from app.repositories.scan_schedule_repository import ScanScheduleRepository
 from app.schemas.scan_schedule import ScanScheduleCreate, ScanScheduleUpdate
+from app.services.domain_service import DomainService
+from app.services.phase2_authorisation_service import (
+    Phase2AuthorisationService,
+)
 from app.services.scan_service import ScanService
 from app.services.schedule_calculator import (
     ScheduleValidationError,
@@ -65,6 +69,14 @@ class ScanScheduleService:
             timezone_name=request.timezone,
         )
 
+        authorisation = await Phase2AuthorisationService.issue(
+            db,
+            user_id=user_id,
+            verified_domain_id=request.verified_domain_id,
+            domain=verified_domain.domain,
+            source="schedule",
+        )
+
         try:
             schedule = await ScanScheduleRepository.create_schedule(
                 db,
@@ -79,6 +91,7 @@ class ScanScheduleService:
                 next_run_at=next_run_at,
             )
 
+            schedule.authorisation = authorisation
             await db.commit()
             await db.refresh(schedule)
 
@@ -215,6 +228,31 @@ class ScanScheduleService:
                 detail=str(err),
             ) from err
 
+        renewed_authorisation = None
+
+        if requested_active:
+            if changes.get("is_active") is True:
+                renewed_authorisation = await Phase2AuthorisationService.issue(
+                    db,
+                    user_id=user_id,
+                    verified_domain_id=schedule.verified_domain_id,
+                    domain=verified_domain.domain,
+                    source="schedule",
+                )
+            else:
+                Phase2AuthorisationService.validate(
+                    schedule.authorisation,
+                    user_id=user_id,
+                    verified_domain_id=schedule.verified_domain_id,
+                    domain=verified_domain.domain,
+                )
+
+                await DomainService.verify_domain(
+                    db,
+                    domain_id=schedule.verified_domain_id,
+                    user_id=user_id,
+                )
+
         was_active = schedule.is_active
 
         schedule.frequency = frequency
@@ -223,6 +261,9 @@ class ScanScheduleService:
         schedule.day_of_month = day_of_month
         schedule.timezone = timezone_name
         schedule.is_active = requested_active
+
+        if renewed_authorisation is not None:
+            schedule.authorisation = renewed_authorisation
 
         recurrence_changed = bool(RECURRENCE_FIELDS.intersection(changes))
 
@@ -286,19 +327,54 @@ class ScanScheduleService:
             try:
                 verified_domain = schedule.verified_domain
 
-                domain_is_valid = (
-                    verified_domain is not None
-                    and verified_domain.user_id == schedule.user_id
-                    and verified_domain.status == DomainVerificationStatus.VERIFIED
-                )
+                try:
+                    if (
+                        verified_domain is None
+                        or verified_domain.user_id != schedule.user_id
+                        or verified_domain.status
+                        != DomainVerificationStatus.VERIFIED
+                    ):
+                        raise HTTPException(
+                            status_code=403,
+                            detail="Domain verification is no longer valid",
+                        )
 
-                if not domain_is_valid:
+                    authorisation = Phase2AuthorisationService.validate(
+                        schedule.authorisation,
+                        user_id=schedule.user_id,
+                        verified_domain_id=schedule.verified_domain_id,
+                        domain=verified_domain.domain,
+                    )
+
+                    if authorisation["source"] != "schedule":
+                        raise HTTPException(
+                            status_code=403,
+                            detail="Schedule authorisation is invalid",
+                        )
+
+                    await DomainService.verify_domain(
+                        db,
+                        domain_id=schedule.verified_domain_id,
+                        user_id=schedule.user_id,
+                        commit=False,
+                    )
+
+                    Phase2AuthorisationService.validate(
+                        schedule.authorisation,
+                        user_id=schedule.user_id,
+                        verified_domain_id=schedule.verified_domain_id,
+                        domain=verified_domain.domain,
+                    )
+
+                except HTTPException as exc:
                     schedule.is_active = False
+
                     await db.commit()
 
                     logger.warning(
-                        "Schedule paused %s as domain verification is on longer valid",
+                        "Paused schedule %s: %s",
                         schedule.id,
+                        exc.detail,
                     )
                     continue
 
