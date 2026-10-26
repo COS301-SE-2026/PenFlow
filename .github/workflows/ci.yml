@@ -14,6 +14,7 @@ env:
   SEMGREP_IMAGE: semgrep/semgrep:1.181.0@sha256:81474464c1f07483ba0682a44787fd93c91397419762a04abe2bafaae396304b
   TRIVY_IMAGE: aquasec/trivy:0.76.0@sha256:2416d1f74045b57274df1a340eee6b510cacd73c66a6ccb8da092b117eb7d222
 
+  APP_DATABASE_PASSWORD: "ci-only-runtime-password-never-use-in-production"
   GUEST_SCAN_TOKEN_SECRET: "ci-only-guest-token-secret-never-use-in-production"
   INTERNAL_WEBHOOK_SECRET: "ci-only-internal-webhook-secret-never-use-in-production"
 
