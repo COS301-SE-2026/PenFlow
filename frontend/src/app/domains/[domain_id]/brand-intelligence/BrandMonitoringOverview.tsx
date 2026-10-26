@@ -16,6 +16,7 @@ import type { brand_monitoring } from "@/lib/brandIntelligenceTypes";
 import { Button } from "@/shared/components/ui/button";
 import PageHero from "@/shared/components/PageHero";
 import BrandCandidateList from "./BrandCandidateList";
+import { listScanSchedules } from "@/lib/scanScheduleService";
 
 
 interface BrandMonitoringOverviewProps
@@ -97,6 +98,7 @@ export default function BrandMonitoringOverview
     const [run_elapsed, set_run_elapsed] = useState(0);
     const [trigger_error, set_trigger_error] = useState<string | null>(null);
     const [trigger_notice, set_trigger_notice] = useState<string | null>(null);
+    const [next_scan, set_next_scan] = useState<string | null>(null);
 
 
     useEffect(() =>
@@ -109,6 +111,18 @@ export default function BrandMonitoringOverview
             try
             {
                 const monitoring = await fetch_brand_monitoring(domainId);
+
+                const schedules = await listScanSchedules()
+                    .catch(() => []);
+
+                const schedule = schedules.find
+                (
+                    (item) =>
+                        item.verified_domain_id === domainId
+                        && item.is_active
+                );
+
+                set_next_scan(schedule?.next_run_at ?? null);
                 //dont update an old page after the user leaves
                 if (cancelled)
                     return;
@@ -451,11 +465,20 @@ export default function BrandMonitoringOverview
 
                             <div className="rounded-lg border border-brand-panel-border bg-brand-panel-deep p-4">
                                 <p className="text-xs text-muted-foreground">
-                                    Next scheduled run
+                                    Next scheduled scan
                                 </p>
+
                                 <p className="mt-1 font-medium text-foreground">
-                                    {format_timestamp(state.monitoring.next_run_at)}
+                                    {next_scan
+                                        ? format_timestamp(next_scan)
+                                        : "No scan scheduled"}
                                 </p>
+                                <Link
+                                    href="/scheduled-scans"
+                                    className="mt-2 inline-block text-xs text-brand-cyan hover:underline"
+                                >
+                                    Manage schedule
+                                </Link>
                             </div>
                         </div>
                     </div>
