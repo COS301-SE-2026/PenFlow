@@ -12,8 +12,7 @@ Update date: 2026/09/04
    - 2.1 Unit Testing Policy
      - 2.1.1 Objective
      - 2.1.2 Automation
-     - 2.1.3 Coverage
-     - 2.1.4 Framework
+     - 2.1.3 Framework
    - 2.2 Integration Testing Policy
      - 2.2.1 Objective
      - 2.2.2 Automation
@@ -40,14 +39,9 @@ Update date: 2026/09/04
      - 4.3.3 Testing Framework
      - 4.3.4 Security Test Scenarios
      - 4.3.5 Security Acceptance Criteria
-5. End-to-End Testing Policy
-   - 5.1 Objective
-   - 5.2 Framework
-   - 5.3 Test Scenarios
-   - 5.4 Acceptance Criteria
-6. Defect Management
-   - 6.1 Defect Reporting
-   - 6.2 Severity Classification
+5. Defect Management
+   - 5.1 Defect Reporting
+   - 5.2 Severity Classification
 ---
 
 ## 1. Introduction
@@ -85,11 +79,9 @@ testing is used to enhance efficiency and accuracy. Both unit and
 integration tests are integrated into the CI pipeline, which is
 configured using GitHub Actions. Automated testing is a key component
 in the pipeline, preventing code from being merged into the main branch
-if tests fail. This approach maintains high standards of code quality.
-To maintain a robust testing framework, a minimum test coverage of 80%
-is targeted across all testable layers of the project. This policy must
-be implemented by all contributors and is designed to facilitate
-continuous improvement in the application.
+if tests fail. This approach maintains high standards of code quality
+and is designed to facilitate continuous improvement in the
+application.
 
 ### 2.1 Unit Testing Policy
 
@@ -110,16 +102,7 @@ being merged into other branches if tests fail. Unit tests run on every
 push to a feature branch and on every pull request targeting the main
 or develop branch.
 
-#### 2.1.3 Coverage
-
-A minimum code coverage of 80% is targeted for unit testing across all
-backend services, Celery workers, and frontend components. All service
-layer functions and utility helpers must undergo unit testing. Coverage
-reports are generated on every CI run using pytest-cov for Python
-modules and Jest with the --coverage flag for TypeScript modules, and
-are uploaded as CI artifacts.
-
-#### 2.1.4 Framework
+#### 2.1.3 Framework
 
 The following frameworks are used for unit testing across the system:
 
@@ -252,8 +235,8 @@ Performance testing focuses on the following key metrics:
 - **Scan Completion Time:** A Phase 1 CTEM scan must complete within
   60 seconds for 90% of requests, bounded by the slowest single OSINT
   lookup rather than the sum of all lookups.
-- **Throughput:** The system must sustain a minimum of 50 concurrent
-  scan requests without degradation.
+- **Throughput:** The system must remain stable under 100 or more
+  concurrent virtual users without degradation.
 - **Error Rate:** Less than 5% error rate under normal load conditions.
 
 #### 4.1.3 Testing Framework
@@ -403,57 +386,9 @@ Security tests must demonstrate:
 
 ---
 
-## 5. End-to-End Testing Policy
+## 5. Defect Management
 
-### 5.1 Objective
-
-The objective of end-to-end testing is to validate complete user
-journeys through the PenFlow application from the browser, ensuring
-that the frontend, backend, worker pipeline, and database interact
-correctly as an integrated system. No mocks are used at any layer
-during E2E testing.
-
-### 5.2 Framework
-
-E2E tests are executed manually against the staging deployment. 
-Results are documented and stored as test evidence prior to each 
-demo submission.
-
-### 5.3 Test Scenarios
-
-The following use cases must have passing E2E tests for :
-
- Use Case                            | Phase |
--------------------------------------|-------|
- Initiate CTEM scan as guest         | 1     |
- View inline scan summary            | 1     |
- log in                              | 1     |
- View scan history (authenticated)   | 1     |
- Initiate domain verification        | 2     |
- Initiate Phase 2 vulnerability scan | 2     |
- View Phase 2 scan results           | 2     |
- add/delete domain                   | 2     |
- filter findings domain              | 2     |
-
-Each E2E test must include assertions on page navigation, visible UI
-content such as headings and status badges
-
-### 5.4 Acceptance Criteria
-
-Definition of Done:
-
-- It has at least one passing integration test covering the happy path.
-- It has at least one passing integration test covering a relevant
-  error path such as invalid input or unauthorized access.
-- It has a passing E2E test simulating the complete user flow.
-- No test in the suite mocks the database or any internal service.
-- The CI pipeline is green on the main branch at demo time.
-
----
-
-## 6. Defect Management
-
-### 6.1 Defect Reporting
+### 5.1 Defect Reporting
 
 When a test fails or a bug is identified, the following process must
 be followed:
@@ -468,7 +403,7 @@ be followed:
 5. The pull request is reviewed by at least one other team member
    before merging.
 
-### 6.2 Severity Classification
+### 5.2 Severity Classification
 
 | Severity | Definition                                      | Target Fix Time |
 |----------|-------------------------------------------------|-----------------|

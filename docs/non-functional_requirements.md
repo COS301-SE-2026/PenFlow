@@ -26,10 +26,9 @@
 - No sensitive data (API keys, credentials) is exposed in API responses or logs; repeated scan submissions from the same IP are rate-limited - 429 on the 4th submission within 10 minutes (QR-09)
 
 ### NFR-5: Maintainability
-*Tool: ESLint (frontend/Node) + ruff (backend/Python) + pytest-cov*
+*Tool: ESLint (frontend/Node) + ruff (backend/Python)*
 - All merged pull requests pass static analysis with zero linting errors, enforced via CI (QR-10)
-- Backend services and worker modules maintain ≥ 80% automated test coverage (QR-11)
 
 ### NFR-6: Usability
 *Tool: Google Lighthouse*
-- Primary user-facing pages (dashboard, scan results) achieve a Lighthouse accessibility score of at least 80 (QR-12)
+- Primary user-facing pages across the client, pentester, and service-delivery flows achieve a Lighthouse accessibility score of at least 80 (QR-12)
