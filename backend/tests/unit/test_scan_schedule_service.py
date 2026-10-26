@@ -11,6 +11,7 @@ from app.models.base import (
 )
 from app.repositories.domain_repository import DomainRepository
 from app.repositories.scan_schedule_repository import ScanScheduleRepository
+from app.services.phase2_authorisation_service import Phase2AuthorisationService
 from app.services.scan_schedule_service import ScanScheduleService
 
 
@@ -23,6 +24,7 @@ async def test_create_happy(monkeypatch):
     domain = (SimpleNamespace
     (
         id=domain_id,
+        domain="schedule.example.com",
         status=DomainVerificationStatus.VERIFIED,
     ))
 
@@ -55,6 +57,15 @@ async def test_create_happy(monkeypatch):
         AsyncMock(return_value=schedule),
     )
 
+    authorisation = {"id": str(uuid4())}
+    issue_authorisation = AsyncMock(return_value=authorisation)
+
+    monkeypatch.setattr(
+        Phase2AuthorisationService,
+        "issue",
+        issue_authorisation,
+    )
+
     result = await (ScanScheduleService.create_schedule
     (
         db,
@@ -64,6 +75,15 @@ async def test_create_happy(monkeypatch):
 
     assert result is schedule
     db.commit.assert_awaited_once()
+
+    issue_authorisation.assert_awaited_once_with(
+        db,
+        user_id=user_id,
+        verified_domain_id=domain_id,
+        domain="schedule.example.com",
+        source="schedule",
+    )
+    assert result.authorisation == authorisation
 
 
 @pytest.mark.asyncio

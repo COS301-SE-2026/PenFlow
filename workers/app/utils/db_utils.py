@@ -7,6 +7,8 @@ from urllib.parse import quote_plus
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
+from app.utils.database_ssl import get_database_connect_kwargs
+
 logger = logging.getLogger(__name__)
 
 
@@ -31,7 +33,14 @@ def get_ports_from_db(
         host: str | None = None,
 ) -> list[dict[str, Any]]:
     try:
-        with closing(psycopg2.connect(_get_db_url())) as conn:
+        dsn = _get_db_url()
+
+        with closing(
+            psycopg2.connect(
+                dsn,
+                **get_database_connect_kwargs(dsn),
+            )
+        ) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 query =(
                     "SELECT port, protocol, service_name as service, product, version, state "
@@ -52,7 +61,14 @@ def get_ports_from_db(
 
 def get_technologies_from_db(scan_id: str) -> list[dict[str, Any]]:
     try:
-        with closing(psycopg2.connect(_get_db_url())) as conn:
+        dsn = _get_db_url()
+
+        with closing(
+            psycopg2.connect(
+                dsn,
+                **get_database_connect_kwargs(dsn),
+            )
+        ) as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute(
                     """

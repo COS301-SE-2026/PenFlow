@@ -1,5 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -10,7 +11,14 @@ from app.models.base import FindingStatus, RetestStatus, Severity
 class EvidenceFileResponse(BaseModel):
     id: UUID
     file_name: str
+    sha256: str | None = None
+    size_bytes: int | None = None
     mime_type: str | None = None
+    quarantine_status: Literal[
+        "pending", "clean", "rejected", "failed"
+    ] = "pending"
+    scan_message: str | None = None
+    scanned_at: datetime | None = None
     uploaded_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

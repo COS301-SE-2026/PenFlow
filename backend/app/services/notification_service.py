@@ -16,6 +16,7 @@ from app.schemas.notification import (
     NotificationResponse,
 )
 from app.tasks.email_tasks import send_email_task
+from app.utils.audit_transaction import after_commit
 
 EMAIL_NOTIFICATION_TYPES = {
     NotificationType.ENGAGEMENT_CLAIMED,
@@ -168,20 +169,26 @@ class NotificationService:
             recipient = await db.get(User, recipient_id)
 
             if recipient is not None and recipient.email:
-                try:
-                    send_email_task.apply_async(
-                        kwargs={
-                            "to_email": recipient.email,
-                            "subject": title,
-                            "text_body": message,
-                        },
-                        queue="email",
-                    )
-                except Exception:
-                    logger.exception(
-                        "Failed to queue notification email for notification %s",
-                        notification.id
-                    )
+                email_kwargs = {
+                    "to_email": recipient.email,
+                    "subject": title,
+                    "text_body": message,
+                }
+                notification_id = notification.id
+
+                async def dispatch_email() -> None:
+                    try:
+                        send_email_task.apply_async(
+                            kwargs=email_kwargs,
+                            queue="email",
+                        )
+                    except Exception:
+                        logger.exception(
+                            "Failed to queue notification email for notification %s",
+                            notification_id,
+                        )
+
+                await after_commit(db, dispatch_email)
 
         return notification
 

@@ -71,7 +71,7 @@ function getWorkersMeta(sourceName: string): WorkerMeta {
 export default function WorkerStatusGrid({ sources }: { sources: ScanSourceStatus[] }) {
     return (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {sources.map((source) => {
+            {sources.filter((source) => source.source_name !== "cpe_resolver").map((source) => {
                 const meta = getWorkersMeta(source.source_name);
                 const Icon = meta.icon;
                 const statusClassName = WORKER_STATUS_CLASS_NAME[source.status] ?? WORKER_STATUS_CLASS_NAME.pending;

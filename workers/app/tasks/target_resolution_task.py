@@ -5,6 +5,7 @@ from typing import Any
 from app.queue.celery_app import celery_app
 from app.services.target_resolution_service import resolve_target_scope
 from app.utils.callback import send_source_callback
+from app.utils.phase2_authorisation import require_phase2_authorisation
 
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
@@ -39,6 +40,21 @@ def run_target_resolution(
         logger.warning("[Target Resolution] Failed to send `running` callback for %s", scan_id)
 
     try:
+        permission = require_phase2_authorisation(
+            scan_id,
+            stage="resolve",
+            domain=domain,
+            targets=[
+                {"hostname": name}
+                for name in active_scope
+            ],
+        )
+
+        active_scope = [
+            item["hostname"]
+            for item in permission["targets"]
+        ]
+
         resolved_scope = resolve_target_scope(active_scope)
 
         assets = [

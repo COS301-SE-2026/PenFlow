@@ -60,7 +60,17 @@ export default function EngagementFindingsPage() {
 
     async function downloadFindingEvidence(f: FindingListItem) {
         const detail = await getEngagementFinding(params.id, f.id);
-        const firstFile = detail.evidence_files[0];
+        const firstFile = detail.evidence_files.find(
+            (file) => file.quarantine_status === "clean",
+        );
+
+        if (detail.evidence_files.length > 0 && !firstFile) {
+            window.alert(
+                "No attachment has passed its security check yet. " +
+                "Open Inspect to view attachment status.",
+            );
+            return;
+        }
         if (firstFile) {
             const blob = await downloadEvidence(firstFile.id, firstFile.file_name);
             downloadBlob(firstFile.file_name, blob);

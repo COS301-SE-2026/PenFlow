@@ -6,6 +6,8 @@ import tempfile
 from datetime import UTC, datetime
 from typing import Any
 
+from app.utils.safe_outbound import normalise_host, public_ip
+
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
@@ -36,6 +38,11 @@ def run_tls_scan(
     """
     Does tls inspection off of the valid ports provided by nmap
     """
+
+    ip_address = public_ip(ip_address)
+
+    if hostname is not None:
+        hostname = normalise_host(hostname)
 
     logger.info(f"[TLS_Service] Starting TLS scan against IP address: {ip_address}")
 

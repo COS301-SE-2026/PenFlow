@@ -278,3 +278,24 @@ export async function downloadReport(reportId: string): Promise<Blob> {
     }
     return response.blob();
 }
+
+export async function retryEvidenceSecurityCheck(
+    evidenceId: string,
+): Promise<import("./serviceDeliveryTypes").EvidenceFileSummary> {
+    const response = await fetch(
+        `/api/service-delivery/evidence/${evidenceId}/retry-security-check`,
+        { method: "POST" },
+    );
+
+    const body = await response.json();
+
+    if (!response.ok) {
+        throw new Error(
+            typeof body?.detail === "string"
+            ? body.detail
+            : "Unable to retry the security check.",
+        );
+    }
+
+    return body;
+}

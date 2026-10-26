@@ -6,6 +6,7 @@ from typing import Any
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 
+from app.services.ai_privacy import AIPrivacyError, embedding_text
 from app.services.rag.embedding_provider import EmbeddingProviderError
 
 
@@ -57,7 +58,7 @@ class BedrockEmbeddingProvider:
             )
 
         self.model = (
-            f"bedrock:{self.model_id}:{self.dimensions}"
+            f"bedrock:{self.model_id}:{self.dimensions}:privacy-v1"
         )
 
         try:
@@ -76,8 +77,16 @@ class BedrockEmbeddingProvider:
             self,
             text: str,
     ) -> list[float]:
+        try:
+            safe_text = embedding_text(text)
+
+        except AIPrivacyError:
+            raise BedrockEmbeddingProviderError(
+                "AI privacy checks rejected the embedding input."
+            ) from None
+        
         request_body = {
-            "inputText": text,
+            "inputText": safe_text,
             "dimensions": self.dimensions,
             "normalize": True,
         }
@@ -90,10 +99,10 @@ class BedrockEmbeddingProvider:
                 accept="application/json",
             )
 
-        except (BotoCoreError, ClientError) as exc:
+        except (BotoCoreError, ClientError):
             raise BedrockEmbeddingProviderError(
                 "Amazon Bedrock rejected the embedding request."
-            ) from exc
+            ) from None
 
         try:
             response_body = response["body"]

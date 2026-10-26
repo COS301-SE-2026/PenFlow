@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime, timezone
+from typing import Any
 
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, RAGIndexStatus, ScanStatus, ScanType
 
@@ -22,8 +23,8 @@ class Scan(Base):
     CASCADE_ALL = "all, delete-orphan"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    # I'm going to omit organisation_id for now until auth
-    user_id = Column(
+
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
@@ -31,9 +32,13 @@ class Scan(Base):
     )
     task_id = Column(String(255))
 
-    domain = Column(String(255), nullable=False, index=True)
+    domain: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        index=True,
+    )
 
-    verified_domain_id = Column(
+    verified_domain_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("verified_domains.id", ondelete="SET NULL"),
         nullable=True,
@@ -114,6 +119,11 @@ class Scan(Base):
 
     created_at = Column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+
+    authorisation: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB,
+        nullable=True,
     )
 
     started_at = Column(DateTime(timezone=True))

@@ -4,7 +4,11 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.middleware.auth import get_current_user
+from app.api.middleware.auth import (
+    get_current_user,
+    require_service_delivery,
+    require_user,
+)
 from app.models.base import (
     EngagementMessageChannel,
     EngagementStatus,
@@ -14,7 +18,10 @@ from app.models.base import (
 )
 from app.models.user import User
 from app.repositories.engagement_repository import EngagementRepository
-from app.repositories.report_repository import get_by_engagement_and_version
+from app.repositories.report_repository import (
+    get_by_engagement_and_version,
+    get_latest_for_engagement,
+)
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.engagement import (
     ActivityListResponse,
@@ -42,7 +49,7 @@ from app.schemas.retest import (
     RetestListResponse,
 )
 from app.services.engagement_service import EngagementService
-from app.services.report_service import queue_engagement_report_generation
+from app.services.report_access_service import ReportAccessService
 from app.utils.db import get_db
 
 router = APIRouter(prefix="/engagements", tags=["Engagements"])
@@ -357,50 +364,51 @@ async def get_engagement_activity(
 
 @router.get(
     "/{engagement_id}/report",
-    summary="Get engagement report",
+    summary="Get authorised engagement report metadata",
 )
 async def get_engagement_report(
-    engagement_id: UUID, 
-    version: int = 1,
+    engagement_id: UUID,
+    version: int | None = Query(default=None, ge=1),
     db: AsyncSession = Depends(get_db),
-    current_user: dict[str, Any] = Depends(get_current_user), 
+    user: User = Depends(require_user),
 ) -> dict[str, Any]:
-    user = await resolve_user(db, current_user)
-    engagement = await EngagementService.require_viewable_engagement(
+    await ReportAccessService.require_engagement(
         db,
-        engagement_id=engagement_id,
-        user_id=user.id,
+        engagement_id,
+        user,
     )
-    # clients can only see/download the report once the engagement is complete or retesting
-    is_client = engagement.requested_by == user.id
-    allowed_client_statuses = (EngagementStatus.COMPLETED, EngagementStatus.RETESTING)
-    if is_client and engagement.status not in allowed_client_statuses:
-        raise HTTPException(status_code=404, detail="Report not found for this engagement.")
 
-    report = await get_by_engagement_and_version(db, engagement_id, version) 
-    if not report:
-        raise HTTPException(status_code=404, detail="Report not found for this engagement.")
-    return {
-        "id": report.id, 
-        "engagement_id": report.engagement_id, 
-        "version": report.version, 
-        "status": report.status, 
-        "pdf_path": report.pdf_path, 
-        "generated_at": report.generated_at,
-    }
+    if version is None:
+        report = await get_latest_for_engagement(
+            db,
+            engagement_id,
+        )
+    else:
+        report = await get_by_engagement_and_version(
+            db,
+            engagement_id,
+            version,
+        )
+
+    if report is None:
+        raise HTTPException(404, "Report not found")
+
+    return ReportAccessService.metadata(report)
+
 
 @router.post(
     "/{engagement_id}/report/retry",
-    summary="Retry engagement report generation",
+    summary="Retry an assigned engagement's failed report",
 )
 async def retry_engagement_report(
     engagement_id: UUID,
-    version: int = 1, 
+    version: int | None = Query(default=None, ge=1),
     db: AsyncSession = Depends(get_db),
-    current_user: dict[str, Any] = Depends(get_current_user),
+    user: User = Depends(require_service_delivery),
 ) -> dict[str, Any]:
-
-    try:
-        return await queue_engagement_report_generation(db, engagement_id, version)
-    except Exception as e: 
-        raise HTTPException(status_code=500, detail=str(e))
+    return await ReportAccessService.retry(
+        db,
+        engagement_id,
+        user,
+        version,
+    )

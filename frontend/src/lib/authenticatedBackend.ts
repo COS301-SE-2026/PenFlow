@@ -3,6 +3,9 @@ import {NextResponse} from "next/server";
 
 import { setAuthCookies } from "@/lib/authSession";
 import { refreshAccessToken, TokenResponse } from "@/lib/keycloakService";
+import {
+    rateLimitResponseHeaders,
+} from "./clientIpForwarding";
 
 export const BACKEND_URL = process.env.API_URL ?? "http://localhost:3001";
 
@@ -102,6 +105,7 @@ async function backendResponseToNextResponse(response: Response, path: string): 
     if(response.status === 204) {
         return new NextResponse(null, {
             status: 204,
+            headers: rateLimitResponseHeaders(response),
         });
     }
 
@@ -118,12 +122,14 @@ async function backendResponseToNextResponse(response: Response, path: string): 
             },
             {
                 status: response.status,
+                headers: rateLimitResponseHeaders(response),
             },
         );
     }
 
     return NextResponse.json(body, {
         status: response.status,
+        headers: rateLimitResponseHeaders(response),
     });
 }
 

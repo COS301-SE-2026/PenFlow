@@ -48,6 +48,12 @@ INDEXING_EXCHANGE = Exchange(
     durable=True,
 )
 
+EVIDENCE_EXCHANGE = Exchange(
+    "evidence",
+    type="direct",
+    durable=True,
+)
+
 
 SCAN_QUEUE = Queue(
     "scans",
@@ -81,6 +87,14 @@ INDEXING_QUEUE = Queue(
     queue_arguments={"x-queue-type": "quorum"},
 )
 
+EVIDENCE_QUEUE = Queue(
+    "evidence",
+    exchange=EVIDENCE_EXCHANGE,
+    routing_key="evidence",
+    durable=True,
+    queue_arguments={"x-queue-type": "quorum"},
+)
+
 celery_app = Celery(
     "penflow_backend",
     broker=build_broker_url(),
@@ -88,6 +102,7 @@ celery_app = Celery(
         "app.tasks.email_tasks",
         "app.tasks.schedule_tasks",
         "app.tasks.rag_index_tasks",
+        "app.tasks.evidence_tasks",
     ],
 )
 
@@ -99,6 +114,7 @@ celery_app.conf.update(
         EMAIL_QUEUE,
         SCHEDULE_QUEUE,
         INDEXING_QUEUE,
+        EVIDENCE_QUEUE,
     ),
     broker_transport_options={
         "confirm_publish": True,
@@ -120,11 +136,20 @@ celery_app.conf.update(
             "queue": "indexing",
             "routing_key": "indexing",
         },
+        "evidence.*": {
+            "queue": "evidence",
+            "routing_key": "evidence",
+        },
     },
     beat_schedule = {
         "dispatch-due-scan-schedules": {
             "task": "schedules.dispatch_due",
             "schedule": 60.0,
+        },
+        "check-pending-evidence": {
+            "task": "evidence.scan_pending",
+            "schedule": 15.0,
+            "options": {"expires": 25},
         },
     },
     timezone="UTC",

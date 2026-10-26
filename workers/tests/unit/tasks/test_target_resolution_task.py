@@ -195,3 +195,13 @@ def test_run_target_resolution_exception(
         findings=[],
         error_message="DNS exploded",
     )
+
+
+@pytest.fixture(autouse=True)
+def mock_resolution_authorisation(monkeypatch):
+    monkeypatch.setattr(
+        "app.tasks.target_resolution_task.require_phase2_authorisation",
+        lambda scan_id, **kwargs: {
+            "targets": kwargs["targets"],
+        },
+    )

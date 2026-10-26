@@ -10,10 +10,12 @@ from app.repositories.engagement_repository import EngagementRepository
 from app.repositories.retest_repository import RetestRepository
 from app.schemas.retest import RetestFindingSummary, RetestListItem, RetestUpdate
 from app.services.notification_service import NotificationService
+from app.utils.audit_transaction import audited_operation
 
 
 class RetestService:
     @staticmethod
+    @audited_operation
     async def update_retest(
         db: AsyncSession,
         retest_id: UUID,

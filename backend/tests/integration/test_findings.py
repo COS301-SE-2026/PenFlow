@@ -17,7 +17,7 @@ from app.models.scan import Scan
 #GET /scans/{scan_id}/findings happy path intergration
 #integrate http layer,finding  repo , database working together
 @pytest.mark.asyncio
-async def test_get_scan_findings_success(test_client, db_session):
+async def test_get_scan_findings_success(test_client, db_session, guest_scan_headers,):
     scan_id = uuid4()
     scan = Scan(id=scan_id, domain="findings-test.com", status=ScanStatus.COMPLETED, progress=100)
     db_session.add(scan)
@@ -40,7 +40,10 @@ async def test_get_scan_findings_success(test_client, db_session):
     db_session.add(finding)
     await db_session.commit()
 
-    response = await test_client.get(f"/api/v1/scans/{scan_id}/findings")
+    response = await test_client.get(
+        f"/api/v1/scans/{scan_id}/findings",
+        headers=await guest_scan_headers(scan_id),
+    )
 
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
@@ -53,13 +56,16 @@ async def test_get_scan_findings_success(test_client, db_session):
 #phase2
 #GET /scans/{scan_id}/findings error/edge path intergration - no findings for scan
 @pytest.mark.asyncio
-async def test_get_scan_findings_empty(test_client, db_session):
+async def test_get_scan_findings_empty(test_client, db_session, guest_scan_headers,):
     scan_id = uuid4()
     scan = Scan(id=scan_id, domain="no-findings.com", status=ScanStatus.COMPLETED, progress=100)
     db_session.add(scan)
     await db_session.commit()
 
-    response = await test_client.get(f"/api/v1/scans/{scan_id}/findings")
+    response = await test_client.get(
+        f"/api/v1/scans/{scan_id}/findings",
+        headers=await guest_scan_headers(scan_id),
+    )
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json() == []

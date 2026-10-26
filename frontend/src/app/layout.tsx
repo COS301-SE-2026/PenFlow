@@ -4,6 +4,8 @@ import "./globals.css";
 import AskPenFlow from "@/shared/components/AskPenFlow";
 import AuthRefresher from "@/shared/components/AuthRresher";
 
+export const dynamic = "force-dynamic";
+
 const displayFont = Bebas_Neue({
   variable: "--font-display",
   subsets: ["latin"],

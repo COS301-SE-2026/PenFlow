@@ -1,11 +1,11 @@
-import os
 import uuid
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies.internal_auth import require_internal_worker
 from app.api.middleware.auth import get_current_user
 from app.repositories.user_repo import get_user_id_by_provider_id
 from app.schemas.brand_intelligence import (
@@ -21,8 +21,6 @@ router = APIRouter(prefix="/brand-intelligence", tags=["Brand Intelligence"])
 security_bearer = HTTPBearer()
 
 CurrentUser = Annotated[dict[str, Any], Depends(get_current_user)]
-
-INTERNAL_SECRET = os.environ.get("INTERNAL_WEBHOOK_SECRET", "local-dev-fallback")
 
 @router.post("/trigger/{verified_domain_id}", response_model=BrandMonitoringResponse)
 async def trigger_brand_scan(
@@ -87,16 +85,17 @@ async def update_candidate_status(
     except PermissionError as err:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(err))
 
-@router.post("/internal/ingest", status_code=status.HTTP_200_OK)
+@router.post(
+    "/internal/ingest",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(require_internal_worker)],
+)
 async def ingest_monitoring_results(
     payload: BrandIngestionPayload,
-    x_internal_token: str = Header(...),
     db: AsyncSession = Depends(get_db),
 ) -> Any:
     """
     Internal webhook called by the Celery worker upon scan completion."""
-    if x_internal_token != INTERNAL_SECRET:
-        raise HTTPException(status_code=401, detail="Invalid internal token")
 
     service = BrandIntelligenceService(db)
 

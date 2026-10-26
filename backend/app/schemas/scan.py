@@ -27,6 +27,8 @@ class InitiateScanRequest(BaseModel):
 class InitiateScanResponse(BaseModel):
     scan_id: UUID
     status: ScanStatus
+    guest_token: str | None = None
+    guest_token_expires_in: int | None = None
 
 
 class ScanCallbackRequest(BaseModel):

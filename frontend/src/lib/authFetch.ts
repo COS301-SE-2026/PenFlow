@@ -1,3 +1,5 @@
+import { submitLogout } from "@/lib/logout";
+
 export async function authenticatedFetch(
     input: RequestInfo | URL,
     init?: RequestInit,
@@ -29,17 +31,17 @@ export async function authenticatedFetch(
         );
 
         if(retryResponse === null) {
-            window.location.href = "/api/auth/logout";
+            submitLogout();
             return response;
         }
 
         if(retryResponse.status === 401) {
-            window.location.href = "/api/auth/logout";
+            submitLogout();
         }
 
         return retryResponse;
     } catch {
-        window.location.href = "/api/auth/logout";
+        submitLogout();
         return response;
     }
 }

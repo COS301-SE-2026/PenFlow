@@ -6,6 +6,8 @@ from pathlib import Path
 
 from Wappalyzer import Wappalyzer, WebPage
 
+from app.utils.safe_outbound import normalise_host, safe_get
+
 warnings.filterwarnings("ignore")
 # Logger to tell us this file was in error
 logger = logging.getLogger(__name__)
@@ -39,7 +41,15 @@ def collect_raw_data(domain: str) -> dict:
 
     try:
         wappalyzer = Wappalyzer.latest()
-        page = WebPage.new_from_url(f"https://{domain}")
+        host = normalise_host(domain)
+        authority = f"[{host}]" if ":" in host else host
+
+        response = safe_get(
+            f"https://{authority}",
+            timeout=10,
+        )
+
+        page = WebPage.new_from_response(response)
         raw_data = wappalyzer.analyze_with_versions_and_categories(page)
         return raw_data
     except Exception as e:

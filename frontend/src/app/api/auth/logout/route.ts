@@ -4,7 +4,7 @@ import { LOGOUT_URL } from "@/lib/keycloakService";
 const CLIENT_ID = process.env.KEYCLOAK_CLIENT_ID ?? "penflow-web";
 const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
   const idToken = req.cookies.get("id_token")?.value;
 
   const postLogoutRedirectUri = APP_URL;
@@ -28,7 +28,8 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const res = NextResponse.redirect(logoutUrl);
+  const res = NextResponse.redirect(logoutUrl, 303);
+  res.headers.set("Cache-Control", "no-store");
 
   res.cookies.delete("access_token");
   res.cookies.delete("refresh_token");

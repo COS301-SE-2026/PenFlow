@@ -16,6 +16,10 @@ from app.services.http_security_service import (
 from app.services.nmap_service import run_live_nmap_scan
 from app.services.tls_service import TLS_PORTS, run_tls_scan
 from app.utils.callback import send_source_callback
+from app.utils.phase2_authorisation import (
+    authorise_operation,
+    require_phase2_authorisation,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -221,6 +225,7 @@ def handle_nmap(payload: dict[str, Any]) -> dict[str, Any]:
     )
     try:
         send_source_callback(scan_id=scan_id, source_name="nmap", status="running")
+        authorise_operation(payload, "nmap")
         scan_data = run_live_nmap_scan(
             ip_address=payload["ip_address"], profile=payload.get("profile", "standard")
         )
@@ -263,6 +268,7 @@ def handle_tls(payload: dict[str, Any]) -> dict[str, Any]:
     ip_address = payload["ip_address"]
     try:
         send_source_callback(scan_id=scan_id, source_name="tls", status="running")
+        authorise_operation(payload, "tls")
         tls_data = run_tls_scan(
             ip_address=ip_address, ports=payload["ports"], hostname=payload.get("hostname")
         )
@@ -340,8 +346,12 @@ def handle_http_security(payload: dict[str, Any]) -> dict[str, Any]:
     hostname = payload["hostname"]
     try:
         send_source_callback(scan_id=scan_id, source_name="http_security", status="running")
+        permission = authorise_operation(payload, "http_security")
         scan_data = run_http_security_scan(
-            hostname=hostname, ip_address=ip_address, ports=payload["ports"]
+            hostname=hostname,
+            ip_address=ip_address, 
+            ports=payload["ports"],
+            scope_domain=permission["domain"],
         )
 
         findings = []
@@ -413,11 +423,12 @@ def handle_fingerprint(payload: dict[str, Any]) -> dict[str, Any]:
     target_url = payload["target_url"]
     try:
         send_source_callback(scan_id=scan_id, source_name="fingerprint", status="running")
-
+        permission = authorise_operation(payload, "fingerprint")
         svc = FingerprintingService(
             target_url=target_url,
             nmap_data=payload.get("nmap_data", {}),
             tls_data=payload.get("tls_data", {}),
+            scope_domain=permission["domain"],
         )
         fingerprint_results = svc.run()
 
@@ -509,6 +520,14 @@ def handle_phase2_pipeline(
     scan_id = payload["scan_id"]
     targets = payload.get("targets", [])
     profile = payload.get("profile", "standard")
+    permission = require_phase2_authorisation(
+        scan_id,
+        stage="pipeline",
+        targets=targets,
+        profile=profile,
+    )
+
+    targets = permission["targets"]
 
     address_to_hostnames: dict[str, list[str]] = {}
 
@@ -582,6 +601,7 @@ def handle_phase2_pipeline(
                 {
                     "scan_id": scan_id,
                     "ip_address": ip_address,
+                    "hostnames": address_to_hostnames[ip_address],
                     "profile": profile,
                     "defer_source_completion": True,
                 },

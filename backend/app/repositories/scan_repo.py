@@ -38,6 +38,7 @@ ACTIVE_SCAN_SOURCES = (
     "http_security",
     "tls",
     "fingerprint",
+    "cpe_resolver",
     "cve",
 )
 
@@ -55,6 +56,7 @@ class ScanRepository:
         email: str | None = None,
         user_id: UUID | None = None,
         verified_domain_id: UUID | None = None,
+        authorisation: dict[str, Any] | None = None,
     ) -> Scan:
         """Creates a new pending scan record in the database."""
         try:
@@ -64,6 +66,7 @@ class ScanRepository:
                 email=email,
                 user_id=user_id,
                 verified_domain_id=verified_domain_id,
+                authorisation=authorisation,
             )
             db.add(new_scan)
             await db.commit()
@@ -865,18 +868,33 @@ class ScanRepository:
             for row in rows
         ]
 
+    
     @staticmethod
-    async def get_domain_risk_history(db: AsyncSession, scan_id: UUID) -> list[dict[str, Any]]:
+    async def get_domain_risk_history(
+        db: AsyncSession,
+        scan_id: UUID,
+    ) -> list[dict[str, Any]]:
         scan = await ScanRepository.get_scan_by_id(db, scan_id)
-        if not scan:
+
+        if scan is None:
             return []
 
-        query = (
-            select(Scan.id, Scan.created_at)
-            .where(Scan.domain == scan.domain, Scan.status == ScanStatus.COMPLETED)
-            .order_by(Scan.created_at.asc())
-            .limit(10)
+        query = select(Scan.id, Scan.created_at).where(
+            Scan.domain == scan.domain,
+            Scan.scan_type == scan.scan_type,
+            Scan.status == ScanStatus.COMPLETED,
         )
+
+        if scan.user_id is None:
+            query = query.where(Scan.id == scan.id)
+        else:
+            query = query.where(Scan.user_id == scan.user_id)
+
+        query = query.order_by(
+            Scan.created_at.asc(),
+            Scan.id.asc(),
+        ).limit(10)
+
         historical_scans = (await db.execute(query)).all()
 
         history = []
@@ -891,6 +909,7 @@ class ScanRepository:
                     }
                 )
         return history
+
 
     @staticmethod
     async def get_findings_page(
@@ -1251,5 +1270,4 @@ class ScanRepository:
 
         result = await db.execute(stmt)
 
-        return list(result.scalars()
-                    .all())
+        return list(result.scalars().all())

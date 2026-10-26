@@ -1,7 +1,10 @@
+import logging
+from functools import partial
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from app.models.base import EngagementStatus, FindingStatus
 from app.models.finding import Finding
@@ -9,7 +12,28 @@ from app.repositories.audit_repository import AuditRepository
 from app.repositories.engagement_repository import EngagementRepository
 from app.repositories.finding_repository import FindingRepository
 from app.schemas.finding import EvidenceFileResponse, FindingDetail, FindingUpdate
+from app.services.evidence_storage_service import EvidenceStorageService
+from app.utils.audit_transaction import after_commit, audited_operation
 
+logger = logging.getLogger(__name__)
+
+async def remove_evidence_objects(
+    references: list[tuple[str, str]],
+) -> None:
+    for storage_backend, file_path in references:
+        try:
+            storage = EvidenceStorageService()
+
+            await run_in_threadpool(
+                storage.delete,
+                storage_backend=storage_backend,
+                file_path=file_path,
+            )
+
+        except Exception:
+            logger.exception(
+                "Evidence deletion failed; reconciliation is required"
+            )
 
 class FindingService:
     @staticmethod
@@ -132,6 +156,7 @@ class FindingService:
 
 
     @staticmethod
+    @audited_operation
     async def update_finding(
         db: AsyncSession,
         finding_id: UUID,
@@ -201,6 +226,7 @@ class FindingService:
 
 
     @staticmethod
+    @audited_operation
     async def register_evidence(
         db: AsyncSession,
         *,
@@ -208,6 +234,9 @@ class FindingService:
         user_id: UUID,
         file_name: str,
         file_path: str,
+        storage_backend: str = "local",
+        sha256: str | None = None,
+        size_bytes: int | None = None,
         mime_type: str | None,
     ) -> EvidenceFileResponse:
         finding = await FindingService.require_editable_finding(
@@ -231,6 +260,9 @@ class FindingService:
             uploaded_by=user_id,
             file_name=file_name,
             file_path=file_path,
+            storage_backend=storage_backend,
+            sha256=sha256,
+            size_bytes=size_bytes,
             mime_type=mime_type,
         )
 
@@ -245,7 +277,6 @@ class FindingService:
             metadata={
                 "engagement_id": str(engagement_id),
                 "finding_id": str(current_finding_id),
-                "file_name": file_name,
             },
         )
 
@@ -255,6 +286,7 @@ class FindingService:
 
 
     @staticmethod
+    @audited_operation
     async def delete_manual_finding(
         db: AsyncSession,
         finding_id: UUID,
@@ -272,8 +304,12 @@ class FindingService:
                 detail="Automated findings cannot be deleted.",
             )
 
-        finding_title = finding.title
         engagement_id = finding.engagement_id
+
+        evidence_references = [
+            (evidence.storage_backend, evidence.file_path)
+            for evidence in finding.evidence_files
+        ]
 
         await FindingRepository.delete_finding(
             db,
@@ -288,13 +324,19 @@ class FindingService:
             entity_id=finding_id,
             metadata={
                 "engagement_id": str(engagement_id),
-                "title": finding_title,
                 "source": "manual",
             },
         )
 
+        if evidence_references:
+            await after_commit(
+                db,
+                partial(remove_evidence_objects, evidence_references),
+            )
+
 
     @staticmethod
+    @audited_operation
     async def verify_automated_finding(
         db: AsyncSession,
         finding_id: UUID,

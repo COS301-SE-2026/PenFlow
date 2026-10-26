@@ -8,6 +8,7 @@ from app.services.rag.embedding_provider import (
     EmbeddingProviderError,
 )
 from app.services.rag.embedding_service import EmbeddingService
+from app.services.rag.gemini_provider import GeminiEmbeddingProvider
 
 
 def create_embedding_provider() -> EmbeddingProvider:
@@ -25,6 +26,9 @@ def create_embedding_provider() -> EmbeddingProvider:
 
     if provider_name == "bedrock":
         return BedrockEmbeddingProvider()
+
+    if provider_name == "gemini":
+        return GeminiEmbeddingProvider()
 
     raise EmbeddingProviderError(
         f"Unsupported embedding provider: {provider_name}"

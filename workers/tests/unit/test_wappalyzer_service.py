@@ -5,7 +5,7 @@ from app.tasks.wappalyzer_tasks import run_wappalyzer
 
 # live happy path
 @patch("app.tasks.wappalyzer_tasks.send_source_callback")
-@patch("app.services.wappalyzer_service.WebPage.new_from_url")
+@patch("app.services.wappalyzer_service.safe_get")
 @patch("app.services.wappalyzer_service.Wappalyzer.latest")
 @patch("app.services.wappalyzer_service.SCAN_MODE", "LIVE")
 def test_wappalyzer_live_happy_path(mock_wappalyzer_latest, mock_webpage, mock_send_callback):
@@ -13,6 +13,9 @@ def test_wappalyzer_live_happy_path(mock_wappalyzer_latest, mock_webpage, mock_s
 
     # fake the page object
     mock_page_instance = MagicMock()
+    mock_page_instance.url = "https://acorns.com/"
+    mock_page_instance.text = "<html><head></head></html>"
+    mock_page_instance.headers = {}
     mock_webpage.return_value = mock_page_instance
     mock_engine_instance = MagicMock()
     mock_engine_instance.analyze_with_versions_and_categories.return_value = {
@@ -41,7 +44,7 @@ def test_wappalyzer_live_happy_path(mock_wappalyzer_latest, mock_webpage, mock_s
 
 # sad path for engine outage
 @patch("app.tasks.wappalyzer_tasks.send_source_callback")
-@patch("app.services.wappalyzer_service.WebPage.new_from_url")
+@patch("app.services.wappalyzer_service.safe_get")
 @patch("app.services.wappalyzer_service.Wappalyzer.latest")
 @patch("app.services.wappalyzer_service.SCAN_MODE", "LIVE")
 def test_wappalyzer_live_engine_failure(_mock_wappalyzer_latest, mock_webpage, mock_send_callback):
@@ -61,7 +64,7 @@ def test_wappalyzer_live_engine_failure(_mock_wappalyzer_latest, mock_webpage, m
 
 # mock fallback path
 @patch("app.tasks.wappalyzer_tasks.send_source_callback")
-@patch("app.services.wappalyzer_service.WebPage.new_from_url")
+@patch("app.services.wappalyzer_service.safe_get")
 @patch("app.services.wappalyzer_service.Wappalyzer.latest")
 @patch("app.services.wappalyzer_service.SCAN_MODE", "MOCK")
 def test_wappalyzer_fallback_to_mock(mock_wappalyzer_latest, mock_webpage, mock_send_callback):

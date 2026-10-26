@@ -19,9 +19,34 @@ RABBITMQ_PASSWORD="$4"
 : "${SMTP_PASSWORD:?SMTP_PASSWORD environment variable is required}"
 : "${INTERNAL_WEBHOOK_SECRET:?INTERNAL_WEBHOOK_SECRET environment variable is required}"
 : "${KEYCLOAK_PROVISIONER_CLIENT_SECRET:?KEYCLOAK_PROVISIONER_CLIENT_SECRET environment variable is required}"
+: "${GUEST_SCAN_TOKEN_SECRET:?GUEST_SCAN_TOKEN_SECRET is required}"
+: "${APP_DATABASE_PASSWORD:?APP_DATABASE_PASSWORD is required}"
+: "${RATE_LIMIT_PROXY_SECRET:?RATE_LIMIT_PROXY_SECRET is required}"
+: "${RATE_LIMIT_REDIS_PASSWORD:?RATE_LIMIT_REDIS_PASSWORD is required}"
+: "${BACKEND_TLS_CERT_FILE:?BACKEND_TLS_CERT_FILE is required}"
+: "${BACKEND_TLS_KEY_FILE:?BACKEND_TLS_KEY_FILE is required}"
+
+export TF_VAR_rate_limit_proxy_secret="$RATE_LIMIT_PROXY_SECRET"
+export TF_VAR_rate_limit_redis_password="$RATE_LIMIT_REDIS_PASSWORD"
+
+export TF_VAR_app_database_password="$APP_DATABASE_PASSWORD"
+
+export TF_VAR_guest_scan_token_secret="$GUEST_SCAN_TOKEN_SECRET"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 INFRA_DIR="$REPO_ROOT/infra"
+
+for tls_file in "$BACKEND_TLS_CERT_FILE" "$BACKEND_TLS_KEY_FILE"; do
+    if [ ! -r "$tls_file" ]; then
+        echo "A backend TLS certificate/key file is unreadable." >&2
+        exit 1
+    fi
+done
+
+openssl verify \
+    -CAfile "$REPO_ROOT/docker/certs/penflow-internal-ca.pem" \
+    "$BACKEND_TLS_CERT_FILE" \
+    >/dev/null
 
 AWS_REGION="$(
     aws configure get region
@@ -34,7 +59,7 @@ fi
 
 echo "1. Checking prerequisites"
 
-for command in terraform aws docker jq; do
+for command in terraform aws docker jq openssl python3; do
     if ! command -v "$command" >/dev/null 2>&1; then
         echo "Required command not found: $command"
         exit 1
@@ -239,6 +264,10 @@ KC_PROVISIONER_SECRET_ARN="$(
     get_secret_arn aws_secretsmanager_secret.keycloak_provisioner_client_secret
 )"
 
+BACKEND_TLS_SECRET_ARN="$(
+    get_secret_arn aws_secretsmanager_secret.backend_tls
+)"
+
 RABBIT_SECRET_ARN="$(
     get_secret_arn aws_secretsmanager_secret.rabbitmq_password
 )"
@@ -268,6 +297,7 @@ for secret in \
     "$KC_DB_SECRET_ARN" \
     "$KC_ADMIN_SECRET_ARN" \
     "$KC_PROVISIONER_SECRET_ARN" \
+    "$BACKEND_TLS_SECRET_ARN" \
     "$RABBIT_SECRET_ARN" \
     "$HIBP_SECRET_ARN" \
     "$SHODAN_SECRET_ARN" \
@@ -330,6 +360,32 @@ aws secretsmanager put-secret-value \
     --secret-id "$WEBHOOK_SECRET_ARN" \
     --secret-string "$INTERNAL_WEBHOOK_SECRET" \
     >/dev/null
+
+(
+    tls_payload="$(mktemp)"
+    trap 'rm -f "$tls_payload"' EXIT
+
+    python3 - \
+        "$BACKEND_TLS_CERT_FILE" \
+        "$BACKEND_TLS_KEY_FILE" \
+        "$tls_payload" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+payload = {
+    "certificate": Path(sys.argv[1]).read_text(),
+    "private_key": Path(sys.argv[2]).read_text(),
+}
+
+Path(sys.argv[3]).write_text(json.dumps(payload))
+PY
+
+    aws secretsmanager put-secret-value \
+        --secret-id "$BACKEND_TLS_SECRET_ARN" \
+        --secret-string "file://$tls_payload" \
+        >/dev/null
+)
 
 echo "Secrets populated."
 

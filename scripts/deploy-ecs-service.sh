@@ -6,6 +6,7 @@ CLUSTER="$1"
 SERVICE="$2"
 CONTAINER="$3"
 IMAGE="$4"
+ADDITIONAL_CONTAINER="${5:-}"
 
 
 CURRENT_TASK_DEFINITION="$(
@@ -41,8 +42,20 @@ if ! jq -e \
     exit 1
 fi
 
+if [ -n "$ADDITIONAL_CONTAINER" ]; then
+    if ! jq -e \
+        --arg container "$ADDITIONAL_CONTAINER" \
+        '.containerDefinitions | any(.name == $container)' \
+        current-task-definition.json >/dev/null; then
+
+        echo "Container '$ADDITIONAL_CONTAINER' does not exist"
+        exit 1
+    fi
+fi
+
 jq \
     --arg container "$CONTAINER" \
+    --arg additional_container "$ADDITIONAL_CONTAINER" \
     --arg image "$IMAGE" \
     '
         del(
@@ -59,6 +72,10 @@ jq \
         |
         .containerDefinitions |= map(
             if .name == $container
+                or (
+                    $additional_container != ""
+                    and .name == $additional_container
+                )
             then .image = $image
             else .
             end

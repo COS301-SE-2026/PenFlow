@@ -10,7 +10,7 @@ from app.api.routes.internal import (
     update_scan_source_callback,
     update_scan_status_callback,
 )
-from app.models.base import ScanStatus
+from app.models.base import ReportStatus, ScanStatus, ScanType
 from app.schemas.report import ReportCallbackRequest
 from app.schemas.scan import ScanCallbackRequest, ScanSourceCallbackRequest
 
@@ -117,93 +117,97 @@ async def test_update_scan_status_missing_scan(mock_scan):
 
 
 @pytest.mark.asyncio
-@patch("app.api.routes.internal.mark_report_completed", new_callable=AsyncMock)
-async def test_update_report_status_completed(mock_completed):
-    scan_id = uuid4()
+async def test_update_report_status_completed(report_record):
+    report, path = report_record
     db = AsyncMock()
 
-    report = SimpleNamespace(status=SimpleNamespace(value="completed"))
-    mock_completed.return_value = report
-
-    payload = ReportCallbackRequest(
-        status = "completed",
-        pdf_path = "/report/report.pdf",
+    result = await update_report_status_callback(
+        report.scan_id,
+        ReportCallbackRequest(
+            status="completed",
+            pdf_path=str(path),
+        ),
+        db,
     )
 
-    result = await update_report_status_callback(scan_id, payload, db)
-
-    mock_completed.assert_awaited_once_with(
-        db = db,
-        scan_id = str(scan_id),
-        pdf_path = "/report/report.pdf",
-    )
+    assert report.status == ReportStatus.COMPLETED
+    assert report.pdf_path == str(path.resolve())
+    db.commit.assert_awaited_once()
 
     assert result == {
-        "scan_id": str(scan_id),
+        "scan_id": str(report.scan_id),
         "report_status": "completed",
     }
 
 
 @pytest.mark.asyncio
-async def test_update_report_status_completed_needs_pdfs_path():
-    scan_id = uuid4()
+async def test_update_report_status_failed(report_record):
+    report, _ = report_record
     db = AsyncMock()
 
-    payload = ReportCallbackRequest(status="completed", pdf_path=None) 
-
-    with pytest.raises(HTTPException) as excep:
-        await update_report_status_callback(scan_id, payload, db)
-    
-    assert excep.value.status_code == 400
-    assert excep.value.detail == "pdf_path is required for completed reports"
-
-
-@pytest.mark.asyncio
-@patch("app.api.routes.internal.mark_report_failed", new_callable=AsyncMock)
-async def test_update_report_status_failed(mock_failed):
-    scan_id = uuid4()
-    db = AsyncMock()
-
-    report = SimpleNamespace(status=SimpleNamespace(value="failed"))
-    mock_failed.return_value = report
-
-    payload = ReportCallbackRequest(
-        status = "failed",
-        error_message = "Report generation failed",
+    result = await update_report_status_callback(
+        report.scan_id,
+        ReportCallbackRequest(
+            status="failed",
+            error_message="Report generation failed",
+        ),
+        db,
     )
 
-    result = await update_report_status_callback(scan_id, payload, db)
-
-    mock_failed.assert_awaited_once_with(
-        db = db,
-        scan_id = str(scan_id),
-        error_message = "Report generation failed",
-    )
+    assert report.status == ReportStatus.FAILED
+    assert report.error_message == "Report generation failed"
+    db.commit.assert_awaited_once()
 
     assert result == {
-        "scan_id": str(scan_id),
+        "scan_id": str(report.scan_id),
         "report_status": "failed",
     }
 
 
 @pytest.mark.asyncio
-async def test_update_report_status_invalid():
-    scan_id = uuid4()
+async def test_update_report_status_completed_needs_pdfs_path(
+    report_record,
+):
+    report, _ = report_record
     db = AsyncMock()
 
-    result = ReportCallbackRequest(status="Incorrect Status")
+    with pytest.raises(HTTPException) as exc:
+        await update_report_status_callback(
+            report.scan_id,
+            ReportCallbackRequest(status="completed"),
+            db,
+        )
 
-    with pytest.raises(HTTPException) as excep:
-        await update_report_status_callback(scan_id, result, db)
+    assert exc.value.status_code == 422
+    assert exc.value.detail == "pdf_path is required"
+    db.commit.assert_not_awaited()
 
-    assert excep.value.status_code == 400
-    assert excep.value.detail == "Invalid report status"
+
+@pytest.mark.asyncio
+async def test_update_report_status_invalid(report_record):
+    report, _ = report_record
+    db = AsyncMock()
+
+    with pytest.raises(HTTPException) as exc:
+        await update_report_status_callback(
+            report.scan_id,
+            ReportCallbackRequest(status="Incorrect Status"),
+            db,
+        )
+
+    assert exc.value.status_code == 422
+    assert exc.value.detail == "Invalid report callback status"
+    db.commit.assert_not_awaited()
 
 
 @pytest.mark.asyncio
 @patch("app.api.routes.internal.celery_app.send_task")
 @patch("app.api.routes.internal.ScanRepository.save_source_result", new_callable=AsyncMock)
-async def test_update_scan_source_callback(mock_save_source_result, mock_send_task):
+async def test_update_scan_source_callback(
+    mock_save_source_result,
+    mock_send_task,
+    source_lookup,
+):
     scan_id = uuid4()
     db = AsyncMock()
 
@@ -244,11 +248,10 @@ async def test_update_scan_source_callback(mock_save_source_result, mock_send_ta
 
 @pytest.mark.asyncio
 @patch("app.api.routes.internal.ScanRepository.save_source_result", new_callable=AsyncMock)
-async def test_update_scan_source_callback_scan_not_found(mock_save_source_result):
+async def test_update_scan_source_callback_scan_not_found(mock_save_source_result, source_lookup):
     scan_id = uuid4()
     db = AsyncMock()
-
-    mock_save_source_result.side_effect = ValueError("Scan not found")
+    source_lookup.return_value = None
 
     payload = ScanSourceCallbackRequest(
         status = "failed",
@@ -263,6 +266,7 @@ async def test_update_scan_source_callback_scan_not_found(mock_save_source_resul
 
     assert excep.value.status_code == 404
     assert excep.value.detail == "Scan not found"
+    mock_save_source_result.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -275,6 +279,7 @@ async def test_completed_source_callback_queues_indexing(
     mock_get_report,
     mock_queue_report,
     mock_send_task,
+    source_lookup,
 ):
     scan_id = uuid4()
     db = AsyncMock()
@@ -286,7 +291,7 @@ async def test_completed_source_callback_queues_indexing(
             progress=100,
         )
     )
-    mock_get_report.value = None
+    mock_get_report.return_value = None
     mock_queue_report.return_value = {
         "status": "generating",
     }
@@ -322,3 +327,48 @@ async def test_completed_source_callback_queues_indexing(
         "progress": 100,
         "report_status": "generating",
     }
+
+
+@pytest.fixture
+def report_record(monkeypatch, tmp_path):
+    report = SimpleNamespace(
+        scan_id=uuid4(),
+        engagement_id=None,
+        version=1,
+        status=ReportStatus.GENERATING,
+        pdf_path=None,
+        generated_at=None,
+        error_message=None,
+    )
+
+    monkeypatch.setattr(
+        "app.api.routes.internal.get_report_by_scan_id",
+        AsyncMock(return_value=report),
+    )
+    monkeypatch.setattr(
+        "app.services.callback_validation.REPORT_STORAGE",
+        "local",
+    )
+    monkeypatch.setattr(
+        "app.services.callback_validation.REPORT_OUTPUT_DIR",
+        tmp_path,
+    )
+
+    path = tmp_path / f"penflow_report_{report.scan_id}.pdf"
+    return report, path
+
+
+@pytest.fixture
+def source_lookup(monkeypatch):
+    lookup = AsyncMock(
+        return_value=SimpleNamespace(
+            scan_type=ScanType.PASSIVE_CTEM,
+        )
+    )
+
+    monkeypatch.setattr(
+        "app.api.routes.internal.ScanRepository.get_scan_by_id",
+        lookup,
+    )
+
+    return lookup
