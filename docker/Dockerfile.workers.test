@@ -30,6 +30,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     -r requirements.txt \
     -r requirements-dev.txt
 
+COPY scripts/patch-wappalyzer.py /tmp/patch-wappalyzer.py
+RUN python /tmp/patch-wappalyzer.py
+
 COPY workers/app ./app
 COPY workers/tests ./tests
 COPY workers/pytest.ini ./pytest.ini

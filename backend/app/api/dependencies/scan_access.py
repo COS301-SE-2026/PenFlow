@@ -3,8 +3,9 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated, Any, Literal, cast
 from uuid import UUID, uuid4
 
+import jwt
 from fastapi import Depends, HTTPException, Request
-from jose import JWTError, jwt
+from jwt.exceptions import PyJWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import get_current_user_optional
@@ -79,9 +80,7 @@ def valid_guest_token(
             audience=_AUDIENCE,
             issuer=_ISSUER,
             options={
-                "require_exp": True,
-                "require_iat": True,
-                "require_sub": True,
+                "require": ["exp", "iat", "sub", "iss", "aud"],
             },
         )
 
@@ -93,7 +92,7 @@ def valid_guest_token(
             and permission in scope.split()
         )
 
-    except (JWTError, ValueError, TypeError):
+    except (PyJWTError, ValueError, TypeError):
         return False
 
 

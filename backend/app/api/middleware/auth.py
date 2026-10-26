@@ -1,11 +1,13 @@
+import json
 import logging
 import os
 from typing import Any, cast
 
 import httpx
+import jwt
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
+from jwt.exceptions import PyJWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
@@ -91,7 +93,7 @@ async def decode_token(token: str) -> dict[str, Any]:
     try:
         header = jwt.get_unverified_header(token)
 
-    except JWTError as err:
+    except PyJWTError as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid access token",
@@ -122,17 +124,23 @@ async def decode_token(token: str) -> dict[str, Any]:
         )
 
     try:
-        payload = jwt.decode(
+        public_key = jwt.PyJWK.from_json(
+            json.dumps(_to_rsa_key(signing_key)),
+            algorithm="RS256",
+        )
+
+        return jwt.decode(
             token,
-            _to_rsa_key(signing_key),
+            public_key,
             algorithms=["RS256"],
             issuer=ISSUER,
             audience=AUDIENCE,
+            options={
+                "require": ["exp", "iat", "sub", "iss", "aud"],
+            },
         )
 
-        return cast(dict[str, Any], payload)
-
-    except JWTError as err:
+    except (PyJWTError, ValueError, TypeError, KeyError) as err:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid access token",

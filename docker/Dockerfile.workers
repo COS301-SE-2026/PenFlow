@@ -28,6 +28,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --system \
     -r requirements.txt
 
+COPY scripts/patch-wappalyzer.py /tmp/patch-wappalyzer.py
+RUN python /tmp/patch-wappalyzer.py
+
 FROM python:3.12-slim AS runner
 
 WORKDIR /app

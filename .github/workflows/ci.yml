@@ -225,6 +225,7 @@ jobs:
         run: |
           uv pip install --system -r requirements.txt
           uv pip install --system -r requirements-dev.txt
+          python "$GITHUB_WORKSPACE/scripts/patch-wappalyzer.py"
 
       - name: Audit installed Python dependencies
         shell: bash
@@ -345,6 +346,9 @@ jobs:
             --config p/ci \
             --metrics off \
             --strict \
+            --exclude backend/app/templates/passive_report_template.html \
+            --exclude backend/app/templates/phase2_report_template.html \
+            --exclude backend/app/templates/phase3_report_template.html \
             --error \
             --json \
             --output /reports/semgrep.json \

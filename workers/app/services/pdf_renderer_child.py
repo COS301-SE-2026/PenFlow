@@ -71,26 +71,64 @@ def render(
         output: Path,
 ) -> None:
     from weasyprint import CSS, HTML
+    from weasyprint.urls import (
+        FatalURLFetchingError,
+        URLFetcher,
+        URLFetcherResponse,
+    )
 
     if len(html.encode("utf-8")) > MAX_HTML_BYTES:
         raise ValueError("Report HTML exceeds size limit")
 
     guard = ResourceGuard(assets)
 
-    stylesheet = CSS(
-        string=assets["report_styles.css"].decode("utf-8"),
-        base_url=BASE_URL,
-        url_fetcher=guard,
+    class BundledAssetFetcher(URLFetcher):  #type: ignore[misc]
+        def fetch(
+            self,
+            url: str,
+            headers: Any = None,
+        ) -> URLFetcherResponse:
+            result = guard(url)
+
+            return URLFetcherResponse(
+                url=url,
+                body=result["string"],
+                headers={
+                    "Content-Type": result["mime_type"],
+                },
+            )
+
+    fetcher = BundledAssetFetcher(
+        allow_redirects=False,
+        fail_on_errors=True,
     )
 
-    HTML(
-        string=html,
-        base_url=BASE_URL,
-        url_fetcher=guard,
-    ).write_pdf(
-        str(output),
-        stylesheets=[stylesheet],
-    )
+    try:
+        stylesheet = CSS(
+            string=assets["report_styles.css"].decode("utf-8"),
+            base_url=BASE_URL,
+            url_fetcher=fetcher,
+        )
+
+        HTML(
+            string=html,
+            base_url=BASE_URL,
+            url_fetcher=fetcher,
+        ).write_pdf(
+            str(output),
+            stylesheets=[stylesheet],
+            presentational_hints=False,
+        )
+
+    except (Exception, FatalURLFetchingError) as exc:
+        output.unlink(missing_ok=True)
+
+        if guard.denied:
+            raise ValueError(
+                "Report attempted prohibited resource access"
+            ) from exc
+
+        raise
 
     if guard.denied:
         output.unlink(missing_ok=True)
