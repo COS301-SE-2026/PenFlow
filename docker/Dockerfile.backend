@@ -5,7 +5,9 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
     libmagic1 \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
@@ -27,6 +29,8 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --system \
     -r requirements.txt
+
+RUN python -m pip uninstall -y uv pip
 
 COPY backend/app ./app
 

@@ -1,6 +1,6 @@
 FROM node:20-alpine AS deps
 
-RUN npm install -g pnpm@10.33.2
+RUN npm install -g pnpm@10.34.5
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ RUN pnpm install --frozen-lockfile
 
 FROM node:20-alpine AS builder
 
-RUN npm install -g pnpm@10.33.2
+RUN npm install -g pnpm@10.34.5
 
 WORKDIR /app
 
@@ -24,8 +24,9 @@ WORKDIR /app/frontend
 RUN pnpm build
 
 FROM node:20-alpine AS runner
+RUN apk upgrade --no-cache
 
-RUN npm install -g pnpm@10.33.2
+RUN npm install -g pnpm@10.34.5
 
 WORKDIR /app
 
@@ -34,7 +35,11 @@ ENV NODE_ENV=production
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY frontend/package.json ./frontend/
 
-RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile --prod
+RUN CYPRESS_INSTALL_BINARY=0 pnpm install --frozen-lockfile --prod && \
+    npm uninstall -g pnpm && \
+    rm -rf /usr/local/lib/node_modules/npm && \
+    rm -f /usr/local/bin/npm /usr/local/bin/npx && \
+    rm -rf /root/.npm /root/.local/share/pnpm
 
 COPY --from=builder /app/frontend/.next ./frontend/.next
 COPY --from=builder /app/frontend/public ./frontend/public
@@ -49,4 +54,4 @@ WORKDIR /app/frontend
 
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+CMD ["node", "node_modules/next/dist/bin/next", "start"]

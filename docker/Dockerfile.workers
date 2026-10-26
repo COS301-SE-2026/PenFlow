@@ -7,7 +7,9 @@ ENV PYTHONUNBUFFERED=1
 
 COPY workers/requirements.txt ./requirements.txt
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
     nmap \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
@@ -38,7 +40,9 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
     nmap \
     ca-certificates \
     curl \
@@ -52,10 +56,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \
     shared-mime-info \
     fonts-dejavu-core \
-    nmap \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=deps /usr/local /usr/local
+RUN python -m pip uninstall -y uv pip
 COPY workers/app ./app
 COPY workers/docs ./docs
 
