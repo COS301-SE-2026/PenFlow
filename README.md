@@ -52,9 +52,6 @@
   <a href="https://stats.uptimerobot.com/bss8arWOgX">
     <img alt="Uptime" src="https://badge.uptimerobot.com/psp/e7b86e5f665e2ce069ae0d24b319156b.svg?style=logo&theme=dark" />
   </a>
-  <a href="https://codecov.io/gh/COS301-SE-2026/PenFlow">
-    <img alt="Coverage" src="https://img.shields.io/codecov/c/github/COS301-SE-2026/PenFlow?style=for-the-badge&logo=codecov&logoColor=white" />
-  </a>
   <a href="https://stats.uptimerobot.com/bss8arWOgX">
     <img alt="Uptime" src="https://badge.uptimerobot.com/psp/e7b86e5f665e2ce069ae0d24b319156b.svg?style=logo&theme=dark" />
   </a>
@@ -75,6 +72,19 @@
 
 ---
 
+<details open>
+  <summary><b>At a Glance (Quick Highlights)</b></summary>
+  <br>
+  <ul>
+    <li><b>Frictionless Onboarding:</b> Instant passive OSINT report via email with zero upfront account creation.</li>
+    <li><b>Async Worker Engine:</b> Scalable task orchestration powered by Celery and RabbitMQ.</li>
+    <li><b>Real-Time Collaboration:</b> Live status streaming via WebSockets and Redis.</li>
+    <li><b>Full-Lifecycle Security:</b> From automated vulnerability discovery to managed pentest assignments and re-test tracking.</li>
+  </ul>
+</details>
+
+---
+
 ## Overview
 
 PenFlow is a COS 301 capstone project built for **BlueVision**. It models a freemium funnel: a free, no-account passive scan introduces a client to their external attack surface, an automated vulnerability scan deepens that picture, and a managed manual penetration test completes the engagement.
@@ -88,7 +98,7 @@ PenFlow Brings  these workflows into a single platform combining:
 - Domain ownership verification
 - Managed Penetration testing engagements
 - Findings, evidence and re-test tracking
-- email-based coordination
+- Email-based coordination
 
 PenFlow makes security posture **continuous** and **trackable** by structuring assessment into a phased pipeline.
 
@@ -156,7 +166,7 @@ PenFlow is a **layered modular monolith** with an **event-driven orchestration l
 - **Core API:** FastAPI (Python)
 - **Async Orchestration:** Celery + RabbitMQ
 - **State/Updates:** Redis + WebSockets
-- **Database:** PostgreSQL
+- **Database:** PostgreSQL 16
 - **Storage:** AWS S3
 - **Auth:** Keycloak (JWT + RBAC)
 
@@ -189,7 +199,7 @@ Detailed project documentation is available below.
 | Component      | Technology                       |
 |----------------|----------------------------------|
 | Frontend       | Next.js, React, TypeScript, Tailwind CSS |
-| BAckend API    | FastAPI, Pydantic, SQLAlchemy, Alembic |
+| Backend API    | FastAPI, Pydantic, SQLAlchemy, Alembic |
 | Authentication | Keycloak, Keycloak Admin API, JWT, RBAC |
 | Workers        | Celery, httpx, Tenacity          |
 | Broker / State | RabbitMQ, Redis                  |
