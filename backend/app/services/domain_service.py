@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -20,6 +20,7 @@ from app.schemas.domain import (
 )
 from app.services.verification_service import VerificationService
 
+VERIFICATION_VALIDITY = timedelta(days=30)
 
 class DomainService:
     @staticmethod
@@ -115,9 +116,15 @@ class DomainService:
             ),
         )
 
-    @staticmethod
-    async def verify_domain(db: AsyncSession, domain_id: UUID, user_id: UUID) -> VerifiedDomain:
 
+    @staticmethod
+    async def verify_domain(
+        db: AsyncSession,
+        domain_id: UUID,
+        user_id: UUID,
+        *,
+        commit: bool = True,
+    ) -> VerifiedDomain:
         domain_rec = await DomainRepository.get_by_id(
             db,
             domain_id=domain_id,
@@ -130,32 +137,34 @@ class DomainService:
                 detail="Domain record was not found",
             )
 
-        if domain_rec.status == DomainVerificationStatus.VERIFIED:
-            return domain_rec
-
         current_code = await VerificationService.verify_dns_txt(
             str(domain_rec.domain),
             str(domain_rec.verification_token),
         )
 
-        domain_rec.last_checked_at = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc)
+
+        domain_rec.last_checked_at = now
         domain_rec.last_verification_code = current_code
 
         if current_code == DomainVerificationCode.VERIFIED:
             domain_rec.status = DomainVerificationStatus.VERIFIED
-            domain_rec.verified_at = datetime.now(timezone.utc)
-            domain_rec.expires_at = None
+            domain_rec.verified_at = now
+            domain_rec.expires_at = now + VERIFICATION_VALIDITY
 
             return await DomainRepository.save_domain(
                 db,
                 domain_rec,
+                commit=commit,
             )
 
         domain_rec.status = DomainVerificationStatus.PENDING
+        domain_rec.expires_at = now
 
         await DomainRepository.save_domain(
             db,
             domain_rec,
+            commit=commit,
         )
 
         errors = {
@@ -176,6 +185,7 @@ class DomainService:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=errors[current_code],
         )
+    
 
     @staticmethod
     async def delete_domain(db: AsyncSession, domain_id: UUID, user_id: UUID) -> None:

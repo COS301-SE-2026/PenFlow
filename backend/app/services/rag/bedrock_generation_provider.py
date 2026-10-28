@@ -5,6 +5,7 @@ from typing import Any
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 
+from app.services.ai_privacy import AIPrivacyError, PrivacySession
 from app.services.rag.generation_provider import (
     GenerationProviderError,
 )
@@ -94,12 +95,31 @@ class BedrockGenerationProvider:
             system_prompt: str,
             user_prompt: str,
     ) -> str:
+        privacy = PrivacySession()
+
+        try:
+            safe_system_prompt = privacy.protect(system_prompt)
+            safe_user_prompt = privacy.protect(user_prompt)
+
+        except AIPrivacyError:
+            raise BedrockGenerationProviderError(
+                "AI privacy checks rejected the input."
+            ) from None
+
+        safe_system_prompt += (
+            "\n\nPrivacy handling:\n"
+            "- Copy supplied __PF_ privacy placeholders exactly "
+            "when referring to their values.\n"
+            "- Never invent, decode, or expand privacy placeholders.\n"
+            "- [SECRET_REMOVED] indicates unavailable information; "
+            "never reconstruct it.\n"
+        )
         try:
             response: dict[str, Any] = self.client.converse(
                 modelId=self.model_id,
                 system=[
                     {
-                        "text": system_prompt,
+                        "text": safe_system_prompt,
                     }
                 ],
                 messages=[
@@ -107,7 +127,7 @@ class BedrockGenerationProvider:
                         "role": "user",
                         "content": [
                             {
-                                "text": user_prompt,
+                                "text": safe_user_prompt,
                             }
                         ],
                     }
@@ -118,10 +138,10 @@ class BedrockGenerationProvider:
                 },
             )
 
-        except (BotoCoreError, ClientError) as exc:
+        except (BotoCoreError, ClientError):
             raise BedrockGenerationProviderError(
                 "Amazon Bedrock rejected the generation request."
-            ) from exc
+            ) from None
 
         try:
             content = response["output"]["message"]["content"]
@@ -153,7 +173,13 @@ class BedrockGenerationProvider:
                 "Amazon Bedrock returned an empty answer."
             )
 
-        return answer
+        try:
+            return privacy.restore(answer)
+
+        except AIPrivacyError:
+            raise BedrockGenerationProviderError(
+                "AI privacy checks rejected the response."
+            ) from None
 
 
     async def generate(

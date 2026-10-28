@@ -3,6 +3,9 @@ resource "aws_lb" "main" {
   internal           = false
   load_balancer_type = "application"
 
+  xff_header_processing_mode = "append"
+  enable_xff_client_port     = false
+
   security_groups = [
     aws_security_group.alb.id
   ]
@@ -39,16 +42,20 @@ resource "aws_lb_target_group" "frontend" {
 }
 
 resource "aws_lb_target_group" "backend" {
-  name        = "${local.name_prefix}-backend-tg"
+  name_prefix = "pfbt-"
   port        = 3001
-  protocol    = "HTTP"
+  protocol    = "HTTPS"
   target_type = "ip"
   vpc_id      = aws_vpc.main.id
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   health_check {
     enabled             = true
     path                = "/api/v1/health"
-    protocol            = "HTTP"
+    protocol            = "HTTPS"
     port                = "traffic-port"
     healthy_threshold   = 2
     unhealthy_threshold = 2
@@ -140,6 +147,31 @@ resource "aws_lb_listener_rule" "keycloak" {
   condition {
     host_header {
       values = [var.auth_domain_name]
+    }
+  }
+}
+
+resource "aws_lb_listener_rule" "block_public_internal_callbacks" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 1
+
+  action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Not found"
+      status_code  = "404"
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = [
+        "/api/v1/internal",
+        "/api/v1/internal/*",
+        "/api/v1/brand-intelligence/internal/*",
+      ]
     }
   }
 }

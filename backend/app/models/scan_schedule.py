@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, time, timezone
+from typing import Any
 
 from sqlalchemy import (
     Boolean,
@@ -12,7 +13,7 @@ from sqlalchemy import (
     Time,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, ScanScheduleFrequency, ScanType
@@ -93,6 +94,11 @@ class ScanSchedule(Base):
             name = "scan_schedule_frequency",
         ),
         nullable = False,
+    )
+
+    authorisation: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB,
+        nullable=True,
     )
 
     run_time: Mapped[time] = mapped_column(

@@ -146,6 +146,7 @@ class KeycloakAdminService:
                 "enabled": True,
                 "emailVerified": False,
                 "requiredActions": [
+                    "CONFIGURE_TOTP",
                     "VERIFY_EMAIL",
                     "UPDATE_PASSWORD",
                 ],
@@ -205,6 +206,7 @@ class KeycloakAdminService:
                 "lifespan": self.invite_lifespan_seconds,
             },
             json=[
+                    "CONFIGURE_TOTP",
                     "VERIFY_EMAIL",
                     "UPDATE_PASSWORD",
                 ],

@@ -102,7 +102,6 @@ class UserRole(str, enum.Enum):
     CLIENT = "client"
     PENTESTER  = "pentester"
     SERVICE_DELIVERY = "service_delivery"
-    ADMIN = "admin"
 
 class EngagementMessageChannel(str, enum.Enum):
     CLIENT_SERVICE_DELIVERY = "client_service_delivery"

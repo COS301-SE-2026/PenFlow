@@ -1,11 +1,12 @@
-import os
-from pathlib import Path
+import logging
 from typing import Annotated
+from urllib.parse import quote
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from app.api.middleware.auth import require_service_delivery
 from app.models.base import (
@@ -19,6 +20,7 @@ from app.schemas.engagement import (
     ActivityListResponse,
     ServiceDeliveryConversationListResponse,
 )
+from app.schemas.finding import EvidenceFileResponse
 from app.schemas.retest import (
     RetestListItem,
     RetestListResponse,
@@ -41,8 +43,15 @@ from app.schemas.service_delivery import (
     ServiceDeliveryScheduleRequest,
     ServiceDeliveryScopingUpdate,
 )
+from app.services.evidence_quarantine_service import (
+    EvidenceQuarantineService,
+    require_clean,
+)
+from app.services.evidence_storage_service import EvidenceStorageService
 from app.services.service_delivery_service import ServiceDeliveryService
 from app.utils.db import get_db
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix = "/service-delivery",
@@ -413,47 +422,55 @@ async def get_service_delivery_finding(
 
 @router.get(
     "/evidence/{evidence_id}/download",
-    response_class=FileResponse,
+    response_class=Response,
     summary="Download finding evidence",
 )
 async def download_service_delivery_evidence(
     evidence_id: UUID,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_service_delivery),
-) -> FileResponse:
+) -> Response:
     evidence = await ServiceDeliveryService.get_evidence_for_download(
         db,
         evidence_id=evidence_id,
         service_delivery_id=user.id,
     )
 
-    storage_root = Path(
-        os.getenv(
-            "EVIDENCE_STORAGE_DIR",
-            "/tmp/penflow-evidence",
+    require_clean(evidence)
+
+    try:
+        storage = EvidenceStorageService()
+
+        contents = await run_in_threadpool(
+            storage.read,
+            storage_backend=evidence.storage_backend,
+            file_path=evidence.file_path,
+            sha256=evidence.sha256,
+            size_bytes=evidence.size_bytes,
         )
-    ).resolve()
 
-    file_path = Path(evidence.file_path).resolve()
+    except HTTPException:
+        raise
 
-    if not file_path.is_relative_to(storage_root):
+    except Exception as exc:
+        logger.exception("Evidence storage read failed")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Evidence file not found.",
-        )
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Evidence storage is temporarily unavailable",
+        ) from exc
 
-    if not file_path.is_file():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Evidence file is no longer available.",
-        )
+    encoded_name = quote(evidence.file_name, safe="")
 
-    return FileResponse(
-        path=file_path,
-        filename=evidence.file_name,
+    return Response(
+        content=contents,
         media_type=evidence.mime_type or "application/octet-stream",
         headers={
+            "Content-Disposition": (
+                'attachment; filename="evidence"; '
+                f"filename*=UTF-8''{encoded_name}"
+            ),
             "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store",
         },
     )
 
@@ -523,4 +540,20 @@ async def get_service_delivery_audit(
         service_delivery_id=user.id,
         limit=limit,
         offset=offset,
+    )
+
+
+@router.post(
+    "/evidence/{evidence_id}/retry-security-check",
+    response_model=EvidenceFileResponse,
+)
+async def retry_evidence_security_check(
+    evidence_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_service_delivery),
+) -> EvidenceFileResponse:
+    return await EvidenceQuarantineService.retry(
+        db,
+        evidence_id=evidence_id,
+        user_id=user.id,
     )

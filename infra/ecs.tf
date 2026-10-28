@@ -42,7 +42,8 @@ resource "aws_ecs_task_definition" "backend" {
         }
       ]
 
-      environment = [
+      environment = concat(
+      [
         { name = "APP_ENV", value = var.app_env },
         { name = "AUTH_PROVIDER", value = "keycloak" },
         { name = "LOG_LEVEL", value = var.log_level },
@@ -51,14 +52,26 @@ resource "aws_ecs_task_definition" "backend" {
         { name = "SMTP_USER", value = var.smtp_user },
         { name = "SMTP_FROM", value = var.smtp_from },
         { name = "REPORT_STORAGE", value = "s3" },
+        { name = "EVIDENCE_STORAGE", value = "s3" },
+        { name = "EVIDENCE_S3_BUCKET", value = aws_s3_bucket.evidence.bucket },
         { name = "REPORT_S3_BUCKET", value = aws_s3_bucket.reports.bucket },
         { name = "AWS_REGION", value = var.aws_region },
         { name = "KEYCLOAK_AUDIENCE", value = "penflow-api" },
+        { name = "CORS_ORIGINS", value = "https://${var.domain_name}" },
         { name = "KEYCLOAK_ISSUER", value = "https://${var.auth_domain_name}/realms/penflow" },
         { name = "DATABASE_HOST", value = aws_db_instance.main.address },
         { name = "DATABASE_PORT", value = tostring(aws_db_instance.main.port) },
         { name = "DATABASE_NAME", value = var.db_name },
-        { name = "DATABASE_USER", value = var.db_username },
+        { name = "DATABASE_USER", value = "penflow_runtime" },
+        { name = "BACKEND_TLS_ENABLED", value = "true" },
+        {
+          name  = "DATABASE_SSL_MODE"
+          value = "verify-full"
+        },
+        {
+          name  = "DATABASE_SSL_ROOT_CERT"
+          value = "/app/certs/rds-global-bundle.pem"
+        },
         { name = "RABBITMQ_PROTOCOL", value = "amqps" },
         {
           name  = "RABBITMQ_HOST",
@@ -66,6 +79,7 @@ resource "aws_ecs_task_definition" "backend" {
         },
         { name = "RABBITMQ_PORT", value = "5671" },
         { name = "RABBITMQ_USERNAME", value = var.rabbitmq_username },
+        { name = "TRUSTED_PROXY_CIDRS", value = join(",", var.public_subnet_cidrs) },
         { name = "KEYCLOAK_ADMIN_URL", value = "https://${var.auth_domain_name}" },
         { name = "KEYCLOAK_ADMIN_REALM", value = "penflow" },
         { name = "KEYCLOAK_PROVISIONER_CLIENT_ID", value = "penflow-user-provisioner" },
@@ -94,18 +108,43 @@ resource "aws_ecs_task_definition" "backend" {
           name  = "RAG_RETRIEVAL_MODE"
           value = var.rag_retrieval_mode
         },
-      ]
+      ],
+      local.gemini_environment
+      )
 
-      secrets = [
-        { name = "DATABASE_PASSWORD", valueFrom = aws_secretsmanager_secret.db_password.arn },
+      secrets = concat(
+      [
+        { name = "DATABASE_PASSWORD", valueFrom = aws_secretsmanager_secret.app_database_password.arn },
         { name = "RABBITMQ_PASSWORD", valueFrom = aws_secretsmanager_secret.rabbitmq_password.arn },
+        {
+          name      = "RATE_LIMIT_STORAGE_URI"
+          valueFrom = aws_secretsmanager_secret.rate_limit_storage_uri.arn
+        },
+        {
+          name      = "RATE_LIMIT_PROXY_SECRET"
+          valueFrom = aws_secretsmanager_secret.rate_limit_proxy_secret.arn
+        },
+        {
+          name      = "BACKEND_TLS_CERTIFICATE"
+          valueFrom = "${aws_secretsmanager_secret.backend_tls.arn}:certificate::"
+        },
+        {
+          name      = "BACKEND_TLS_PRIVATE_KEY"
+          valueFrom = "${aws_secretsmanager_secret.backend_tls.arn}:private_key::"
+        },
         { name = "HIBP_API_KEY", valueFrom = aws_secretsmanager_secret.hibp_api_key.arn },
         { name = "SHODAN_API_KEY", valueFrom = aws_secretsmanager_secret.shodan_api_key.arn },
         { name = "URLSCAN_API_KEY", valueFrom = aws_secretsmanager_secret.urlscan_api_key.arn },
         { name = "SMTP_PASSWORD", valueFrom = aws_secretsmanager_secret.smtp_password.arn },
         { name = "KEYCLOAK_PROVISIONER_CLIENT_SECRET", valueFrom = aws_secretsmanager_secret.keycloak_provisioner_client_secret.arn },
-        { name = "INTERNAL_WEBHOOK_SECRET", valueFrom = aws_secretsmanager_secret.internal_webhook_secret.arn }
-      ]
+        { name = "INTERNAL_WEBHOOK_SECRET", valueFrom = aws_secretsmanager_secret.internal_webhook_secret.arn },
+        {
+          name      = "GUEST_SCAN_TOKEN_SECRET"
+          valueFrom = aws_secretsmanager_secret.guest_scan_token_secret.arn
+        }
+      ],
+      local.gemini_secrets
+      )
 
       logConfiguration = {
         logDriver = "awslogs"
@@ -125,7 +164,7 @@ resource "aws_ecs_task_definition" "indexing_worker" {
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
 
-  cpu    = 512
+  cpu    = 256
   memory = 1024
 
   execution_role_arn = aws_iam_role.ecs_execution.arn
@@ -142,7 +181,7 @@ resource "aws_ecs_task_definition" "indexing_worker" {
       image     = "${aws_ecr_repository.backend.repository_url}:${var.backend_image_tag}"
       essential = true
 
-      cpu               = 512
+      cpu               = 256
       memory            = 1024
       memoryReservation = 768
 
@@ -156,7 +195,8 @@ resource "aws_ecs_task_definition" "indexing_worker" {
         "--concurrency=1"
       ]
 
-      environment = [
+      environment = concat(
+      [
         {
           name  = "APP_ENV"
           value = var.app_env
@@ -183,7 +223,15 @@ resource "aws_ecs_task_definition" "indexing_worker" {
         },
         {
           name  = "DATABASE_USER"
-          value = var.db_username
+          value = "penflow_runtime"
+        },
+        {
+          name  = "DATABASE_SSL_MODE"
+          value = "verify-full"
+        },
+        {
+          name  = "DATABASE_SSL_ROOT_CERT"
+          value = "/app/certs/rds-global-bundle.pem"
         },
         {
           name  = "RABBITMQ_PROTOCOL"
@@ -225,18 +273,23 @@ resource "aws_ecs_task_definition" "indexing_worker" {
           name  = "BEDROCK_EMBEDDING_DIMENSIONS"
           value = tostring(var.bedrock_embedding_dimensions)
         }
-      ]
+      ],
+      local.gemini_environment
+      )
 
-      secrets = [
+      secrets = concat( 
+      [        
         {
           name      = "DATABASE_PASSWORD"
-          valueFrom = aws_secretsmanager_secret.db_password.arn
+          valueFrom = aws_secretsmanager_secret.app_database_password.arn
         },
         {
           name      = "RABBITMQ_PASSWORD"
           valueFrom = aws_secretsmanager_secret.rabbitmq_password.arn
         }
-      ]
+      ],
+      local.gemini_secrets
+      )
 
       logConfiguration = {
         logDriver = "awslogs"
@@ -290,7 +343,15 @@ resource "aws_ecs_task_definition" "frontend" {
         { name = "KEYCLOAK_INTERNAL_URL", value = "https://${var.auth_domain_name}" },
         { name = "KEYCLOAK_REALM", value = "penflow" },
         { name = "KEYCLOAK_CLIENT_ID", value = "penflow-web" },
-        { name = "NEXT_PUBLIC_ACCESS_TOKEN_LIFESPAN_SECONDS", value = tostring(var.access_token_lifespan_seconds) }
+        { name = "NEXT_PUBLIC_ACCESS_TOKEN_LIFESPAN_SECONDS", value = tostring(var.access_token_lifespan_seconds) },
+        { name = "CLIENT_IP_SOURCE", value = "alb" }
+      ]
+
+      secrets = [
+        {
+          name      = "RATE_LIMIT_PROXY_SECRET"
+          valueFrom = aws_secretsmanager_secret.rate_limit_proxy_secret.arn
+        }
       ]
 
       logConfiguration = {
@@ -311,7 +372,7 @@ resource "aws_ecs_task_definition" "worker" {
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
 
-  cpu    = 1024
+  cpu    = 512
   memory = 2048
 
   execution_role_arn = aws_iam_role.ecs_execution.arn
@@ -336,8 +397,14 @@ resource "aws_ecs_task_definition" "worker" {
         { name = "REPORT_STORAGE", value = "s3" },
         { name = "REPORT_S3_BUCKET", value = aws_s3_bucket.reports.bucket },
         { name = "SCAN_MODE", value = "LIVE" },
-        { name = "BACKEND_URL", value = "http://penflow-backend.${var.project_name}.local:3001" },
-        { name = "BACKEND_API_URL", value = "http://penflow-backend.${var.project_name}.local:3001/api/v1" },
+        { name = "BACKEND_URL", value = "https://penflow-backend.${var.project_name}.local:3001" },
+        { name = "BACKEND_API_URL", value = "https://penflow-backend.${var.project_name}.local:3001/api/v1" },
+        { name = "APP_ENV", value = var.app_env },
+        { name = "INTERNAL_TLS_REQUIRED", value = "true" },
+        {
+          name  = "INTERNAL_CA_FILE"
+          value = "/app/certs/penflow-internal-ca.pem"
+        },
         { name = "RABBITMQ_PROTOCOL", value = "amqps" },
         {
           name  = "RABBITMQ_HOST",
@@ -347,11 +414,19 @@ resource "aws_ecs_task_definition" "worker" {
         { name = "RABBITMQ_USERNAME", value = var.rabbitmq_username },
         { name = "DATABASE_HOST", value = aws_db_instance.main.address },
         { name = "DATABASE_PORT", value = tostring(aws_db_instance.main.port) },
-        { name = "DATABASE_NAME", value = var.db_name }, 
-        { name = "DATABASE_USER", value = var.db_username }, 
-        { name = "ECS_CLUSTER_NAME", value = aws_ecs_cluster.main.name }, 
-        { name = "ECS_TASK_DEFINITION", value = "${local.name_prefix}-ephemeral-worker" }, 
-        { name = "ECS_SUBNETS", value = join(",", aws_subnet.public[*].id) }, 
+        { name = "DATABASE_NAME", value = var.db_name },
+        { name = "DATABASE_USER", value = "penflow_runtime" },
+        {
+          name  = "DATABASE_SSL_MODE"
+          value = "verify-full"
+        },
+        {
+          name  = "DATABASE_SSL_ROOT_CERT"
+          value = "/app/certs/rds-global-bundle.pem"
+        },
+        { name = "ECS_CLUSTER_NAME", value = aws_ecs_cluster.main.name },
+        { name = "ECS_TASK_DEFINITION", value = "${local.name_prefix}-ephemeral-worker" },
+        { name = "ECS_SUBNETS", value = join(",", aws_subnet.public[*].id) },
         { name = "ECS_SECURITY_GROUPS", value = aws_security_group.worker.id },
         { name = "ECS_ASSIGN_PUBLIC_IP", value = "ENABLED" }
       ]
@@ -360,9 +435,9 @@ resource "aws_ecs_task_definition" "worker" {
         { name = "RABBITMQ_PASSWORD", valueFrom = aws_secretsmanager_secret.rabbitmq_password.arn },
         { name = "HIBP_API_KEY", valueFrom = aws_secretsmanager_secret.hibp_api_key.arn },
         { name = "SHODAN_API_KEY", valueFrom = aws_secretsmanager_secret.shodan_api_key.arn },
-        { name = "URLSCAN_API_KEY", valueFrom = aws_secretsmanager_secret.urlscan_api_key.arn }, 
-        { name = "DATABASE_PASSWORD", valueFrom = aws_secretsmanager_secret.db_password.arn }, 
-        { name = "INTERNAL_WEBHOOK_SECRET", valueFrom =aws_secretsmanager_secret.internal_webhook_secret.arn }
+        { name = "URLSCAN_API_KEY", valueFrom = aws_secretsmanager_secret.urlscan_api_key.arn },
+        { name = "DATABASE_PASSWORD", valueFrom = aws_secretsmanager_secret.app_database_password.arn },
+        { name = "INTERNAL_WEBHOOK_SECRET", valueFrom = aws_secretsmanager_secret.internal_webhook_secret.arn }
       ]
 
       logConfiguration = {
@@ -379,32 +454,37 @@ resource "aws_ecs_task_definition" "worker" {
 }
 
 resource "aws_ecs_task_definition" "ephemeral_worker" {
-  family                   = "${local.name_prefix}-ephemeral-worker" 
-  requires_compatibilities = ["FARGATE"] 
-  network_mode             = "awsvpc" 
+  family                   = "${local.name_prefix}-ephemeral-worker"
+  requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
 
-  cpu    = 512 
-  memory = 1024 
+  cpu    = 512
+  memory = 1024
 
-  execution_role_arn = aws_iam_role.ecs_execution.arn 
-  task_role_arn      = aws_iam_role.ephemeral_worker_task.arn 
+  execution_role_arn = aws_iam_role.ecs_execution.arn
+  task_role_arn      = aws_iam_role.ephemeral_worker_task.arn
 
   runtime_platform {
-    cpu_architecture        = "X86_64" 
+    cpu_architecture        = "X86_64"
     operating_system_family = "LINUX"
   }
 
   container_definitions = jsonencode([
     {
-      name      = "penflow-worker" 
+      name      = "penflow-worker"
       image     = "${aws_ecr_repository.worker.repository_url}:${var.worker_image_tag}"
-      essential = true 
+      essential = true
 
       environment = [
-        { name = "AWS_REGION", value = var.aws_region }, 
-        { name = "SCAN_MODE", value = "LIVE" }, 
-        { name = "BACKEND_URL", value = "http://penflow-backend.${var.project_name}.local:3001" },
-        { name = "BACKEND_API_URL", value = "http://penflow-backend.${var.project_name}.local:3001/api/v1" }
+        { name = "AWS_REGION", value = var.aws_region },
+        { name = "SCAN_MODE", value = "LIVE" },
+        { name = "INTERNAL_TLS_REQUIRED", value = "true" },
+        {
+          name  = "INTERNAL_CA_FILE"
+          value = "/app/certs/penflow-internal-ca.pem"
+        },
+        { name = "BACKEND_URL", value = "https://penflow-backend.${var.project_name}.local:3001" },
+        { name = "BACKEND_API_URL", value = "https://penflow-backend.${var.project_name}.local:3001/api/v1" }
       ]
 
       secrets = [
@@ -415,10 +495,10 @@ resource "aws_ecs_task_definition" "ephemeral_worker" {
       ]
 
       logConfiguration = {
-        logDriver = "awslogs" 
+        logDriver = "awslogs"
         options = {
-          awslogs-group         = aws_cloudwatch_log_group.worker.name 
-          awslogs-region        = var.aws_region 
+          awslogs-group         = aws_cloudwatch_log_group.worker.name
+          awslogs-region        = var.aws_region
           awslogs-stream-prefix = "ecs-ephemeral"
         }
       }
@@ -432,7 +512,7 @@ resource "aws_ecs_task_definition" "email_worker" {
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
 
-  cpu    = 512
+  cpu    = 256
   memory = 1024
 
   execution_role_arn = aws_iam_role.ecs_execution.arn
@@ -519,8 +599,8 @@ resource "aws_ecs_task_definition" "schedule_worker" {
   family                   = "${local.name_prefix}-schedule-worker"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = 256
-  memory                   = 512
+  cpu                      = 512
+  memory                   = 4096
 
   execution_role_arn = aws_iam_role.ecs_execution.arn
   task_role_arn      = aws_iam_role.backend_task.arn
@@ -542,6 +622,7 @@ resource "aws_ecs_task_definition" "schedule_worker" {
       ]
 
       environment = [
+        { name = "APP_ENV", value = var.app_env },
         {
           name  = "DATABASE_HOST"
           value = aws_db_instance.main.address
@@ -556,7 +637,15 @@ resource "aws_ecs_task_definition" "schedule_worker" {
         },
         {
           name  = "DATABASE_USER"
-          value = var.db_username
+          value = "penflow_runtime"
+        },
+        {
+          name  = "DATABASE_SSL_MODE"
+          value = "verify-full"
+        },
+        {
+          name  = "DATABASE_SSL_ROOT_CERT"
+          value = "/app/certs/rds-global-bundle.pem"
         },
         {
           name  = "RABBITMQ_PROTOCOL"
@@ -587,7 +676,7 @@ resource "aws_ecs_task_definition" "schedule_worker" {
       secrets = [
         {
           name      = "DATABASE_PASSWORD"
-          valueFrom = aws_secretsmanager_secret.db_password.arn
+          valueFrom = aws_secretsmanager_secret.app_database_password.arn
         },
         {
           name      = "RABBITMQ_PASSWORD"
@@ -602,6 +691,123 @@ resource "aws_ecs_task_definition" "schedule_worker" {
           awslogs-group         = aws_cloudwatch_log_group.schedule_worker.name
           awslogs-region        = var.aws_region
           awslogs-stream-prefix = "schedule-worker"
+        }
+      }
+    },
+    {
+      name      = "penflow-evidence-worker"
+      image     = "${aws_ecr_repository.backend.repository_url}:${var.backend_image_tag}"
+      essential = true
+      memory    = 768
+
+      command = [
+        "celery",
+        "-A",
+        "app.queue.celery_app:celery_app",
+        "worker",
+        "--loglevel=info",
+        "--queues=evidence",
+        "--concurrency=1",
+        "--prefetch-multiplier=1"
+      ]
+
+      dependsOn = [
+        {
+          containerName = "penflow-clamav"
+          condition     = "HEALTHY"
+        }
+      ]
+
+      environment = [
+        { name = "APP_ENV", value = var.app_env },
+        { name = "DATABASE_HOST", value = aws_db_instance.main.address },
+        { name = "DATABASE_PORT", value = tostring(aws_db_instance.main.port) },
+        { name = "DATABASE_NAME", value = var.db_name },
+        { name = "DATABASE_USER", value = "penflow_runtime" },
+        {
+          name  = "DATABASE_SSL_MODE"
+          value = "verify-full"
+        },
+        {
+          name  = "DATABASE_SSL_ROOT_CERT"
+          value = "/app/certs/rds-global-bundle.pem"
+        },
+        { name = "RABBITMQ_PROTOCOL", value = "amqps" },
+        {
+          name = "RABBITMQ_HOST"
+          value = replace(
+            replace(
+              aws_mq_broker.rabbitmq.instances[0].endpoints[0],
+              "amqps://",
+              ""
+            ),
+            ":5671",
+            ""
+          )
+        },
+        { name = "RABBITMQ_PORT", value = "5671" },
+        { name = "RABBITMQ_USERNAME", value = var.rabbitmq_username },
+        { name = "AWS_REGION", value = var.aws_region },
+        { name = "EVIDENCE_STORAGE", value = "s3" },
+        { name = "EVIDENCE_S3_BUCKET", value = aws_s3_bucket.evidence.bucket },
+        { name = "CLAMAV_HOST", value = "127.0.0.1" },
+        { name = "CLAMAV_PORT", value = "3310" }
+      ]
+
+      secrets = [
+        {
+          name      = "DATABASE_PASSWORD"
+          valueFrom = aws_secretsmanager_secret.app_database_password.arn
+        },
+        {
+          name      = "RABBITMQ_PASSWORD"
+          valueFrom = aws_secretsmanager_secret.rabbitmq_password.arn
+        }
+      ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.schedule_worker.name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "evidence-worker"
+        }
+      }
+    },
+    {
+      name      = "penflow-clamav"
+      image     = "clamav/clamav:1.4"
+      essential = true
+      memory    = 4096
+
+      environment = [
+        { name = "TZ", value = "Etc/UTC" },
+        { name = "FRESHCLAM_CHECKS", value = "12" },
+        { name = "CLAMD_CONF_TCPAddr", value = "127.0.0.1" },
+        { name = "CLAMD_CONF_StreamMaxLength", value = "11M" },
+        { name = "CLAMD_CONF_MaxFileSize", value = "20M" },
+        { name = "CLAMD_CONF_MaxScanSize", value = "50M" },
+        { name = "CLAMD_CONF_MaxScanTime", value = "30000" },
+        { name = "CLAMD_CONF_MaxThreads", value = "2" },
+        { name = "CLAMD_CONF_MaxQueue", value = "4" },
+        { name = "CLAMD_CONF_AlertExceedsMax", value = "yes" },
+        { name = "CLAMD_CONF_AlertEncrypted", value = "yes" }
+      ]
+
+      healthCheck = {
+        command     = ["CMD", "clamdcheck.sh"]
+        interval    = 30
+        timeout     = 10
+        retries     = 10
+        startPeriod = 300
+      }
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.schedule_worker.name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "clamav"
         }
       }
     }
@@ -685,7 +891,7 @@ resource "aws_ecs_task_definition" "keycloak" {
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
 
-  cpu    = 1024
+  cpu    = 512
   memory = 2048
 
   execution_role_arn = aws_iam_role.ecs_execution.arn
@@ -720,7 +926,10 @@ resource "aws_ecs_task_definition" "keycloak" {
 
       environment = [
         { name = "KC_DB", value = "postgres" },
-        { name = "KC_DB_URL", value = "jdbc:postgresql://${aws_db_instance.main.address}:${aws_db_instance.main.port}/${var.keycloak_db_name}" },
+        {
+          name = "KC_DB_URL"
+          value = "jdbc:postgresql://${aws_db_instance.main.address}:${aws_db_instance.main.port}/${var.keycloak_db_name}?sslmode=verify-full&sslrootcert=/opt/keycloak/conf/rds-global-bundle.pem"
+        },
         { name = "KC_DB_USERNAME", value = var.keycloak_db_username },
         { name = "KC_CACHE", value = "local" },
         { name = "KC_BOOTSTRAP_ADMIN_USERNAME", value = var.keycloak_bootstrap_admin_username },
@@ -785,7 +994,9 @@ resource "aws_ecs_service" "backend" {
   }
 
   depends_on = [
-    aws_lb_listener.https
+    aws_lb_listener.https,
+    aws_secretsmanager_secret_version.rate_limit_storage_uri,
+    aws_secretsmanager_secret_version.rate_limit_proxy_secret
   ]
 }
 
@@ -838,6 +1049,7 @@ resource "aws_ecs_service" "frontend" {
   }
 
   depends_on = [
+    aws_secretsmanager_secret_version.rate_limit_proxy_secret,
     aws_lb_listener.https
   ]
 }

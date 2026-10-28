@@ -1,4 +1,3 @@
-import json
 from dataclasses import dataclass
 from enum import Enum
 from uuid import UUID
@@ -141,24 +140,6 @@ class AssistantContextService:
 
         service = finding.service if include_scan else None
 
-        structured_evidence = json.dumps(
-            finding.evidence or {},
-            ensure_ascii=False,
-            sort_keys=True,
-            default=str,
-        )
-
-        if len(structured_evidence) > 4000:
-            structured_evidence = (
-                structured_evidence[:4000]
-                + "... [evidence truncated]"
-            )
-
-        evidence_files = ", ".join(
-            evidence.file_name
-            for evidence in finding.evidence_files
-        ) or "None"
-
         lines = [
             f"Finding ID: {finding.id}",
             f"Title: {display(finding.title)}",
@@ -198,10 +179,6 @@ class AssistantContextService:
             "Review note:",
             display(finding.review_note),
             "",
-            f"Evidence files: {evidence_files}",
-            "",
-            "Structured evidence:",
-            structured_evidence,
         ]
 
         return "\n".join(lines)

@@ -1534,7 +1534,7 @@ function DetailsPanel({
 }
 
 function WorkerActivityTable ({ sources }: { sources: ScanSourceStatus[] }) {
-    const visibleSources = sources.filter((s) => s.source_name !== "hunter.io");
+    const visibleSources = sources.filter((s) => s.source_name !== "hunter.io" && s.source_name !== "cpe_resolver");
     
     return(
         <Card className="border border-brand-panel-border bg-brand-panel max-sm:hidden">

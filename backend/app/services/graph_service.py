@@ -95,7 +95,7 @@ class GraphService:
             )
 
         is_owner = scan.user_id is not None and scan.user_id == user.id
-        if not is_owner and user.role != "admin":
+        if not is_owner:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Scan not found.",

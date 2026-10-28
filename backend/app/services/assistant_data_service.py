@@ -82,7 +82,7 @@ def engagement_list_href(role: str) -> str:
     if role == "service_delivery":
         return "/service-delivery/engagements"
 
-    if role in {"pentester", "admin"}:
+    if role == "pentester":
         return "/pentesting/console/my-engagements"
 
     return "/pentesting/engagement"

@@ -1,10 +1,14 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.middleware.auth import require_user
+from app.api.middleware.rate_limiter import (
+    get_authenticated_request_key,
+    limiter,
+)
 from app.models.user import User
 from app.schemas.rag import (
     RAGAskRequest,
@@ -13,6 +17,7 @@ from app.schemas.rag import (
     RAGSearchRequest,
     RAGSearchResponse,
 )
+from app.services.ai_request_guard import ai_request_slot
 from app.services.rag.embedding_provider import (
     EmbeddingProvider,
     EmbeddingProviderError,
@@ -87,7 +92,7 @@ async def index_scan(
         return RAGIndexResponse(**result)
 
     except EmbeddingProviderError as exc:
-        logger.exception(
+        logger.error(
             "Embedding failed while indexing scan %s",
             scan_id,
         )
@@ -130,7 +135,7 @@ async def search_scan(
         )
 
     except EmbeddingProviderError as exc:
-        logger.exception(
+        logger.error(
             "Embedding failed while searching scan %s",
             scan_id,
         )
@@ -145,9 +150,15 @@ async def search_scan(
     "/scans/{scan_id}/ask",
     response_model=RAGAskResponse,
 ) 
+@limiter.shared_limit(
+    "5/minute",
+    scope="ai-generation",
+    key_func=get_authenticated_request_key,
+)
 async def ask_scan(
     scan_id: UUID,
-    request: RAGAskRequest,
+    request: Request,
+    payload: RAGAskRequest,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_user),
     embedding_service: EmbeddingProvider = Depends(
@@ -164,20 +175,21 @@ async def ask_scan(
     )
 
     try:
-        return await RAGService.answer_question(
-            db,
-            scan_id=scan_id,
-            question=request.question,
-            limit=request.limit,
-            embedding_service=embedding_service,
-            generation_provider=generation_provider,
-        )
+        async with ai_request_slot(user.id):
+            return await RAGService.answer_question(
+                db,
+                scan_id=scan_id,
+                question=payload.question,
+                limit=payload.limit,
+                embedding_service=embedding_service,
+                generation_provider=generation_provider,
+            )
 
     except (
         EmbeddingProviderError,
         GenerationProviderError,
     ) as exc:
-        logger.exception(
+        logger.error(
             "Security analysis failed for scan %s",
             scan_id,
         )

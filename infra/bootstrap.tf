@@ -19,13 +19,23 @@ resource "aws_ecs_task_definition" "db_bootstrap" {
         { name = "PGPORT", value = tostring(aws_db_instance.main.port) },
         { name = "PGDATABASE", value = var.db_name },
         { name = "PGUSER", value = var.db_username },
+        { name = "APP_ENV", value = var.app_env },
+        { name = "PGSSLMODE", value = "verify-full" },
+        {
+          name  = "PGSSLROOTCERT"
+          value = "/bootstrap/rds-global-bundle.pem"
+        },
         { name = "KEYCLOAK_DB_NAME", value = var.keycloak_db_name },
         { name = "KEYCLOAK_DB_USER", value = var.keycloak_db_username }
       ]
 
       secrets = [
         { name = "PGPASSWORD", valueFrom = aws_secretsmanager_secret.db_password.arn },
-        { name = "KEYCLOAK_DB_PASSWORD", valueFrom = aws_secretsmanager_secret.keycloak_db_password.arn }
+        { name = "KEYCLOAK_DB_PASSWORD", valueFrom = aws_secretsmanager_secret.keycloak_db_password.arn },
+        {
+          name      = "APP_DATABASE_PASSWORD"
+          valueFrom = aws_secretsmanager_secret.app_database_password.arn
+        }
       ]
 
       logConfiguration = {

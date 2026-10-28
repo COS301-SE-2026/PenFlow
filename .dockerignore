@@ -48,3 +48,15 @@ generated_reports/
 *.log
 .DS_Store
 Thumbs.db
+
+**/.env
+**/.env.*
+**/*.env
+
+.aws/
+**/.terraform/
+**/terraform.tfstate*
+**/terraform.tfstate.d/
+**/*.tfvars
+**/*.tfvars.json
+**/*.tfplan

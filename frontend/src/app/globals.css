@@ -113,9 +113,7 @@ h1, h2, h3 {
 
 .logoPanel {
   width: 100%;
-  background: #fff;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 10px;
@@ -126,11 +124,12 @@ h1, h2, h3 {
   overflow: hidden;
 }
 
-.logoDivider {
-  width: 60%;
-  height: 1px;
-  background: #d0d8e4;
-  flex-shrink: 0;
+.penflowLogo {
+  display: block;
+  width: 100%;
+  max-width: 180px;
+  height: auto;
+  object-fit: contain;
 }
 
 .topnav {
@@ -442,6 +441,11 @@ h1, h2, h3 {
 
   .logoPanel {
     flex-shrink: 0;
+  }
+
+  .penflowLogo {
+    width: 84px;
+    height: 56px;
   }
 
   .topnav, .topnav-list {

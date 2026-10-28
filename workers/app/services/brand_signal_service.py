@@ -1,11 +1,16 @@
-import socket
 import ssl
 from datetime import datetime
 from typing import Any
 
 import dns.resolver
-import requests
 import whois
+
+from app.utils.safe_outbound import (
+    normalise_host,
+    public_connection,
+    resolve_public_host,
+    safe_get,
+)
 
 
 class BrandSignalService:
@@ -26,18 +31,30 @@ class BrandSignalService:
         }
 
         try:
-            answers = dns.resolver.resolve(domain, "A", lifetime=2.0)
-            signals["ip_addresses"] = [str(rdata) for rdata in answers]
-            signals["is_resolvable"] = len(signals["ip_addresses"]) > 0
-        except Exception:
-            pass
+            domain = normalise_host(domain)
+
+            signals["ip_addresses"] = resolve_public_host(
+                domain,
+                timeout=2.0,
+            )
+            signals["is_resolvable"] = bool(
+                signals["ip_addresses"]
+            )
+
+        except Exception as error:
+            signals["collection_error"] = str(error)
+            return signals
 
         if not signals["is_resolvable"]:
             return signals
 
         try:
             primary_ip = signals["ip_addresses"][0]
-            resp = requests.get(f"http://ip-api.com/json/{primary_ip}", timeout=2.0).json()
+            resp = safe_get(
+                f"http://ip-api.com/json/{primary_ip}",
+                timeout=2.0,
+                max_bytes=64 * 1024,
+            ).json()
             if resp.get("status") == "success":
                 signals["geo_location"] = (
                     f"{resp.get('city', 'Unknown')}, {resp.get('countryCode', '')}"
@@ -57,7 +74,11 @@ class BrandSignalService:
             ctx = ssl.create_default_context()
             ctx.check_hostname = False
             ctx.verify_mode = ssl.CERT_NONE
-            with socket.create_connection((domain, 443), timeout=2.0) as sock:
+            with public_connection(
+                domain,
+                443,
+                timeout=2.0,
+            ) as sock:
                 with ctx.wrap_socket(sock, server_hostname=domain) as ssock:
                     cert = ssock.getpeercert() or {}
                     signals["has_tls"] = True

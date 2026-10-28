@@ -8,11 +8,19 @@ import pytest
 from fastapi import status
 
 from app.api.middleware.auth import get_current_user_optional
+from app.api.middleware.rate_limiter import limiter
 from app.main import app
+from app.models.base import DomainVerificationCode, ScanType
 from app.models.user import User
 from app.models.verified_domain import DomainVerificationStatus, VerifiedDomain
 from app.repositories.scan_repo import ScanRepository
+from app.utils.internal_auth import internal_headers
 
+
+@pytest.fixture(autouse=True)
+def disable_scan_rate_limits(monkeypatch):
+    # These tests verify scan workflows, not rate-limit behaviour.
+    monkeypatch.setattr(limiter, "enabled", False)
 
 #phase2
 #test initate scan success 
@@ -55,7 +63,7 @@ async def test_initiate_scan_invalid_domain(test_client):
 
 @pytest.mark.asyncio
 @patch("app.api.routes.scans.get_report_by_scan_id")
-async def test_download_scan_pdf(mock_get_report, test_client, tmp_path):
+async def test_download_scan_pdf(mock_get_report, test_client, tmp_path, guest_scan_headers):
     """Test that the pdf endpoint returns a file with correct headers"""
     test_pdf = tmp_path / "test.pdf"
     test_pdf.write_bytes(b"%PDF-1.4\n%test pdf\n")
@@ -64,9 +72,11 @@ async def test_download_scan_pdf(mock_get_report, test_client, tmp_path):
     mock_report.pdf_path = str(test_pdf)
 
     mock_get_report.return_value = mock_report
+    scan_id = UUID("550e8400-e29b-41d4-a716-446655440000")
 
     response = await test_client.get(
-        "/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/pdf"
+        f"/api/v1/scans/{scan_id}/pdf",
+        headers=await guest_scan_headers(scan_id)
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -89,6 +99,7 @@ async def test_worker_failure_callback(mock_get_scan_by_id, test_client):
     response = await test_client.patch(
         f"/api/v1/internal/scans/{mock_scan_id}/status",
         json=payload,
+        headers=internal_headers(),
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -99,7 +110,7 @@ async def test_worker_failure_callback(mock_get_scan_by_id, test_client):
 
 @pytest.mark.asyncio
 @patch("app.api.routes.scans.ScanRepository.get_scan_status", new_callable=AsyncMock)
-async def test_get_scan_status_success(mock_get_status, test_client):
+async def test_get_scan_status_success(mock_get_status, test_client, guest_scan_headers):
     mock_get_status.return_value = {
         "scan_id": "550e8400-e29b-41d4-a716-446655440000",
         "status": "running",
@@ -108,17 +119,26 @@ async def test_get_scan_status_success(mock_get_status, test_client):
         "report_status": None
     }
 
-    response = await test_client.get("/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/status")
+    scan_id = UUID("550e8400-e29b-41d4-a716-446655440000")
+
+    response = await test_client.get(
+        f"/api/v1/scans/{scan_id}/status", 
+        headers=await guest_scan_headers(scan_id),
+    )
 
     assert response.status_code == status.HTTP_200_OK
     assert response.json()["progress"] == 60
 
 @pytest.mark.asyncio
 @patch("app.api.routes.scans.ScanRepository.get_scan_status", new_callable=AsyncMock)
-async def test_get_scan_status_not_found(mock_get_status, test_client):
+async def test_get_scan_status_not_found(mock_get_status, test_client, guest_scan_headers):
     mock_get_status.return_value = None
 
-    response = await test_client.get("/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/status")
+    scan_id = UUID("550e8400-e29b-41d4-a716-446655440000")
+    response = await test_client.get(
+        f"/api/v1/scans/{scan_id}/status", 
+        headers=await guest_scan_headers(scan_id),
+    )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -130,7 +150,8 @@ async def test_email_scan_report_success(
     mock_get_scan, 
     mock_get_report, 
     mock_delay, 
-    test_client
+    test_client,
+    guest_scan_headers,
     ):
     # mocking the scan
     mock_scan =  MagicMock()
@@ -145,9 +166,19 @@ async def test_email_scan_report_success(
 
     payload = {"email": "client@example.co"}
 
+    scan_id = UUID("550e8400-e29b-41d4-a716-446655440000")
+
+    mock_scan.id = scan_id
+    mock_scan.user_id = None
+    mock_scan.scan_type = ScanType.PASSIVE_CTEM
+
     response = await test_client.post(
-        "/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/email-report",
-        json=payload
+        f"/api/v1/scans/{scan_id}/email-report",
+        json=payload,
+        headers=await guest_scan_headers(
+            scan_id,
+            domain="jeandre.co",
+        ),
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -160,23 +191,28 @@ async def test_email_scan_report_success(
 
 @pytest.mark.asyncio
 @patch("app.api.routes.scans.get_report_by_scan_id")
-async def test_download_scan_pdf_report_missing(mock_get_report, test_client):
+async def test_download_scan_pdf_report_missing(mock_get_report, test_client, guest_scan_headers):
     mock_get_report.return_value = None
 
+    scan_id = UUID("550e8400-e29b-41d4-a716-446655440000")
     response = await test_client.get(
-        "/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/pdf",
+        f"/api/v1/scans/{scan_id}/pdf",
+        headers=await guest_scan_headers(scan_id)
     )
 
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
 @pytest.mark.asyncio
 @patch("app.api.routes.scans.get_report_by_scan_id")
-async def test_download_scan_pdf_uncompleted(mock_get_report, test_client):
+async def test_download_scan_pdf_uncompleted(mock_get_report, test_client, guest_scan_headers):
     mock_report = MagicMock()
     mock_report.status.value = "generating"
     mock_get_report.return_value = mock_report
+
+    scan_id = UUID("550e8400-e29b-41d4-a716-446655440000")
     response = await test_client.get(
-        "/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/pdf"
+        f"/api/v1/scans/{scan_id}/pdf",
+        headers=await guest_scan_headers(scan_id)
     )
 
     assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -264,7 +300,7 @@ async def test_initiate_scan_authenticated_user_attaches_user_id(
 #test: scan status not found 200 
 @pytest.mark.asyncio 
 @patch("app.api.routes.scans.ScanRepository.get_scan_status",new_callable =AsyncMock)
-async def test_get_scan_status_found(mock_get_status,test_client):
+async def test_get_scan_status_found(mock_get_status,test_client, guest_scan_headers):
     mock_get_status.return_value = {
         "scan_id": "550e8400-e29b-41d4-a716-446655440000",
         "status": "running",
@@ -273,8 +309,11 @@ async def test_get_scan_status_found(mock_get_status,test_client):
         "report_status" : None, 
     }
 
+    scan_id = UUID("550e8400-e29b-41d4-a716-446655440000")
+
     response = await test_client.get(
-        "/api/v1/scans/550e8400-e29b-41d4-a716-446655440000/status"
+        f"/api/v1/scans/{scan_id}/status",
+        headers=await guest_scan_headers(scan_id)
     )
 
     assert response.status_code == status.HTTP_200_OK
@@ -286,10 +325,17 @@ async def test_get_scan_status_found(mock_get_status,test_client):
 # celery_app.send_task is mocked 
 # else hits the real test db via db_session/test_client
 @pytest.mark.asyncio
+@patch("app.services.domain_service.VerificationService.verify_dns_txt", new_callable=AsyncMock)
 @patch("app.services.scan_service.celery_app.send_task")
-async def test_initiate_active_scan_success(mock_send_task, test_client, db_session):  
+async def test_initiate_active_scan_success(
+    mock_send_task, 
+    mock_verify_dns,
+    test_client,
+    db_session,
+):  
     
     mock_send_task.return_value = MagicMock(id="mock-task-id")
+    mock_verify_dns.return_value = DomainVerificationCode.VERIFIED
 
     user = User(
         auth_provider="keycloak",
@@ -325,6 +371,10 @@ async def test_initiate_active_scan_success(mock_send_task, test_client, db_sess
         }
         response =await test_client.post("/api/v1/scans/", json=payload)
         assert response.status_code == status.HTTP_202_ACCEPTED
+        mock_verify_dns.assert_awaited_once_with(
+            "verified-active.com",
+            "penflow-verification=abc123",
+        )
         data = response.json()
         assert data["status"] == "queued"
         mock_send_task.assert_called_once()

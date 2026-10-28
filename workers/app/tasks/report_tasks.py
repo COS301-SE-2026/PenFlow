@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 from typing import Any
 
 from app.queue.celery_app import celery_app
@@ -13,11 +12,18 @@ logger = logging.getLogger(__name__)
 
 
 @celery_app.task(name="scan.render_report")
-def render_report_pdf_task(scan_id: str, html_content: str, output_path: str) -> JSONDict:
+def render_report_pdf_task(
+    scan_id: str, 
+    html_content: str, 
+    output_path: str,
+    include_screenshot: bool = False,
+) -> JSONDict:
     try:
         pdf_path = generate_pdf_from_html(
             html_content=html_content,
-            output_path=Path(output_path),
+            report_id=scan_id,
+            kind="scan",
+            include_screenshot=include_screenshot,
         )
 
         logger.info(
@@ -69,9 +75,10 @@ def render_engagement_report_pdf_task(
     try:
         pdf_path = generate_pdf_from_html(
             html_content=html_content,
-            output_path=Path(output_path),
+            report_id=engagement_id,
+            kind="engagement",
+            version=version,
         )
-
         logger.info(
             "Report PDF rendered successfully for engagement %s (v%s): %s",
             engagement_id,

@@ -1,41 +1,85 @@
-FROM python:3.12-slim AS test
+FROM python:3.12-alpine3.24 AS deps
 
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpango-1.0-0 \
-    libpangoft2-1.0-0 \
-    libharfbuzz0b \
-    libffi-dev \
-    libjpeg62-turbo \
-    libopenjp2-7 \
-    libgdk-pixbuf-2.0-0 \
-    libglib2.0-0 \
-    shared-mime-info \
-    fonts-dejavu-core \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk upgrade --no-cache && \
+    apk add --no-cache \
+        build-base \
+        postgresql-dev \
+        libffi-dev \
+        jpeg-dev \
+        zlib-dev \
+        openjpeg-dev \
+        libxml2-dev \
+        libxslt-dev
+
+RUN pip install --no-cache-dir uv
 
 COPY workers/requirements.txt ./requirements.txt
 COPY workers/requirements-dev.txt ./requirements-dev.txt
 
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --upgrade pip uv
+RUN uv venv /opt/venv && \
+    uv pip install --python /opt/venv/bin/python \
+        -r requirements.txt \
+        -r requirements-dev.txt
 
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --system \
-    -r requirements.txt \
-    -r requirements-dev.txt
+COPY scripts/patch-wappalyzer.py /tmp/patch-wappalyzer.py
+
+RUN /opt/venv/bin/python /tmp/patch-wappalyzer.py
+
+
+FROM python:3.12-alpine3.24 AS test
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:$PATH" \
+    TEST_RDS_CA_FILE=/app/certs/rds-global-bundle.pem \
+    REPORT_TEST_FIXTURES=/app/report-fixtures
+
+RUN apk upgrade --no-cache && \
+    apk add --no-cache \
+        ca-certificates \
+        pango \
+        harfbuzz-subset \
+        font-dejavu \
+        libffi \
+        libjpeg-turbo \
+        openjpeg \
+        libpq \
+        libmagic \
+        libxml2 \
+        libxslt \
+        nmap \
+        nmap-scripts && \
+    python -m pip uninstall -y pip
+
+COPY --from=deps /opt/venv /opt/venv
 
 COPY workers/app ./app
 COPY workers/tests ./tests
 COPY workers/pytest.ini ./pytest.ini
+COPY workers/docs ./docs
 
-RUN adduser --disabled-password --gecos "" appuser && \
+COPY backend/app/templates ./report-fixtures/templates
+
+COPY backend/app/utils/report_context.py \
+     backend/app/utils/phase2_report_context.py \
+     ./report-fixtures/utils/
+
+RUN addgroup -g 1000 -S appuser && \
+    adduser -u 1000 -S -G appuser appuser && \
     mkdir -p /app/generated_reports && \
     chown -R appuser:appuser /app
+
+COPY docker/certs/rds-global-bundle.pem /app/certs/rds-global-bundle.pem
+
+COPY --chmod=0644 docker/certs/penflow-internal-ca.pem \
+    /app/certs/penflow-internal-ca.pem
 
 USER appuser
 

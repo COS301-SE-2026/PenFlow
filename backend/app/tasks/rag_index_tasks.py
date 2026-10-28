@@ -91,7 +91,7 @@ def index_scan_task(
             (time.perf_counter() - started_at) * 1000
         )
 
-        logger.exception(
+        logger.error(
             "RAG indexing task failed "
             "scan_id=%s duration_ms=%s",
             scan_id,

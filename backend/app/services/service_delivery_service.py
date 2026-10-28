@@ -68,6 +68,12 @@ from app.schemas.service_delivery import (
 from app.services.keycloak_admin_service import KeycloakAdminError, KeycloakAdminService
 from app.services.notification_service import NotificationService
 from app.tasks.email_tasks import send_engagement_report_email_task
+from app.utils.audit_transaction import (
+    after_commit,
+    audit_transaction,
+    audited_operation,
+    commit_or_flush,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -325,7 +331,30 @@ class ServiceDeliveryService:
             completed_at=engagement.completed_at,
             updated_at=engagement.updated_at,
         )
+    
+    
+    @staticmethod
+    async def require_viewable_engagement(
+        db: AsyncSession,
+        engagement_id: UUID,
+        service_delivery_id: UUID,
+    ) -> Engagement:
+        user = await EngagementRepository.get_user_by_id(
+            db,
+            user_id=service_delivery_id,
+        )
 
+        if user is None or user.role != "service_delivery":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Service Delivery access required."
+            )
+
+        return await ServiceDeliveryService.require_engagement(
+            db,
+            engagement_id=engagement_id,
+        )
+    
 
     @staticmethod
     async def require_owned_engagement(
@@ -349,6 +378,7 @@ class ServiceDeliveryService:
 
 
     @staticmethod
+    @audited_operation
     async def claim_engagement(
         db: AsyncSession,
         engagement_id: UUID,
@@ -372,34 +402,43 @@ class ServiceDeliveryService:
                 detail="Engagement has already been claimed.",
             )
 
-        claimed_engagement = await EngagementRepository.claim(
-            db,
-            engagement_id=engagement_id,
-            service_delivery_id=service_delivery_id,
-        )
-
-        if claimed_engagement is None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Engagement is no longer available to claim.",
+        try:
+            claimed_engagement = await EngagementRepository.claim(
+                db,
+                engagement_id=engagement_id,
+                service_delivery_id=service_delivery_id,
+                commit=False,
             )
 
-        response = ServiceDeliveryService.action_response(
-            claimed_engagement,
-        )
+            if claimed_engagement is None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Engagement is no longer available to claim.",
+                )
 
-        await AuditRepository.create_log(
-            db,
-            user_id=service_delivery_id,
-            action="engagement.claimed",
-            entity_type="engagement",
-            entity_id=claimed_engagement.id,
-            metadata={
-                "previous_status": EngagementStatus.REQUESTED.value,
-                "new_status": EngagementStatus.SCOPING.value,
-                "service_delivery_id": str(service_delivery_id),
-            },
-        )
+            response = ServiceDeliveryService.action_response(
+                claimed_engagement,
+            )
+
+            await AuditRepository.create_log(
+                db,
+                user_id=service_delivery_id,
+                action="engagement.claimed",
+                entity_type="engagement",
+                entity_id=claimed_engagement.id,
+                metadata={
+                    "previous_status": EngagementStatus.REQUESTED.value,
+                    "new_status": EngagementStatus.SCOPING.value,
+                    "service_delivery_id": str(service_delivery_id),
+                },
+                commit=False,
+            )
+
+            await commit_or_flush(db)
+
+        except Exception:
+            await db.rollback()
+            raise
 
         await NotificationService.notify(
             db,
@@ -421,6 +460,7 @@ class ServiceDeliveryService:
 
 
     @staticmethod
+    @audited_operation
     async def update_scoping(
         db: AsyncSession,
         engagement_id: UUID,
@@ -532,6 +572,7 @@ class ServiceDeliveryService:
 
 
     @staticmethod
+    @audited_operation
     async def assign_pentester(
         db: AsyncSession,
         engagement_id: UUID,
@@ -737,6 +778,7 @@ class ServiceDeliveryService:
 
     
     @staticmethod
+    @audited_operation
     async def schedule_engagement(
         db: AsyncSession,
         engagement_id: UUID,
@@ -905,6 +947,7 @@ class ServiceDeliveryService:
 
 
     @staticmethod
+    @audited_operation
     async def reassign_pentester(
         db: AsyncSession,
         engagement_id: UUID,
@@ -1069,6 +1112,7 @@ class ServiceDeliveryService:
 
     
     @staticmethod
+    @audited_operation
     async def reschedule_engagement(
         db: AsyncSession,
         engagement_id: UUID,
@@ -1216,6 +1260,7 @@ class ServiceDeliveryService:
 
 
     @staticmethod
+    @audited_operation
     async def return_from_review(
         db: AsyncSession,
         engagement_id: UUID,
@@ -1268,7 +1313,6 @@ class ServiceDeliveryService:
                 "previous_status": EngagementStatus.REVIEW.value,
                 "new_status": EngagementStatus.IN_PROGRESS.value,
                 "pentester_id": str(engagement.assigned_to),
-                "review_note": request.review_note,
             },
         )
 
@@ -1289,6 +1333,7 @@ class ServiceDeliveryService:
 
 
     @staticmethod
+    @audited_operation
     async def complete_review(
         db: AsyncSession,
         engagement_id: UUID,
@@ -1405,16 +1450,22 @@ class ServiceDeliveryService:
                 detail="Engagement client could not be found",
             )
 
-        send_engagement_report_email_task.delay(
+        report_email = (
             client.email,
             engagement.title,
             report_storage_ref,
         )
+
+        async def dispatch_report_email() -> None:
+            send_engagement_report_email_task.delay(*report_email)
+
+        await after_commit(db, dispatch_report_email)
         
         return response
 
 
     @staticmethod
+    @audited_operation
     async def cancel_engagement(
         db: AsyncSession,
         engagement_id: UUID,
@@ -1723,7 +1774,7 @@ class ServiceDeliveryService:
         engagement_id: UUID,
         service_delivery_id: UUID,
     ) -> Engagement:
-        engagement = await ServiceDeliveryService.require_owned_engagement(
+        engagement = await ServiceDeliveryService.require_viewable_engagement(
             db,
             engagement_id=engagement_id,
             service_delivery_id=service_delivery_id,
@@ -1904,7 +1955,7 @@ class ServiceDeliveryService:
         engagement_id: UUID,
         service_delivery_id: UUID,
     ) -> Engagement:
-        engagement = await ServiceDeliveryService.require_owned_engagement(
+        engagement = await ServiceDeliveryService.require_viewable_engagement(
             db,
             engagement_id=engagement_id,
             service_delivery_id=service_delivery_id,
@@ -2172,39 +2223,40 @@ class ServiceDeliveryService:
             )
 
         try:
-            pentester = await UserRepository.create_pentester(
-                db,
-                provider_id=provider_user_id,
-                email=normalized_email,
-                full_name=normalized_name,
-            )
+            async with audit_transaction(db):
+                pentester = await UserRepository.create_pentester(
+                    db,
+                    provider_id=provider_user_id,
+                    email=normalized_email,
+                    full_name=normalized_name,
+                )
 
-            profile = await PentesterProfileRepository.create_profile(
-                db,
-                user_id=pentester.id,
-                specialisations=request.specialisations,
-            )
+                profile = await PentesterProfileRepository.create_profile(
+                    db,
+                    user_id=pentester.id,
+                    specialisations=request.specialisations,
+                )
 
-            pentester_id = pentester.id
-            pentester_email = pentester.email
+                pentester_id = pentester.id
+                pentester_email = pentester.email
 
-            specialisations = [
-                specialisation.value
-                for specialisation in profile.specialisations
-            ]
+                specialisations = [
+                    specialisation.value
+                    for specialisation in profile.specialisations
+                ]
 
-            await AuditRepository.create_log(
-                db,
-                user_id=service_delivery_user_id,
-                action="pentester.created",
-                entity_type="user",
-                entity_id=pentester_id,
-                metadata={
-                    "email": pentester_email,
-                    "keycloak_user_id": provider_user_id,
-                    "specialisations": specialisations,
-                },
-            )
+                await AuditRepository.create_log(
+                    db,
+                    user_id=service_delivery_user_id,
+                    action="pentester.created",
+                    entity_type="user",
+                    entity_id=pentester_id,
+                    metadata={
+                        "email": pentester_email,
+                        "keycloak_user_id": provider_user_id,
+                        "specialisations": specialisations,
+                    },
+                )
 
         except Exception:
             await db.rollback()
@@ -2267,10 +2319,19 @@ class ServiceDeliveryService:
         pentester_email = pentester.email
         provider_user_id = pentester.auth_provider_id
 
-        if profile.is_active:
+        async with audit_transaction(db):
             profile.is_active = False
-            await db.commit()
-            await db.refresh(profile)
+
+            await AuditRepository.create_log(
+                db,
+                user_id=service_delivery_user_id,
+                action="pentester.deactivation_requested",
+                entity_type="user",
+                entity_id=pentester_id,
+                metadata={
+                    "keycloak_user_id": provider_user_id,
+                },
+            )
 
         try:
             keycloak = KeycloakAdminService()

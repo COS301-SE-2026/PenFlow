@@ -131,7 +131,7 @@ def engagement_href(
             f"{engagement_id}"
         )
 
-    if role in {"pentester", "admin"}:
+    if role == "pentester":
         return (
             "/pentesting/console/my-engagements/"
             f"{engagement_id}/findings"

@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import datetime, time
 from uuid import UUID
 
@@ -121,6 +122,7 @@ class ScanScheduleRepository:
                 scan_type=schedule.scan_type,
                 status=ScanStatus.QUEUED,
                 progress=0,
+                authorisation=deepcopy(schedule.authorisation),
             ).on_conflict_do_nothing(
                 constraint="uq_scans_schedule_occurrence",
             ).returning(Scan.id)

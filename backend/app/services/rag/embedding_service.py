@@ -3,6 +3,7 @@ from typing import Any
 
 import httpx
 
+from app.services.ai_privacy import AIPrivacyError, embedding_text
 from app.services.rag.embedding_provider import EmbeddingProviderError
 
 
@@ -13,10 +14,11 @@ class EmbeddingServiceError(EmbeddingProviderError):
 class EmbeddingService:
     def __init__(self) -> None:
         self.api_key = os.getenv("OPENAI_API_KEY")
-        self.model = os.getenv(
+        self.provider_model = os.getenv(
             "OPENAI_EMBEDDING_MODEL",
             "text-embedding-3-small",
         )
+        self.model = f"{self.provider_model}:privacy-v1"
         self.base_url = os.getenv(
             "OPENAI_BASE_URL",
             "https://api.openai.com/v1",
@@ -37,6 +39,17 @@ class EmbeddingService:
             texts: list[str],
     ) -> list[list[float]]:
         try:
+            safe_texts = [
+                embedding_text(text)
+                for text in texts
+            ]
+
+        except AIPrivacyError:
+            raise EmbeddingServiceError(
+                "AI privacy checks rejected the embedding input."
+            ) from None
+        
+        try:
             async with httpx.AsyncClient(
                 timeout=self.timeout,
             ) as client:
@@ -47,28 +60,28 @@ class EmbeddingService:
                         "Content-Type": "application/json",
                     },
                     json={
-                        "model": self.model,
-                        "input": texts,
+                        "model": self.provider_model,
+                        "input": safe_texts,
                         "encoding_format": "float",
                     },
                 )
 
                 response.raise_for_status()
 
-        except httpx.TimeoutException as exc:
+        except httpx.TimeoutException:
             raise EmbeddingServiceError(
                 "The embedding provider timed out.",
-            ) from exc
+            ) from None
 
-        except httpx.HTTPStatusError as exc:
+        except httpx.HTTPStatusError:
             raise EmbeddingServiceError(
                 "The embedding provider rejected the request.",
-            ) from exc
+            ) from None
 
-        except httpx.RequestError as exc:
+        except httpx.RequestError:
             raise EmbeddingServiceError(
                 "The embedding provider is unavailable.",
-            ) from exc
+            ) from None
 
         payload: dict[str, Any] = response.json()
         data = payload.get("data")

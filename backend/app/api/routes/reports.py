@@ -1,188 +1,185 @@
+import logging
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import FileResponse, StreamingResponse
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.middleware.auth import get_current_user
-from app.models.base import EngagementStatus
-from app.models.report import Report, ReportStatus
+from app.api.middleware.auth import require_service_delivery, require_user
+from app.models.report import Report
 from app.models.user import User
-from app.queue.celery_app import celery_app
-from app.repositories.engagement_repository import EngagementRepository
-from app.repositories.user_repo import get_user_id_by_provider_id
+from app.repositories.report_repository import get_latest_for_engagement
+from app.services.report_access_service import ReportAccessService
 from app.services.report_storage_service import ReportStorageService
 from app.utils.db import get_db
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="", tags=["Reports"])
 
-async def resolve_user(db: AsyncSession, current_user: dict[str, Any]) -> User:
-    user_id = await get_user_id_by_provider_id(db, current_user["sub"])
-    if user_id: 
-        user = await EngagementRepository.get_user_by_id(db, user_id) 
-        if user: 
-            return user 
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED, 
-        detail="User not present.",
+
+async def authorised_download(
+        db: AsyncSession,
+        report_id: UUID,
+        user: User,
+        *,
+        service_delivery_only: bool = False,
+        request: Request | None = None,
+) -> FileResponse | StreamingResponse:
+    report = await db.get(Report, report_id)
+
+    if request is not None:
+        request.state.audit_phase3_report = (
+            report is not None
+            and report.engagement_id is not None
+            and report.scan_id is None
+        )
+
+    if report is None:
+        raise HTTPException(404, "Report PDF not found")
+
+    await ReportAccessService.require_download(
+        db,
+        report,
+        user,
+        service_delivery_only=service_delivery_only,
     )
+
+    storage_ref = report.pdf_path
+
+    if storage_ref is None:
+        raise HTTPException(404, "Report PDF not found")
+
+    filename = (
+        f"engagement_report_v{report.version}.pdf"
+        if report.engagement_id is not None
+        else f"PenFlow_Report_{report.scan_id}.pdf"
+    )
+
+    try:
+        if ReportStorageService.is_s3():
+            s3_object = ReportStorageService.get_s3_object(
+                storage_ref,
+            )
+
+            return StreamingResponse(
+                content=s3_object["Body"].iter_chunks(),
+                media_type="application/pdf",
+                headers={
+                    "Content-Disposition": (
+                        f'attachment; filename="{filename}"'
+                    ),
+                    "Cache-Control": "no-store",
+                    "X-Content-Type-Options": "nosniff",
+                },
+            )
+
+        file_path = ReportStorageService.get_local_report_storage(
+            storage_ref,
+        )
+
+        return FileResponse(
+            path=str(file_path),
+            filename=filename,
+            media_type="application/pdf",
+            headers={
+                "Cache-Control": "no-store",
+                "X-Content-Type-Options": "nosniff",
+            },
+        )
+
+    except Exception as exc:
+        logger.exception(
+            "Failed to retrieve report %s",
+            report_id,
+        )
+
+        raise HTTPException(
+            status_code=503,
+            detail="Report download is temporarily unavailable",
+        ) from exc
+
 
 @router.get(
     "/reports/{report_id}/download",
-    summary="Download engagement report",
+    summary="Download an authorised report",
     response_model=None,
 )
 async def download_report(
-    report_id: UUID, 
+    report_id: UUID,
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    current_user: dict[str, Any] = Depends(get_current_user),
+    user: User = Depends(require_user),
 ) -> FileResponse | StreamingResponse:
-
-    result = await db.execute(select(Report).where(Report.id == report_id))
-    report = result.scalar_one_or_none() 
-
-    if not report or not report.pdf_path: 
-        raise HTTPException(status_code=404, detail="Report PDF not found") 
-
-    #ownership check if report attach to engagement
-    if report.engagement_id is not None:
-        requester = await resolve_user(db, current_user)
-        engagement = await EngagementRepository.get_by_id(
-            db,
-            engagement_id=report.engagement_id,
-        )
-        if engagement is None:
-            raise HTTPException(status_code=404, detail="Report PDF not found")
-
-        #check is it related to the engagement
-        is_related = (
-            engagement.requested_by == requester.id
-            or engagement.assigned_to == requester.id
-            or engagement.service_delivery_id == requester.id
-            or requester.role == "admin"
-        )
-        if not is_related:
-            raise HTTPException(status_code=404, detail="Report PDF not found")
-
-        # clients can only download once the engagement is complete or retesting
-        is_client = engagement.requested_by == requester.id
-        allowed_client_statuses = (EngagementStatus.COMPLETED, EngagementStatus.RETESTING)
-        if is_client and engagement.status not in allowed_client_statuses:
-            raise HTTPException(status_code=404, detail="Report PDF not found")
-
-    if ReportStorageService.is_s3():
-        try:
-            s3_obj = ReportStorageService.get_s3_object(report.pdf_path) 
-            return StreamingResponse(
-                content=s3_obj["Body"],
-                media_type="application/pdf",
-                headers={
-                    "Content-Disposition": 
-                    f'attachment; filename="engagement_report_v{report.version}.pdf"'}
-            )
-        except Exception as e: 
-            raise HTTPException(status_code=500, detail=str(e))
-
-    file_path = ReportStorageService.get_local_report_storage(report.pdf_path) 
-    return FileResponse( 
-        path=str(file_path), 
-        filename=f"engagement_report_v{report.version}.pdf",
-        media_type="application/pdf"
+    return await authorised_download(
+        db,
+        report_id,
+        user,
+        request=request,
     )
+
 
 @router.get(
-    "/service-delivery/engagements/{engagement_id}/report", 
-    summary="Get report status and metadata for service delivery review"
+    "/service-delivery/engagements/{engagement_id}/report",
+    summary="Download a report for Service Delivery oversight",
 )
 async def get_service_delivery_engagement_report(
-    engagement_id: UUID, 
-    db: AsyncSession = Depends(get_db), 
-    current_user: dict[str, Any] = Depends(get_current_user),
+    engagement_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_service_delivery),
 ) -> dict[str, Any]:
-
-    result = await db.execute(
-        select(Report)
-        .where(Report.engagement_id == engagement_id)
-        .order_by(Report.version.desc())
+    await ReportAccessService.require_engagement(
+        db,
+        engagement_id,
+        user,
+        manage=False,
     )
-    report = result.scalars().first()
 
-    if not report: 
-        raise HTTPException(status_code=404, detail="Report not found for this engagement")
+    report = await get_latest_for_engagement(
+        db,
+        engagement_id,
+    )
 
-    return {
-        "id": report.id,
-        "report_id": report.id, 
-        "engagement_id": report.engagement_id, 
-        "scan_id": report.scan_id,
-        "version": report.version, 
-        "task_id": report.task_id,
-        "status": report.status.value if hasattr(report.status, "value") else report.status,
-        "pdf_path": report.pdf_path,
-        "generated_at": report.generated_at,
-        "created_at": report.created_at,
-        "error_message":report.error_message
-    }
+    if report is None:
+        raise HTTPException(404, "Report not found")
+
+    return ReportAccessService.metadata(report)
+
 
 @router.get(
     "/service-delivery/reports/{report_id}/download",
-    summary="Service delivery download report endpoint", 
+    summary="Download a report for an assigned engagement",
     response_model=None,
 )
 async def service_delivery_download_report(
-    report_id: UUID, 
-    db: AsyncSession = Depends(get_db), 
-    current_user: dict[str, Any] = Depends(get_current_user),
+    report_id: UUID,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_service_delivery),
 ) -> FileResponse | StreamingResponse:
-    return await download_report(report_id=report_id, db=db, current_user=current_user)
+    return await authorised_download(
+        db,
+        report_id,
+        user,
+        service_delivery_only=True,
+        request=request,
+    )
+
 
 @router.post(
-    "/service-delivery/engagements/{engagement_id}/report/retry", 
-    summary="Retry or trigger report generation for service delivery"
+    "/service-delivery/engagements/{engagement_id}/report/retry",
+    summary="Retry a failed report for an assigned engagement",
 )
 async def service_delivery_retry_report(
-    engagement_id: UUID, 
-    version: int =1, 
-    db: AsyncSession = Depends(get_db), 
-    current_user: dict[str, Any] = Depends(get_current_user),
+    engagement_id: UUID,
+    version: int | None = Query(default=None, ge=1),
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_service_delivery),
 ) -> dict[str, Any]:
-
-    result = await db.execute(
-        select(Report).where(Report.engagement_id == engagement_id, Report.version == version)
+    return await ReportAccessService.retry(
+        db,
+        engagement_id,
+        user,
+        version,
     )
-    report = result.scalar_one_or_none() 
-
-    if not report: 
-        report = Report(
-            engagement_id=engagement_id,
-            version=version,
-            status=ReportStatus.PENDING,
-        )
-        db.add(report)
-    else:
-        report.status = ReportStatus.PENDING 
-        report.error_message = None 
-
-    await db.commit() 
-
-    celery_app.send_task(
-        "engagement.render_report", 
-        args=[str(engagement_id), version]
-    )
-
-    return {
-        "id":report.id,
-        "report_id": report.id,
-        "engagement_id": report.engagement_id,
-        "scan_id": report.scan_id, 
-        "version": report.version, 
-        "task_id": report.task_id, 
-        "status": report.status.value if hasattr(report.status, "value") else report.status,
-        "pdf_path": report.pdf_path, 
-        "generated_at": report.generated_at, 
-        "created_at": report.created_at, 
-        "error_message": report.error_message
-    }
-

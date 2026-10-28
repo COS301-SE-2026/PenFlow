@@ -5,6 +5,9 @@ from typing import Any, cast
 
 import httpx
 
+from app.utils.internal_auth import internal_headers
+from app.utils.internal_http import internal_http_options
+
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:3001")
 
 logger = logging.getLogger(__name__) 
@@ -21,7 +24,13 @@ def send_scan_callback(
     url = f"{API_BASE_URL}/api/v1/internal/scans/{scan_id}/status" 
 
     try: 
-        response = httpx.patch(url, json=payload, timeout=10.0)
+        response = httpx.patch(
+            url, 
+            json=payload, 
+            headers=internal_headers(),
+            timeout=10.0,
+            **internal_http_options(url),
+        )
         response.raise_for_status() 
         return cast(dict[str, Any], response.json()) 
     except Exception as error: 
@@ -40,7 +49,13 @@ def send_source_callback(
     url = f"{API_BASE_URL}/api/v1/internal/scans/{scan_id}/sources/{source_name}"
 
     try: 
-        response = httpx.patch(url, json=payload, timeout=10.0) 
+        response = httpx.patch(
+            url, 
+            json=payload, 
+            headers=internal_headers(),
+            timeout=10.0,
+            **internal_http_options(url),
+        ) 
         response.raise_for_status() 
         return cast(dict[str, Any], response.json())
     except Exception as error: 
@@ -67,7 +82,13 @@ def send_report_callback(
 
     url = f"{API_BASE_URL}/api/v1/internal/reports/{scan_id}/status"
     try:
-        response = httpx.patch(url, json=payload, timeout=10.0)
+        response = httpx.patch(
+            url, 
+            json=payload, 
+            headers=internal_headers(),
+            timeout=10.0,
+            **internal_http_options(url),
+        )
         response.raise_for_status()
         return cast(dict[str, Any], response.json()) 
     except Exception as error: 
@@ -99,7 +120,13 @@ def send_engagement_report_callback(
 
     for attempt in range(1, max_retries + 1):
         try:
-            response = httpx.put(url, json=payload, timeout=10.0)
+            response = httpx.put(
+                url, 
+                json=payload, 
+                headers=internal_headers(),
+                timeout=10.0,
+                **internal_http_options(url),
+            )
             response.raise_for_status() 
             return cast(dict[str, Any], response.json())
         except httpx.HTTPError as error: 

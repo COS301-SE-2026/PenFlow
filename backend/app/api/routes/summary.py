@@ -4,6 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.dependencies.scan_access import require_scan_read
 from app.repositories import summary_repo
 from app.schemas.summary import ExecutiveSummary
 from app.utils.db import get_db
@@ -11,7 +12,12 @@ from app.utils.db import get_db
 router = APIRouter(prefix="/scans", tags=["Executive Summary"])
 
 
-@router.get("/{scan_id}/summary", response_model=ExecutiveSummary, status_code=status.HTTP_200_OK)
+@router.get(
+        "/{scan_id}/summary",
+        response_model=ExecutiveSummary, 
+        status_code=status.HTTP_200_OK,
+        dependencies=[Depends(require_scan_read)],
+)
 async def get_scan_summary(scan_id: UUID, db: AsyncSession = Depends(get_db)) -> Any:
     """
     Generates the complete Executive Summary for a specific scan.

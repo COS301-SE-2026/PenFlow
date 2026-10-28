@@ -10,6 +10,7 @@ from app.models.engagement_asset import EngagementAsset
 from app.models.evidence_file import EvidenceFile
 from app.models.finding import Finding
 from app.schemas.finding import FindingCreate, FindingUpdate
+from app.utils.audit_transaction import commit_or_flush
 
 
 class FindingRepository:
@@ -129,7 +130,7 @@ class FindingRepository:
         )
 
         db.add(finding)
-        await db.commit()
+        await commit_or_flush(db)
         await db.refresh(finding)
 
         return finding
@@ -146,7 +147,7 @@ class FindingRepository:
         for field, value in updates.items():
             setattr(finding, field, value)
 
-        await db.commit()
+        await commit_or_flush(db)
         await db.refresh(finding)
 
         return finding
@@ -161,6 +162,9 @@ class FindingRepository:
         file_name: str,
         file_path: str,
         mime_type: str | None,
+        storage_backend: str = "local",
+        sha256: str | None = None,
+        size_bytes: int | None = None,
     ) -> EvidenceFile:
         evidence = EvidenceFile(
             finding_id=finding_id,
@@ -168,10 +172,13 @@ class FindingRepository:
             file_name=file_name,
             file_path=file_path,
             mime_type=mime_type,
+            storage_backend=storage_backend,
+            sha256=sha256,
+            size_bytes=size_bytes,
         )
 
         db.add(evidence)
-        await db.commit()
+        await commit_or_flush(db)
         await db.refresh(evidence)
 
         return evidence
@@ -183,7 +190,7 @@ class FindingRepository:
         finding: Finding,
     ) -> None:
         await db.delete(finding)
-        await db.commit()
+        await commit_or_flush(db)
 
 
     @staticmethod
@@ -192,7 +199,7 @@ class FindingRepository:
         finding: Finding,
     ) -> Finding:
         finding.is_verified = True
-        await db.commit()
+        await commit_or_flush(db)
         await db.refresh(finding)
         return finding
 

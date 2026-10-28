@@ -3,6 +3,8 @@ from typing import Any
 
 import requests
 
+from app.utils.safe_outbound import UnsafeDestination, safe_get
+
 logger = logging.getLogger(__name__)
 JSONDict = dict[str, Any]
 
@@ -28,6 +30,7 @@ def run_http_security_scan(
     ip_address: str,
     ports: list[JSONDict],
     timeout: int = 5,
+    scope_domain: str | None = None,
 ) -> JSONDict:
     """
     Does HTTP security check on the services/ports that nmap uncovered
@@ -74,16 +77,32 @@ def run_http_security_scan(
             else "http"
         )
         # USE HOSTNAME
-        port_suffix = f":{port_number}" if port_number not in (80, 443) else ""
-        url = f"{protocol}://{hostname}{port_suffix}"
+        port_suffix = (
+            f":{port_number}"
+            if port_number not in (80, 443)
+            else ""
+        )
+        url_hostname = (
+            f"[{hostname}]"
+            if ":" in hostname
+            else hostname
+        )
+        url = f"{protocol}://{url_hostname}{port_suffix}"
 
         try:
-            response = requests.get(
+            response = safe_get(
                 url,
                 timeout=timeout,
                 verify=False,
-                allow_redirects=True,
+                **(
+                    {"allowed_domain": scope_domain}
+                    if scope_domain is not None
+                    else {}
+                ),
             )
+
+        except UnsafeDestination:
+            raise
 
         except requests.RequestException as error:
             (logger.warning(f"[HTTP_Service] Failed to connect to {url}: {error}"))

@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 import { usePathname} from "next/navigation";
-import penflowLogo from "@/app/images/images/PenFlow_Logo.png";
+import penflowLogo from "@/app/images/images/PenFlow Logo.png";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { getHelpTopics } from "../helpContext";
@@ -113,15 +113,14 @@ const navItems = isPentester && (pathName.startsWith("/pentesting") || pathName.
       <div className={`navDrawer${mobileNavOpen ? " navDrawerOpen" : ""}`}>
       <div className={`navFlip${helpOpen? " navFlipped": ""}`}>
         <div className="navFace navFaceFront">
-        <div className = "logoPanel">
-        <Image
-          src = {penflowLogo}
-          alt = "PenFlow"
-          width = {144}
-          height = {96}
-          style = {{width: "auto", height: 96}}
-          />
-      </div>
+          <div className="logoPanel">
+            <Image
+              src={penflowLogo}
+              alt="PenFlow"
+              className="penflowLogo"
+              sizes="(max-width: 900px) 84px, 220px"
+            />
+          </div>
 
       {loggedIn ? (
         <ul className = "topnav-list">
@@ -131,6 +130,28 @@ const navItems = isPentester && (pathName.startsWith("/pentesting") || pathName.
             </li>
           )}
           {navItems.map((item) => {
+            if (
+                item.kind === "external"
+                && item.href === "/api/auth/logout"
+            ) {
+                return (
+                    <li key={item.label}>
+                        <form
+                            action="/api/auth/logout"
+                            method="post"
+                            className="m-0"
+                        >
+                            <button
+                                type="submit"
+                                className="nav-link w-full cursor-pointer bg-transparent" text-left
+                            >
+                                {item.label}
+                            </button>
+                        </form>
+                    </li>
+                );
+            }
+
             if (item.kind === "external") {
               return (
                 <li key={item.label}>
@@ -196,15 +217,15 @@ const navItems = isPentester && (pathName.startsWith("/pentesting") || pathName.
     
 
     <div className="navFace navFaceBack">
-      <div className = "logoPanel">
-        <Image
-          src = {penflowLogo}
-          alt = "PenFlow"
-          width = {144}
-          height = {96}
-          style = {{width: "auto", height: 96}}
-          />
-      </div>
+          <div className="logoPanel">
+            <Image
+              src={penflowLogo}
+              alt="PenFlow"
+              className="penflowLogo"
+              sizes="(max-width: 900px) 84px, 220px"
+            />
+          </div>
+
       <div className="helpBackHeader">
         <button
           type = "button"

@@ -8,6 +8,7 @@ from app.models.base import RetestStatus
 from app.models.finding import Finding
 from app.models.finding_retest import FindingRetest
 from app.schemas.retest import RetestUpdate
+from app.utils.audit_transaction import commit_or_flush
 
 OPEN_RETEST_STATUSES = (RetestStatus.REQUESTED, RetestStatus.IN_PROGRESS)   
 
@@ -62,7 +63,7 @@ class RetestRepository:
         for field, value in updates.items():
             setattr(retest, field, value)
 
-        await db.commit()
+        await commit_or_flush(db)
         await db.refresh(retest)
 
         return retest
@@ -98,7 +99,7 @@ class RetestRepository:
         ]
 
         db.add_all(retests)
-        await db.commit()
+        await commit_or_flush(db)
 
         for retest in retests:
             await db.refresh(retest, attribute_names=["finding"])

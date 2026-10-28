@@ -1,4 +1,5 @@
 //control data going into service delivery
+import type { EvidenceQuarantineStatus } from "@/lib/evidenceQuarantine";
 
 export type EngagementStatus =
     | "requested"
@@ -287,6 +288,9 @@ export interface EvidenceFileSummary {
     file_name: string;
     mime_type: string | null;
     uploaded_at: string;
+    quarantine_status: EvidenceQuarantineStatus;
+    scan_message?: string | null;
+    scanned_at?: string | null;
 }
 
 export interface FindingDetail {

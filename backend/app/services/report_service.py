@@ -94,6 +94,11 @@ async def queue_report_generation(db: AsyncSession, scan_id: str) -> dict[str, A
         else:
             raise ValueError(f"Unknown scan type: {scan.scan_type}")
 
+        include_screenshot = prepare_report_assets(
+            context,
+            scan.scan_type,
+        )
+
         html_content = render_report_html(
             scan_type = scan.scan_type,
             context = context,
@@ -103,6 +108,7 @@ async def queue_report_generation(db: AsyncSession, scan_id: str) -> dict[str, A
         task = celery_app.send_task(
             "scan.render_report",
             args=[scan_id, html_content, str(output_path)],
+            kwargs={"include_screenshot": include_screenshot},
         )
 
         await mark_report_task_queued(db, scan_id, task.id)
@@ -164,3 +170,28 @@ async def queue_engagement_report_generation(
             await db.commit() 
         raise 
 
+
+def prepare_report_assets(
+        context: dict[str, Any],
+        scan_type: ScanType,
+) -> bool:
+    if scan_type != ScanType.PASSIVE_CTEM:
+        return False
+
+    reputation = context.get("reputation")
+
+    if not isinstance(reputation, dict):
+        reputation = {}
+        context["reputation"] = reputation
+
+    include_screenshot = (
+        reputation.get("screenshot_path") == "scan-screenshot.png"
+    )
+
+    reputation["screenshot_path"] = (
+        "scan-screenshot.png"
+        if include_screenshot
+        else "brocode_logo.png"
+    )
+
+    return include_screenshot

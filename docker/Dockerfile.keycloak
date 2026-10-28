@@ -17,5 +17,8 @@ COPY docker/keycloak/penflow-realm-prod.json \
 COPY docker/keycloak/themes/penflow \
     /opt/keycloak/themes/penflow
 
+COPY docker/certs/rds-global-bundle.pem \
+    /opt/keycloak/conf/rds-global-bundle.pem
+
 ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
 CMD ["start", "--optimized", "--import-realm"]

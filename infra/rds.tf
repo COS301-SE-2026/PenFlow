@@ -17,6 +17,8 @@ resource "aws_db_instance" "main" {
   allocated_storage     = 20
   max_allocated_storage = 50
 
+  parameter_group_name = aws_db_parameter_group.main.name
+
   db_name  = var.db_name
   username = var.db_username
   password = var.db_password
@@ -37,5 +39,22 @@ resource "aws_db_instance" "main" {
 
   tags = {
     Name = "${local.name_prefix}-postgres"
+  }
+}
+
+resource "aws_db_parameter_group" "main" {
+  name   = "${local.name_prefix}-postgres16-tls"
+  family = "postgres16"
+
+  parameter {
+    name         = "rds.force_ssl"
+    value        = "1"
+    apply_method = "pending-reboot"
+  }
+
+  parameter {
+    name         = "ssl_min_protocol_version"
+    value        = "TLSv1.2"
+    apply_method = "pending-reboot"
   }
 }
