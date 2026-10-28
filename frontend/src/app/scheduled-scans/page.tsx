@@ -17,6 +17,7 @@ import {
 } from "@/lib/scanScheduleService";
 import DashboardLayout from "@/shared/components/DashboardLayout";
 import PageHero from "@/shared/components/PageHero";
+import { PhoneSheetBackdrop } from "@/shared/components/DetailSheet";
 
 const WEEKDAYS = [
     "Monday",
@@ -62,7 +63,7 @@ const fieldClass = "flex min-w-0 flex-col gap-[0.4rem]";
 const fieldLabelClass = "text-[0.76rem] font-[650] text-[var(--col-text)]";
 
 const fieldControlClass = "min-h-[2.4rem] w-full rounded-[0.5rem] border border-[var(--col-panel-border)] bg-[var(--col-panel-deep)] px-[0.65rem] " +
-"py-2 text-[0.82rem] text-[var(--col-text)] outline-none focus:border-[var(--col-cyan)] focus:shadow-[0_0_0_3px_rgba(43,216,245,0.1)] " +
+"py-2 text-[0.82rem] text-[var(--col-text)] max-sm:min-h-11 max-sm:text-base outline-none focus:border-[var(--col-cyan)] focus:shadow-[0_0_0_3px_rgba(43,216,245,0.1)] " +
 "disabled:cursor-not-allowed disabled:opacity-65";
 
 const fieldHelpClass = "text-[0.7rem] leading-[1.4] text-[var(--col-muted)]";
@@ -415,9 +416,13 @@ export default function ScheduledScansPage() {
                     )}
 
                     {showForm && (
+                        <>
+                        <PhoneSheetBackdrop onClose={closeForm} label="Close schedule form" />
                         <form className={
                             "flex flex-col gap-[1.1rem] rounded-[0.8rem] border border-[rgba(43,216,245,0.3)] " +
-                            "bg-[linear-gradient(145deg,var(--col-panel),var(--col-panel-deep))] p-[1.1rem] shadow-[var(--sh-glow-cyan)]"}
+                            "bg-[linear-gradient(145deg,var(--col-panel),var(--col-panel-deep))] p-[1.1rem] shadow-[var(--sh-glow-cyan)] " +
+                            "max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:z-50 max-sm:max-h-[85dvh] max-sm:overflow-y-auto max-sm:overscroll-contain " +
+                            "max-sm:rounded-b-none max-sm:border-b-0 max-sm:pb-[calc(1.1rem+env(safe-area-inset-bottom))] max-sm:shadow-[0_-12px_40px_rgb(0_0_0/0.5)]"}
                             onSubmit={(event) => void handleSubmit(event)}
                         >
                             <div className="flex items-start justify-between gap-4">
@@ -551,12 +556,12 @@ export default function ScheduledScansPage() {
                                 </div>
                             )}
 
-                            <div className="flex justify-end gap-[0.6rem] pt-[0.2rem]">
-                                <button type="button" className={secondaryButtonClass} onClick={closeForm} disabled={submitting}>
+                            <div className="flex justify-end gap-[0.6rem] pt-[0.2rem] max-sm:flex-col-reverse">
+                                <button type="button" className={`${secondaryButtonClass} max-sm:min-h-11 max-sm:w-full`} onClick={closeForm} disabled={submitting}>
                                     Cancel
                                 </button>
 
-                                <button type="submit" className={primaryButtonClass} disabled={
+                                <button type="submit" className={`${primaryButtonClass} max-sm:min-h-11 max-sm:w-full`} disabled={
                                     submitting || !form.verified_domain_id || !form.run_time
                                 }
                                 >
@@ -564,6 +569,7 @@ export default function ScheduledScansPage() {
                                 </button>
                             </div>
                         </form>
+                        </>
                     )}
 
                     <div className="flex items-start justify-between gap-4 max-[700px]:flex-col max-[700px]:items-stretch">
