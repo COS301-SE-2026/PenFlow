@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import brocodeLogo from "@/app/images/images/BroCode logo.png";
-import bluevisionLogo from "@/app/images/images/Bluevision logo.png";
+import { Menu, X } from "lucide-react";
+import penflowLogo from "@/app/images/images/PenFlow_Logo.png";
 import {listConversations } from "@/lib/serviceDeliveryService";
+import { useIsMobileNav } from "../hooks/useIsMobileNav";
 import NotificationMenu from "./NotificationMenu";
 
 type ServiceDeliveryNavItem = 
@@ -26,6 +27,8 @@ const serviceDeliveryNavItems: ServiceDeliveryNavItem[] = [
 export default function ServiceDeliverySidebar() {
     const pathName = usePathname();
     const [badges, setBadges] = useState<Record<string, number>>({});
+    const [mobileNavOpen, setMobileNavOpen] = useState(false);
+    const isMobileNav = useIsMobileNav();
 
     useEffect(() => {
         listConversations()
@@ -35,32 +38,54 @@ export default function ServiceDeliverySidebar() {
             })
             .catch(console.error);
     }, []);
+    useEffect(() => {
+        setMobileNavOpen(false);
+    }, [pathName]);
      return (
         <nav className="topbar">
+            <button
+                type="button"
+                className="hamburgerBtn"
+                aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
+                aria-expanded={mobileNavOpen}
+                onClick={() => setMobileNavOpen((open) => !open)}
+            >
+                {mobileNavOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+
+            {isMobileNav && (
+                <div className="mobileTopbarBell">
+                    <NotificationMenu />
+                </div>
+            )}
+
+            {mobileNavOpen && (
+                <div
+                    className="navOverlay"
+                    onClick={() => setMobileNavOpen(false)}
+                    aria-hidden="true"
+                />
+            )}
+
+            <div className={`navDrawer${mobileNavOpen ? " navDrawerOpen" : ""}`}>
             <div className="logoPanel">
                 <Image
-                    src={bluevisionLogo}
-                    alt="Bluevision"
-                    width={80}
-                    height={48}
-                    style={{ width: "auto", height: 48 }}
-                />
-                <div className="logoDivider" />
-                <Image
-                    src={brocodeLogo}
-                    alt="BroCode"
-                    width={80}
-                    height={48}
-                    style={{ width: "auto", height: 48 }}
+                    src={penflowLogo}
+                    alt="PenFlow"
+                    width={144}
+                    height={96}
+                    style={{ width: "auto", height: 96 }}
                 />
             </div>
 
             
 
             <ul className="topnav-list">
-                <li>
-                    <NotificationMenu />
-                </li>
+                {!isMobileNav && (
+                    <li>
+                        <NotificationMenu />
+                    </li>
+                )}
                  {serviceDeliveryNavItems.map((item) => {
                     const isActive = pathName === item.href || pathName.startsWith(`${item.href}/`);
                     const badge = badges[item.label];
@@ -96,8 +121,7 @@ export default function ServiceDeliverySidebar() {
 
 
             </ul>
-
-            
+            </div>
         </nav>
      );
 }
