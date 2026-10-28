@@ -12,56 +12,42 @@
   background: #ffffff;
   position: relative;
 }
-
 .heroTextWrap {
-  padding: 48px 60px 0;
+  padding: 28px 32px 0;
 }
 
 .heroTextWrap h1 {
   margin: 0;
-  font-size: clamp(3rem, 7vw, 8rem);
+  font-size: clamp(2rem, 4.5vw, 3.5rem);
   line-height: 0.92;
   color: #0a1628;
-  text-align: right;
+  text-align: left;
 }
 
 .heroDomain {
-  margin: 8px 0 0;
+  margin: 6px 0 0;
   font-family: var(--font-display), Impact, sans-serif;
-  font-size: clamp(2.1rem, 4.5vw, 3.75rem);
+  font-size: clamp(1.1rem, 2.2vw, 1.6rem);
   letter-spacing: 0.06em;
   color: #0a1628;
-  text-align: center;
-  transform: translateX(230px);
+  text-align: left;
 }
 
 .waterline {
   position: relative;
-  height: 200px;
+  height: 110px;
   width: 100%;
   overflow: hidden;
 }
 
-.submarine {
-  position: absolute;
-  left: 0;
-  bottom: 18px;
-  z-index: 5;
-  width: clamp(182px, 22vw, 280px);
-  height: auto;
-  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.45));
-}
-
-/* ── Content area ── */
 .content {
   flex: 1;
   padding: 48px 60px;
-  margin-top: -60px;
   position: relative;
   z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 14px;
   max-width: 920px;
   margin-left: auto;
   margin-right: auto;
@@ -327,7 +313,7 @@
   }
 
   .heroTextWrap {
-    padding: 32px 20px 0;
+    padding: 28px 20px 0;
   }
 
   .content {
@@ -336,5 +322,108 @@
 
   .grid2 {
     grid-template-columns: 1fr;
+  }
+}
+
+.cardHeader {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-align: left;
+  pointer-events: none;
+}
+
+.cardHeader .cardLabel {
+  margin: 0;
+}
+
+.chevron {
+  display: none;
+  flex-shrink: 0;
+  color: var(--col-muted);
+  transition: transform 200ms;
+}
+
+.chartWrap {
+  height: 320px;
+}
+
+@media (max-width: 640px) {
+  .content {
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+    padding: 24px 16px;
+    gap: 8px;
+  }
+
+  .grid2 {
+    gap: 16px;
+  }
+
+  .card {
+    min-width: 0;
+    padding: 20px 18px;
+  }
+
+  .cardLabel {
+    font-size: 1.15rem;
+  }
+
+  .chartWrap {
+    height: 210px;
+  }
+
+  .cardHeader {
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  .chevron {
+    display: block;
+  }
+
+  .collapsible[data-open="false"] .cardHeader {
+    margin-bottom: 0;
+  }
+
+  .collapsible[data-open="false"] .collapsibleBody {
+    display: none;
+  }
+
+  .collapsible[data-open="true"] .chevron {
+    transform: rotate(180deg);
+  }
+
+  .bottomBar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .downloadBtn {
+    justify-content: center;
+  }
+
+  .emailRow {
+    min-width: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .emailInput {
+    font-size: 1rem !important;
+  }
+
+  .sendBtn {
+    width: 100%;
   }
 }
