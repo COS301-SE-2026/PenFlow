@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { Menu, X } from "lucide-react";
 import penflowLogo from "@/app/images/images/PenFlow Logo.png";
 import {listConversations } from "@/lib/serviceDeliveryService";
 import { useIsMobileNav } from "../hooks/useIsMobileNav";
@@ -42,6 +43,31 @@ export default function ServiceDeliverySidebar() {
     }, [pathName]);
      return (
         <nav className="topbar">
+            <button
+                type="button"
+                className="hamburgerBtn"
+                aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
+                aria-expanded={mobileNavOpen}
+                onClick={() => setMobileNavOpen((open) => !open)}
+            >
+                {mobileNavOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+
+            {isMobileNav && (
+                <div className="mobileTopbarBell">
+                    <NotificationMenu />
+                </div>
+            )}
+
+            {mobileNavOpen && (
+                <div
+                    className="navOverlay"
+                    onClick={() => setMobileNavOpen(false)}
+                    aria-hidden="true"
+                />
+            )}
+
+            <div className={`navDrawer${mobileNavOpen ? " navDrawerOpen" : ""}`}>
           <div className="logoPanel">
             <Image
               src={penflowLogo}
@@ -74,7 +100,7 @@ export default function ServiceDeliverySidebar() {
                                 >
                                     <button
                                         type="submit"
-                                        className="nav-link w-full cursor-pointer bg-transparent" text-left
+                                        className="nav-link w-full cursor-pointer bg-transparent text-left"
                                     >
                                         {item.label}
                                     </button>
