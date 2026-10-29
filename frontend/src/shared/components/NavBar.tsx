@@ -1,5 +1,5 @@
 "use client";
-
+import { canVisitPage } from "@/lib/routeAccess";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -57,18 +57,49 @@ export default function NavBar() {
     { label: "Scan History", href: "/history", kind: "link"},
     //{ label: "Settings", href: "/settings", kind: "link"},
     ...(isPentester
-      ? [{ label: "Pentesting", href: "/pentesting/console/my-engagements", kind: "link" as const }]
+      ? [{
+          label: "Pentesting",
+          href: "/pentesting/console/my-engagements",
+          kind: "link" as const,
+        }]
       : [
-          { label: "Engagement Request", href: "/engagement_request", kind: "link" as const },
-          { label: "Live Engagement", href: "/pentesting/engagement", kind: "link" as const },
+          {
+            label: "Engagement Request",
+            href: "/engagement_request",
+            kind: "link" as const,
+          },
+          {
+            label: "Live Engagement",
+            href: "/pentesting/engagement",
+            kind: "link" as const,
+          },
         ]),
+
+    ...(role === "client"
+      ? [{
+          label: "Messages",
+          href: "/pentesting/messages",
+          kind: "link" as const,
+        }]
+      : []),
     { label: "Help", kind: "help"},
     
     ...(isServiceDelivery ?  [{ label: "Service Delivery", href: "/service-delivery/dashboard", kind: "link" as const}] : []),
     { label: "Logout", href: "/api/auth/logout", kind: "external"},
   ];
 
-const navItems = isPentester && (pathName.startsWith("/pentesting") || pathName.startsWith("/engagement_request")) ? pentesterConsoleNavItems : loggedInNavItems;
+const navItems = (
+  isPentester && (
+    pathName.startsWith("/pentesting") ||
+    pathName.startsWith("/engagement_request")
+  )
+    ? pentesterConsoleNavItems
+    : loggedInNavItems
+).filter(
+  (item) =>
+    item.kind !== "link" ||
+    canVisitPage(item.href, role),
+);
   useEffect(() => {
     const loggedInNow = isLoggedIn();
     setLoggedIn (loggedInNow);

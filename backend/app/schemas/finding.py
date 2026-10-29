@@ -1,9 +1,10 @@
+import re
 from datetime import datetime
 from decimal import Decimal
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.base import FindingStatus, RetestStatus, Severity
 
@@ -23,20 +24,56 @@ class EvidenceFileResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-class FindingCreate(BaseModel):
+class FindingIdentifierValidation(BaseModel):
+    @field_validator("cve_id", mode="before", check_fields=False)
+    @classmethod
+    def validate_cve_id(cls, value: object) -> str | None:
+        if value is None:
+            return None
+
+        if not isinstance(value, str):
+            raise ValueError("CVE identifier must be text.")
+
+        normalized = value.strip().upper()
+        if not normalized:
+            return None
+
+        if not re.fullmatch(
+            r"CVE-[0-9]{4}-(?:[0-9]{4}|[1-9][0-9]{4,})",
+            normalized,
+        ):
+            raise ValueError(
+                "Enter a CVE identifier such as CVE-2024-12345."
+            )
+
+        return normalized
+
+class FindingCreate(FindingIdentifierValidation):
     engagement_asset_id: UUID | None = None
     title: str = Field(..., min_length=1, max_length=255)
     severity: Severity
-    cvss_score: Decimal | None = Field(default=None, ge=0, le=10)
+    cvss_score: Decimal | None = Field(
+        default=None,
+        ge=0,
+        le=10,
+        multiple_of=0.1,
+        allow_inf_nan=False,
+    )
     cve_id: str | None = Field(default=None, max_length=50)
     description: str | None = None
     recommendation: str | None = None
 
-class FindingUpdate(BaseModel):
+class FindingUpdate(FindingIdentifierValidation):
     title: str | None = Field(default=None, min_length=1, max_length=255)
     engagement_asset_id: UUID | None = None
     severity: Severity | None = None
-    cvss_score: Decimal | None = Field(default=None, ge=0, le=10)
+    cvss_score: Decimal | None = Field(
+        default=None,
+        ge=0,
+        le=10,
+        multiple_of=0.1,
+        allow_inf_nan=False,
+    )
     cve_id: str | None = Field(default=None, max_length=50)
     description: str | None = None
     recommendation: str | None = None

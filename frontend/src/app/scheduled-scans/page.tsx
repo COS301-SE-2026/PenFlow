@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { CalendarClock, CheckCircle2, Clock3, Edit3, Pause, Play, Plus, Radar, RefreshCw, Trash2, X} from "lucide-react";
-
+import DeleteScheduleDialog from "@/shared/components/DeleteScheduleDialog";
 import { fetch_domains, type domain_item } from "@/lib/domainServices";
 
 import { 
@@ -151,6 +151,8 @@ export default function ScheduledScansPage() {
     const [showForm, setShowForm] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState<ScheduleFormState>(EMPTY_FORM);
+    const [deleteTarget, setDeleteTarget] = useState<ScanSchedule | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
 
     const domainNames = useMemo(
@@ -292,33 +294,26 @@ export default function ScheduledScansPage() {
     }
 
     async function removeSchedule(schedule: ScanSchedule) {
-        const domainName = domainNames.get(
-            schedule.verified_domain_id,
-        ) ?? "this domain";
+        if (workingId !== null) return;
 
-        const confirmed = window.confirm(
-            `Delete the recurring scan for ${domainName}?`,
-        );
-
-        if(!confirmed) {
-            return;
-        }
-
+        setDeleteError(null);
         setWorkingId(schedule.id);
         setPageError(null);
 
         try {
             await deleteScanSchedule(schedule.id);
+            setDeleteTarget(null);
 
-            if(editingId === schedule.id) {
+            if (editingId === schedule.id) {
                 closeForm();
             }
 
             await loadData();
-        } catch(error) {
-            setPageError(
+        } catch (error) {
+            setDeleteError(
                 error instanceof Error
-                ? error.message : "Failed to delete the schedule",
+                    ? error.message
+                    : "Failed to delete the schedule",
             );
         } finally {
             setWorkingId(null);
@@ -701,7 +696,11 @@ export default function ScheduledScansPage() {
                                             </button>
 
                                             <button type="button" className={dangerButtonClass} 
-                                                onClick={() => void removeSchedule(schedule)}
+                                                onClick={() => {
+                                                    if (workingId !== null) return;
+                                                    setDeleteError(null);
+                                                    setDeleteTarget(schedule);
+                                                }}
                                                 disabled={busy} aria-label={`Delete schedule for ${domainName}`}
                                             >
                                                 <Trash2 size={15} />
@@ -714,6 +713,22 @@ export default function ScheduledScansPage() {
                     )}
                 </section>
             </div>
+            {deleteTarget && (
+                <DeleteScheduleDialog
+                    domain={
+                        domainNames.get(deleteTarget.verified_domain_id)
+                        ?? "this domain"
+                    }
+                    busy={workingId !== null}
+                    error={deleteError}
+                    onClose={() => {
+                        if (workingId !== null) return;
+                        setDeleteTarget(null);
+                        setDeleteError(null);
+                    }}
+                    onConfirm={() => void removeSchedule(deleteTarget)}
+                />
+            )}
         </DashboardLayout>
     );
 }

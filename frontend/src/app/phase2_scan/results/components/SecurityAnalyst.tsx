@@ -97,7 +97,7 @@ function AnswerContent({
             <div key={`bullet-${index}`}
               className="flex items-start gap-2"
             >
-              <span aria-hidden="true" className="mt-px text-brand-cyan">\
+              <span aria-hidden="true" className="mt-px text-brand-cyan">
                 •
               </span>
               <p className="m-0">

@@ -117,9 +117,7 @@ def resolve_public_host(
         remaining = deadline - monotonic()
 
         if remaining <= 0:
-            raise UnsafeDestination(
-                "DNS resolution timed out"
-            )
+            raise requests.Timeout("DNS resolution timed out")
 
         try:
             answers = resolver.resolve(
@@ -294,9 +292,7 @@ def _fetch_ip(
 
         while True:
             if monotonic() >= deadline:
-                raise UnsafeDestination(
-                    "Target response exceeded time budget"
-                )
+                raise requests.Timeout("Target response exceeded time budget")
 
             chunk = raw.read1(
                 min(65536, max_bytes + 1 - len(body)),
@@ -374,9 +370,7 @@ def safe_get(
         remaining = deadline - monotonic()
 
         if remaining <= 0:
-            raise UnsafeDestination(
-                "Target request exceeded time budget"
-            )
+            raise requests.Timeout("Target request exceeded time budget")
 
         addresses = resolve_public_host(
             host,
@@ -389,9 +383,7 @@ def safe_get(
             remaining = deadline - monotonic()
 
             if remaining <= 0:
-                raise UnsafeDestination(
-                    "Target request exceeded time budget"
-                )
+                raise requests.Timeout("Target request exceeded time budget")
 
             try:
                 response = _fetch_ip(
@@ -448,9 +440,7 @@ def public_connection(
         remaining = deadline - monotonic()
 
         if remaining <= 0:
-            raise UnsafeDestination(
-                "Target connection timed out"
-            )
+            raise requests.Timeout("Target connection timed out")
 
         try:
             return socket.create_connection(

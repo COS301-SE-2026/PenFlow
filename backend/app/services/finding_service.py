@@ -6,13 +6,15 @@ from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.concurrency import run_in_threadpool
 
-from app.models.base import EngagementStatus, FindingStatus
+from app.models.base import EngagementStatus, FindingStatus, RetestStatus
 from app.models.finding import Finding
 from app.repositories.audit_repository import AuditRepository
 from app.repositories.engagement_repository import EngagementRepository
 from app.repositories.finding_repository import FindingRepository
+from app.repositories.retest_repository import RetestRepository
 from app.schemas.finding import EvidenceFileResponse, FindingDetail, FindingUpdate
 from app.services.evidence_storage_service import EvidenceStorageService
+from app.services.retest_policy import require_retest_window
 from app.utils.audit_transaction import after_commit, audited_operation
 
 logger = logging.getLogger(__name__)
@@ -226,6 +228,70 @@ class FindingService:
 
 
     @staticmethod
+    async def require_evidence_upload_access(
+        db: AsyncSession,
+        *,
+        finding_id: UUID,
+        user_id: UUID,
+        retest_id: UUID | None = None,
+    ) -> Finding:
+        if retest_id is None:
+            return await FindingService.require_editable_finding(
+                db,
+                finding_id=finding_id,
+                user_id=user_id,
+            )
+
+        finding = await FindingService.require_finding_access(
+            db,
+            finding_id=finding_id,
+            user_id=user_id,
+        )
+
+        retest = await RetestRepository.get_by_id(
+            db,
+            retest_id=retest_id,
+        )
+
+        if retest is None or retest.finding_id != finding.id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Retest was not found.",
+            )
+
+        engagement_id = finding.engagement_id
+        if engagement_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Retest was not found.",
+            )
+
+        engagement = await EngagementRepository.get_assigned_by_id(
+            db,
+            engagement_id=engagement_id,
+            user_id=user_id,
+        )
+
+        if engagement is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Retest was not found.",
+            )
+
+        if (
+            engagement.status != EngagementStatus.RETESTING
+            or retest.status != RetestStatus.IN_PROGRESS
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Evidence can only be added to an in-progress retest.",
+            )
+
+        require_retest_window(engagement.scheduled_end_date)
+        return finding
+    
+
+    @staticmethod
     @audited_operation
     async def register_evidence(
         db: AsyncSession,
@@ -238,12 +304,18 @@ class FindingService:
         sha256: str | None = None,
         size_bytes: int | None = None,
         mime_type: str | None,
+        retest_id: UUID | None = None,
     ) -> EvidenceFileResponse:
-        finding = await FindingService.require_editable_finding(
+        finding = await FindingService.require_evidence_upload_access(
             db,
             finding_id=finding_id,
             user_id=user_id,
+            retest_id=retest_id,
         )
+
+        if retest_id is not None:
+            prefix = f"retest-{retest_id}-"
+            file_name = prefix + file_name[:255 - len(prefix)]
 
         engagement_id = finding.engagement_id
         current_finding_id = finding.id
@@ -277,6 +349,7 @@ class FindingService:
             metadata={
                 "engagement_id": str(engagement_id),
                 "finding_id": str(current_finding_id),
+                "retest_id": str(retest_id) if retest_id else None,
             },
         )
 

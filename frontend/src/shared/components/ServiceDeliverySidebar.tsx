@@ -1,5 +1,5 @@
 "use client";
-
+import { MESSAGES_UPDATED_EVENT } from "./messaging/inbox";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -31,12 +31,44 @@ export default function ServiceDeliverySidebar() {
     const isMobileNav = useIsMobileNav();
 
     useEffect(() => {
-        listConversations()
-            .then((res) => {
-                const unread = res.items.reduce((sum, c) => sum + c.unread_count, 0);
-                setBadges((prev) => ({ ...prev, Messages: unread }));
-            })
-            .catch(console.error);
+        let active = true;
+        let version = 0;
+
+        const refresh = async () => {
+            const request = ++version;
+
+            try {
+                const res = await listConversations();
+
+                if (!active || request !== version) return;
+
+                const unread = res.items.reduce(
+                    (sum, conversation) => sum + conversation.unread_count,
+                    0,
+                );
+
+                setBadges((prev) => ({
+                    ...prev,
+                    Messages: unread,
+                }));
+            } catch (error) {
+                if (active && request === version) {
+                    console.error(error);
+                }
+            }
+        };
+
+        const onUpdate = () => {
+            void refresh();
+        };
+
+        onUpdate();
+        window.addEventListener(MESSAGES_UPDATED_EVENT, onUpdate);
+
+        return () => {
+            active = false;
+            window.removeEventListener(MESSAGES_UPDATED_EVENT, onUpdate);
+        };
     }, []);
     useEffect(() => {
         setMobileNavOpen(false);

@@ -133,14 +133,35 @@
         <p><strong>Source:</strong> HaveIBeenPwned</p>
 
         <div class="finding-card">
-            <h3>Known Breach Exposure</h3>
-            <span class="badge badge-medium">{{ breach_data.severity }}</span>
-            <p><strong>Pwned Accounts:</strong> {{ breach_data.pwned_accounts_count }}</p>
-            <p><strong>Known Breaches:</strong> {{ breach_data.known_breaches | join(", ") }}</p>
-            <p>
-                Public breach exposure was detected for accounts associated
-                with this domain.
-            </p>
+            <h3>Domain Breach Records</h3>
+
+            {% if breach_data.pwned_accounts_count > 0 %}
+                <span class="badge badge-medium">
+                    {{ breach_data.severity }}
+                </span>
+
+                <p>
+                    <strong>Domain Breach Records:</strong>
+                    {{ breach_data.pwned_accounts_count }}
+                </p>
+
+                <p>
+                    <strong>Known Breaches:</strong>
+                    {{ breach_data.known_breaches | join(", ") }}
+                </p>
+
+                <p>
+                    Historical breach records were reported for this domain.
+                </p>
+            {% else %}
+                <span class="badge badge-info">info</span>
+
+                <p><strong>Domain Breach Records:</strong> 0</p>
+
+                <p>
+                    No domain breach records are present in the available scan data.
+                </p>
+            {% endif %}
         </div>
     </section>
 

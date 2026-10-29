@@ -98,8 +98,10 @@ class BedrockGenerationProvider:
         privacy = PrivacySession()
 
         try:
-            safe_system_prompt = privacy.protect(system_prompt)
-            safe_user_prompt = privacy.protect(user_prompt)
+            safe_system_prompt, safe_user_prompt = privacy.protect_many(
+                system_prompt,
+                user_prompt,
+            )
 
         except AIPrivacyError:
             raise BedrockGenerationProviderError(
@@ -114,6 +116,17 @@ class BedrockGenerationProvider:
             "- [SECRET_REMOVED] indicates unavailable information; "
             "never reconstruct it.\n"
         )
+
+        try:
+            privacy.validate_outbound(
+                safe_system_prompt,
+                safe_user_prompt,
+            )
+        except AIPrivacyError:
+            raise BedrockGenerationProviderError(
+                "AI privacy checks rejected the outbound input."
+            ) from None
+
         try:
             response: dict[str, Any] = self.client.converse(
                 modelId=self.model_id,

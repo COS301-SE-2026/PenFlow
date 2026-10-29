@@ -1,4 +1,5 @@
 "use client";
+import { scanActivity } from "@/lib/scanActivity";
 import type {ReactNode} from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -15,7 +16,7 @@ import {fetchScanStatus, type RealTimeScanStatus} from "@/lib/scanService";
 import { Progress } from "@/shared/components/ui/progress";
 
 
-type SourceStatus = "pending" | "running" | "completed" | "failed" | "partial"| "skipped";
+type SourceStatus = "preparing" | "pending" | "running" | "completed" | "failed" | "partial"| "skipped";
 type SourcePhase = "idle" | "line" | "done";
 type SourceWithPhase = RealTimeScanStatus["sources"][number] & {
     status: SourceStatus;
@@ -77,6 +78,7 @@ const ragIndexStatusConfig = {
 } as const;
 
 const lineToneClassName: Record<SourceStatus, string> ={
+    preparing: "stroke-brand-yellow/60 animate-pulse",
     pending: "stroke-muted-foreground/25",
     running: "stroke-brand-yellow animate-pulse drop-shadow-[0_0_3px_rgba(245,200,66,0.75)]",
     completed: "stroke-brand-success/60 drop-shadow-[0_0_3px_rgba(74,222,128,0.75)]",
@@ -193,7 +195,7 @@ function SourceCard({
     const isDone = phase === "done";
     const isFailed = status === "failed";
     
-    const isRunning = status === "running";
+    const isRunning = status === "running" || status === "preparing";
     const toneClassName = isFailed ? "text-brand-alert" : isRunning ? "text-brand-yellow": "text-brand-success";
     const borderClassName = isDone ? (isFailed ? "border-brand-alert": "border-brand-success") : isRunning ? "border-brand-yellow animate-pulse" : "border-[#2a3f66]"
     const processedTargets = Math.min(completedTargets + failedTargets, totalTargets);
@@ -235,6 +237,11 @@ function SourceCard({
                         }
                     >
                             {meta.label}
+                            {status === "preparing" && (
+                            <span className="mt-1 block font-sans text-xs normal-case tracking-normal">
+                                Awaiting worker
+                            </span>
+                            )}
                     </span>
 
                     {totalTargets > 0 && (
@@ -346,9 +353,13 @@ function FanColumn({
 }
 
 function sourcePhase(status: SourceStatus): SourcePhase {
-    if(status === "pending") return "idle";
-    if(status === "running") return "line";
-    return "done";
+  if (status === "pending") return "idle";
+
+  if (status === "running" || status === "preparing") {
+    return "line";
+  }
+
+  return "done";
 }
 
 function ScanNetworkDiagram({sources, progress, isComplete}: {sources: RealTimeScanStatus["sources"]; progress: number; isComplete: boolean}) {
@@ -503,6 +514,11 @@ export default function ScanProgress() {
     }
 
     const visibleSources = scan.sources.filter((s)=> s.source_name !== "hunter.io" && s.source_name !== "cpe_resolver");
+    const activity = scanActivity(
+    scan.status,
+    visibleSources,
+    Boolean(error),
+    );
     return (
         <div className="mx-auto flex w-full max-w-[1700px] flex-col gap-6">
             <nav aria-label = "Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -543,13 +559,40 @@ export default function ScanProgress() {
             </div>
 
             {error && <p className="text-xs text-brand-alert">{error} </p>}
+            {activity.message && (
+            <p
+                role="status"
+                className="flex items-center gap-2 text-sm text-muted-foreground"
+            >
+                <span
+                aria-hidden="true"
+                className={cn(
+                    "size-2 shrink-0 rounded-full",
+                    activity.active
+                    ? "animate-pulse bg-brand-yellow"
+                    : "bg-brand-alert",
+                )}
+                />
+                {activity.message}
+            </p>
+            )}
             <ScanDetailsBar scan = {{ ...scan, sources: visibleSources}}/>
 
             <Card className={cardClassName} >
                 <CardContent className="flex flex-col gap-4">
                     <h2 className={sectionTitleClassName}> Overall Progress </h2>
-                        <ScanNetworkDiagram sources = {visibleSources} progress={scan.progress} isComplete={TERMINAL_SCAN_STATUSES.has(scan.status)}/>
-                        <ScanMobileOverview sources={visibleSources} progress={scan.progress} isComplete={TERMINAL_SCAN_STATUSES.has(scan.status)}/>
+                    
+                    <ScanNetworkDiagram
+                        sources={activity.sources}
+                        progress={scan.progress}
+                        isComplete={TERMINAL_SCAN_STATUSES.has(scan.status)}
+                    />
+
+                    <ScanMobileOverview
+                        sources={activity.sources}
+                        progress={scan.progress}
+                        isComplete={TERMINAL_SCAN_STATUSES.has(scan.status)}
+                    />
                 </CardContent>
             </Card>
         </div>

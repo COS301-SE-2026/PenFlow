@@ -483,3 +483,61 @@ a:hover,
         right: 1rem;
     }
 }
+
+#keycloak-bg main:not(:has(.penflow-submarine))::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: calc(100% + 8rem);
+    transform: translate(-45%, -50%);
+
+    width: clamp(360px, 32vw, 560px);
+    aspect-ratio: 3 / 2;
+
+    background: url("../img/submarine.png") center / contain no-repeat;
+
+    filter:
+        drop-shadow(0 14px 30px rgba(0, 0, 0, 0.58))
+        drop-shadow(0 0 16px rgba(43, 216, 245, 0.05));
+
+    z-index: 10;
+    pointer-events: none;
+}
+
+@media (max-width: 1200px) {
+    #keycloak-bg main:not(:has(.penflow-submarine))::before {
+        right: calc(100% + 3rem);
+        width: clamp(300px, 29vw, 430px);
+    }
+}
+
+@media (max-width: 1000px) {
+    #keycloak-bg main:not(:has(.penflow-submarine))::before {
+        display: none;
+    }
+}
+
+@media (max-width: 1000px) {
+    #kc-header,
+    #kc-header-wrapper,
+    .pf-v5-c-login__header,
+    .penflow-submarine {
+        display: none !important;
+    }
+
+    #keycloak-bg main:not(:has(.penflow-submarine))::before {
+        content: none !important;
+        display: none !important;
+    }
+
+    #kc-page-title::after {
+        content: none !important;
+        display: none !important;
+    }
+
+    .login-pf-page,
+    .pf-v5-c-login,
+    .pf-v5-c-login__container {
+        justify-content: center;
+    }
+}
