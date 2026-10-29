@@ -116,9 +116,10 @@ h1, h2, h3 {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px 12px;
-  background: transparent;
-  border-bottom: 1px solid rgba(0, 183, 239, 0.12);
+  gap: 10px;
+  padding: 28px 14px;
+  border-radius: 0 0 14px 0;
+  box-shadow: var(--sh-sm);
   flex-shrink: 0;
   overflow: hidden;
 }
@@ -293,6 +294,21 @@ h1, h2, h3 {
   font-size: 0.85rem;
   line-height: 1.5;
 }
+.hamburgerBtn {
+  display: none;
+}
+
+.mobileTopbarBell {
+  display: none;
+}
+
+.navOverlay {
+  display: none;
+}
+
+.navDrawer {
+  display: contents;
+}
 
 /* hero */
 .hero {
@@ -362,14 +378,68 @@ h1, h2, h3 {
     align-items: center;
     border-right: none;
     border-bottom: 1px solid var(--col-edge);
+    padding: 0 12px;
+    gap: 12px;
+  }
+
+  .hamburgerBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    background: none;
+    border: 1px solid var(--col-edge);
+    border-radius: 8px;
+    color: #f4f7ff;
+    cursor: pointer;
+    z-index: 70;
+  }
+
+  .mobileTopbarBell {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  .navOverlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    top: 60px;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 55;
+  }
+
+  .navDrawer {
+    display: block;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    width: 280px;
+    max-width: 85vw;
+    height: calc(100vh - 60px);
+    overflow: hidden;
+    transform: translateX(-100%);
+    transition: transform 280ms ease;
+    z-index: 60;
+  }
+
+  .navDrawerOpen {
+    transform: translateX(0);
+  }
+
+  .navFlip {
+    height: 100%;
+  }
+
+  .navFace {
+    background: rgba(6, 14, 28, 0.98);
+    border-right: 1px solid var(--col-edge);
   }
 
   .logoPanel {
-    width: 100px;
-    height: 60px;
-    padding: 2px 8px;
-    border-bottom: none;
-    border-radius: 0;
     flex-shrink: 0;
   }
 
@@ -379,32 +449,15 @@ h1, h2, h3 {
   }
 
   .topnav, .topnav-list {
-    flex-direction: row;
-    flex-wrap: wrap;
-    padding: 0 12px;
-    gap: 16px;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 16px;
+    gap: 6px;
+    overflow-y: auto;
   }
 
   .nav-link {
-    padding: 4px 8px;
-    border-left: none;
-    border-bottom: 2px solid transparent;
-    border-radius: 0;
-    font-size: 0.78rem;
-  }
-
-  .nav-link:hover {
-    background: none;
-    border-left-color: transparent;
-    border-bottom-color: var(--col-cyan);
-  }
-  
-  .nav-link-active {
-    background: none;
-    border-color: transparent;
-    border-bottom-color: var(--col-cyan);
-    color: #ffffff;
+    font-size: 0.85rem;
   }
 
   .hero {
@@ -545,4 +598,48 @@ h1, h2, h3 {
   body {
     @apply bg-background text-foreground;
   }
+}
+@keyframes step-flow-x {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+@keyframes step-flow-y {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(250%); }
+}
+
+@keyframes step-flash-red {
+  25%, 60% {
+    background-color: color-mix(in srgb, var(--color-brand-alert) 25%, transparent);
+    border-color: var(--color-brand-alert);
+    color: var(--color-brand-alert);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--color-brand-alert) 55%, transparent);
+  }
+}
+@keyframes step-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-3px); }
+  40% { transform: translateX(3px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+@keyframes step-glow {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  30% { box-shadow: 0 0 14px 2px color-mix(in srgb, var(--color-brand-success) 60%, transparent); }
+}
+.step-flash-fail { animation: step-flash-red 0.9s ease-out 1, step-shake 0.4s ease-in-out 1; }
+.step-glow-success { animation: step-glow 1.4s ease-out 1; }
+@media (prefers-reduced-motion: reduce) {
+  .step-flash-fail, .step-glow-success { animation: none !important; }
+}
+
+@keyframes intro-hint-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  70% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
 }

@@ -8,7 +8,7 @@
     min-width: 0;
     margin-left: 220px;
     padding: 32px;
-    overflow-x: hidden;
+    overflow-x: clip;
 }
 
 

@@ -3,7 +3,7 @@ import type {ReactNode} from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Bug, ChevronRight, Crosshair, FileSearch, Fingerprint, Globe, Info, Lock, Network, ShieldAlert,
+import { Bug, ChevronDown, ChevronRight, Crosshair, FileSearch, Fingerprint, Globe, Info, Lock, Network, ShieldAlert,
          ShieldCheck, type LucideIcon,} from "lucide-react";
 
 import { Card, CardContent} from "@/components/ui/card";
@@ -57,15 +57,6 @@ const DEFAULT_SOURCE_META: SourceMeta = {
     icon: Info,
 };
 
-const sourceStatusConfig: Record<SourceStatus, {label: string; className: string}> = {
-    pending: {label: "Pending", className: "border-muted-foreground/30 text-muted-foreground bg-muted/40"},
-    running: {label: "Running", className: "border-brand-cyan text-brand-cyan bg-brand-cyan/10"},
-    completed: {label: "Completed", className: "border-brand-success text-brand-success bg-brand-success/10"},
-    failed: {label: "Failed", className: "border-brand-alert text-brand-alert bg-brand-alert/10"},
-    partial: {label: "Partial", className: "border-brand-yellow text-brand-yellow bg-brand-yellow/10"},
-    skipped: {label: "Skipped", className: "border-muted-foreground/30 text-muted-foreground bg-muted/40"},
-};
-
 const ragIndexStatusConfig = {
     pending: {
         label: "Pending",
@@ -84,15 +75,6 @@ const ragIndexStatusConfig = {
         className: "border-brand-alert bg-brand-alert/10 text-brand-alert",
     },
 } as const;
-
-const dotToneClassName: Record<SourceStatus, string> ={
-    pending: "bg-muted-foreground/40",
-    running: "bg-brand-cyan animate-pulse",
-    completed: "bg-brand-success",
-    failed: "bg-brand-alert",
-    partial: "bg-brand-yellow",
-    skipped: "bg-muted-foreground/40",
-};
 
 const lineToneClassName: Record<SourceStatus, string> ={
     pending: "stroke-muted-foreground/25",
@@ -114,16 +96,6 @@ function formatElapsed(startIso: string): string {
     return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
 }
 
-function SourceStatusBadge ({status}:{status: SourceStatus}) {
-    const { label,className} = sourceStatusConfig[status];
-    return (
-        <div className = "flex w-24 shrink-0 justify-center">
-            <Badge variant = "outline" className = {cn("uppercase tracking-wide", className)}>
-                {label}
-            </Badge>
-        </div>
-    );
-}
 
 function ScanRadar({isComplete}:{isComplete:boolean}) {
     const playState = isComplete ? "paused" : "running";
@@ -143,6 +115,7 @@ function ScanRadar({isComplete}:{isComplete:boolean}) {
 }
 
 function ScanDetailsBar({scan}: {scan:RealTimeScanStatus}) {
+    const [open, setOpen] = useState(false);
     const completedCount = scan.sources.filter((s)=> TERMINAL_SOURCE_STATUSES.has(s.status as SourceStatus)).length;
     const ragIndexState = ragIndexStatusConfig[scan.rag_index_status];
     const items: {label:string; value:ReactNode}[] = [
@@ -172,7 +145,17 @@ function ScanDetailsBar({scan}: {scan:RealTimeScanStatus}) {
 
     return (
         <Card className = {cardClassName}>
-            <CardContent className = "flex flex-wrap items-center gap-x-8 gap-y-4">
+            <CardContent>
+                <button
+                    type="button"
+                    onClick={() => setOpen((prev) => !prev)}
+                    aria-expanded={open}
+                    className="hidden w-full items-center justify-between gap-3 text-left max-sm:flex"
+                >
+                    <span className={sectionTitleClassName}>Scan details</span>
+                    <ChevronDown aria-hidden="true" className={cn("size-4 shrink-0 text-muted-foreground transition-transform", open && "rotate-180")}/>
+                </button>
+                <div className={cn("flex flex-wrap items-center gap-x-8 gap-y-4 max-sm:mt-4", !open && "max-sm:hidden")}>
                 {items.map((item,index) => (
                     <div key = {item.label} className = "flex items-center gap-8">
                         <div className = "flex flex-col gap-1">
@@ -182,6 +165,7 @@ function ScanDetailsBar({scan}: {scan:RealTimeScanStatus}) {
                         {index < items.length -1 && <span className ="hidden h-8 w-px bg-brand-panel-border sm:block" />}
                     </div>
                 ))}
+                </div>
             </CardContent>
         </Card>
     );
@@ -194,6 +178,7 @@ function SourceCard({
     totalTargets,
     completedTargets,
     failedTargets,
+    compact = false,
 }: {
     sourceName: string;
     status: SourceStatus;
@@ -201,6 +186,7 @@ function SourceCard({
     totalTargets: number;
     completedTargets: number;
     failedTargets: number;
+    compact?: boolean;
 }) {
     const [flipped, setFlipped] = useState(false);
     const meta = SOURCE_META[sourceName] ?? {...DEFAULT_SOURCE_META, label: sourceName};
@@ -222,7 +208,7 @@ function SourceCard({
             aria-label = {`${meta.label}: click to ${flipped ? "hide" : "show"} details`}
             className={cn(
                 "block w-full cursor-pointer text-left [perspective:800px] transition-[height] duration-500 ease-out",
-                flipped ? "h-[150px]" : "h-20"
+                compact ? (flipped ? "h-40" : "h-20") : (flipped ? "h-[150px]" : "h-20")
             )}
         >
             <div className={cn(
@@ -232,16 +218,18 @@ function SourceCard({
             >
                 <div className = {cn(
                     "absolute inset-0 flex items-center justify-center gap-2.5 rounded-md border bg-[#102448]/85 px-4 py-3.5 backdrop-blur-sm transition-[box-shadow,border-color] duration-500 [backface-visibility:hidden]",
-                    borderClassName, totalTargets > 0 && "pb-7",
+                    borderClassName, totalTargets > 0 && (compact ? "pb-9" : "pb-7"),
+                    compact && "gap-1.5 px-2.5 py-2",
                     isDone && (isFailed ? "shadow-[0_0_10px_1px_rgba(255,95,78,0.2)]": "shadow-[0_0_10px_rgba(74, 222, 128, 0.15)]"),
                     isRunning && "shadow-[0_0_10px_1px_rgba(255,200,66,0.3)]"
                 )}
                 >
-                    <Info className="absolute top-2 right-2 size-3.5 shrink-0 text-white/85"/>
+                    <Info className={cn("absolute shrink-0 text-white/85", compact ? "top-1.5 right-1.5 size-3" : "top-2 right-2 size-3.5")}/>
                     <SourceGlyph className = {cn("size-4 shrink-0 transition-colors duration-500", (isDone || isRunning) ? toneClassName : "text-muted-foreground/50")}/>
                     <span
                         className = {cn(
                             "text-center font-heading text-sm leading-tight font-bold uppercase tracking-widest transition-colors duration-500",
+                            compact && "line-clamp-2 text-xs tracking-wider",
                             (isDone || isRunning) ? toneClassName : "text-muted-foreground/50"
                         )
                         }
@@ -250,8 +238,8 @@ function SourceCard({
                     </span>
 
                     {totalTargets > 0 && (
-                        <div className="absolute inset-x-3 bottom-2 grid gap-1">
-                            <span className="text-center text-sm font-semibold text-muted-foreground">
+                        <div className={cn("absolute bottom-2 grid gap-1", compact ? "inset-x-2.5" : "inset-x-3")}>
+                            <span className={cn("text-center font-semibold text-muted-foreground", compact ? "text-[11px]" : "text-sm")}>
                                 {processedTargets} / {totalTargets} targets
                                 {failedTargets > 0 ? ` · ${failedTargets} failed` : ""}
                             </span>
@@ -262,10 +250,10 @@ function SourceCard({
                     )}
                 </div>
                 <div className={cn("absolute inset-0 flex items-center justify-center rounded-md border bg-[#102448]/95 px-4 py-3 text-center backdrop-blur-sm [backface-visibility:hidden] [transform:rotateY(180deg)]",
-                    borderClassName
+                    borderClassName, compact && "px-2.5 py-2.5"
                 )}
                 >
-                    <p className="line-clamp-6 text-sm leading-snug text-foreground/85">{meta.description}</p>
+                    <p className={cn("leading-snug text-foreground/85", compact ? "line-clamp-[8] text-xs" : "line-clamp-6 text-sm")}>{meta.description}</p>
                 </div>
             </div>
         </button>
@@ -400,29 +388,51 @@ function ScanNetworkDiagram({sources, progress, isComplete}: {sources: RealTimeS
     );
 }
 
-function ScanSourceList({sources}: {sources: RealTimeScanStatus["sources"]}) {
+function ScanMobileOverview({sources, progress, isComplete}: {sources: RealTimeScanStatus["sources"]; progress: number; isComplete: boolean}) {
+    const doneCount = sources.filter((s) => TERMINAL_SOURCE_STATUSES.has(s.status as SourceStatus)).length;
+
     return (
-        <div className="flex flex-col divide-y divide-brand-panel-border lg:hidden">
-            {sources.map((source) => {
-                const status = source.status as SourceStatus;
-                const meta = SOURCE_META[source.source_name] ?? {...DEFAULT_SOURCE_META, label: source.source_name};
-                const processedTargets = Math.min(source.completed_targets + source.failed_targets, source.total_targets)
-                return (
-                    <div key = {source.source_name} className="flex flex-wrap items-center gap-4 py-3">
-                        <span className="flex size-5 items-center justify-center rounded-full">
-                            <span className={cn("size-2.5 rounded-full", dotToneClassName[status])}/>
-                        </span>
-                        <span className="min-w-0 flex-1 truncate text-base text-foreground">{meta.label}</span>
-                        {source.total_targets > 0 && (
-                            <span className="text-sm font-semibold text-muted-foreground">
-                                {processedTargets}/{source.total_targets}
-                            </span>
-                        )}
-                        <SourceStatusBadge status = {status} />
-                        <ChevronRight className="size-4 shrink-0 text-muted-foreground"/>
+        <div className="flex flex-col gap-5 lg:hidden">
+            <div className="flex flex-col items-center gap-3">
+                <div className="rounded-2xl border border-[#1c2a42] bg-gradient-to-br from-[#0d1e36] to-[#091829] p-3 shadow-[0_4px_20px_rgba(0,8,24,0.5)]">
+                    <div className="size-[140px]">
+                        <div className="origin-top-left scale-[0.54]">
+                            <ScanRadar isComplete={isComplete}/>
+                        </div>
                     </div>
-                );
-            })}
+                </div>
+                <div className="flex w-full max-w-xs flex-col items-center gap-1.5">
+                    <div className="flex w-full items-center gap-3">
+                        <Progress
+                            value = {progress}
+                            className="h-2 flex-1 bg-muted"
+                            indicatorClassName="bg-brand-success transition-[transform] duration-[3500ms] ease-linear"
+                        />
+                        <span className="text-xs font-semibold text-brand-success">{progress}%</span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                        {doneCount} of {sources.length} sources done
+                    </span>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 items-start gap-2.5">
+                {sources.map((source) => {
+                    const status = source.status as SourceStatus;
+                    return (
+                        <SourceCard
+                            key={source.source_name}
+                            compact
+                            sourceName={source.source_name}
+                            status={status}
+                            phase={sourcePhase(status)}
+                            totalTargets={source.total_targets}
+                            completedTargets={source.completed_targets}
+                            failedTargets={source.failed_targets}
+                        />
+                    );
+                })}
+            </div>
         </div>
     );
 }
@@ -539,7 +549,7 @@ export default function ScanProgress() {
                 <CardContent className="flex flex-col gap-4">
                     <h2 className={sectionTitleClassName}> Overall Progress </h2>
                         <ScanNetworkDiagram sources = {visibleSources} progress={scan.progress} isComplete={TERMINAL_SCAN_STATUSES.has(scan.status)}/>
-                        <ScanSourceList sources= {visibleSources} />
+                        <ScanMobileOverview sources={visibleSources} progress={scan.progress} isComplete={TERMINAL_SCAN_STATUSES.has(scan.status)}/>
                 </CardContent>
             </Card>
         </div>

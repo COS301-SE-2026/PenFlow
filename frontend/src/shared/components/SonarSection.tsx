@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import type { CSSProperties } from "react";
 import Image from "next/image";
-import submarineImage from "@/app/images/images/submarine.png";
+import penflowLogo from "@/app/images/images/PenFlow_Logo.png";
 import styles from "./SonarSection.module.css";
 
 const DOT_GRID_COLS = 41;
@@ -118,7 +118,7 @@ export default function SonarSection() {
 
           <div className={styles.sonarSubmarineWrap}>
             <Image
-              src={submarineImage}
+              src={penflowLogo}
               alt=""
               width={308}
               height={193}

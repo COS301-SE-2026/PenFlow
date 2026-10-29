@@ -152,6 +152,8 @@ export interface RiskHistoryItem {
   date: string;
   risk_score:number;
   total_findings: number;
+  scan_id?: string;
+  status?: string;
 }
 
 export async function fetchScanRiskHistory(scanId: string): Promise<RiskHistoryItem[]> {
@@ -256,13 +258,22 @@ export interface ScanHistoryItem {
   low_count: number;
 }
 
+const SCAN_HISTORY_PAGE = 100;
+const SCAN_HISTORY_MAX_PAGES = 50;
+
 export async function fetchScanHistory(): Promise<ScanHistoryItem[]> {
-  const response = await authenticatedFetch(API_BASE);
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({ detail: "Failed to load scan history" }));
-    throw new Error(err.detail ?? "Failed to load scan history");
+  const all: ScanHistoryItem[] = [];
+  for (let page = 0; page < SCAN_HISTORY_MAX_PAGES; page++) {
+    const response = await authenticatedFetch(`${API_BASE}?limit=${SCAN_HISTORY_PAGE}&offset=${page * SCAN_HISTORY_PAGE}`);
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({ detail: "Failed to load scan history" }));
+      throw new Error(err.detail ?? "Failed to load scan history");
+    }
+    const items: ScanHistoryItem[] = await response.json();
+    all.push(...items);
+    if (items.length < SCAN_HISTORY_PAGE) break;
   }
-  return response.json();
+  return all;
 }
 
 export async function fetchScanSummary(scanId: string): Promise<ExecutiveSummary> {

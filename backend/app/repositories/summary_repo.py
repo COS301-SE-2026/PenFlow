@@ -11,6 +11,8 @@ from app.models.report import Report
 from app.models.scan import Scan
 from app.models.scan_source import ScanSource
 
+PREVIEW_TEXT_LIMIT = 1000
+
 
 async def get_scan_summary(db: AsyncSession, scan_id: UUID) -> Scan | None:
     """
@@ -78,12 +80,12 @@ async def get_top_findings_preview(
     previews = []
     for finding, asset in rows:
         desc_snippet = finding.description
-        if desc_snippet and len(desc_snippet) > 120:
-            desc_snippet = desc_snippet[:120] + "..."
+        if desc_snippet and len(desc_snippet) > PREVIEW_TEXT_LIMIT:
+            desc_snippet = desc_snippet[:PREVIEW_TEXT_LIMIT] + "..."
 
         recc_snippet = finding.recommendation
-        if recc_snippet and len(recc_snippet) > 120:
-            recc_snippet = recc_snippet[:120] + "..."
+        if recc_snippet and len(recc_snippet) > PREVIEW_TEXT_LIMIT:
+            recc_snippet = recc_snippet[:PREVIEW_TEXT_LIMIT] + "..."
 
         previews.append(
             {

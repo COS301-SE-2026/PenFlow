@@ -50,7 +50,7 @@ async def test_get_top_findings_preview(db_session: AsyncSession):
     await db_session.refresh(asset)
 
     #seed 1 critical, 1 low.
-    long_desc = "A" * 150
+    long_desc = "A" * (summary_repo.PREVIEW_TEXT_LIMIT + 50)
     findings = [
         Finding(
             scan_id=scan.id,
@@ -75,7 +75,7 @@ async def test_get_top_findings_preview(db_session: AsyncSession):
     assert len(previews) == 2
     #crit first
     assert previews[0]["severity"] == Severity.CRITICAL
-    assert len(previews[0]["description"]) == 123
+    assert len(previews[0]["description"]) == summary_repo.PREVIEW_TEXT_LIMIT + 3
     assert previews[0]["description"].endswith("...")
     assert previews[1]["severity"] == Severity.LOW
     assert previews[1]["asset_identifier"] == "api.preview-test.com"
