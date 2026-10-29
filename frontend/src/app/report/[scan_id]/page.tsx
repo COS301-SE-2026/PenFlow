@@ -475,25 +475,6 @@ export default function ReportPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [intro, data === null]);
 
-  const replayIntro = () => {
-    const root = rootRef.current;
-    const els = [
-      riskCardRef.current, targetGaugeRef.current, targetTextRef.current,
-      ...(root ? Array.from(root.querySelectorAll<HTMLElement>("[data-intro-tile], [data-intro-item], [data-intro-bar]")) : []),
-    ];
-    els.forEach(el => {
-      if (!el) return;
-      el.style.opacity = "";
-      el.style.transform = "";
-      el.style.clipPath = "";
-      el.style.visibility = "";
-    });
-    needleRef.current = 0;
-    setNeedle(0);
-    setShownScore(null);
-    setIntro("playing");
-  };
-
   const introOverlay = (intro === "loading" || intro === "playing") && (
     <div ref={overlayRef} aria-hidden="true" className="fixed inset-0 z-[60]">
       <div ref={backdropRef} className="absolute inset-0 bg-[#050914]/95 backdrop-blur-sm" />
@@ -618,15 +599,6 @@ export default function ReportPage() {
     <div ref={rootRef} className={cn(styles.reportPage, "group/report max-sm:pb-20")} data-intro={intro === "playing" ? "playing" : undefined}>
       <NavBar />
       {introOverlay}
-      {(intro === "done" || intro === "off") && (
-        <button
-          type="button"
-          onClick={replayIntro}
-          className="fixed top-4 right-4 z-[70] rounded-lg border border-[var(--col-edge-hot)] bg-[#050914]/90 px-3 py-1.5 text-xs font-semibold text-[var(--col-cyan)] backdrop-blur hover:bg-[var(--col-cyan)]/10 max-[900px]:top-[72px]"
-        >
-          Animation
-        </button>
-      )}
       {intro === "done" && (
         <p role="status" className="sr-only">Risk score {risk.score} out of 100, {risk.level} risk. {verdict(risk_snapshot)}</p>
       )}

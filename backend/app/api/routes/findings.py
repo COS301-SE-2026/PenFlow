@@ -160,9 +160,9 @@ async def update_finding(
 
 
 @router.post(
-    "/{finding_id}/evidence", 
-    response_model=EvidenceFileResponse, 
-    status_code=status.HTTP_201_CREATED
+    "/{finding_id}/evidence",
+    response_model=EvidenceFileResponse,
+    status_code=status.HTTP_201_CREATED,
 )
 async def upload_finding_evidence(
     finding_id: UUID,
@@ -170,10 +170,27 @@ async def upload_finding_evidence(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(require_pentester),
 ) -> EvidenceFileResponse:
-    finding = await FindingService.require_editable_finding(
+    return await upload_evidence_file(
+        finding_id=finding_id,
+        file=file,
+        db=db,
+        user=user,
+    )
+
+
+async def upload_evidence_file(
+    *,
+    finding_id: UUID,
+    file: UploadFile,
+    db: AsyncSession,
+    user: User,
+    retest_id: UUID | None = None,
+) -> EvidenceFileResponse:
+    finding = await FindingService.require_evidence_upload_access(
         db,
         finding_id=finding_id,
         user_id=user.id,
+        retest_id=retest_id,
     )
 
     engagement_id = finding.engagement_id
@@ -251,6 +268,7 @@ async def upload_finding_evidence(
             storage_backend=stored.storage_backend,
             sha256=stored.sha256,
             size_bytes=stored.size_bytes,
+            retest_id=retest_id,
         )
 
     except Exception:
