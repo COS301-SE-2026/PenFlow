@@ -35,7 +35,10 @@ from app.services.assistant_conversation import (
     build_prompt_question,
     build_routing_text,
 )
-from app.services.assistant_data_service import AssistantDataService
+from app.services.assistant_data_service import (
+    AssistantDataIntent,
+    AssistantDataService,
+)
 from app.services.assistant_model_router import AssistantModelRouter
 from app.services.assistant_prompt_builder import (
     build_exact_lookup_prompts,
@@ -45,6 +48,17 @@ from app.services.assistant_prompt_builder import (
     build_risk_prioritization_prompts,
     build_scan_comparison_prompts,
     build_user_data_prompts,
+)
+from app.services.assistant_scan_details import (
+    ANALYSIS_TERMS,
+    detail_categories,
+)
+from app.services.assistant_scan_inventory import (
+    answer_scan_inventory,
+    inventory_categories,
+)
+from app.services.assistant_scan_snapshot import (
+    ScanAwareGenerationProvider,
 )
 from app.services.assistant_validation_telemetry import record_validation_failure
 from app.services.product_guide_service import ProductGuideService
@@ -105,7 +119,12 @@ class AssistantService:
             findings=findings,
         )
 
-        generation_provider = create_generation_provider()
+        generation_provider = ScanAwareGenerationProvider(
+            create_generation_provider(),
+            db,
+            scan_id,
+            question=request.question,
+        )
 
         answer = await generation_provider.generate(
             system_prompt=system_prompt,
@@ -359,6 +378,19 @@ class AssistantService:
             request=request,
         )
 
+        if data_result.intent == AssistantDataIntent.UNKNOWN:
+            return AssistantQueryResponse(
+                question=request.question,
+                answer=(
+                    "I could not identify a supported live-data query. "
+                    "This does not mean your account has no records. "
+                    "Ask about scans, domains, schedules, notifications, "
+                    "reports, engagements, or a selected scan's inventory."
+                ),
+                answer_state=AssistantAnswerState.INSUFFICIENT_EVIDENCE,
+                capability=AssistantCapability.USER_DATA,
+            )
+
         system_prompt, user_prompt = build_user_data_prompts(
             question=prompt_question,
             audience=request.audience,
@@ -407,6 +439,14 @@ class AssistantService:
         )
 
         generation_provider = create_generation_provider()
+
+        if request.context.scan_id is not None:
+            generation_provider = ScanAwareGenerationProvider(
+                generation_provider,
+                db,
+                request.context.scan_id,
+                question=request.question,
+            )
 
         answer = await generation_provider.generate(
             system_prompt=system_prompt,
@@ -477,7 +517,12 @@ class AssistantService:
             result=result,
         )
 
-        generation_provider = create_generation_provider()
+        generation_provider = ScanAwareGenerationProvider(
+            create_generation_provider(),
+            db,
+            scan_id,
+            question=request.question,
+        )
 
         answer = await generation_provider.generate(
             system_prompt=system_prompt,
@@ -805,7 +850,12 @@ class AssistantService:
                 embedding_service=embedding_provider,
             )
 
-        generation_provider = create_generation_provider()
+        generation_provider = ScanAwareGenerationProvider(
+            create_generation_provider(),
+            db,
+            scan_id,
+            question=request.question,
+        )
 
         prompt_question = build_prompt_question(request)
         retrieval_question = build_routing_text(request)
@@ -953,6 +1003,28 @@ class AssistantService:
         user: User,
         request: AssistantQueryRequest,
     ) -> AssistantQueryResponse:
+        categories = inventory_categories(request.question)
+
+        if categories:
+            return await answer_scan_inventory(
+                db,
+                user=user,
+                request=request,
+                categories=categories,
+            )
+
+        if (
+            detail_categories(request.question)
+            and ANALYSIS_TERMS.search(request.question)
+            and request.context.scan_id is not None
+            and request.context.finding_id is None
+        ):
+            return await AssistantService.answer_security_question(
+                db,
+                user=user,
+                request=request,
+            )
+        
         route_decision = await AssistantModelRouter.classify(request)
         capability = route_decision.capability
 

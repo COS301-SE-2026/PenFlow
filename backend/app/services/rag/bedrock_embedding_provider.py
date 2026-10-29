@@ -6,7 +6,11 @@ from typing import Any
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 
-from app.services.ai_privacy import AIPrivacyError, embedding_text
+from app.services.ai_privacy import (
+    EMBEDDING_PRIVACY_VERSION,
+    AIPrivacyError,
+    embedding_text,
+)
 from app.services.rag.embedding_provider import EmbeddingProviderError
 
 
@@ -58,7 +62,8 @@ class BedrockEmbeddingProvider:
             )
 
         self.model = (
-            f"bedrock:{self.model_id}:{self.dimensions}:privacy-v1"
+            f"bedrock:{self.model_id}:{self.dimensions}:"
+            f"{EMBEDDING_PRIVACY_VERSION}"
         )
 
         try:

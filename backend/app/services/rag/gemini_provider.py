@@ -7,6 +7,7 @@ from typing import Any
 import httpx
 
 from app.services.ai_privacy import (
+    EMBEDDING_PRIVACY_VERSION,
     AIPrivacyError,
     PrivacySession,
     embedding_text,
@@ -168,8 +169,10 @@ class GeminiGenerationProvider:
         privacy = PrivacySession()
 
         try:
-            system = privacy.protect(system_prompt.strip())
-            user = privacy.protect(user_prompt.strip())
+            system, user = privacy.protect_many(
+                system_prompt.strip(),
+                user_prompt.strip(),
+            )
         except AIPrivacyError:
             raise GeminiProviderError(
                 "AI privacy checks rejected the input."
@@ -181,6 +184,13 @@ class GeminiGenerationProvider:
             "- Never invent, decode, or expand privacy placeholders.\n"
             "- [SECRET_REMOVED] is unavailable; never reconstruct it.\n"
         )
+
+        try:
+            privacy.validate_outbound(system, user)
+        except AIPrivacyError:
+            raise GeminiProviderError(
+                "AI privacy checks rejected the outbound input."
+            ) from None
 
         thinking = (
             {"thinkingBudget": self.thinking_budget}
@@ -269,7 +279,7 @@ class GeminiEmbeddingProvider:
 
         self.model = (
             f"gemini:{self.model_id}:{self.dimensions}"
-            ":search-v1:privacy-v1"
+            f":search-v1:{EMBEDDING_PRIVACY_VERSION}"
         )
 
     def validate_vector(self, item: Any) -> list[float]:

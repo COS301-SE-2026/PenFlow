@@ -3,7 +3,11 @@ from typing import Any
 
 import httpx
 
-from app.services.ai_privacy import AIPrivacyError, embedding_text
+from app.services.ai_privacy import (
+    EMBEDDING_PRIVACY_VERSION,
+    AIPrivacyError,
+    embedding_text,
+)
 from app.services.rag.embedding_provider import EmbeddingProviderError
 
 
@@ -18,7 +22,9 @@ class EmbeddingService:
             "OPENAI_EMBEDDING_MODEL",
             "text-embedding-3-small",
         )
-        self.model = f"{self.provider_model}:privacy-v1"
+        self.model = (
+            f"{self.provider_model}:{EMBEDDING_PRIVACY_VERSION}"
+        )
         self.base_url = os.getenv(
             "OPENAI_BASE_URL",
             "https://api.openai.com/v1",

@@ -42,6 +42,7 @@ from app.schemas.finding import (
     FindingListItem,
     FindingListResponse,
 )
+from app.schemas.messaging_inbox import InboxResponse
 from app.schemas.retest import (
     RetestBulkCreate,
     RetestBulkCreateResponse,
@@ -49,6 +50,7 @@ from app.schemas.retest import (
     RetestListResponse,
 )
 from app.services.engagement_service import EngagementService
+from app.services.messaging_inbox_service import list_messaging_inbox
 from app.services.report_access_service import ReportAccessService
 from app.utils.db import get_db
 
@@ -71,6 +73,25 @@ async def resolve_user(
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="User not present.",
+    )
+
+
+@router.get(
+    "/conversations",
+    response_model=InboxResponse,
+    summary="List authorized engagement conversations, including empty threads",
+)
+async def get_messaging_inbox(
+    limit: Annotated[int, Query(ge=1, le=100)] = 100,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(require_user),
+) -> InboxResponse:
+    return await list_messaging_inbox(
+        db,
+        user,
+        limit=limit,
+        offset=offset,
     )
 
 
