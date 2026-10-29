@@ -1,7 +1,13 @@
 "use client";
 
 import { Bell, CheckCheck } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useId,
+    useRef,
+    useState,
+} from "react";
 
 import {
     fetchNotifications,
@@ -15,6 +21,46 @@ export default function NotificationMenu() {
     const [unreadCount, setUnreadCount] = useState(0);
     const [open, setOpen] = useState(false);
     const [loading, setLoading] = useState(false);
+
+    const containerRef = useRef<HTMLDivElement>(null);
+    const triggerRef = useRef<HTMLButtonElement>(null);
+    const panelId = useId();
+
+    useEffect(() => {
+        if (!open) return;
+
+        function handleOutsidePointer(event: PointerEvent) {
+            if (
+                event.target instanceof Node &&
+                !containerRef.current?.contains(event.target)
+            ) {
+                setOpen(false);
+            }
+        }
+
+        function handleKeyDown(event: KeyboardEvent) {
+            if (event.key === "Escape") {
+                setOpen(false);
+                triggerRef.current?.focus();
+            }
+        }
+
+        document.addEventListener(
+            "pointerdown",
+            handleOutsidePointer,
+            true,
+        );
+        document.addEventListener("keydown", handleKeyDown);
+
+        return () => {
+            document.removeEventListener(
+                "pointerdown",
+                handleOutsidePointer,
+                true,
+            );
+            document.removeEventListener("keydown", handleKeyDown);
+        };
+    }, [open]);
 
     const refresh = useCallback(async () => {
         try {
@@ -70,8 +116,11 @@ export default function NotificationMenu() {
     }
 
     return (
-        <div className="relative">
+        <div ref={containerRef} className="relative">
             <button type="button"
+                ref={triggerRef}
+                aria-expanded={open}
+                aria-controls={open ? panelId : undefined}
                 aria-label="View notifications"
                 onClick={() => {
                     setOpen((current) => !current);
@@ -91,7 +140,7 @@ export default function NotificationMenu() {
             </button>
 
             {open && (
-                <div className="absolute left-full top-0 z-[100] ml-3 w-96 rounded-xl border border-brand-panel-border bg-brand-panel shadow-xl">
+                <div id={panelId} className="absolute left-full top-0 z-[100] ml-3 w-96 rounded-xl border border-brand-panel-border bg-brand-panel text-slate-100 shadow-xl">
                     <div className="flex items-center justify-between border-b border-brand-panel-border p-4">
                         <h2>Notifications</h2>
 
@@ -108,7 +157,7 @@ export default function NotificationMenu() {
 
                     <div className="max-h-96 overflow-y-auto">
                         {notifications.length === 0 ? (
-                            <p className="p-4 text-sm text-muted-foreground">
+                            <p className="p-4 text-sm text-slate-300">
                                 No notifications yet.
                             </p>
                         ) : (
@@ -120,19 +169,21 @@ export default function NotificationMenu() {
                                         void handleNotificationClick(notification)
                                     }
                                     className={`block w-full border-b border-brand-panel-border p-4 text-left ${
-                                        notification.is_read ? "opacity-60" : "bg-brand-cyan/5"
+                                        notification.is_read
+                                            ? "bg-transparent hover:bg-white/5"
+                                            : "bg-blue-400/10 hover:bg-blue-400/15"
                                     }`}
                                 >
 
-                                    <span className="font-semibold">
+                                    <span className="font-semibold text-slate-100">
                                         {notification.title}
                                     </span>
 
-                                    <span className="mt-1 block text-sm text-muted-foreground">
+                                    <span className="mt-1 block text-sm leading-relaxed text-slate-300">
                                         {notification.message}
                                     </span>
 
-                                    <time className="mt-2 block text-xs text-muted-foreground">
+                                    <time className="mt-2 block text-xs text-slate-400">
                                         {new Date(notification.created_at).toLocaleDateString()}
                                     </time>
                                 </button>

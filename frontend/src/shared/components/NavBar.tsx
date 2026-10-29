@@ -1,5 +1,5 @@
 "use client";
-
+import { canVisitPage } from "@/lib/routeAccess";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -27,6 +27,7 @@ type NavItem =
     {label: "Home", href: "/", kind: "link"},
     { label: "Engagements Request", href: "/engagement_request", kind: "link"},
     {label: "Live Engagement", href: "/pentesting/engagement", kind: "link"},
+    { label: "Messages", href: "/pentesting/messages", kind: "link" },
     { label: "Help", kind: "help"},
     { label: "Logout", href: "/api/auth/logout", kind: "external"},
   ]
@@ -60,13 +61,29 @@ export default function NavBar() {
     { label: "Scan History", href: "/history", kind: "link"},
     //{ label: "Settings", href: "/settings", kind: "link"},
     { label: "Pentesting", href: isPentester ? "/pentesting/console/my-engagements": "/pentesting/engagement", kind: "link"},
+    ...(role === "client"
+      ? [{
+          label: "Messages",
+          href: "/pentesting/messages",
+          kind: "link" as const,
+        }]
+      : []),
     { label: "Help", kind: "help"},
     
     ...(isServiceDelivery ?  [{ label: "Service Delivery", href: "/service-delivery/dashboard", kind: "link" as const}] : []),
     { label: "Logout", href: "/api/auth/logout", kind: "external"},
   ];
 
-const navItems = pathName.startsWith("/pentesting") || pathName.startsWith("/engagement_request") ? (isPentester ? pentesterConsoleNavItems: pentestingNavItems): loggedInNavItems;
+const navItems = (
+  pathName.startsWith("/pentesting") ||
+  pathName.startsWith("/engagement_request")
+    ? (isPentester ? pentesterConsoleNavItems : pentestingNavItems)
+    : loggedInNavItems
+).filter(
+  (item) =>
+    item.kind !== "link" ||
+    canVisitPage(item.href, role),
+);
 
   useEffect(() => {
     const loggedInNow = isLoggedIn();
@@ -113,7 +130,7 @@ const navItems = pathName.startsWith("/pentesting") || pathName.startsWith("/eng
                         >
                             <button
                                 type="submit"
-                                className="nav-link w-full cursor-pointer bg-transparent" text-left
+                                className="nav-link w-full cursor-pointer bg-transparent text-left"
                             >
                                 {item.label}
                             </button>

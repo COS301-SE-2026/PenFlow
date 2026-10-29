@@ -143,7 +143,6 @@ async def collect_scan_snapshot(
     other_sources = 0
 
     for name, source_status in source_rows:
-        # Never send arbitrary database labels externally.
         if name in SOURCE_NAMES:
             value = enum_text(source_status)
             source_statuses[name] = (

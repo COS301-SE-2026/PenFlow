@@ -1,7 +1,10 @@
 import "@/shared/components/Dashboard.css";
+import { requirePageRole } from "@/lib/requirePageAccess";
 import ServiceDeliverySidebar from "@/shared/components/ServiceDeliverySidebar";
 
-export default function ServiceDeliverySectionLayout ({ children }: { children: React.ReactNode }){
+export default async function ServiceDeliverySectionLayout ({ children }: { children: React.ReactNode }){
+    await requirePageRole("service_delivery");
+
     return (
         <div className="dashboard-layout">
             <ServiceDeliverySidebar/>

@@ -14,6 +14,7 @@ import {
     Gauge,
     History,
     ListChecks,
+    Mail,
     Network,
     Pause,
     Radar,
@@ -473,6 +474,32 @@ const engagementRequestHelp: HelpTopic[] = [
     },
 ];
 
+const messagingHelp: HelpTopic[] = [{
+  id: "engagement-messages",
+  title: "Engagement messages",
+  icon: Mail,
+  body: (
+    <div>
+      <p>
+        Conversations are grouped by engagement. Search for an engagement
+        or participant, then select a conversation.
+      </p>
+      <p>
+        Clients and pentesters each message Service Delivery in separate
+        channels. They cannot see each other&apos;s conversations.
+      </p>
+      <p>
+        Your last-viewed conversation is remembered for this account in
+        this browser tab. Use Refresh messages to check for updates.
+      </p>
+      <p>
+        Unsent drafts stay while switching conversations, but are not
+        saved after leaving or refreshing the page.
+      </p>
+    </div>
+  ),
+}];
+
 const helpContentByRoute: Record<string, HelpTopic[]> = {
     "/": homeHelp,
     "/domains": domainsHelp,
@@ -484,6 +511,9 @@ const helpContentByRoute: Record<string, HelpTopic[]> = {
     "/pentesting/console/my-engagements": myEngagementsHelp,
     "/pentesting/engagement": liveEngagementHelp,
     "/engagement_request": engagementRequestHelp,
+    "/pentesting/messages": messagingHelp,
+    "/pentesting/console/messages": messagingHelp,
+    "/service-delivery/messages": messagingHelp,
 };
 
 export function getHelpTopics(pathname: string): HelpTopic[] {
