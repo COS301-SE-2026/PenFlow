@@ -1,2 +1,5 @@
 # Historical Keycloak JDBC endpoint; inspected, contains no credentials.
 d0d2199cbfceaee9829bd02dfc707e4d0fb91951:docker-compose.yml:generic-api-key:138
+
+Synthetic, invalid PEM fixture testing private-key redaction; contains no key material.
+24fd45c6b4f29ccdf3d3a5d6e077df95f5f646cf:backend/tests/unit/test_ai_privacy.py:private-key:97

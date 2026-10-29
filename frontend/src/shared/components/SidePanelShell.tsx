@@ -3,7 +3,7 @@ import { useEffect } from "react";
 
 import { cn } from "@/lib/utils";
 
-export default function SidePanelShell({ labelledBy, onClose, children }: { labelledBy: string; onClose: () => void; children: React.ReactNode }) {
+export default function SidePanelShell({ labelledBy, onClose, className, children }: { labelledBy: string; onClose: () => void; className?: string; children: React.ReactNode }) {
     useEffect(() => {
         const previousOverflow = document.body.style.overflow;
         document.body.style.overflow = "hidden";
@@ -28,6 +28,7 @@ export default function SidePanelShell({ labelledBy, onClose, children }: { labe
                     "animate-in duration-200 motion-reduce:animate-none",
                     "sm:top-4 sm:right-4 sm:max-h-[calc(100dvh-2rem)] sm:w-[440px] sm:overflow-hidden sm:rounded-xl sm:border sm:slide-in-from-right",
                     "max-sm:inset-x-0 max-sm:bottom-0 max-sm:max-h-[85dvh] max-sm:rounded-t-xl max-sm:border-t max-sm:slide-in-from-bottom",
+                    className,
                 )}
             >
                 {children}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 
 import ServiceDeliveryPageTitle from "@/shared/components/ServiceDeliveryPageTitle";
@@ -12,6 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import {
+    ArrowLeft, BadgeCheck, Building2, ClipboardList, Download, Globe, History, RotateCcw, ShieldAlert, Target, Users, CalendarCheck, CalendarClock,  Eye, Flag, Hourglass, Layers, MessageSquare, MoreHorizontal,
+    UserPlus, UserRound, Wallet, XCircle, type LucideIcon,
+} from "lucide-react";
+import { StatusSteps } from "@/app/pentesting/engagement/detailParts";
 import {
     assignPentester,
     cancelEngagement,
@@ -55,7 +60,6 @@ import {
     formatDateTime,
     formatLabel,
     retestStatusPillClass,
-    severityClass,
     statusLabels,
     statusPillClass,
     whiteOutlineButtonClass,
@@ -88,7 +92,6 @@ type ActionKind = "editScope" | "assign" | "reassign" | "schedule" | "changeSche
 
 export default function EngagementDetailPage() {
     const params = useParams<{ id: string}>();
-    const router = useRouter();
     const [engagement, setEngagement] = useState< EngagementDetail | null>(null);
     const [pentesters, setPentesters] = useState<PentesterListItem[]>([]);
     const [findingsPreview, setFindingsPreview] = useState<FindingListItem[]>([]);
@@ -178,16 +181,23 @@ async function runAndReload(action: Promise<EngagementActionResponse | null>) {
     }
 }
 
-const overview: [string, string][] = [
-        ["Client", displayName(engagement.client)],
-        ["Assessment type", assessmentTypeLabels[engagement.assessment_type]],
-        ["Engagement type", formatLabel(engagement.engagement_type)],
-        ["Priority", formatLabel(engagement.priority)],
-        ["Requested dates", formatDateRange(engagement.requested_start_date, engagement.requested_end_date)],
-        ["Scheduled dates", formatDateRange(engagement.scheduled_start_date, engagement.scheduled_end_date)],
-        ["Estimated quote", formatCurrency(engagement.estimated_quote)],
-        ["Final quote", formatCurrency(engagement.final_quote)],
+    const overview: { label: string; value: string; icon: LucideIcon; color: string }[] = [
+        { label: "Client", value: displayName(engagement.client), icon: Building2, color: "#2bd8f5" },
+        { label: "Assessment type", value: assessmentTypeLabels[engagement.assessment_type], icon: Layers, color: "#facc15" },
+        { label: "Engagement type", value: formatLabel(engagement.engagement_type), icon: Eye, color: "#a78bfa" },
+        { label: "Priority", value: formatLabel(engagement.priority), icon: Flag, color: engagement.priority === "high" ? "#ef4444" : engagement.priority === "medium" ? "#facc15" : "#4ade80" },
+        { label: "Requested dates", value: formatDateRange(engagement.requested_start_date, engagement.requested_end_date), icon: CalendarClock, color: "#94a3b8" },
+        { label: "Scheduled dates", value: formatDateRange(engagement.scheduled_start_date, engagement.scheduled_end_date), icon: CalendarCheck, color: "#a855f7" },
+        { label: "Estimated quote", value: formatCurrency(engagement.estimated_quote), icon: Wallet, color: "#4ade80" },
+        { label: "Final quote", value: formatCurrency(engagement.final_quote), icon: BadgeCheck, color: "#4ade80" },
     ];
+    const stageDates: Record<string, string | null> = {
+        requested: engagement.created_at,
+        scoping: engagement.reviewed_at ?? null,
+        scheduled: engagement.scheduled_start_date ?? null,
+        in_progress: engagement.started_at ?? null,
+        completed: engagement.completed_at ?? null,
+    };
 
 
     const showFindings = ["in_progress","review","completed"].includes(engagement.status);
@@ -195,8 +205,7 @@ const overview: [string, string][] = [
     const showReport = ["review", "completed"].includes(engagement.status);
     
     const previewFindings = [...findingsPreview]
-    .sort((a, b) => SERVERITY_ORDER[a.severity] - SERVERITY_ORDER[b.severity])
-    .slice(0, 5);
+    .sort((a, b) => SERVERITY_ORDER[a.severity] - SERVERITY_ORDER[b.severity]);
 
 
     async function openFinding(findingId: string) {
@@ -211,7 +220,6 @@ const overview: [string, string][] = [
             const blob = await downloadReport(report.report_id ?? report.id);
             downloadBlob(`engagement-report-v${report.version}.pdf`, blob);
         } catch {
-            // button stays enabled so the user can retry
         } finally {
             setIsDownloadingReport(false);
         }
@@ -251,208 +259,262 @@ const overview: [string, string][] = [
     <>
         <ServiceDeliveryPageTitle title={engagement.title}/>
         <div className="mt-4 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-xs text-brand-text/70">
-            <Link href= "/service-delivery/engagements" className="text-brand-cyan hover:underline">Engagements</Link>
-            <span>&gt;</span>
-            <span>{engagement.title}</span>
-            </div>
+            <Link href="/service-delivery/engagements" className="inline-flex items-center gap-1.5 text-sm text-brand-cyan no-underline hover:underline">
+                <ArrowLeft className="size-4" /> Back to Engagements
+            </Link>
             <span className={cn("shrink-0 rounded-md border px-3 py-1 text-xs font-semibold", statusPillClass[engagement.status])}>
                 {statusLabels[engagement.status].toUpperCase()}
             </span>
         </div>
 
-        <div className="mt-4 rounded-lg border border-brand-panel-border bg-brand-panel p-4">
-            <b className="text-brand-text">{statusLabels[engagement.status]} workspace</b>
-            <p className="mt-1 text-sm text-brand-text/70">{STATE_DESCRIPTIONS[engagement.status]}</p>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-brand-panel-border bg-brand-panel p-4">
+            <div className="min-w-0">
+                <b className="text-brand-text">{statusLabels[engagement.status]} workspace</b>
+                <p className="mt-1 text-sm text-brand-text/70">{STATE_DESCRIPTIONS[engagement.status]}</p>
+            </div>
+            {engagement.status === "review" && (
+                <div className="flex shrink-0 gap-2">
+                    <Button variant="outline" size="sm" className="cursor-pointer border-white/70 bg-transparent text-white transition-colors hover:border-brand-cyan hover:bg-brand-cyan/10 hover:text-brand-cyan dark:border-white/70 dark:bg-transparent dark:hover:border-brand-cyan dark:hover:bg-brand-cyan/10" onClick={() => setActiveAction("return")}>Return to Pentester</Button>
+                    <Button size="sm" className="cursor-pointer bg-brand-cyan text-[#04121f] transition-colors hover:bg-brand-cyan/80" onClick={() => runAndReload(completeEngagementReview(engagement.id))}>
+                        Complete Engagement
+                    </Button>
+                </div>
+            )}
+        </div>
+
+        <div className="mt-4">
+            <StatusSteps status={engagement.status} stageDates={stageDates} />
         </div>
 
         <Card className="mt-4 border-brand-panel-border bg-brand-panel">
-            <CardContent>
-                <h2 className="mb-3 text-sm font-semibold text-brand-text">Coordination</h2>
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                    <PartyCard kicker="Client" name={displayName(engagement.client)} meta={engagement.client.email ?? "-"}>
-                        {engagement.status !== "requested" && (
-                         <Link href={`/service-delivery/messages?engagement=${engagement.id}&channel=client_service_delivery`}>
-                             <Button variant="outline" size="sm" className={whiteOutlineButtonClass}>Message Client</Button>
-                         </Link>
-                        )}
-                    </PartyCard>
-                    <PartyCard kicker="Service Delivery" name={displayName(engagement.service_delivery, "Unclaimed")} meta={engagement.service_delivery ? "Owner of this engagement" : "Claim to take ownership"} />
-                    <PartyCard
-                        kicker="Pentester"
-                        name={displayName(engagement.assigned_pentester, "Not assigned")}
-                            meta={engagement.assigned_pentester ? "Selected during scoping" : "Selected during scoping."}
-                        >
-                        <div className="flex gap-2">
-                            {engagement.assigned_pentester && (
-                            <Link href={`/service-delivery/messages?engagement=${engagement.id}&channel=service_delivery_pentester`}>
-                                <Button variant="outline" size="sm" className={whiteOutlineButtonClass}>Message Pentester</Button>
-                            </Link>
-                            )}
-                            {engagement.status === "scoping" && (
-                                <Button size="sm" onClick={() => setActiveAction("assign")}>
-                                    {engagement.assigned_pentester ? "Change Pentester" : "Assign Pentester"}
-                                </Button>
-                            )}
-                            {engagement.status === "scheduled" && (
-                                    <Button size="sm" onClick={() => setActiveAction("reassign")}>Change Pentester</Button>
-                                )}
-                        </div>
-                        </PartyCard>
-                </div>
-            </CardContent>
-        </Card>
-         {/* Show different action buttons depending on what stage the engagement is in                        */}
-        <Card className="mt-4 border-brand-panel-border bg-brand-panel">
         <CardContent> 
             <div className="mb-3 flex items-start justify-between gap-3">
-                <h2 className="text-sm font-semibold text-brand-text">Engagement Overview</h2>
+                <CardHeading icon={ClipboardList} color="#2bd8f5">Engagement Overview</CardHeading>
                 <div className="flex flex-wrap gap-2">
                                 {engagement.status === "requested" && (
-                                <Button size="sm" onClick={() => runAndReload(claimEngagement(engagement.id))}>Claim Request</Button>
+                                <Button size="sm" className="cursor-pointer bg-brand-cyan text-[#04121f] transition-colors hover:bg-brand-cyan/80" onClick={() => runAndReload(claimEngagement(engagement.id))}>Claim Request</Button>
                             )}
                             {engagement.status === "scoping" && (
-                                <Button size="sm" onClick={() => { setScopeDraft(engagement.scope); setQuoteDraft(engagement.final_quote ?? ""); setActiveAction("editScope"); }}>
-                                    Edit Scope && Commercials
+                                <Button size="sm" className="cursor-pointer bg-brand-cyan text-[#04121f] transition-colors hover:bg-brand-cyan/80" onClick={() => { setScopeDraft(engagement.scope); setQuoteDraft(engagement.final_quote ?? ""); setActiveAction("editScope"); }}>
+                                    Edit Scope
                                 </Button>
                             )}
                             {engagement.status === "scoping" && (
-                                <Button size="sm" onClick={() => setActiveAction("schedule")}>Confirm && Schedule</Button>
+                                <Button size="sm" className="cursor-pointer bg-brand-success text-[#04121f] transition-colors hover:bg-brand-success/80" onClick={() => setActiveAction("schedule")}>Confirm</Button>
                             )}
                             {engagement.status === "scheduled" && (
-                                <Button variant="outline" size="sm" className={whiteOutlineButtonClass} onClick={() => setActiveAction("changeSchedule")}>Change Schedule</Button>
+                                <Button variant="outline" size="sm" className="cursor-pointer border-white/70 bg-transparent text-white transition-colors hover:border-brand-cyan hover:bg-brand-cyan/10 hover:text-brand-cyan dark:border-white/70 dark:bg-transparent dark:hover:border-brand-cyan dark:hover:bg-brand-cyan/10" onClick={() => setActiveAction("changeSchedule")}>Change Schedule</Button>
                             )}
                             {["requested", "scoping", "scheduled", "in_progress"].includes(engagement.status) && (
-                                <Button variant="destructive" size="sm" onClick={() => setActiveAction("cancel")}>Cancel Engagement</Button>
+                                <MoreMenu onCancel={() => setActiveAction("cancel")} />
                             )}
                 </div>
             </div>
 
             <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                        {overview.map(([k, v]) => (
-                            <div key={k} className="rounded-md border border-brand-panel-border/75 bg-brand-panel-deep p-3">
-                                <div className="mb-1 text-[10px] tracking-wide text-brand-text/70 uppercase">{k}</div>
-                                <div className="text-sm font-semibold text-brand-text">{v}</div>
+                {overview.map(({ label, value, icon: Icon, color }) => (
+                    <div key={label} className="rounded-md border border-brand-panel-border/75 bg-brand-panel-deep p-3">
+                        <div className="mb-1 flex items-center gap-1.5 text-[10px] tracking-wide text-brand-text/70 uppercase">
+                            <Icon aria-hidden="true" className="size-3.5" style={{ color }} />
+                            {label}
+                        </div>
+                        <div className="text-sm font-semibold text-brand-text">{value}</div>
+                    </div>
+                ))}
+            </div>
+
+        </CardContent>
+        </Card>
+
+        <div className="mt-4 grid grid-cols-[minmax(0,1fr)_340px] items-start gap-4 max-lg:grid-cols-1">
+            <div className="flex min-w-0 flex-col gap-4">
+                <Card className="border-brand-panel-border bg-brand-panel">
+                        <CardContent>
+                            <CardHeading icon={Globe} color="#2bd8f5" className="mb-4">Declared Assets</CardHeading>
+                            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                                {engagement.assets.map((a) => (
+                                    <div key={a.id} className="flex items-center justify-between gap-3 rounded-md border border-brand-panel-border bg-brand-panel-deep p-3">
+                                        <div>
+                                            <div className="text-sm font-semibold text-brand-text">{a.identifier}</div>
+                                            <div className="text-xs text-brand-text/70">{formatLabel(a.asset_type)}</div>
+                                        </div>
+                                        <span className="rounded-md border border-brand-success/40 bg-brand-success/10 px-2 py-0.5 text-[10px] font-semibold text-brand-success">
+                                            IN SCOPE
+                                        </span>
+                                    </div>
+                                ))}
                             </div>
-                        ))}
-                    </div>                 
-            
-             {engagement.objective && (
+                        </CardContent>
+                    </Card>
+
+                <Card className="border-brand-panel-border bg-brand-panel">
+                <CardContent>
+                    {engagement.objective && (
                         <>
-                            <h3 className="mt-6 mb-1 text-xs font-semibold tracking-wide text-brand-text/70 uppercase">Objective</h3>
+                            <CardHeading icon={Target} color="#facc15" className="mb-3">Objective</CardHeading>
                             <p className="rounded-md border border-brand-panel-border bg-brand-panel-deep p-3 text-sm text-brand-text/90">{engagement.objective}</p>
                         </>
                     )}
-                    <h3 className="mt-4 mb-1 text-xs font-semibold tracking-wide text-brand-text/70 uppercase">Scope && Constraints</h3>
+                    <CardHeading icon={Layers} color="#a78bfa" className="mt-5 mb-3">Scope && Constraints</CardHeading>
                     <p className="rounded-md border border-brand-panel-border bg-brand-panel-deep p-3 text-sm text-brand-text/90">{engagement.scope}</p>
                     {engagement.constraints && (
                         <p className="mt-2 rounded-md border border-brand-panel-border bg-brand-panel-deep p-3 text-sm text-brand-text/90">{engagement.constraints}</p>
                     )}
-        </CardContent>
-        </Card>
-                     {/* Engagement detail body: assets, review actions, findings, re-tests/report, activity log, and all lifecycle/finding/report modals  */}
-        <Card className="mt-4 border-brand-panel-border bg-brand-panel">
-                <CardContent>
-                    <h2 className="mb-3 text-sm font-semibold text-brand-text">Declared Assets</h2>
-                    <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-                        {engagement.assets.map((a) => (
-                            <div key={a.id} className="flex items-center justify-between gap-3 rounded-md border border-brand-panel-border bg-brand-panel-deep p-3">
-                                <div>
-                                    <div className="text-sm font-semibold text-brand-text">{a.identifier}</div>
-                                    <div className="text-xs text-brand-text/70">{formatLabel(a.asset_type)}</div>
-                                </div>
-                                <span className="rounded-md border border-brand-success/40 bg-brand-success/10 px-2 py-0.5 text-[10px] font-semibold text-brand-success">
-                                    IN SCOPE
-                                </span>
-                            </div>
-                        ))}
-                    </div>
                 </CardContent>
-            </Card>
-
-            {engagement.status === "review" && (
-                <Card className="mt-4 border-brand-cyan/40 bg-brand-panel">
-                    <CardContent>
-                        <div className="text-[11px] tracking-wide text-brand-text/70 uppercase">Service Delivery Review</div>
-                        <h2 className="mt-1 text-base font-semibold text-brand-text">Ready for final quality review</h2>
-                        <p className="mt-1 text-sm text-brand-text/70">
-                            Review scope, findings, evidence, and re-tests. Approval is engagement-level.
-                        </p>
-                        <div className="mt-4 flex gap-2">
-                            <Button variant="outline" size="sm" className={whiteOutlineButtonClass} onClick={() => setActiveAction("return")}>Return to Pentester</Button>
-                            <Button size="sm" onClick={() => runAndReload(completeEngagementReview(engagement.id))}>
-                                Complete Engagement
-                            </Button>
-                        </div>
-                    </CardContent>
                 </Card>
-            )}
-
-             {showFindings && (
-                <Card className="mt-4 border-brand-panel-border bg-brand-panel">
-                    <CardContent>
-                        <div className="mb-3 flex items-start justify-between gap-3">
-                            <div>
-                                <h2 className="text-sm font-semibold text-brand-text">Findings</h2>
-                                <p className="text-xs text-brand-text/70">
-                                    {engagement.finding_summary.total
-                                        ? `Showing the highest-priority ${previewFindings.length} of ${engagement.finding_summary.total} findings.`
-                                        : "No findings have been submitted yet."}
-                                </p>
+                 {showFindings && (
+                    <Card className="border-brand-panel-border bg-brand-panel">
+                        <CardContent>
+                            <div className="mb-3 flex items-start justify-between gap-3">
+                                <div>
+                                    <CardHeading icon={ShieldAlert} color="#ef4444">Findings</CardHeading>
+                                    <p className="text-xs text-brand-text/70">
+                                        {engagement.finding_summary.total
+                                            ? `${engagement.finding_summary.total} finding${engagement.finding_summary.total === 1 ? "" : "s"}, most severe first.`
+                                            : "No findings have been submitted yet."}
+                                    </p>
+                                </div>
+                                {showReport && (
+                                    <button
+                                        type="button"
+                                        onClick={() => void handleDownloadReport()}
+                                        disabled={report?.status !== "completed" || isDownloadingReport}
+                                        title={
+                                            !report ? "No report generated yet"
+                                                : report.status === "failed" ? `Report generation failed${report.error_message ? `: ${report.error_message}` : ""}`
+                                                : report.status !== "completed" ? `Report is ${formatLabel(report.status).toLowerCase()}`
+                                                : report.generated_at ? `Version ${report.version} · generated ${formatDateTime(report.generated_at)}` : undefined
+                                        }
+                                        className={cn(
+                                            "inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed",
+                                            report?.status === "completed"
+                                                ? "bg-brand-cyan text-[#04121f] hover:bg-brand-cyan/85"
+                                                : "bg-brand-panel-deep text-[#94a3b8] ring-1 ring-brand-panel-border ring-inset"
+                                        )}
+                                    >
+                                        <Download className="size-3.5" />
+                                        {isDownloadingReport ? "Downloading..." : report?.status === "completed" ? "Download report" : report?.status === "failed" ? "Report failed" : "Report not ready"}
+                                        {report?.status === "completed" && !isDownloadingReport && <span className="text-[11px] font-normal opacity-70">PDF</span>}
+                                    </button>
+                                )}
                             </div>
-                            <Link href={`/service-delivery/engagements/${engagement.id}/findings`}>
-                                <Button variant="outline" size="sm" className={whiteOutlineButtonClass} disabled={engagement.finding_summary.total === 0}>
-                                    View All Findings 
-                                </Button>
-                            </Link>
-                        </div>
-                        {previewFindings.length === 0 ? (
-                            <p className="text-sm text-brand-text/70">No findings have been submitted yet.</p>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-sm">
-                                    <thead>
-                                        <tr className="text-[11px] text-brand-text/70">
-                                            <th className="pb-2 font-medium">Finding</th>
-                                            <th className="pb-2 font-medium">Source</th>
-                                            <th className="pb-2 font-medium">Severity</th>
-                                            <th className="pb-2 font-medium">Status</th>
-                                            <th className="pb-2 font-medium" />
-                                            <th className="pb-2 font-medium" />
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {previewFindings.map((f) => (
-                                            <tr key={f.id} className="border-t border-brand-panel-border/65">
-                                                <td className="py-2.5">
-                                                    <div className="font-medium text-brand-text">{f.title}</div>
-                                                    <div className="text-[11px] text-brand-text/70">{f.asset_identifier ?? "-"}</div>
-                                                </td>
-                                                <td className="py-2.5">{f.source}</td>
-                                                <td className={cn("py-2.5", severityClass[f.severity])}>{formatLabel(f.severity)}</td>
-                                                <td className="py-2.5">{formatLabel(f.status)}</td>
-                                                <td className="py-2.5 text-right">
-                                                    <Button variant="outline" size="sm" className={whiteOutlineButtonClass} onClick={() => openFinding(f.id)}>Inspect</Button>
-                                                </td>
-                                                <td className="py-2.5 text-right">
-                                                    <Button variant="outline" size="sm" className={whiteOutlineButtonClass} onClick={() => downloadFindingEvidence(f)}>Download</Button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-            )}
+                            {previewFindings.length === 0 ? (
+                                <p className="text-sm text-brand-text/70">No findings have been submitted yet.</p>
+                            ) : (
+                                <ul className="m-0 grid list-none gap-2 p-0">
+                                    {previewFindings.map((f) => (
+                                        <li
+                                            key={f.id}
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => openFinding(f.id)}
+                                            onKeyDown={(ev) => { if (ev.key === "Enter") openFinding(f.id); }}
+                                            title="Open finding"
+                                            className={cn("flex cursor-pointer items-center gap-4 rounded-xl border border-l-[3px] bg-brand-panel-deep/40 px-4 py-3.5 transition-colors hover:bg-white/[0.05]", FINDING_EDGE[f.severity])}
+                                        >
+                                            <div className="min-w-0 flex-1">
+                                                <div className="truncate text-[15px] font-medium text-brand-text">{f.title}</div>
+                                                <div className="truncate text-[11px] text-brand-text/60">{f.asset_identifier ?? "-"}</div>
+                                            </div>
+                                            <div className="flex shrink-0 flex-col items-end gap-1.5">
+                                                <span className={cn("w-20 rounded-md border py-0.5 text-center text-[10px] font-bold uppercase", FINDING_PILL[f.severity])}>
+                                                    {formatLabel(f.severity)}
+                                                </span>
+                                            </div>
+                                            <div className="flex shrink-0 gap-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={(ev) => { ev.stopPropagation(); void downloadFindingEvidence(f); }}
+                                                    className={ROW_ACTION}
+                                                    title="Download evidence"
+                                                    aria-label="Download evidence"
+                                                >
+                                                    <Download className="size-3.5" />
+                                                </button>
+                                            </div>
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                        </CardContent>
+                    </Card>
+                )}
+            </div>
+                <div className="flex min-w-0 flex-col gap-4">
+                    <Card className="border-brand-panel-border bg-brand-panel">
+                        <CardContent>
+                            <CardHeading icon={Users} color="#2bd8f5" className="mb-4">People</CardHeading>
+                            <dl className="m-0 grid grid-cols-1 gap-5">
+                                <ContactRow role="Client" name={displayName(engagement.client)}>
+                                    {engagement.status !== "requested" && (
+                                        <Link href={`/service-delivery/messages?engagement=${engagement.id}&channel=client_service_delivery`} className={QUIET_LINK}>
+                                            <MessageSquare className="size-3.5" /> Message client
+                                        </Link>
+                                    )}
+                                </ContactRow>
+                                <ContactRow
+                                    role="Service Delivery"
+                                    name={engagement.service_delivery ? displayName(engagement.service_delivery) : null}
+                                    placeholder="Unclaimed"
+                                />
+                                <ContactRow
+                                    role="Pentester"
+                                    name={engagement.assigned_pentester ? displayName(engagement.assigned_pentester) : null}
+                                    placeholder="Needs pentester"
+                                    needsAction={!engagement.assigned_pentester && ["scoping", "scheduled"].includes(engagement.status)}
+                                >
+                                    {engagement.assigned_pentester && (
+                                        <Link href={`/service-delivery/messages?engagement=${engagement.id}&channel=service_delivery_pentester`} className={QUIET_LINK}>
+                                            <MessageSquare className="size-3.5" /> Message pentester
+                                        </Link>
+                                    )}
+                                    {engagement.status === "scoping" && (
+                                        <button type="button" onClick={() => setActiveAction("assign")} className={QUIET_LINK}>
+                                            <UserPlus className="size-3.5" /> {engagement.assigned_pentester ? "Change pentester" : "Assign pentester"}
+                                        </button>
+                                    )}
+                                    {engagement.status === "scheduled" && (
+                                        <button type="button" onClick={() => setActiveAction("reassign")} className={QUIET_LINK}>
+                                            <UserPlus className="size-3.5" /> Change pentester
+                                        </button>
+                                    )}
+                                </ContactRow>
+                            </dl>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-brand-panel-border bg-brand-panel">
+                        <CardContent>
+                            <CardHeading icon={History} color="#a78bfa" className="mb-4">Engagement Activity</CardHeading>
+                            {activity.length === 0 ? (
+                                <p className="text-sm text-brand-text/70">No recorded activity yet.</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {activity.map((entry) => (
+                                        <div key={entry.id} className="flex gap-3">
+                                        
+                                            <div>
+                                                <p className="text-sm text-brand-text">
+                                                    {displayName(entry.actor, "System")} · {formatLabel(entry.action)}
+                                                </p>
+                                                <p className="text-[11px] text-brand-text/70">{formatDateTime(entry.created_at)}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+        </div>
 
-            {(showRetests || showReport) && (
+
+
+            {showRetests && (
                 <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
                     {showRetests && (
                         <Card className="border-brand-panel-border bg-brand-panel">
                             <CardContent>
-                                <h2 className="mb-3 text-sm font-semibold text-brand-text">Re-tests</h2>
+                                <CardHeading icon={RotateCcw} color="#2bd8f5" className="mb-4">Re-tests</CardHeading>
                                 {retests.length === 0 ? (
                                     <p className="text-sm text-brand-text/70">No re-tests linked to this engagement.</p>
                                 ) : (
@@ -474,61 +536,11 @@ const overview: [string, string][] = [
                         </Card>
                     )}
 
-                          {showReport && (
-                        <Card className="border-brand-panel-border bg-brand-panel">
-                            <CardContent>
-                                <h2 className="mb-3 text-sm font-semibold text-brand-text">Final Report</h2>
-                                {!report ? (
-                                    <p className="text-sm text-brand-text/70">No report generated yet.</p>
-                                ) : report.status === "completed" ? (
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div>
-                                            <div className="text-sm font-semibold text-brand-text">Version {report.version}</div>
-                                            <div className="text-[11px] text-brand-text/70">
-                                                {report.generated_at ? `Generated ${formatDateTime(report.generated_at)}` : "Ready to download"}
-                                            </div>
-                                        </div>
-                                        <Button size="sm" onClick={handleDownloadReport} disabled={isDownloadingReport}>
-                                            {isDownloadingReport ? "Downloading..." : "Download"}
-                                        </Button>
-                                    </div>
-                                ) : report.status === "failed" ? (
-                                    <p className="text-sm text-brand-alert">Report generation failed{report.error_message ? `: ${report.error_message}` : "."}</p>
-                                ) : (
-                                    <p className="text-sm text-brand-text/70">Report is {formatLabel(report.status)}...</p>
-                                )}
-                            </CardContent>
-                        </Card>
-                    )}
                 </div>
             )}
 
-            <Card className="mt-4 border-brand-panel-border bg-brand-panel">
-                <CardContent>
-                    <h2 className="mb-3 text-sm font-semibold text-brand-text">Engagement Activity</h2>
-                    {activity.length === 0 ? (
-                        <p className="text-sm text-brand-text/70">No recorded activity yet.</p>
-                    ) : (
-                        <div className="space-y-3">
-                            {activity.map((entry) => (
-                                <div key={entry.id} className="flex gap-3">
-                                    <span className="mt-1.5 size-2 shrink-0 rounded-full bg-brand-blue" />
-                                    <div>
-                                        <p className="text-sm text-brand-text">
-                                            {displayName(entry.actor, "System")} · {formatLabel(entry.action)}
-                                        </p>
-                                        <p className="text-[11px] text-brand-text/70">{formatDateTime(entry.created_at)}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
 
-            <div className="mt-4">
-                <Button variant="outline" className={whiteOutlineButtonClass} onClick={() => router.push("/service-delivery/engagements")}>Back to Engagements</Button>
-            </div>
+
 
             {activeAction && (
                 <ServiceDeliveryModal title={ACTION_TITLES[activeAction]} onClose={closeAction}>
@@ -573,19 +585,6 @@ const overview: [string, string][] = [
 
 }
 
-// client info display in party cards
-function PartyCard({ kicker, name, meta, children }: { kicker: string; name: string; meta: string; children?: React.ReactNode }) {
-    return (
-        <div className="rounded-md border border-brand-panel-border bg-brand-panel-deep p-3">
-            <div className="mb-1 text-[10px] tracking-wide text-brand-text/70 uppercase">{kicker}</div>
-            <div className="text-sm font-semibold text-brand-text">{name}</div>
-            <div className="mb-2 text-xs text-brand-text/70">{meta}</div>
-            {children}
-        </div>
-    );
-}
-
-//handles all workflow edit scope ,assign,schedule,cancle,return
 function ActionFormBody({
     kind,
     engagement,
@@ -811,5 +810,94 @@ function FormActions({
             {label}
         </Button>
         </div>
+    );
+}
+
+
+const QUIET_LINK = "inline-flex items-center gap-1.5 rounded-md border border-brand-panel-border px-2.5 py-1 text-xs text-[#cbd5e1] no-underline transition-colors hover:border-brand-cyan/50 hover:text-brand-cyan";
+
+function ContactRow({ role, name, placeholder = "—", needsAction = false, children }: {
+    role: string; name: string | null; placeholder?: string; needsAction?: boolean; children?: React.ReactNode;
+}) {
+    return (
+        <div className="grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3">
+            <span aria-hidden="true" className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-white/[0.06] text-[#94a3b8]">
+                <UserRound className="size-4" />
+            </span>
+            <div className="min-w-0">
+                <dt className="text-[11px] tracking-wide text-[#94a3b8] uppercase">{role}</dt>
+                <dd className="m-0">
+                    {name ? (
+                        <span className="block truncate text-sm font-medium text-brand-text">{name}</span>
+                    ) : needsAction ? (
+                        <span className="mt-0.5 inline-flex items-center gap-1 rounded-full border border-dashed border-brand-orange/60 px-2 py-px text-[11px] text-brand-orange">
+                            <Hourglass className="size-3" /> {placeholder}
+                        </span>
+                    ) : (
+                        <span className="block text-sm text-brand-text/60 italic">{placeholder}</span>
+                    )}
+                    {children && <div className="mt-2 flex flex-wrap gap-2">{children}</div>}
+                </dd>
+            </div>
+        </div>
+    );
+}
+
+function MoreMenu({ onCancel }: { onCancel: () => void }) {
+    const [open, setOpen] = useState(false);
+    return (
+        <div className="relative" onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setOpen(false); }}>
+            <button
+                type="button"
+                onClick={() => setOpen((prev) => !prev)}
+                aria-haspopup="menu"
+                aria-expanded={open}
+                aria-label="More actions"
+                className="grid size-8 cursor-pointer place-items-center rounded-lg border border-brand-panel-border text-brand-text/70 transition-colors hover:border-brand-cyan/50 hover:bg-white/5 hover:text-brand-text"
+            >
+                <MoreHorizontal className="size-4" />
+            </button>
+            {open && (
+                <div role="menu" className="absolute top-full right-0 z-30 mt-1.5 w-48 rounded-lg border border-brand-panel-border bg-[#0b1625] p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.6)]">
+                    <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => { setOpen(false); onCancel(); }}
+                        className="flex w-full items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm text-brand-alert hover:bg-brand-alert/10"
+                    >
+                        <XCircle className="size-4" /> Cancel engagement
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
+
+const FINDING_EDGE: Record<string, string> = {
+    critical: "border-[#ef4444]/45 border-l-[#ef4444]",
+    high: "border-[#f97316]/45 border-l-[#f97316]",
+    medium: "border-[#facc15]/45 border-l-[#facc15]",
+    low: "border-[#3b82f6]/45 border-l-[#3b82f6]",
+    info: "border-[#64748b]/45 border-l-[#64748b]",
+};
+const FINDING_PILL: Record<string, string> = {
+    critical: "border-[#ef4444]/60 bg-[#ef4444]/10 text-[#f87171]",
+    high: "border-[#f97316]/60 bg-[#f97316]/10 text-[#fb923c]",
+    medium: "border-[#facc15]/60 bg-[#facc15]/10 text-[#facc15]",
+    low: "border-[#3b82f6]/60 bg-[#3b82f6]/10 text-[#60a5fa]",
+    info: "border-[#64748b]/60 bg-[#64748b]/10 text-[#94a3b8]",
+};
+const ROW_ACTION = "inline-flex items-center gap-1.5 rounded-md border border-brand-panel-border p-1.5 text-xs text-[#cbd5e1] transition-colors hover:border-brand-cyan/50 hover:text-brand-cyan";
+
+
+function CardHeading({ icon: Icon, color, children, className }: { icon: LucideIcon; color: string; children: React.ReactNode; className?: string }) {
+    return (
+        <h2 className={cn("m-0 flex items-center gap-3 text-lg font-semibold text-brand-text [font-family:inherit]! tracking-normal!", className)}>
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg" style={{ color, backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)` }}>
+                <Icon className="size-5" />
+            </span>
+            {children}
+        </h2>
     );
 }

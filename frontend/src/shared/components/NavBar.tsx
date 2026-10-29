@@ -143,7 +143,7 @@ const navItems = isPentester && (pathName.startsWith("/pentesting") || pathName.
                         >
                             <button
                                 type="submit"
-                                className="nav-link w-full cursor-pointer bg-transparent" text-left
+                                className="nav-link w-full cursor-pointer bg-transparent text-left"
                             >
                                 {item.label}
                             </button>
