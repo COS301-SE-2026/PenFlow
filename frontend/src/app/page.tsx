@@ -1,6 +1,6 @@
 import NavBar from "@/components/NavBar";
 import Image from "next/image";
-import submarineImage from "@/app/images/images/submarine.png";
+import penflowLogo from "@/app/images/images/PenFlow_Logo.png";
 import DangerSection from "@/shared/components/DangerSection";
 import SonarSection from "@/shared/components/SonarSection";
 import SafetySection from "@/shared/components/SafetySection";
@@ -37,8 +37,8 @@ export default function Home() {
             <path d="M0,150 Q220,178 440,150 T880,150 T1320,150 T1440,150 V200 H0 Z" fill="#091628" />
           </svg>
           <Image
-            src={submarineImage}
-            alt="Submarine illustration"
+            src={penflowLogo}
+            alt="PenFlow logo"
             width={200}
             height={125}
             className="submarine"

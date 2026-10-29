@@ -62,6 +62,7 @@ from app.schemas.retest import (
 )
 from app.services.notification_service import NotificationService
 from app.services.report_service import queue_engagement_report_generation
+from app.services.retest_policy import require_retest_window
 from app.utils.audit_transaction import after_commit, audited_operation
 
 
@@ -211,6 +212,8 @@ class EngagementService:
             description=finding.description,
             created_at=finding.created_at,
             asset_identifier=asset_identifier,
+            review_status=finding.review_status,
+            review_note=finding.review_note,
         )
 
 
@@ -747,6 +750,9 @@ class EngagementService:
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Retests can only be requested for a completed engagement.",
             )
+
+        require_retest_window(engagement.scheduled_end_date)
+        
         eligible_findings = await RetestRepository.list_eligible_findings(
             db,
             engagement_id=engagement_id,

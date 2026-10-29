@@ -10,6 +10,7 @@ from app.repositories.engagement_repository import EngagementRepository
 from app.repositories.retest_repository import RetestRepository
 from app.schemas.retest import RetestFindingSummary, RetestListItem, RetestUpdate
 from app.services.notification_service import NotificationService
+from app.services.retest_policy import require_retest_window
 from app.utils.audit_transaction import audited_operation
 
 
@@ -47,6 +48,14 @@ class RetestService:
                 status_code = status.HTTP_404_NOT_FOUND,
                 detail="Retest was not found."
             )
+
+        if engagement.status != EngagementStatus.RETESTING:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Retests can only be updated during the retesting stage.",
+            )
+
+        require_retest_window(engagement.scheduled_end_date)
 
         if request.status in {RetestStatus.RESOLVED, RetestStatus.STILL_VULNERABLE}:
             retest.completed_at = datetime.now(timezone.utc)

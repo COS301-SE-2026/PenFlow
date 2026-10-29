@@ -5,17 +5,23 @@ import
 {
     AlertTriangle,
     ArrowLeft,
-    History,
+    BarChart3,
+    ChevronRight,
+    Filter,
     Play,
     RefreshCw,
+    Search,
+    ShieldAlert,
     ShieldCheck,
 } from "lucide-react";
 
 import { fetch_brand_monitoring, trigger_brand_monitoring } from "@/lib/brandIntelligenceService";
-import type { brand_monitoring } from "@/lib/brandIntelligenceTypes";
+import type { brand_candidate_status, brand_monitoring, brand_risk_level } from "@/lib/brandIntelligenceTypes";
 import { Button } from "@/shared/components/ui/button";
+import { cn } from "@/lib/utils";
 import PageHero from "@/shared/components/PageHero";
 import BrandCandidateList from "./BrandCandidateList";
+import { FIELD, ICON_BADGE, LABEL, PANEL, SECTION_TITLE } from "./brandStyles";
 import { listScanSchedules } from "@/lib/scanScheduleService";
 
 
@@ -25,10 +31,9 @@ interface BrandMonitoringOverviewProps
     domain: string | null;
 }
 
-//timing to poll
 const MONITORING_POLL_MS = 5000;
 const MONITORING_TIMEOUT_MS = 10 * 60 * 1000;
-//monitored states
+const STALE_AFTER_DAYS = 7;
 type monitoring_state =
     | { status: "loading" }
     | { status: "not_configured" }
@@ -36,7 +41,6 @@ type monitoring_state =
     | { status: "error"; message: string };
 
 
-//debugging
 function error_message(error: unknown): string
 {
     if (error instanceof Error)
@@ -46,7 +50,6 @@ function error_message(error: unknown): string
 }
 
 
-//formatted dates
 function format_timestamp(value: string | null): string
 {
     if (!value)
@@ -66,7 +69,23 @@ function format_timestamp(value: string | null): string
     );
 }
 
-//wait between checks so we dont spam the backend while the worker is busy
+function format_date(value: string): string
+{
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime()))
+        return "Unavailable";
+    return date.toLocaleDateString("en-ZA", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function relative_days(value: string): string
+{
+    const days = Math.floor((Date.now() - new Date(value).getTime()) / 86_400_000);
+    if (Number.isNaN(days)) return "Unavailable";
+    if (days < 1) return "Today";
+    if (days === 1) return "Yesterday";
+    return `${days} days ago`;
+}
+
 function wait(milliseconds: number): Promise<void>
 {
     return new Promise((resolve) =>
@@ -76,7 +95,6 @@ function wait(milliseconds: number): Promise<void>
 }
 
 
-//timer to show progress
 function format_elapsed(seconds: number): string
 {
     const minutes = Math.floor(seconds / 60);
@@ -99,7 +117,9 @@ export default function BrandMonitoringOverview
     const [trigger_error, set_trigger_error] = useState<string | null>(null);
     const [trigger_notice, set_trigger_notice] = useState<string | null>(null);
     const [next_scan, set_next_scan] = useState<string | null>(null);
-
+    const [search_query, set_search_query] = useState("");
+    const [risk_filter, set_risk_filter] = useState<brand_risk_level | "all">("all");
+    const [status_filter, set_status_filter] = useState<brand_candidate_status | "all">("all");
 
     useEffect(() =>
     {
@@ -279,6 +299,14 @@ export default function BrandMonitoringOverview
 
 
     const display_domain = domain ?? domainId;
+    const next_run = next_scan ?? (state.status === "ready" ? state.monitoring.next_run_at : null);
+    const last_run_days = state.status === "ready" && state.monitoring.last_run_at
+        ? Math.floor((Date.now() - new Date(state.monitoring.last_run_at).getTime()) / 86_400_000)
+        : null;
+    const monitoring_status: "active" | "paused" | "stale" =
+        state.status === "ready" && !state.monitoring.is_active ? "paused"
+            : !next_run && (last_run_days === null || last_run_days >= STALE_AFTER_DAYS) ? "stale"
+            : "active";
     return (
         <div className="flex flex-col gap-6">
             <PageHero title="BRAND INTELLIGENCE" />
@@ -291,37 +319,6 @@ export default function BrandMonitoringOverview
                     <ArrowLeft className="size-4" />
                     Back to Domains
                 </Link>
-                <div className="flex items-center gap-2">
-
-                    <Button
-                        variant="outline"
-                        disabled={state.status === "loading" || triggering || monitoring_running}
-                        onClick={() => set_refresh_key((current) => current + 1)}
-                    >
-                        <RefreshCw className="size-4" />
-                        Refresh
-                    </Button>
-
-                    <Button
-                        disabled={state.status === "loading" || triggering || monitoring_running}
-                        onClick={() => void handle_trigger_monitoring()}
-                    >
-                        {triggering || monitoring_running? (
-                            <RefreshCw className="size-4 animate-spin" />
-                        ) : (
-                            <Play className="size-4" />
-                        )}
-
-                        {triggering
-                            ? "Starting..."
-                            :monitoring_running
-                                ? `Running ${format_elapsed(run_elapsed)}`
-                                : state.status === "not_configured"
-                                    ? "Start monitoring"
-                                    : "Run monitoring"}
-                    </Button>
-
-                </div>
 
 
             </div>
@@ -350,16 +347,60 @@ export default function BrandMonitoringOverview
             )}
 
 
-            <section className="rounded-lg border border-brand-panel-border bg-brand-panel p-6">
-                <div className="flex items-start gap-2">
-                    <ShieldCheck className="mt-1 size-6 shrink-0 text-brand-cyan" />
-                    <div className="min-w-0">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            Verified domain
-                        </p>
-                        <h2 className="break-all text-xl font-semibold text-foreground">
-                            {display_domain}
-                        </h2>
+
+            <div>
+                <h2 className={SECTION_TITLE}>
+                    Impersonation candidates
+                </h2>
+                <p className="m-0 mt-1.5 text-sm text-muted-foreground">
+                    Domains discovered and scored by the Brand Intelligence engine.
+                </p>
+            </div>
+
+            <section className={cn(PANEL, "max-[650px]:p-3")}>
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-3">
+                        <span className={cn(ICON_BADGE, "size-10 bg-brand-cyan/10 text-brand-cyan")}>
+                            <ShieldCheck className="size-5" />
+                        </span>
+                        <div className="min-w-0">
+                            <p className={LABEL}>Verified domain</p>
+                            <div className="flex flex-wrap items-center gap-2.5">
+                                <h2 className="m-0 truncate text-[28px] text-foreground max-sm:text-lg">{display_domain}</h2>
+                                {state.status === "ready" && <MonitoringStatusPill status={monitoring_status} />}
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+
+                        <Button
+                        variant="outline"
+                        disabled={state.status === "loading" || triggering || monitoring_running}
+                        onClick={() => set_refresh_key((current) => current + 1)}
+                    >
+                        <RefreshCw className="size-4" />
+                        Refresh
+                    </Button>
+
+                        <Button
+                        disabled={state.status === "loading" || triggering || monitoring_running}
+                        onClick={() => void handle_trigger_monitoring()}
+                    >
+                        {triggering || monitoring_running? (
+                            <RefreshCw className="size-4 animate-spin" />
+                        ) : (
+                            <Play className="size-4" />
+                        )}
+
+                        {triggering
+                            ? "Starting..."
+                            :monitoring_running
+                                ? `Running ${format_elapsed(run_elapsed)}`
+                                : state.status === "not_configured"
+                                    ? "Start monitoring"
+                                    : "Run monitoring"}
+                    </Button>
+
                     </div>
                 </div>
 
@@ -375,7 +416,7 @@ export default function BrandMonitoringOverview
 
 
                 {state.status === "not_configured" && (
-                    <div className="mt-6 rounded-lg border border-brand-panel-border bg-brand-panel-deep p-4">
+                    <div className="mt-6 rounded-[10px] border border-brand-panel-border bg-brand-panel-deep p-4">
 
                         <h3 className="font-medium text-foreground">
                             Monitoring not configured
@@ -395,7 +436,7 @@ export default function BrandMonitoringOverview
                 {state.status === "error" && (
                     <div
                         role="alert"
-                        className="mt-6 rounded-lg border border-brand-alert/30 bg-brand-alert/5 p-4"
+                        className="mt-6 rounded-[10px] border border-brand-alert/30 bg-brand-alert/5 p-4"
                     >
 
                         <div className="flex items-center gap-2 text-brand-alert">
@@ -427,74 +468,78 @@ export default function BrandMonitoringOverview
 
 
                 {state.status === "ready" && (
-                    <div className="mt-6 flex flex-col gap-5">
-                        <div className="flex flex-wrap items-center gap-3">
-                            <span className="rounded-full border border-brand-panel-border px-3 py-1 text-xs text-foreground">
-                                {state.monitoring.is_active
-                                    ? "Monitoring active"
-                                    : "Monitoring paused"}
+                    <div className="mt-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 border-t border-brand-panel-border pt-4">
+                    <dl className="m-0 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+                        <Fact label="Monitoring since" title={format_timestamp(state.monitoring.created_at)}>
+                            {format_date(state.monitoring.created_at)}
+                        </Fact>
+                        <Fact label="Last run" title={state.monitoring.last_run_at ? format_timestamp(state.monitoring.last_run_at) : undefined}>
+                            <span className={cn(monitoring_status === "stale" && "font-semibold text-brand-yellow")}>
+                                {state.monitoring.last_run_at ? relative_days(state.monitoring.last_run_at) : "Not run yet"}
                             </span>
+                        </Fact>
+                    </dl>
 
-                            <span className="text-sm text-muted-foreground">
-                                {
-                                    state.monitoring.candidates.filter
-                                    (
-                                        (candidate) =>
-                                            candidate.risk_level === "high" ||
-                                            candidate.risk_level === "critical"
-                                    ).length
-                                } high-risk candidates
-                            </span>
-
-                            <span className="text-sm text-muted-foreground">
-                                {state.monitoring.candidates.length} candidates recorded
-                            </span>
-                        </div>
-
-                        <div className="grid gap-4 sm:grid-cols-2">
-                            <div className="rounded-lg border border-brand-panel-border bg-brand-panel-deep p-4">
-                                <p className="text-xs text-muted-foreground">
-                                    Last completed run
-                                </p>
-                                <p className="mt-1 font-medium text-foreground">
-                                    {state.monitoring.last_run_at
-                                        ? format_timestamp(state.monitoring.last_run_at)
-                                        : "Not run yet"}
-                                </p>
+                        <div className="flex flex-wrap items-center gap-2 max-sm:w-full">
+                            <div className="relative max-sm:flex-1">
+                                <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                                <input
+                                    type="search"
+                                    aria-label="Search candidates"
+                                    value={search_query}
+                                    onChange={(event) => set_search_query(event.target.value)}
+                                    placeholder="Search domains..."
+                                    className={cn(FIELD, "w-64 pr-3 pl-9 max-sm:w-full")}
+                                />
                             </div>
-
-                            <div className="rounded-lg border border-brand-panel-border bg-brand-panel-deep p-4">
-                                <p className="text-xs text-muted-foreground">
-                                    Next scheduled scan
-                                </p>
-
-                                <p className="mt-1 font-medium text-foreground">
-                                    {next_scan
-                                        ? format_timestamp(next_scan)
-                                        : "No scan scheduled"}
-                                </p>
-                                <Link
-                                    href="/scheduled-scans"
-                                    className="mt-2 inline-block text-xs text-brand-cyan hover:underline"
+                            <div className="relative">
+                                <Filter className={cn("pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2", status_filter === "all" ? "text-muted-foreground" : "text-brand-cyan")} />
+                                <select
+                                    aria-label="Filter by status"
+                                    value={status_filter}
+                                    onChange={(event) => set_status_filter(event.target.value as brand_candidate_status | "all")}
+                                    className={cn(
+                                        FIELD, "pr-3 pl-9",
+                                        status_filter !== "all" && "border-brand-cyan/50 text-brand-cyan"
+                                    )}
                                 >
-                                    Manage schedule
-                                </Link>
+                                    <option value="all">All statuses</option>
+                                    <option value="new">New</option>
+                                    <option value="under_review">Under review</option>
+                                    <option value="confirmed_impersonation">Confirmed</option>
+                                    <option value="false_positive">False positive</option>
+                                    <option value="resolved">Resolved</option>
+                                </select>
                             </div>
                         </div>
                     </div>
                 )}
 
+                {state.status === "ready" && state.monitoring.candidates.length > 0 && (
+                    <RiskTiles
+                        candidates={state.monitoring.candidates}
+                        selected={risk_filter}
+                        onSelect={(level) => set_risk_filter((current) => (current === level ? "all" : level))}
+                    />
+                )}
+
             </section>
 
 
-            {/*candidate list stays separate so we can idealy add filtering and investigation later on*/}
             {state.status === "ready" && (
                 <>
-                    <MonitoringHistory
-                        monitoring={state.monitoring}
-                    />
                     <BrandCandidateList
                         candidates={state.monitoring.candidates}
+                        domain={domain}
+                        search={search_query}
+                        risk={risk_filter}
+                        status={status_filter}
+                        onClearFilters={() =>
+                        {
+                            set_search_query("");
+                            set_risk_filter("all");
+                            set_status_filter("all");
+                        }}
                     />
                 </>
             )}
@@ -504,78 +549,86 @@ export default function BrandMonitoringOverview
 }
 
 
-//vague history of the domain for know
-function MonitoringHistory
+const RISK_TILE: Record<brand_risk_level, { label: string; badge: string }> = {
+    critical: { label: "Critical", badge: "bg-brand-alert/10 text-brand-alert" },
+    high: { label: "High", badge: "bg-brand-orange/10 text-brand-orange" },
+    medium: { label: "Medium", badge: "bg-brand-yellow/10 text-brand-yellow" },
+    low: { label: "Low", badge: "bg-brand-success/10 text-brand-success" },
+};
+
+function RiskTiles
 ({
-    monitoring,
+    candidates,
+    selected,
+    onSelect,
 }: {
-    monitoring: brand_monitoring;
+    candidates: { risk_level: brand_risk_level }[];
+    selected: brand_risk_level | "all";
+    onSelect: (level: brand_risk_level | "all") => void;
 })
 {
+    const levels = (["critical", "high", "medium", "low"] as brand_risk_level[])
+        .map((level) => ({ level, count: candidates.filter((candidate) => candidate.risk_level === level).length }))
+        .filter((tile) => tile.count > 0);
+    const tiles = [
+        { key: "all" as const, label: "Total candidates", count: candidates.length, icon: BarChart3, badge: "bg-brand-cyan/10 text-brand-cyan" },
+        ...levels.map((tile) => ({ key: tile.level, label: RISK_TILE[tile.level].label, count: tile.count, icon: ShieldAlert, badge: RISK_TILE[tile.level].badge })),
+    ];
     return (
-        <section className="rounded-lg border border-brand-panel-border bg-brand-panel p-6">
-            <div className="flex items-center gap-2">
-                <History className="size-5 text-brand-cyan" />
-                <div>
-
-                    <h2 className="font-semibold text-foreground">
-                        Monitoring history
-                    </h2>
-                    <p className="text-sm text-muted-foreground">
-                        Current timeline for this verified domain.
-                    </p>
-
-                </div>
-            </div>
-
-            <div className="mt-5 grid gap-3 md:grid-cols-3">
-
-                <HistoryItem
-                    label="Monitoring created"
-                    value={format_timestamp(monitoring.created_at)}
-                />
-
-                <HistoryItem
-                    label="Last completed run"
-                    value={
-                        monitoring.last_run_at
-                            ? format_timestamp(monitoring.last_run_at)
-                            : "Not run yet"
-                    }
-                />
-
-                <HistoryItem
-                    label="Next scheduled run"
-                    value={format_timestamp(monitoring.next_run_at)}
-                />
-
-            </div>
-
-        </section>
+        <div className="mt-4 grid gap-3 sm:grid-cols-[repeat(var(--tiles),minmax(0,1fr))] max-sm:grid-cols-2"
+            style={{ "--tiles": tiles.length } as React.CSSProperties}
+        >
+            {tiles.map((tile) => {
+                const active = selected === tile.key;
+                return (
+                    <button
+                        key={tile.key}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => onSelect(tile.key)}
+                        className={cn(
+                            "group flex items-center gap-3 rounded-[10px] border px-3.5 py-3 text-left transition-colors",
+                            active
+                                ? "border-brand-cyan/40 bg-brand-cyan/[0.05]"
+                                : "border-brand-panel-border bg-transparent hover:border-brand-cyan/40"
+                        )}
+                    >
+                        <span className={cn(ICON_BADGE, tile.badge)}>
+                            <tile.icon className="size-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[11px] font-semibold text-[#cbd5e1] uppercase">{tile.label}</span>
+                            <strong className="mt-1 block text-2xl leading-none text-foreground">{tile.count}</strong>
+                        </span>
+                        <ChevronRight className={cn("size-4 shrink-0 transition-colors", active ? "text-brand-cyan" : "text-muted-foreground group-hover:text-foreground")} />
+                    </button>
+                );
+            })}
+        </div>
     );
 }
 
 
-function HistoryItem
-({
-    label,
-    value,
-}: {
-    label: string;
-    value: string;
-})
+function MonitoringStatusPill({ status }: { status: "active" | "paused" | "stale" })
+{
+    const style = {
+        active: { label: "Monitoring active", pill: "border-brand-success/60 bg-brand-success/10 text-brand-success" },
+        paused: { label: "Monitoring paused", pill: "border-[#334155] bg-[#334155]/10 text-[#94a3b8]" },
+        stale: { label: "Out of date", pill: "border-brand-yellow/60 bg-brand-yellow/10 text-brand-yellow" },
+    }[status];
+    return (
+        <span className={cn("shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase", style.pill)}>
+            {style.label}
+        </span>
+    );
+}
+
+function Fact({ label, title, children }: { label: string; title?: string; children: React.ReactNode })
 {
     return (
-        <div className="rounded-lg border border-brand-panel-border bg-brand-panel-deep p-4">
-
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                {label}
-            </p>
-
-            <p className="mt-2 text-sm font-medium text-foreground">
-                {value}
-            </p>
-
+        <div className="flex items-baseline gap-2" title={title}>
+            <dt className="text-[11px] font-semibold text-[#94a3b8] uppercase">{label}</dt>
+            <dd className="m-0 text-foreground">{children}</dd>
         </div>
     );
 }

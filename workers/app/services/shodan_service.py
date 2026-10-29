@@ -10,6 +10,7 @@ import httpx
 
 # Logger to tell us this file was in error
 logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 SCAN_MODE = os.getenv("SCAN_MODE", "MOCK").upper()
 SHODAN_API_KEY = os.getenv("SHODAN_API_KEY", "fake_key_1234")
@@ -73,8 +74,11 @@ def collect_raw_data(domain: str) -> dict:
                 return {"ip_str": target_ip, "ports": [], "org": "Unknown"}
             res.raise_for_status()
             return res.json()
-        except httpx.HTTPError as e:
-            logger.exception(f"X Shodan API Error: {e}")
+        except httpx.HTTPError as error:
+            logger.error(
+                "Shodan API request failed (%s)",
+                type(error).__name__,
+            )
             return {"error": "API Request Failed"}
 
 

@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 from typing import Any
 
 import boto3
@@ -119,6 +120,42 @@ def _run_local_docker_container(command: list[str], env_vars: dict[str, str]) ->
             detach=True,
         )
         result = container.wait()
+
+        try:
+            output = container.logs(
+                stdout=True,
+                stderr=True,
+                tail=200,
+            ).decode("utf-8", errors="replace")
+
+            for name, value in env_vars.items():
+                if value and (
+                    name.endswith("_API_KEY")
+                    or "SECRET" in name
+                    or "PASSWORD" in name
+                    or "TOKEN" in name
+                ):
+                    output = output.replace(value, "[REDACTED]")
+
+            output = re.sub(
+                r"(?i)([?&](?:key|api_key|token|access_token)=)[^&\s\"']+",
+                r"\1[REDACTED]",
+                output,
+            )
+
+            if output.strip():
+                logger.info(
+                    "Isolated scan job %s exited with status %s:\n%s",
+                    command[3],
+                    result.get("StatusCode"),
+                    output,
+                )
+        except Exception:
+            logger.warning(
+                "Could not collect isolated scan job logs",
+                exc_info=True,
+            )
+
         return result.get("StatusCode") == 0
     except Exception as e:
         logger.error(f"Local Docker dispatch failed: {e}")

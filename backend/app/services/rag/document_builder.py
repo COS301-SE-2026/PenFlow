@@ -3,7 +3,7 @@ from typing import Any
 
 from app.models.finding import Finding
 
-FINDING_DOCUMENT_SCHEMA_VERSION = "finding-privacy-v1"
+FINDING_DOCUMENT_SCHEMA_VERSION = "finding-privacy-v2"
 
 
 def display(value: Any, fallback: str = "Not provided") -> str:

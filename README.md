@@ -1,4 +1,15 @@
 <p align="center">
+  <a href="https://youtu.be/4TdwPAFxwvM">
+    <img
+      src="https://img.youtube.com/vi/4TdwPAFxwvM/maxresdefault.jpg"
+      width="720"
+      alt="Watch the PenFlow trailer on YouTube"
+    />
+  </a>
+  <br/>
+  <sub>▶ Click to watch the PenFlow trailer</sub>
+</p>
+<p align="center">
   <img 
     src="docs/images/penflow_logo.jpeg" 
     width="360" 

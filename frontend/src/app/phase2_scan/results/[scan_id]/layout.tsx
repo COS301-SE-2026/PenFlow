@@ -1,6 +1,5 @@
 import DashboardLayout from "@/shared/components/DashboardLayout";
 import ScanHeader from "../components/ScanHeader";
-import ScanTabs from "../components/ScanTabs";
 import PageHero from "@/shared/components/PageHero";
 
 interface PhaseTwoScanLayoutProps {
@@ -16,9 +15,10 @@ export default async function PhaseTwoScanLayout({
     return (
         <DashboardLayout>
             <div className="min-w-0">
-                <PageHero title="RESULTS" />
+                <div className="max-sm:hidden">
+                    <PageHero title="RESULTS" />
+                </div>
                 <ScanHeader scanId={scan_id} />
-                <ScanTabs scanId={scan_id} />
                 {children}
             </div>
         </DashboardLayout>
