@@ -211,6 +211,8 @@ class EngagementService:
             description=finding.description,
             created_at=finding.created_at,
             asset_identifier=asset_identifier,
+            review_status=finding.review_status,
+            review_note=finding.review_note,
         )
 
 

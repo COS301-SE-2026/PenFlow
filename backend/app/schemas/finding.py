@@ -57,7 +57,8 @@ class FindingListItem(BaseModel):
     description: str | None = None
     created_at: datetime
     asset_identifier: str | None = None
-
+    review_status: str | None = None
+    review_note: str | None = None
     model_config = ConfigDict(from_attributes=True)
 
 class FindingDetail(FindingListItem):
