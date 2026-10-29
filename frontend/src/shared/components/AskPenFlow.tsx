@@ -58,7 +58,21 @@ import {
   assistantActivityLabel,
 } from "@/lib/assistantActivity";
 import AssistantAnswerStateNotice from "./AssistantAnswerStateNotice";
+import { cn } from "@/lib/utils";
 
+const PHONE_QUERY = "(max-width: 639px)";
+
+function useIsPhone(): boolean {
+  const [isPhone, setIsPhone] = useState(false);
+  useEffect(() => {
+    const query = globalThis.matchMedia(PHONE_QUERY);
+    const update = () => setIsPhone(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  return isPhone;
+}
 interface ConversationTurn {
   id: string;
   question: string;
@@ -124,9 +138,12 @@ function AskPenFlowInner() {
   const [highlightedEvidenceKey, setHighlightedEvidenceKey] = useState<string | null>(null);
   const [answerMode, setAnswerMode] = useState<AssistantAnswerMode>("security");
   const [copyStatus, setCopyStatus] = useState<CopyStatus | null>(null);
+  const [launcherExpanded, setLauncherExpanded] = useState(false);
+  const isPhone = useIsPhone();
 
   const conversationEndRef = useRef<HTMLDivElement | null>(null);
   const launcherButtonRef = useRef<HTMLButtonElement | null>(null);
+  const launcherTabRef = useRef<HTMLButtonElement | null>(null);
   const panelRef = useRef<HTMLElement | null>(null);
   const questionInputRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -166,9 +183,47 @@ function AskPenFlowInner() {
     setOpen(false);
 
     globalThis.requestAnimationFrame(() => {
-      launcherButtonRef.current?.focus();
+      if(globalThis.matchMedia(PHONE_QUERY).matches) {
+        launcherTabRef.current?.focus();
+      } else {
+        launcherButtonRef.current?.focus();
+      }
     });
   }, []);
+  useEffect(() => {
+    if(!launcherExpanded) {
+      return;
+    }
+
+    const collapse = () => setLauncherExpanded(false);
+    const handlePointerDown = (event: PointerEvent) => {
+      if(!launcherButtonRef.current?.contains(event.target as Node)) {
+        collapse();
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if(event.key === "Escape") {
+        collapse();
+      }
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    document.addEventListener("scroll", collapse, { capture: true, passive: true });
+    document.addEventListener("keydown", handleKeyDown);
+    launcherButtonRef.current?.focus({ preventScroll: true });
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+      document.removeEventListener("scroll", collapse, { capture: true });
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [launcherExpanded]);
+
+  useEffect(() => {
+    if(!isPhone) {
+      setLauncherExpanded(false);
+    }
+  }, [isPhone]);
 
   useEffect(() => {
     setLoggedIn(hasLoginCookie());
@@ -447,12 +502,27 @@ function AskPenFlowInner() {
   return (
     <>
       {!open && (
-        <button ref={launcherButtonRef} type="button" onClick={() => setOpen(true)} aria-expanded="false" aria-controls="ask-penflow-panel" 
-        className="fixed right-5 bottom-5 z-[80] inline-flex min-h-12 items-center gap-2 rounded-full border border-brand-cyan/40 bg-[#0b1625] px-5 py-3 text-sm font-semibold text-foreground 
-        shadow-[0_12px_40px_rgba(0,0,0,0.5)] transition hover:border-brand-cyan hover:bg-[#102238]">
+        <>
+        <button ref={launcherTabRef} type="button" onClick={() => setLauncherExpanded(true)}
+          aria-label="Show Ask PenFlow" aria-expanded={launcherExpanded} inert={!isPhone || launcherExpanded}
+          className={cn(
+            "fixed right-0 bottom-[calc(1.25rem+var(--ask-penflow-offset,0px))] z-[80] hidden h-12 w-11 place-items-center rounded-l-full border border-r-0 border-brand-cyan/40 bg-[#0b1625] pl-1 text-brand-cyan shadow-[0_12px_40px_rgba(0,0,0,0.5)] transition duration-300 ease-out motion-reduce:transition-none max-sm:grid",
+            launcherExpanded && "translate-x-full opacity-0",
+          )}>
+          <Sparkles aria-hidden="true" size={18} />
+        </button>
+
+        <button ref={launcherButtonRef} type="button" onClick={() => { setLauncherExpanded(false); setOpen(true); }} aria-expanded="false" aria-controls="ask-penflow-panel"
+        inert={isPhone && !launcherExpanded}
+        className={cn(
+          "fixed right-5 bottom-5 z-[80] inline-flex max-sm:bottom-[calc(1.25rem+var(--ask-penflow-offset,0px))] min-h-12 items-center gap-2 rounded-full border border-brand-cyan/40 bg-[#0b1625] px-5 py-3 text-sm font-semibold text-foreground",
+          "shadow-[0_12px_40px_rgba(0,0,0,0.5)] transition duration-300 ease-out hover:border-brand-cyan hover:bg-[#102238] motion-reduce:transition-none",
+          !launcherExpanded && "max-sm:pointer-events-none max-sm:translate-x-[calc(100%+1.5rem)]",
+        )}>
           <Sparkles aria-hidden="true" size={18} className="text-brand-cyan" />
           Ask PenFlow
         </button>
+        </>
       )}
 
       {open && (

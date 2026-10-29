@@ -9,16 +9,17 @@ import
     MapPin,
     Network,
     ShieldCheck,
+    Shuffle,
     X,
 } from "lucide-react";
 import type
 {
     brand_candidate,
     brand_candidate_status,
-    brand_risk_level,
 } from "@/lib/brandIntelligenceTypes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/components/ui/button";
+import { FIELD, ICON_BADGE, LABEL, PANEL, RISK_TAG, SECTION_TITLE, TAG } from "./brandStyles";
 
 
 interface BrandCandidateInvestigationProps
@@ -33,27 +34,16 @@ interface BrandCandidateInvestigationProps
 }
 
 
-//keep the risk colours in one place
-function risk_style(risk: brand_risk_level): string
-{
-    switch (risk)
-    {
-        case "critical":
-            return "border-brand-alert/40 bg-brand-alert/10 text-brand-alert";
-
-        case "high":
-            return "border-brand-orange/40 bg-brand-orange/10 text-brand-orange";
-
-        case "medium":
-            return "border-brand-yellow/40 bg-brand-yellow/10 text-brand-yellow";
-
-        default:
-            return "border-brand-success/40 bg-brand-success/10 text-brand-success";
-    }
-}
+const STATUS_SELECT: Record<brand_candidate_status, string> = {
+    new: "border-brand-cyan/40 text-brand-cyan",
+    under_review: "border-[#a78bfa]/40 text-[#a78bfa]",
+    confirmed_impersonation: "border-brand-alert/40 text-brand-alert",
+    false_positive: "border-brand-panel-border text-muted-foreground",
+    resolved: "border-brand-success/40 text-brand-success",
+};
 
 
-//make the mutation name easier to read
+
 function mutation_label(value?: string): string
 {
     if (!value)
@@ -84,7 +74,6 @@ function format_timestamp(value?: string | null): string
 }
 
 
-//small helper for yes no instances
 function yes_no(value?: boolean): string
 {
     return value ? "Yes" : "No";
@@ -107,7 +96,6 @@ export default function BrandCandidateInvestigation
         useState<string | null>(null);
 
 
-    //save a new review status for this candidate
     async function handle_status_update
     (
         status: brand_candidate_status,
@@ -145,8 +133,8 @@ export default function BrandCandidateInvestigation
     return (
         <section
             className={
-                "overflow-hidden rounded-xl border " +
-                "border-brand-panel-border bg-brand-panel"
+                "overflow-hidden rounded-[10px] border " +
+                "border-brand-panel-border bg-[#050914]"
             }
             aria-label={`Investigation details for ${candidate.candidate_domain}`}
         >
@@ -154,34 +142,31 @@ export default function BrandCandidateInvestigation
             <div
                 className={
                     "flex items-start justify-between gap-4 " +
-                    "border-b border-brand-panel-border " +
-                    "bg-brand-panel-deep/40 p-5"
+                    "border-b border-brand-panel-border p-5"
                 }
             >
 
                 <div>
 
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <p className={LABEL}>
                         Candidate investigation
                     </p>
 
                     <div className="mt-2 flex flex-wrap items-center gap-3">
 
-                        <h3 className="break-all text-xl font-semibold text-foreground">
+                        <h3 className="m-0 break-all text-[28px] text-foreground max-sm:text-lg">
                             {candidate.candidate_domain}
                         </h3>
 
                         <span
-                            className={cn(
-                                "inline-flex rounded-full border px-2 py-1 text-xs font-medium uppercase",
-                                risk_style(candidate.risk_level)
-                            )}
+                            className={cn(TAG, RISK_TAG[candidate.risk_level])}
                         >
                             {candidate.risk_level}
                         </span>
 
-                        <span className="font-mono text-sm text-foreground">
-                            {candidate.risk_score}/100
+                        <span className="tabular-nums">
+                            <strong className="text-xl text-foreground">{candidate.risk_score}</strong>
+                            <span className="text-[12px] text-muted-foreground">/100</span>
                         </span>
 
                     </div>
@@ -206,15 +191,15 @@ export default function BrandCandidateInvestigation
 
             <div className="border-b border-brand-panel-border p-5">
 
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
                     <div>
 
-                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        <p className={LABEL}>
                             Review status
                         </p>
 
-                        <p className="mt-1 text-sm text-muted-foreground">
+                        <p className="m-0 mt-1 text-[11px] text-[#94a3b8]">
                             Record the analyst decision for this candidate.
                         </p>
 
@@ -232,13 +217,10 @@ export default function BrandCandidateInvestigation
                                     event.target.value as brand_candidate_status
                                 )
                             }
-                            className={
-                                "h-10 w-full rounded-md border " +
-                                "border-brand-panel-border bg-brand-panel-deep " +
-                                "px-3 text-sm text-foreground outline-none " +
-                                "focus:border-brand-cyan " +
-                                "disabled:cursor-not-allowed disabled:opacity-60"
-                            }
+                            className={cn(
+                                FIELD, "w-full px-3 font-medium disabled:cursor-not-allowed disabled:opacity-60",
+                                STATUS_SELECT[candidate.status]
+                            )}
                         >
                             <option value="new">
                                 New
@@ -284,36 +266,74 @@ export default function BrandCandidateInvestigation
 
             </div>
 
-            <div className="grid gap-5 p-5 xl:grid-cols-2">
+            <div className="grid gap-3.5 border-b border-brand-panel-border p-5 md:grid-cols-2 xl:grid-cols-4">
 
-                <div className="flex flex-col gap-5">
+                <EvidenceSummary
+                    icon={<Globe2 className="size-4" />}
+                    label="Registered"
+                    color="#a78bfa"
+                    value={format_timestamp(signals?.creation_date)}
+                />
 
-                    <div className="rounded-lg border border-brand-panel-border bg-brand-panel-deep p-4">
+                <EvidenceSummary
+                    icon={<ShieldCheck className="size-4" />}
+                    label="Domain age"
+                    color="#facc15"
+                    value={
+                        signals?.days_old !== null &&
+                        signals?.days_old !== undefined
+                            ? `${signals.days_old} days`
+                            : "Unavailable"
+                    }
+                />
 
-                        <div className="flex items-center gap-2">
+                <EvidenceSummary
+                    icon={<MapPin className="size-4" />}
+                    label="Location"
+                    color="#f472b6"
+                    value={signals?.geo_location ?? "Unavailable"}
+                />
 
-                            <ShieldCheck className="size-4 text-brand-cyan" />
+                <EvidenceSummary
+                    icon={<Network className="size-4" />}
+                    label="ISP"
+                    color="#4ade80"
+                    value={signals?.isp ?? "Unavailable"}
+                />
 
-                            <h4 className="font-medium text-foreground">
+            </div>
+
+
+            <div className="grid gap-3.5 p-5 xl:grid-cols-2">
+
+                <div className="flex flex-col gap-3.5">
+
+                    <div className={PANEL}>
+
+                        <div className="flex items-center gap-2.5">
+
+                            <SectionIcon icon={ShieldCheck} />
+
+                            <h3 className={SECTION_TITLE}>
                                 Why PenFlow flagged this domain
-                            </h4>
+                            </h3>
 
                         </div>
 
 
                         {reasons.length === 0 ? (
-                            <p className="mt-3 text-sm text-muted-foreground">
+                            <p className="m-0 mt-4 text-xs text-muted-foreground">
                                 No scoring reasons were returned for this candidate.
                             </p>
                         ) : (
-                            <ul className="mt-3 flex flex-col gap-2">
+                            <ul className="m-0 mt-4 flex list-none flex-col gap-2.5 p-0">
 
                                 {reasons.map((reason, index) => (
                                     <li
                                         key={`${candidate.id}-reason-${index}`}
-                                        className="flex gap-2 text-sm text-muted-foreground"
+                                        className="flex gap-2.5 text-sm leading-relaxed text-[#cbd5e1]"
                                     >
-                                        <span className="mt-2 size-1.5 shrink-0 rounded-full bg-brand-cyan" />
+                                        <span className="mt-[0.55rem] size-1.5 shrink-0 rounded-full bg-brand-cyan" />
                                         <span>{reason}</span>
                                     </li>
                                 ))}
@@ -324,13 +344,19 @@ export default function BrandCandidateInvestigation
                     </div>
 
 
-                    <div className="rounded-lg border border-brand-panel-border bg-brand-panel-deep p-4">
+                    <div className={cn(PANEL, "flex-1")}>
 
-                        <h4 className="font-medium text-foreground">
-                            Domain mutation
-                        </h4>
+                        <div className="flex items-center gap-2.5">
 
-                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                            <SectionIcon icon={Shuffle} />
+
+                            <h3 className={SECTION_TITLE}>
+                                Domain mutation
+                            </h3>
+
+                        </div>
+
+                        <div className="mt-4 grid gap-4 sm:grid-cols-2">
 
                             <EvidenceValue
                                 label="Mutation type"
@@ -349,13 +375,13 @@ export default function BrandCandidateInvestigation
 
 
                         {mutation?.mutation_detail && (
-                            <div className="mt-3">
+                            <div className="mt-4">
 
-                                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                <p className={LABEL}>
                                     Mutation detail
                                 </p>
 
-                                <p className="mt-1 text-sm text-foreground">
+                                <p className="m-0 mt-1 text-sm text-foreground">
                                     {mutation.mutation_detail}
                                 </p>
 
@@ -367,31 +393,33 @@ export default function BrandCandidateInvestigation
                 </div>
 
 
-                <div className="flex flex-col gap-5">
+                <div className="flex flex-col gap-3.5">
 
-                    <div className="rounded-lg border border-brand-panel-border bg-brand-panel-deep p-4">
+                    <div className={PANEL}>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5">
 
-                            <Network className="size-4 text-brand-cyan" />
+                            <SectionIcon icon={Network} />
 
-                            <h4 className="font-medium text-foreground">
+                            <h3 className={SECTION_TITLE}>
                                 Network evidence
-                            </h4>
+                            </h3>
 
                         </div>
 
 
-                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <div className="mt-4 grid gap-4 sm:grid-cols-2">
 
                             <EvidenceValue
                                 label="DNS resolves"
                                 value={yes_no(signals?.is_resolvable)}
+                                flag={signals?.is_resolvable}
                             />
 
                             <EvidenceValue
                                 label="HTTPS / TLS"
                                 value={yes_no(signals?.has_tls)}
+                                flag={signals?.has_tls}
                             />
 
                         </div>
@@ -403,32 +431,35 @@ export default function BrandCandidateInvestigation
                         />
 
 
-                        <EvidenceValue
-                            label="TLS issuer"
-                            value={signals?.tls_issuer ?? "Unavailable"}
-                        />
+                        <div className="mt-4">
+                            <EvidenceValue
+                                label="TLS issuer"
+                                value={signals?.tls_issuer ?? "Unavailable"}
+                            />
+                        </div>
 
                     </div>
 
 
-                    <div className="rounded-lg border border-brand-panel-border bg-brand-panel-deep p-4">
+                    <div className={cn(PANEL, "flex-1")}>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2.5">
 
-                            <Mail className="size-4 text-brand-cyan" />
+                            <SectionIcon icon={Mail} />
 
-                            <h4 className="font-medium text-foreground">
+                            <h3 className={SECTION_TITLE}>
                                 Email evidence
-                            </h4>
+                            </h3>
 
                         </div>
 
 
-                        <div className="mt-3">
+                        <div className="mt-4">
 
                             <EvidenceValue
                                 label="MX configured"
                                 value={yes_no(signals?.has_mx)}
+                                flag={signals?.has_mx}
                             />
 
                             <EvidenceList
@@ -445,40 +476,19 @@ export default function BrandCandidateInvestigation
             </div>
 
 
-            <div className="grid gap-4 border-t border-brand-panel-border p-5 md:grid-cols-2 xl:grid-cols-4">
-
-                <EvidenceSummary
-                    icon={<Globe2 className="size-4" />}
-                    label="Registered"
-                    value={format_timestamp(signals?.creation_date)}
-                />
-
-                <EvidenceSummary
-                    icon={<ShieldCheck className="size-4" />}
-                    label="Domain age"
-                    value={
-                        signals?.days_old !== null &&
-                        signals?.days_old !== undefined
-                            ? `${signals.days_old} days`
-                            : "Unavailable"
-                    }
-                />
-
-                <EvidenceSummary
-                    icon={<MapPin className="size-4" />}
-                    label="Location"
-                    value={signals?.geo_location ?? "Unavailable"}
-                />
-
-                <EvidenceSummary
-                    icon={<Network className="size-4" />}
-                    label="ISP"
-                    value={signals?.isp ?? "Unavailable"}
-                />
-
-            </div>
 
         </section>
+    );
+}
+
+
+
+function SectionIcon({ icon: Icon }: { icon: typeof ShieldCheck })
+{
+    return (
+        <span className={cn(ICON_BADGE, "bg-brand-cyan/10 text-brand-cyan")}>
+            <Icon className="size-4" />
+        </span>
     );
 }
 
@@ -487,21 +497,35 @@ function EvidenceValue
 ({
     label,
     value,
+    flag,
 }: {
     label: string;
     value: string;
+    flag?: boolean;
 })
 {
+    const missing = value === "Unavailable";
     return (
         <div>
 
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            <p className={LABEL}>
                 {label}
             </p>
 
-            <p className="mt-1 break-words text-sm text-foreground">
-                {value}
-            </p>
+            {flag !== undefined || value === "Yes" || value === "No" ? (
+                <span
+                    className={cn(
+                        TAG, "mt-1.5",
+                        value === "Yes" ? "border-[#991b1b] bg-brand-alert/10 text-brand-alert" : "border-[#334155] bg-[#334155]/10 text-[#94a3b8]"
+                    )}
+                >
+                    {value}
+                </span>
+            ) : (
+                <p className={cn("m-0 mt-1 break-words text-sm", missing ? "text-muted-foreground" : "text-foreground")}>
+                    {value}
+                </p>
+            )}
 
         </div>
     );
@@ -518,14 +542,14 @@ function EvidenceList
 })
 {
     return (
-        <div className="mt-3">
+        <div className="mt-4">
 
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            <p className={LABEL}>
                 {label}
             </p>
 
             {!values || values.length === 0 ? (
-                <p className="mt-1 text-sm text-muted-foreground">
+                <p className="m-0 mt-1 text-sm text-muted-foreground">
                     None observed
                 </p>
             ) : (
@@ -534,7 +558,7 @@ function EvidenceList
                     {values.map((value) => (
                         <span
                             key={value}
-                            className="rounded-md border border-brand-panel-border px-2 py-1 font-mono text-xs text-foreground"
+                            className="rounded-[4px] border border-[#26364e] px-1.5 py-0.5 font-mono text-[11px] text-[#9eacbd]"
                         >
                             {value}
                         </span>
@@ -553,26 +577,33 @@ function EvidenceSummary
     icon,
     label,
     value,
+    color,
 }: {
     icon: ReactNode;
     label: string;
     value: string;
+    color: string;
 })
 {
     return (
-        <div className="rounded-lg border border-brand-panel-border bg-brand-panel-deep p-3">
+        <div className={cn(PANEL, "flex items-center gap-3")}>
 
-            <div className="flex items-center gap-2 text-brand-cyan">
+            <span
+                className={ICON_BADGE}
+                style={{ color, backgroundColor: `color-mix(in srgb, ${color} 12%, transparent)` }}
+            >
                 {icon}
+            </span>
 
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            <div className="min-w-0">
+                <p className={LABEL}>
                     {label}
                 </p>
-            </div>
 
-            <p className="mt-2 break-words text-sm text-foreground">
-                {value}
-            </p>
+                <p className={cn("m-0 mt-0.5 break-words text-sm font-medium", value === "Unavailable" ? "text-muted-foreground" : "text-foreground")}>
+                    {value}
+                </p>
+            </div>
 
         </div>
     );

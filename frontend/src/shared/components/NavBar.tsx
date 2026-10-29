@@ -6,8 +6,10 @@ import Image from "next/image";
 import { usePathname} from "next/navigation";
 import penflowLogo from "@/app/images/images/PenFlow Logo.png";
 import { useEffect, useState } from "react";
+import { Menu, X } from "lucide-react";
 import { getHelpTopics } from "../helpContext";
 import type { HelpTopic } from "../helpContext";
+import { useIsMobileNav } from "../hooks/useIsMobileNav";
 import HelpTopicModal from "./HelpTopicModal";
 import NotificationMenu from "./NotificationMenu";
 
@@ -23,14 +25,6 @@ type NavItem =
   | { label: string; kind: "help"};
 
 
-   const pentestingNavItems: NavItem[] = [
-    {label: "Home", href: "/", kind: "link"},
-    { label: "Engagements Request", href: "/engagement_request", kind: "link"},
-    {label: "Live Engagement", href: "/pentesting/engagement", kind: "link"},
-    { label: "Messages", href: "/pentesting/messages", kind: "link" },
-    { label: "Help", kind: "help"},
-    { label: "Logout", href: "/api/auth/logout", kind: "external"},
-  ]
 
   const pentesterConsoleNavItems: NavItem[] = [
     //{ label: "Home", href: "/", kind: "link"},
@@ -45,6 +39,8 @@ export default function NavBar() {
   const [loggedIn,setLoggedIn] = useState(false);
   const [role, setRole] = useState<string | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const isMobileNav = useIsMobileNav();
   const pathName = usePathname();
   const HelpTopics = getHelpTopics(pathName);
   const [activeTopic, setActiveTopic] = useState<HelpTopic | null>(null);
@@ -60,7 +56,25 @@ export default function NavBar() {
     { label: "Scheduled Scans", href: "/scheduled-scans", kind: "link"},
     { label: "Scan History", href: "/history", kind: "link"},
     //{ label: "Settings", href: "/settings", kind: "link"},
-    { label: "Pentesting", href: isPentester ? "/pentesting/console/my-engagements": "/pentesting/engagement", kind: "link"},
+    ...(isPentester
+      ? [{
+          label: "Pentesting",
+          href: "/pentesting/console/my-engagements",
+          kind: "link" as const,
+        }]
+      : [
+          {
+            label: "Engagement Request",
+            href: "/engagement_request",
+            kind: "link" as const,
+          },
+          {
+            label: "Live Engagement",
+            href: "/pentesting/engagement",
+            kind: "link" as const,
+          },
+        ]),
+
     ...(role === "client"
       ? [{
           label: "Messages",
@@ -75,16 +89,17 @@ export default function NavBar() {
   ];
 
 const navItems = (
-  pathName.startsWith("/pentesting") ||
-  pathName.startsWith("/engagement_request")
-    ? (isPentester ? pentesterConsoleNavItems : pentestingNavItems)
+  isPentester && (
+    pathName.startsWith("/pentesting") ||
+    pathName.startsWith("/engagement_request")
+  )
+    ? pentesterConsoleNavItems
     : loggedInNavItems
 ).filter(
   (item) =>
     item.kind !== "link" ||
     canVisitPage(item.href, role),
 );
-
   useEffect(() => {
     const loggedInNow = isLoggedIn();
     setLoggedIn (loggedInNow);
@@ -95,10 +110,38 @@ const navItems = (
       .catch(() => setRole(null));
     }
   }, []);
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [pathName]);
 
   return (
     <>
     <nav className = "topbar">
+      <button
+        type="button"
+        className="hamburgerBtn"
+        aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
+        aria-expanded={mobileNavOpen}
+        onClick={() => setMobileNavOpen((open) => !open)}
+      >
+        {mobileNavOpen ? <X size={22} /> : <Menu size={22} />}
+      </button>
+
+      {loggedIn && isMobileNav && (
+        <div className="mobileTopbarBell">
+          <NotificationMenu />
+        </div>
+      )}
+
+      {mobileNavOpen && (
+        <div
+          className="navOverlay"
+          onClick={() => setMobileNavOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <div className={`navDrawer${mobileNavOpen ? " navDrawerOpen" : ""}`}>
       <div className={`navFlip${helpOpen? " navFlipped": ""}`}>
         <div className="navFace navFaceFront">
           <div className="logoPanel">
@@ -112,10 +155,11 @@ const navItems = (
 
       {loggedIn ? (
         <ul className = "topnav-list">
-          <li>
-            <NotificationMenu />
-          </li>
-          
+          {!isMobileNav && (
+            <li>
+              <NotificationMenu />
+            </li>
+          )}
           {navItems.map((item) => {
             if (
                 item.kind === "external"
@@ -243,6 +287,7 @@ const navItems = (
         <p className="helpEmpty">No help topics for this page.</p>
       )}
 
+    </div>
     </div>
     </div>
     </nav>

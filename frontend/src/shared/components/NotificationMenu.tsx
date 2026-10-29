@@ -140,7 +140,10 @@ export default function NotificationMenu() {
             </button>
 
             {open && (
-                <div id={panelId} className="absolute left-full top-0 z-[100] ml-3 w-96 rounded-xl border border-brand-panel-border bg-brand-panel text-slate-100 shadow-xl">
+                    <div
+                        id={panelId}
+                        className="fixed left-3 right-3 top-[64px] z-[100] rounded-xl border border-brand-panel-border bg-brand-panel text-slate-100 shadow-xl min-[901px]:absolute min-[901px]:left-full min-[901px]:right-auto min-[901px]:top-0 min-[901px]:ml-3 min-[901px]:w-96"
+                    >
                     <div className="flex items-center justify-between border-b border-brand-panel-border p-4">
                         <h2>Notifications</h2>
 

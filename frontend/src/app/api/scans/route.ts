@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import {
     fetchPublicScansApi,
@@ -10,8 +10,17 @@ import {
     rateLimitResponseHeaders,
 } from "@/lib/clientIpForwarding";
 
-export async function GET() {
-    return proxyToScansApi("/");
+// list paging/filter params passed through to the backend (without them it returns only 10 scans)
+const LIST_PARAMS = ["limit", "offset", "scan_status"];
+
+export async function GET(req: NextRequest) {
+    const forwarded = new URLSearchParams();
+    for (const key of LIST_PARAMS) {
+        const value = req.nextUrl.searchParams.get(key);
+        if (value !== null) forwarded.set(key, value);
+    }
+    const query = forwarded.toString();
+    return proxyToScansApi(query ? `/?${query}` : "/");
 }
 
 export async function POST(req: Request) {

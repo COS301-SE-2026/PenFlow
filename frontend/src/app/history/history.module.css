@@ -12,32 +12,22 @@
 }
 
 .heroTextWrap {
-  padding: 48px 60px 0;
+  padding: 28px 32px 0;
 }
 
 .heroTextWrap h1 {
   margin: 0;
-  font-size: clamp(3rem, 7vw, 8rem);
+  font-size: clamp(2rem, 4.5vw, 3.5rem);
   line-height: 0.92;
   color: #0a1628;
-  text-align: right;
+  text-align: left;
 }
 
 .waterline {
   position: relative;
-  height: 200px;
+  height: 110px;
   width: 100%;
   overflow: hidden;
-}
-
-.submarine {
-  position: absolute;
-  left: 0;
-  bottom: 18px;
-  z-index: 5;
-  width: clamp(182px, 22vw, 280px);
-  height: auto;
-  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.45));
 }
 
 .content {
@@ -260,7 +250,7 @@
   }
 
   .heroTextWrap {
-    padding: 32px 20px 0;
+    padding: 28px 20px 0;
   }
 
   .content {
@@ -270,6 +260,12 @@
   .table th,
   .table td {
     padding: 10px 10px;
+  }
+
+  .modal {
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-width: calc(100vw - 40px);
   }
 
 }

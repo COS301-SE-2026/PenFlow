@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { Menu, X } from "lucide-react";
 import penflowLogo from "@/app/images/images/PenFlow Logo.png";
 import {listConversations } from "@/lib/serviceDeliveryService";
+import { useIsMobileNav } from "../hooks/useIsMobileNav";
 import NotificationMenu from "./NotificationMenu";
 
 type ServiceDeliveryNavItem = 
@@ -25,6 +27,8 @@ const serviceDeliveryNavItems: ServiceDeliveryNavItem[] = [
 export default function ServiceDeliverySidebar() {
     const pathName = usePathname();
     const [badges, setBadges] = useState<Record<string, number>>({});
+    const [mobileNavOpen, setMobileNavOpen] = useState(false);
+    const isMobileNav = useIsMobileNav();
 
     useEffect(() => {
         let active = true;
@@ -66,8 +70,36 @@ export default function ServiceDeliverySidebar() {
             window.removeEventListener(MESSAGES_UPDATED_EVENT, onUpdate);
         };
     }, []);
+    useEffect(() => {
+        setMobileNavOpen(false);
+    }, [pathName]);
      return (
         <nav className="topbar">
+            <button
+                type="button"
+                className="hamburgerBtn"
+                aria-label={mobileNavOpen ? "Close navigation menu" : "Open navigation menu"}
+                aria-expanded={mobileNavOpen}
+                onClick={() => setMobileNavOpen((open) => !open)}
+            >
+                {mobileNavOpen ? <X size={22} /> : <Menu size={22} />}
+            </button>
+
+            {isMobileNav && (
+                <div className="mobileTopbarBell">
+                    <NotificationMenu />
+                </div>
+            )}
+
+            {mobileNavOpen && (
+                <div
+                    className="navOverlay"
+                    onClick={() => setMobileNavOpen(false)}
+                    aria-hidden="true"
+                />
+            )}
+
+            <div className={`navDrawer${mobileNavOpen ? " navDrawerOpen" : ""}`}>
           <div className="logoPanel">
             <Image
               src={penflowLogo}
@@ -78,9 +110,11 @@ export default function ServiceDeliverySidebar() {
           </div>            
 
             <ul className="topnav-list">
-                <li>
-                    <NotificationMenu />
-                </li>
+                {!isMobileNav && (
+                    <li>
+                        <NotificationMenu />
+                    </li>
+                )}
                  {serviceDeliveryNavItems.map((item) => {
                     const isActive = pathName === item.href || pathName.startsWith(`${item.href}/`);
                     const badge = badges[item.label];
@@ -138,8 +172,7 @@ export default function ServiceDeliverySidebar() {
 
 
             </ul>
-
-            
+            </div>
         </nav>
      );
 }

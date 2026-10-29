@@ -211,16 +211,17 @@
 }
 
 .viewReportButton[data-ready="true"] {
-  background: linear-gradient(135deg, #c03428, #9a2820);
-  border-color: rgba(220, 64, 64, 0.5);
-  color: var(--col-text);
+  background: linear-gradient(135deg, #2bd8f5, #18a9c4);
+  border-color: rgba(43, 216, 245, 0.6);
+  color: #04121f;
   cursor: pointer;
   opacity: 1;
+  box-shadow: 0 0 18px rgba(43, 216, 245, 0.3);
 }
 
 .viewReportButton[data-ready="true"]:hover {
-  background: rgba(255, 95, 78, 0.14);
-  box-shadow: 0 0 18px rgba(255, 95, 78, 0.2);
+  background: linear-gradient(135deg, #5ce3f8, #2bd8f5);
+  box-shadow: 0 0 24px rgba(43, 216, 245, 0.45);
   transform: translateY(-1px);
 }
 
@@ -326,5 +327,233 @@
 
   .scanNowButton {
     height: 72px;
+  }
+}
+.crPanel {
+  background: linear-gradient(135deg, #0d1e36, #091829);
+  border: 1px solid var(--col-edge);
+  border-radius: 16px;
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 18px;
+  box-shadow: 0 4px 20px rgba(0, 8, 24, 0.5);
+}
+
+.crRadarWrap {
+  position: relative;
+  width: min(310px, 75vw);
+  aspect-ratio: 1;
+}
+
+.crScope {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid rgba(43, 180, 220, 0.35);
+  background: radial-gradient(circle, #0d2e26 0%, #071a14 100%);
+  overflow: hidden;
+  box-shadow:
+    0 0 32px rgba(43, 216, 245, 0.08),
+    inset 0 0 32px rgba(0, 0, 0, 0.5);
+}
+
+.crGrid {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.crGrid circle,
+.crGrid line {
+  fill: none;
+  stroke: rgba(43, 216, 245, 0.16);
+  stroke-width: 0.35;
+}
+
+.crGrid .crTickMajor {
+  stroke: rgba(43, 216, 245, 0.45);
+  stroke-width: 0.5;
+}
+
+.crSweep {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(43, 216, 245, 0) 0deg,
+    rgba(43, 216, 245, 0) 270deg,
+    rgba(43, 216, 245, 0.06) 300deg,
+    rgba(43, 216, 245, 0.45) 360deg
+  );
+  will-change: transform;
+}
+
+.crIdleBlip,
+.crSourceBlip {
+  position: absolute;
+  translate: -50% -50%;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.crIdleBlip {
+  width: 6px;
+  height: 6px;
+  background: var(--col-cyan);
+  box-shadow: 0 0 8px var(--col-cyan);
+  opacity: 0;
+}
+
+.crSourceBlip {
+  width: 10px;
+  height: 10px;
+  background: currentColor;
+  box-shadow: 0 0 12px currentColor;
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+.crSourceBlip[data-visible="true"] {
+  opacity: 0.55;
+}
+
+.crBlipRing {
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  animation: crRingOut 1.4s ease-out both;
+}
+
+@keyframes crRingOut {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(5); opacity: 0; }
+}
+
+.crCentre {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.crPercent {
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  letter-spacing: 0.04em;
+  color: var(--col-text);
+  text-shadow: 0 0 12px rgba(43, 216, 245, 0.6);
+}
+
+.crElapsed {
+  margin-top: 2px;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  color: var(--col-muted);
+}
+
+.crStatus {
+  margin: 0;
+  font-family: var(--font-display), Impact, sans-serif;
+  font-size: clamp(1rem, 1.6vw, 1.25rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--col-muted);
+  transition: color 300ms ease;
+}
+
+.crStatus[data-tone="active"] {
+  color: var(--col-cyan);
+}
+
+.crStatus[data-tone="done"] {
+  color: var(--col-success);
+}
+
+.crChips {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: minmax(44px, 1fr);
+  gap: 10px;
+  flex: 1;
+}
+
+.crChip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--col-edge);
+  border-radius: 8px;
+  background: rgba(16, 36, 72, 0.8);
+  font-family: var(--font-display), "Courier New", monospace;
+  font-size: clamp(0.85rem, 1.25vw, 1.1rem);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(122, 170, 200, 0.45);
+  transition: color 300ms ease, border-color 300ms ease, background 300ms ease, box-shadow 300ms ease;
+}
+
+.crChipIcon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.crChipIcon[data-spin="true"] {
+  animation: crSpin 0.9s linear infinite;
+}
+
+@keyframes crSpin {
+  to { transform: rotate(360deg); }
+}
+
+.crChip[data-status="running"] {
+  color: var(--col-cyan);
+  border-color: rgba(43, 216, 245, 0.7);
+  background: rgba(43, 216, 245, 0.08);
+  animation: crChipPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes crChipPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(43, 216, 245, 0); }
+  50% { box-shadow: 0 0 16px 1px rgba(43, 216, 245, 0.35); }
+}
+
+.crChip[data-status="done"] {
+  color: var(--col-success);
+  border-color: rgba(74, 222, 128, 0.45);
+  background: rgba(74, 222, 128, 0.07);
+}
+
+.crChip[data-status="failed"] {
+  color: var(--col-alert);
+  border-color: rgba(255, 95, 78, 0.5);
+  background: rgba(255, 95, 78, 0.07);
+}
+
+.scanStatus[data-tone="error"] {
+  color: var(--col-alert);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crBlipRing,
+  .crChip[data-status="running"],
+  .crChipIcon[data-spin="true"] {
+    animation: none;
   }
 }
