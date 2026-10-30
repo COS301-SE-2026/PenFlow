@@ -9,6 +9,11 @@
   <br/>
   <sub>▶ Click to watch the PenFlow trailer</sub>
 </p>
+
+<p align="center">
+  <sub>📹 <a href="docs/cos301video.mp4">Watch the full demo recording</a></sub>
+</p>
+
 <p align="center">
   <img 
     src="docs/images/penflow_logo.jpeg" 
@@ -59,9 +64,6 @@
 <p align="center">
   <a href="https://github.com/COS301-SE-2026/PenFlow/actions">
     <img alt="Build" src="https://img.shields.io/github/actions/workflow/status/COS301-SE-2026/PenFlow/ci.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white" />
-  </a>
-  <a href="https://stats.uptimerobot.com/bss8arWOgX">
-    <img alt="Uptime" src="https://badge.uptimerobot.com/psp/e7b86e5f665e2ce069ae0d24b319156b.svg?style=logo&theme=dark" />
   </a>
   <a href="https://stats.uptimerobot.com/bss8arWOgX">
     <img alt="Uptime" src="https://badge.uptimerobot.com/psp/e7b86e5f665e2ce069ae0d24b319156b.svg?style=logo&theme=dark" />
