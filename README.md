@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <sub>📹 <a href="docs/cos301video.mp4">Watch the full demo recording</a></sub>
+  <sub>📹 <a href="cos301video.mp4">Watch the full demo recording</a></sub>
 </p>
 
 <p align="center">
